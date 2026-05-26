@@ -171,14 +171,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <option value="">Ilce Secin</option>
     </select>
     <button class="btn btn-ghost btn-sm" onclick="hepsiniSec()">Tumunu Sec</button>
-    <button class="btn btn-blue btn-sm" onclick="hesaplaRota()">🔄 Hesapla</button>
   </div>
   <div id="r-list" class="rlist">
     <div class="empty"><div class="ico">🗺️</div><p>Rota icin ilce secin</p></div>
   </div>
-  <div id="rmap"></div>
-  <div class="rsteps" id="r-steps"></div>
-  <div class="ract" id="r-act"></div>
+  <div class="ract" id="r-act" style="padding:12px;display:none">
+    <button class="btn btn-green btn-full" onclick="mapsAc()" style="padding:15px;font-size:15px">
+      🗺️ Google Maps'te Ac
+    </button>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px">
+      Google Maps acildiktan sonra "Rotayi optimize et" secenegini kullanabilirsiniz.
+    </p>
+  </div>
 </div>
 
 <button class="fab" id="fab" onclick="acEkle()">+</button>
@@ -341,7 +345,6 @@ var db = [];
 var editId = null;
 var detId = null;
 var rmap = null;
-var mapsUrl = null;
 var ntimer = null;
 
 try { db = JSON.parse(localStorage.getItem('crm') || '[]'); } catch(e) { db = []; }
@@ -615,10 +618,7 @@ function ovKapat(e, id, fn) {
 function loadRota() {
   var ilce = el('r-ilce').value;
   var rl = el('r-list');
-  el('r-steps').innerHTML = '';
-  el('r-act').innerHTML = '';
-  el('rmap').style.display = 'none';
-  mapsUrl = null;
+  el('r-act').style.display = 'none';
 
   if (!ilce) {
     rl.innerHTML = '<div class="empty"><div class="ico">🗺️</div><p>Rota icin ilce secin</p></div>';
@@ -650,6 +650,8 @@ function togRI(id) {
   var cb = el('rc'+id), ri = el('ri'+id);
   cb.checked = !cb.checked;
   ri.className = 'ri' + (cb.checked ? ' on' : '');
+  var herhangi = document.querySelectorAll('[id^="rc"]:checked').length > 0;
+  el('r-act').style.display = herhangi ? 'block' : 'none';
 }
 
 function hepsiniSec() {
@@ -661,30 +663,10 @@ function hepsiniSec() {
     var rid = cbs[i].id.replace('rc','');
     el('ri'+rid).className = 'ri' + (!allOn ? ' on' : '');
   }
+  el('r-act').style.display = !allOn ? 'block' : 'none';
 }
 
-function haversine(lt1,ln1,lt2,ln2) {
-  var R=6371, d1=(lt2-lt1)*Math.PI/180, d2=(ln2-ln1)*Math.PI/180;
-  var a=Math.sin(d1/2)*Math.sin(d1/2)+Math.cos(lt1*Math.PI/180)*Math.cos(lt2*Math.PI/180)*Math.sin(d2/2)*Math.sin(d2/2);
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-
-function nearestNeighbor(list, slt, sln) {
-  var rem = list.slice(), route = [], clt=slt, cln=sln;
-  while (rem.length) {
-    var bi=0, bd=Infinity;
-    for (var i=0; i<rem.length; i++) {
-      var d=haversine(clt,cln,parseFloat(rem[i].lat),parseFloat(rem[i].lng));
-      if (d<bd) { bd=d; bi=i; }
-    }
-    route.push(rem[bi]);
-    clt=parseFloat(rem[bi].lat); cln=parseFloat(rem[bi].lng);
-    rem.splice(bi,1);
-  }
-  return route;
-}
-
-function hesaplaRota() {
+function mapsAc() {
   var cbs = document.querySelectorAll('[id^="rc"]:checked');
   if (!cbs.length) { bildir('⚠️ En az bir musteri secin'); return; }
 
@@ -696,60 +678,11 @@ function hesaplaRota() {
   if (!wl.length) { bildir('⚠️ Secili musterilerin konumu yok!'); return; }
   if (wl.length < sel.length) bildir('ℹ️ '+(sel.length-wl.length)+' musterinin konumu yok, atlandi');
 
-  bildir('📍 Konum aliniyor...');
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      function(p){ insa(wl, p.coords.latitude, p.coords.longitude, true); },
-      function(){  insa(wl, parseFloat(wl[0].lat), parseFloat(wl[0].lng), false); },
-      {timeout:5000}
-    );
-  } else {
-    insa(wl, parseFloat(wl[0].lat), parseFloat(wl[0].lng), false);
-  }
-}
+  var duraklar = '';
+  for (var i=0; i<wl.length; i++) duraklar += wl[i].lat+','+wl[i].lng+'/';
+  duraklar = duraklar.slice(0,-1);
 
-function insa(musteriler, slt, sln, hasGps) {
-  var route = nearestNeighbor(musteriler, slt, sln);
-
-  var sh = '<div style="padding:4px 0 8px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Optimize Edilmis Rota — '+route.length+' Durak</div>';
-  for (var i=0; i<route.length; i++) {
-    sh += '<div class="rstep"><div class="rnum">'+(i+1)+'</div>'
-      +'<div class="rinfo"><div class="rfirm">'+esc(route[i].firma)+'</div>'
-      +'<div class="rsub">'+esc([route[i].adres,route[i].ilce].filter(Boolean).join(' · ')||'—')+'</div>'
-      +'</div></div>';
-  }
-  el('r-steps').innerHTML = sh;
-
-  // harita (opsiyonel)
-  var md = el('rmap');
-  if (typeof L !== 'undefined') {
-    try {
-      md.style.display = 'block';
-      if (rmap) { rmap.remove(); rmap=null; }
-      rmap = L.map('rmap').setView([parseFloat(route[0].lat),parseFloat(route[0].lng)], 11);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(rmap);
-      var pts = [];
-      for (var i=0; i<route.length; i++) {
-        var lt=parseFloat(route[i].lat), ln=parseFloat(route[i].lng);
-        var ic=L.divIcon({html:'<div style="background:#1d4ed8;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">'+(i+1)+'</div>',className:'',iconSize:[26,26],iconAnchor:[13,13]});
-        L.marker([lt,ln],{icon:ic}).addTo(rmap).bindPopup('<b>'+(i+1)+'. '+route[i].firma+'</b>');
-        pts.push([lt,ln]);
-      }
-      L.polyline(pts,{color:'#1d4ed8',weight:3,opacity:.65,dashArray:'8,6'}).addTo(rmap);
-      rmap.fitBounds(L.latLngBounds(pts),{padding:[18,18]});
-    } catch(e) { md.style.display='none'; }
-  } else { md.style.display='none'; }
-
-  // google maps url
-  var way = '';
-  for (var i=0; i<route.length; i++) way += route[i].lat+','+route[i].lng+'/';
-  way = way.slice(0,-1);
-  mapsUrl = 'https://www.google.com/maps/dir/'+(hasGps?slt+','+sln+'/':'')+way;
-
-  el('r-act').innerHTML = '<button class="btn btn-green" onclick="window.open(\''+mapsUrl+'\',\'_blank\')" style="padding:14px;font-size:14px">🗺️ Google Maps\'te Ac ('+route.length+' Durak)</button>';
-
-  bildir('✅ '+route.length+' durakli rota hazir!');
-  md.scrollIntoView({behavior:'smooth',block:'start'});
+  window.open('https://www.google.com/maps/dir/'+duraklar, '_blank');
 }
 
 // ── bildirim ──────────────────────────────────
