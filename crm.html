@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Müşteri CRM</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #1d4ed8;
+            --primary-light: #3b82f6;
+            --primary-bg: #eff6ff;
+            --success: #15803d;
+            --danger: #dc2626;
+            --warning: #b45309;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        .app-header {
+            background: var(--primary);
+            color: white;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+        .app-header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+        .count-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* ── TABS ── */
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 52px;
+            z-index: 99;
+        }
+        .nav-tab {
+            flex: 1;
+            padding: 13px 8px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--muted);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            padding: 10px 12px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .toolbar input, .toolbar select {
+            flex: 1;
+            min-width: 110px;
+            padding: 8px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: var(--bg);
+            font-family: inherit;
+        }
+        .toolbar input:focus, .toolbar select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-family: inherit;
+            text-decoration: none;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:active { background: #1e3a8a; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:active { background: #14532d; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--muted); color: white; }
+        .btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-full { width: 100%; }
+        .btn:disabled { opacity: 0.5; cursor: default; }
+
+        /* ── CUSTOMER LIST ── */
+        .customer-list {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .customer-card {
+            background: white;
+            border-radius: 12px;
+            padding: 13px 14px;
+            border: 1.5px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .customer-card:active { background: var(--primary-bg); border-color: var(--primary-light); }
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .card-firma { font-weight: 700; font-size: 15px; }
+        .card-ilce-tag {
+            font-size: 11px;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 700;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .card-sub { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+        .card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .tag-green { background: #dcfce7; color: #166534; }
+        .tag-yellow { background: #fef9c3; color: #713f12; }
+        .tag-red { background: #fee2e2; color: #991b1b; }
+        .tag-blue { background: #dbeafe; color: #1e40af; }
+        .tag-gray { background: #f1f5f9; color: var(--muted); }
+        .tag-orange { background: #ffedd5; color: #9a3412; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--muted);
+        }
+        .empty-state .icon { font-size: 52px; margin-bottom: 14px; }
+        .empty-state p { font-size: 14px; margin-bottom: 16px; }
+
+        /* ── FAB ── */
+        .fab {
+            position: fixed;
+            bottom: 22px;
+            right: 20px;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(29, 78, 216, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 150;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .fab:active { transform: scale(0.94); }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 200;
+            align-items: flex-end;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white;
+            width: 100%;
+            max-height: 96vh;
+            border-radius: 20px 20px 0 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-handle {
+            width: 36px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 10px auto 0;
+        }
+        .modal-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        .modal-header h2 { font-size: 17px; font-weight: 700; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: var(--muted);
+            line-height: 1;
+            padding: 0 4px;
+        }
+        .modal-body { padding: 18px; }
+        .modal-footer {
+            padding: 12px 18px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            position: sticky;
+            bottom: 0;
+            background: white;
+        }
+
+        /* ── FORM ── */
+        .form-section { margin-bottom: 22px; }
+        .form-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+        .form-group { margin-bottom: 12px; }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+        .form-label span { font-weight: 400; color: var(--muted); }
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            transition: border-color 0.15s;
+            color: var(--text);
+        }
+        .form-control:focus { outline: none; border-color: var(--primary-light); }
+        textarea.form-control { resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        /* Slider */
+        .slider-row { display: flex; align-items: center; gap: 10px; }
+        .slider-row span { font-size: 12px; color: var(--muted); min-width: 14px; text-align: center; }
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        .slider-val {
+            min-width: 26px;
+            text-align: center;
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        /* Location map */
+        #loc-map { height: 200px; border-radius: 8px; border: 1.5px solid var(--border); }
+        .loc-search-row { display: flex; gap: 6px; margin-bottom: 8px; }
+        .loc-search-row input { flex: 1; }
+        .loc-hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+        .loc-coords { font-size: 11px; color: var(--success); margin-top: 4px; font-weight: 600; }
+
+        /* ── DETAIL MODAL ── */
+        .detail-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-size: 11px; color: var(--muted); font-weight: 700; width: 120px; flex-shrink: 0; padding-top: 1px; }
+        .detail-value { font-size: 13px; font-weight: 500; word-break: break-word; }
+        .stars { display: flex; gap: 2px; flex-wrap: wrap; }
+        .star { color: #f59e0b; font-size: 14px; }
+        .star-off { color: #d1d5db; font-size: 14px; }
+
+        /* ── ROTA TAB ── */
+        .rota-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .rota-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 13px;
+            background: white;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .rota-item.selected { border-color: var(--primary-light); background: var(--primary-bg); }
+        .rota-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); flex-shrink: 0; }
+        .rota-item-info { flex: 1; min-width: 0; }
+        .rota-item-firma { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rota-item-sub { font-size: 11px; color: var(--muted); }
+
+        #rota-map {
+            height: 280px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
+            overflow: hidden;
+            margin: 10px 12px;
+            display: none;
+        }
+        .rota-steps { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+        .rota-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .step-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        .step-info { flex: 1; min-width: 0; }
+        .step-firma { font-weight: 700; font-size: 13px; }
+        .step-adres { font-size: 11px; color: var(--muted); }
+        .rota-actions { padding: 10px 12px 28px; display: flex; flex-direction: column; gap: 8px; }
+        .rota-actions .btn { padding: 14px; font-size: 14px; }
+
+        /* ── NOTIFICATION ── */
+        .notification {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #0f172a;
+            color: white;
+            padding: 11px 20px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.25s;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+        }
+        .notification.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── DESKTOP ── */
+        @media (min-width: 580px) {
+            .modal-overlay { align-items: center; }
+            .modal { max-width: 480px; margin: auto; border-radius: 20px; max-height: 90vh; }
+            .modal-handle { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <span style="font-size:22px;">🏢</span>
+    <h1>Müşteri CRM</h1>
+    <span class="count-badge" id="count-badge">0 müşteri</span>
+</div>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" id="tab-btn-liste" onclick="switchTab('liste')">👥 Müşteriler</div>
+    <div class="nav-tab" id="tab-btn-rota" onclick="switchTab('rota')">🗺️ Rota</div>
+</div>
+
+<!-- ══ MÜŞTERİLER TAB ══ -->
+<div class="tab-content active" id="tab-liste">
+    <div class="toolbar">
+        <input type="search" id="search-inp" placeholder="🔍 Firma ara..." oninput="renderListe()">
+        <select id="filter-ilce" onchange="renderListe()">
+            <option value="">Tüm İlçeler</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="openEkleModal()">+ Ekle</button>
+    </div>
+    <div class="customer-list" id="customer-list"></div>
+</div>
+
+<!-- ══ ROTA TAB ══ -->
+<div class="tab-content" id="tab-rota">
+    <div class="toolbar">
+        <select id="rota-ilce-sel" onchange="loadRotaListe()">
+            <option value="">İlçe Seçin</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="tumunuSec()">Tümünü Seç</button>
+        <button class="btn btn-primary btn-sm" onclick="rotayiHesapla()">🔄 Hesapla</button>
+    </div>
+    <div id="rota-liste" class="rota-list">
+        <div class="empty-state">
+            <div class="icon">🗺️</div>
+            <p>Rota oluşturmak için yukarıdan ilçe seçin</p>
+        </div>
+    </div>
+    <div id="rota-map"></div>
+    <div class="rota-steps" id="rota-steps"></div>
+    <div class="rota-actions" id="rota-actions"></div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openEkleModal()">+</button>
+
+<!-- ══ EKLE / DÜZENLE MODALİ ══ -->
+<div class="modal-overlay" id="form-overlay" onclick="overlayKapat(event,'form-overlay','closeFormModal')">
+    <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h2 id="form-title">Yeni Müşteri</h2>
+            <button class="modal-close" onclick="closeFormModal()">×</button>
+        </div>
+        <div class="modal-body">
+
+            <div class="form-section">
+                <div class="form-section-title">📋 Firma Bilgileri</div>
+                <div class="form-group">
+                    <label class="form-label">Firma Adı <span style="color:var(--danger);">*</span></label>
+                    <input type="text" class="form-control" id="f-firma" placeholder="Firma adı">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Yetkili Kişi</label>
+                    <input type="text" class="form-control" id="f-yetkili" placeholder="Ad Soyad">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Telefon</label>
+                        <input type="tel" class="form-control" id="f-tel" placeholder="0500 000 00 00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">E-posta</label>
+                        <input type="email" class="form-control" id="f-mail" placeholder="info@firma.com">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-title">📍 Konum</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">İlçe</label>
+                        <input type="text" class="form-control" id="f-ilce" placeholder="Akyazı">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Şehir</label>
+                        <input type="text" class="form-control" id="f-sehir" placeholder="Sakarya">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Adres</label>
+                    <input type="text" class="form-control" id="f-adres" placeholder="Mahalle, cadde, no...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Harita Konumu <span>— ara veya tıkla</span></label>
+                    <div class="loc-search-row">
+                        <input type="text" class="form-control" id="f-adres-ara" placeholder="Adres veya yer adı ara...">
+                        <button class="btn btn-outline btn-sm" onclick="adresAra()">Ara</button>
+                    </div>
+                    <div id="loc-map"></div>
+                    <div id="loc-coords" class="loc-coords" style="display:none;"></div>
+                    <div class="loc-hint">📍 Haritaya tıklayarak da konum ekleyebilirsiniz</div>
+                    <input type="hidden" id="f-lat">
+                    <input type="hidden" id="f-lng">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-title">🔍 İstihbarat Bilgileri</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tutulan Takım ⚽</label>
+                        <input type="text" class="form-control" id="f-takim" placeholder="Galatasaray...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Çalışan Sayısı</label>
+                        <input type="number" class="form-control" id="f-calisan" placeholder="10" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Teşhir Durumu</label>
+                        <select class="form-control" id="f-teshir">
+                            <option value="">Bilinmiyor</option>
+                            <option value="Teşhir Var">✅ Teşhir Var</option>
+                            <option value="Teşhir Yok">❌ Teşhir Yok</option>
+                            <option value="Kısmi">⚠️ Kısmi</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Makine Parkı</label>
+                        <input type="text" class="form-control" id="f-makine" placeholder="5 tezgah, CNC...">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mali Durum Puanı: <span id="v-mali" style="color:var(--primary);font-weight:800;">5</span>/10</label>
+                    <div class="slider-row">
+                        <span>1</span>
+                        <input type="range" min="1" max="10" value="5" id="f-mali" oninput="document.getElementById('v-mali').textContent=this.value">
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Genel Müşteri Puanı: <span id="v-genel" style="color:var(--primary);font-weight:800;">5</span>/10</label>
+                    <div class="slider-row">
+                        <span>1</span>
+                        <input type="range" min="1" max="10" value="5" id="f-genel" oninput="document.getElementById('v-genel').textContent=this.value">
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notlar</label>
+                    <textarea class="form-control" id="f-notlar" rows="3" placeholder="Müşteri hakkında serbest notlar..."></textarea>
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-danger btn-sm" id="btn-sil" style="display:none;" onclick="sil()">🗑️</button>
+            <button class="btn btn-ghost" onclick="closeFormModal()" style="flex:1;">İptal</button>
+            <button class="btn btn-primary" onclick="kaydet()" style="flex:2;">💾 Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ DETAY MODALİ ══ -->
+<div class="modal-overlay" id="detail-overlay" onclick="overlayKapat(event,'detail-overlay','closeDetailModal')">
+    <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h2 id="detail-firma-title">—</h2>
+            <button class="modal-close" onclick="closeDetailModal()">×</button>
+        </div>
+        <div class="modal-body" id="detail-body"></div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="duzenleDetaydan()" style="flex:1;">✏️ Düzenle</button>
+            <a id="detail-maps-link" href="#" target="_blank" style="flex:1; text-decoration:none;">
+                <button class="btn btn-success btn-full">🗺️ Haritada Gör</button>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="notification" id="notif"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+let db = JSON.parse(localStorage.getItem('crm_v2') || '[]');
+let editId = null;
+let detailId = null;
+let locMap = null;
+let locMarker = null;
+let rotaMapInst = null;
+let calculatedRotaUrl = null;
+
+function save() {
+    localStorage.setItem('crm_v2', JSON.stringify(db));
+}
+
+function ilceler() {
+    return [...new Set(db.map(m => m.ilce).filter(Boolean).map(s => s.trim()))].sort();
+}
+
+function updateSelects() {
+    const list = ilceler();
+    const fi = document.getElementById('filter-ilce');
+    const ri = document.getElementById('rota-ilce-sel');
+    const fv = fi.value, rv = ri.value;
+
+    fi.innerHTML = '<option value="">Tüm İlçeler</option>' + list.map(i => `<option>${i}</option>`).join('');
+    ri.innerHTML = '<option value="">İlçe Seçin</option>' + list.map(i => `<option>${i}</option>`).join('');
+
+    fi.value = fv;
+    ri.value = rv;
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(tab) {
+    ['liste','rota'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+        document.getElementById('tab-btn-' + t).classList.toggle('active', t === tab);
+    });
+    document.getElementById('fab').style.display = tab === 'liste' ? 'flex' : 'none';
+    if (tab === 'rota') { updateSelects(); }
+}
+
+// ══════════════════════════════════════════
+// RENDER LIST
+// ══════════════════════════════════════════
+function renderListe() {
+    const q = document.getElementById('search-inp').value.toLowerCase();
+    const fi = document.getElementById('filter-ilce').value;
+
+    let list = db.filter(m => {
+        const matchQ = !q || m.firma.toLowerCase().includes(q) ||
+            (m.yetkili||'').toLowerCase().includes(q) ||
+            (m.ilce||'').toLowerCase().includes(q);
+        const matchI = !fi || m.ilce === fi;
+        return matchQ && matchI;
+    });
+
+    list.sort((a, b) => (b.genelPuan||5) - (a.genelPuan||5));
+
+    document.getElementById('count-badge').textContent = `${db.length} müşteri`;
+    const cont = document.getElementById('customer-list');
+
+    if (list.length === 0) {
+        cont.innerHTML = `<div class="empty-state">
+            <div class="icon">🏢</div>
+            <p>${db.length === 0 ? 'Henüz müşteri eklenmedi' : 'Sonuç bulunamadı'}</p>
+            ${db.length === 0 ? '<button class="btn btn-primary" onclick="openEkleModal()">+ İlk Müşteriyi Ekle</button>' : ''}
+        </div>`;
+        return;
+    }
+
+    cont.innerHTML = list.map(m => {
+        const gp = m.genelPuan || 5;
+        const gpClass = gp >= 8 ? 'tag-green' : gp >= 5 ? 'tag-yellow' : 'tag-red';
+        const hasLoc = m.lat && m.lng;
+        return `
+        <div class="customer-card" onclick="openDetail(${m.id})">
+            <div class="card-top">
+                <div class="card-firma">${esc(m.firma)}</div>
+                ${m.ilce ? `<span class="card-ilce-tag">${esc(m.ilce)}</span>` : ''}
+            </div>
+            ${m.yetkili ? `<div class="card-sub">👤 ${esc(m.yetkili)}</div>` : ''}
+            <div class="card-tags">
+                ${m.tel ? `<span class="tag tag-blue">📞 ${esc(m.tel)}</span>` : ''}
+                ${m.calisan ? `<span class="tag tag-gray">👥 ${m.calisan} kişi</span>` : ''}
+                ${m.teshir ? `<span class="tag tag-gray">${esc(m.teshir)}</span>` : ''}
+                <span class="tag ${gpClass}">⭐ ${gp}/10</span>
+                ${m.maliPuan ? `<span class="tag tag-orange">💰 ${m.maliPuan}/10</span>` : ''}
+                <span class="tag ${hasLoc ? 'tag-green' : 'tag-red'}">${hasLoc ? '📍 Konumlu' : '📍 Konum Yok'}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════
+// EKLE / DÜZENLE MODAL
+// ══════════════════════════════════════════
+function openEkleModal() {
+    editId = null;
+    document.getElementById('form-title').textContent = 'Yeni Müşteri';
+    document.getElementById('btn-sil').style.display = 'none';
+    formTemizle();
+    document.getElementById('form-overlay').classList.add('open');
+    setTimeout(() => initLocMap(), 300);
+}
+
+function openDuzenleModal(id) {
+    const m = db.find(x => x.id === id);
+    if (!m) return;
+    editId = id;
+    document.getElementById('form-title').textContent = 'Müşteriyi Düzenle';
+    document.getElementById('btn-sil').style.display = 'inline-flex';
+    formDoldur(m);
+    document.getElementById('form-overlay').classList.add('open');
+    setTimeout(() => initLocMap(m.lat, m.lng), 300);
+}
+
+function closeFormModal() {
+    document.getElementById('form-overlay').classList.remove('open');
+    if (locMap) { locMap.remove(); locMap = null; locMarker = null; }
+}
+
+function formTemizle() {
+    ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres',
+     'f-takim','f-makine','f-notlar','f-adres-ara'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    document.getElementById('f-calisan').value = '';
+    document.getElementById('f-teshir').value = '';
+    document.getElementById('f-mali').value = 5;
+    document.getElementById('v-mali').textContent = '5';
+    document.getElementById('f-genel').value = 5;
+    document.getElementById('v-genel').textContent = '5';
+    document.getElementById('f-lat').value = '';
+    document.getElementById('f-lng').value = '';
+    document.getElementById('loc-coords').style.display = 'none';
+}
+
+function formDoldur(m) {
+    document.getElementById('f-firma').value = m.firma || '';
+    document.getElementById('f-yetkili').value = m.yetkili || '';
+    document.getElementById('f-tel').value = m.tel || '';
+    document.getElementById('f-mail').value = m.mail || '';
+    document.getElementById('f-ilce').value = m.ilce || '';
+    document.getElementById('f-sehir').value = m.sehir || '';
+    document.getElementById('f-adres').value = m.adres || '';
+    document.getElementById('f-takim').value = m.takim || '';
+    document.getElementById('f-calisan').value = m.calisan || '';
+    document.getElementById('f-teshir').value = m.teshir || '';
+    document.getElementById('f-makine').value = m.makine || '';
+    document.getElementById('f-mali').value = m.maliPuan || 5;
+    document.getElementById('v-mali').textContent = m.maliPuan || 5;
+    document.getElementById('f-genel').value = m.genelPuan || 5;
+    document.getElementById('v-genel').textContent = m.genelPuan || 5;
+    document.getElementById('f-notlar').value = m.notlar || '';
+    document.getElementById('f-lat').value = m.lat || '';
+    document.getElementById('f-lng').value = m.lng || '';
+
+    if (m.lat && m.lng) {
+        showCoords(m.lat, m.lng);
+    } else {
+        document.getElementById('loc-coords').style.display = 'none';
+    }
+}
+
+function kaydet() {
+    const firma = document.getElementById('f-firma').value.trim();
+    if (!firma) { notify('⚠️ Firma adı zorunlu!'); return; }
+
+    const musteri = {
+        id: editId || Date.now(),
+        firma,
+        yetkili: v('f-yetkili'),
+        tel: v('f-tel'),
+        mail: v('f-mail'),
+        ilce: v('f-ilce'),
+        sehir: v('f-sehir'),
+        adres: v('f-adres'),
+        takim: v('f-takim'),
+        calisan: v('f-calisan'),
+        teshir: v('f-teshir'),
+        makine: v('f-makine'),
+        maliPuan: parseInt(document.getElementById('f-mali').value),
+        genelPuan: parseInt(document.getElementById('f-genel').value),
+        notlar: v('f-notlar'),
+        lat: v('f-lat') || null,
+        lng: v('f-lng') || null,
+        createdAt: editId ? (db.find(m => m.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+    };
+
+    if (editId) {
+        const idx = db.findIndex(m => m.id === editId);
+        db[idx] = musteri;
+        notify('✅ Müşteri güncellendi');
+    } else {
+        db.push(musteri);
+        notify('✅ Müşteri eklendi');
+    }
+
+    save(); updateSelects(); renderListe(); closeFormModal();
+}
+
+function sil() {
+    if (!confirm('Bu müşteriyi silmek istediğinizden emin misiniz?')) return;
+    db = db.filter(m => m.id !== editId);
+    save(); updateSelects(); renderListe(); closeFormModal();
+    notify('🗑️ Müşteri silindi');
+}
+
+// ══════════════════════════════════════════
+// LOCATION MAP
+// ══════════════════════════════════════════
+function initLocMap(lat, lng) {
+    if (locMap) { locMap.remove(); locMap = null; locMarker = null; }
+
+    const center = lat && lng ? [parseFloat(lat), parseFloat(lng)] : [40.756, 30.378];
+    const zoom   = lat && lng ? 15 : 9;
+
+    locMap = L.map('loc-map').setView(center, zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org">OSM</a>'
+    }).addTo(locMap);
+
+    if (lat && lng) {
+        locMarker = L.marker([parseFloat(lat), parseFloat(lng)]).addTo(locMap);
+    }
+
+    locMap.on('click', e => {
+        setMapPoint(e.latlng.lat, e.latlng.lng);
+    });
+}
+
+function setMapPoint(lat, lng) {
+    if (locMarker) locMap.removeLayer(locMarker);
+    locMarker = L.marker([lat, lng]).addTo(locMap);
+    document.getElementById('f-lat').value = lat;
+    document.getElementById('f-lng').value = lng;
+    showCoords(lat, lng);
+}
+
+function showCoords(lat, lng) {
+    const el = document.getElementById('loc-coords');
+    el.textContent = `📍 ${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
+    el.style.display = 'block';
+}
+
+async function adresAra() {
+    const q = document.getElementById('f-adres-ara').value.trim();
+    if (!q) { notify('⚠️ Arama metni girin'); return; }
+
+    notify('🔍 Aranıyor...');
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=tr`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+        const data = await res.json();
+
+        if (!data.length) { notify('❌ Konum bulunamadı'); return; }
+
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+
+        locMap.setView([lat, lng], 16);
+        setMapPoint(lat, lng);
+        notify('✅ Konum bulundu');
+    } catch (e) {
+        notify('❌ Bağlantı hatası');
+    }
+}
+
+// ══════════════════════════════════════════
+// DETAIL MODAL
+// ══════════════════════════════════════════
+function openDetail(id) {
+    const m = db.find(x => x.id === id);
+    if (!m) return;
+    detailId = id;
+
+    document.getElementById('detail-firma-title').textContent = m.firma;
+
+    const body = document.getElementById('detail-body');
+    const rows = [
+        ['👤 Yetkili', m.yetkili],
+        ['📞 Telefon', m.tel ? `<a href="tel:${m.tel}" style="color:var(--primary);">${m.tel}</a>` : null],
+        ['📧 E-posta', m.mail ? `<a href="mailto:${m.mail}" style="color:var(--primary);">${m.mail}</a>` : null],
+        ['📍 İlçe / Şehir', [m.ilce, m.sehir].filter(Boolean).join(' / ')],
+        ['🏠 Adres', m.adres],
+        ['⚽ Tutulan Takım', m.takim],
+        ['👥 Çalışan', m.calisan ? m.calisan + ' kişi' : null],
+        ['🏭 Makine Parkı', m.makine],
+        ['📺 Teşhir', m.teshir],
+        ['💰 Mali Puan', m.maliPuan ? renderStars(m.maliPuan) + ' ' + m.maliPuan + '/10' : null],
+        ['⭐ Genel Puan', m.genelPuan ? renderStars(m.genelPuan) + ' ' + m.genelPuan + '/10' : null],
+        ['📝 Notlar', m.notlar],
+        ['🌍 Koordinat', m.lat && m.lng ? `${parseFloat(m.lat).toFixed(5)}, ${parseFloat(m.lng).toFixed(5)}` : null],
+    ];
+
+    body.innerHTML = rows
+        .filter(([, val]) => val)
+        .map(([lbl, val]) => `
+            <div class="detail-row">
+                <span class="detail-label">${lbl}</span>
+                <span class="detail-value">${val}</span>
+            </div>`)
+        .join('');
+
+    const link = document.getElementById('detail-maps-link');
+    if (m.lat && m.lng) {
+        link.href = `https://www.google.com/maps?q=${m.lat},${m.lng}`;
+    } else {
+        const q = encodeURIComponent([m.firma, m.adres, m.ilce, m.sehir].filter(Boolean).join(', '));
+        link.href = `https://www.google.com/maps/search/${q}`;
+    }
+
+    document.getElementById('detail-overlay').classList.add('open');
+}
+
+function renderStars(n) {
+    return Array.from({length: 10}, (_, i) =>
+        `<span class="${i < n ? 'star' : 'star-off'}">★</span>`
+    ).join('');
+}
+
+function closeDetailModal() {
+    document.getElementById('detail-overlay').classList.remove('open');
+}
+
+function duzenleDetaydan() {
+    closeDetailModal();
+    setTimeout(() => openDuzenleModal(detailId), 150);
+}
+
+// ══════════════════════════════════════════
+// ROTA
+// ══════════════════════════════════════════
+function loadRotaListe() {
+    const ilce = document.getElementById('rota-ilce-sel').value;
+    const cont = document.getElementById('rota-liste');
+    const steps = document.getElementById('rota-steps');
+    const actions = document.getElementById('rota-actions');
+    const rotaMapDiv = document.getElementById('rota-map');
+
+    steps.innerHTML = '';
+    actions.innerHTML = '';
+    rotaMapDiv.style.display = 'none';
+    calculatedRotaUrl = null;
+
+    if (!ilce) {
+        cont.innerHTML = `<div class="empty-state"><div class="icon">🗺️</div><p>Rota oluşturmak için ilçe seçin</p></div>`;
+        return;
+    }
+
+    const list = db.filter(m => m.ilce === ilce);
+    if (!list.length) {
+        cont.innerHTML = `<div class="empty-state"><div class="icon">😕</div><p>${esc(ilce)} ilçesinde müşteri yok</p></div>`;
+        return;
+    }
+
+    cont.innerHTML = list.map(m => `
+        <div class="rota-item" id="ri-${m.id}" onclick="toggleRotaItem(${m.id})">
+            <input type="checkbox" id="rc-${m.id}" onclick="event.stopPropagation(); toggleRotaItem(${m.id})">
+            <div class="rota-item-info">
+                <div class="rota-item-firma">${esc(m.firma)}</div>
+                <div class="rota-item-sub">${[m.adres, m.ilce].filter(Boolean).join(' · ') || '—'}</div>
+            </div>
+            ${m.lat && m.lng
+                ? '<span class="tag tag-green" style="font-size:11px;">📍</span>'
+                : '<span class="tag tag-red" style="font-size:11px;">Konum yok</span>'}
+        </div>
+    `).join('');
+}
+
+function toggleRotaItem(id) {
+    const cb = document.getElementById(`rc-${id}`);
+    const el = document.getElementById(`ri-${id}`);
+    cb.checked = !cb.checked;
+    el.classList.toggle('selected', cb.checked);
+}
+
+function tumunuSec() {
+    const cbs = document.querySelectorAll('[id^="rc-"]');
+    const allChecked = [...cbs].every(c => c.checked);
+    cbs.forEach(c => {
+        c.checked = !allChecked;
+        document.getElementById('ri-' + c.id.replace('rc-','')).classList.toggle('selected', !allChecked);
+    });
+}
+
+function rotayiHesapla() {
+    const cbs = [...document.querySelectorAll('[id^="rc-"]:checked')];
+    if (!cbs.length) { notify('⚠️ En az bir müşteri seçin'); return; }
+
+    const ids = cbs.map(c => parseInt(c.id.replace('rc-','')));
+    const selected = db.filter(m => ids.includes(m.id));
+    const withLoc = selected.filter(m => m.lat && m.lng);
+
+    if (!withLoc.length) { notify('⚠️ Seçili müşterilerin konumu yok!'); return; }
+    if (withLoc.length < selected.length) {
+        notify(`ℹ️ ${selected.length - withLoc.length} müşterinin konumu yok, atlandı`);
+    }
+
+    notify('📍 Konum alınıyor...');
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => buildRota(withLoc, pos.coords.latitude, pos.coords.longitude, true),
+            ()   => buildRota(withLoc, parseFloat(withLoc[0].lat), parseFloat(withLoc[0].lng), false),
+            { timeout: 5000 }
+        );
+    } else {
+        buildRota(withLoc, parseFloat(withLoc[0].lat), parseFloat(withLoc[0].lng), false);
+    }
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const d1 = (lat2-lat1)*Math.PI/180;
+    const d2 = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(d1/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(d2/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function nearestNeighbor(customers, startLat, startLng) {
+    const remaining = [...customers];
+    const route = [];
+    let curLat = startLat, curLng = startLng;
+
+    while (remaining.length) {
+        let best = 0, bestDist = Infinity;
+        remaining.forEach((c, i) => {
+            const d = haversine(curLat, curLng, parseFloat(c.lat), parseFloat(c.lng));
+            if (d < bestDist) { bestDist = d; best = i; }
+        });
+        route.push(remaining[best]);
+        curLat = parseFloat(remaining[best].lat);
+        curLng = parseFloat(remaining[best].lng);
+        remaining.splice(best, 1);
+    }
+    return route;
+}
+
+function buildRota(customers, startLat, startLng, hasUserLoc) {
+    const route = nearestNeighbor(customers, startLat, startLng);
+
+    // Steps
+    const steps = document.getElementById('rota-steps');
+    steps.innerHTML = `
+        <div style="padding:4px 0 8px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">
+            Optimize Edilmiş Rota — ${route.length} Durak
+        </div>
+        ${route.map((m, i) => `
+            <div class="rota-step">
+                <div class="step-num">${i+1}</div>
+                <div class="step-info">
+                    <div class="step-firma">${esc(m.firma)}</div>
+                    <div class="step-adres">${[m.adres, m.ilce].filter(Boolean).join(' · ') || '—'}</div>
+                </div>
+            </div>
+        `).join('')}
+    `;
+
+    // Leaflet map
+    const mapDiv = document.getElementById('rota-map');
+    mapDiv.style.display = 'block';
+    if (rotaMapInst) { rotaMapInst.remove(); rotaMapInst = null; }
+
+    const firstLatLng = [parseFloat(route[0].lat), parseFloat(route[0].lng)];
+    rotaMapInst = L.map('rota-map').setView(firstLatLng, 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(rotaMapInst);
+
+    const latlngs = route.map((m, i) => {
+        const lt = parseFloat(m.lat), ln = parseFloat(m.lng);
+        const icon = L.divIcon({
+            html: `<div style="background:#1d4ed8;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);">${i+1}</div>`,
+            className: '', iconSize: [26,26], iconAnchor: [13,13]
+        });
+        L.marker([lt, ln], { icon })
+            .addTo(rotaMapInst)
+            .bindPopup(`<b>${i+1}. ${m.firma}</b>${m.adres ? '<br>'+m.adres : ''}`);
+        return [lt, ln];
+    });
+
+    L.polyline(latlngs, { color: '#1d4ed8', weight: 3, opacity: 0.65, dashArray: '8,6' }).addTo(rotaMapInst);
+    rotaMapInst.fitBounds(L.latLngBounds(latlngs), { padding: [18,18] });
+
+    // Google Maps URL
+    const wayStr = route.map(m => `${m.lat},${m.lng}`).join('/');
+    const origin = hasUserLoc ? `${startLat},${startLng}/` : '';
+    calculatedRotaUrl = `https://www.google.com/maps/dir/${origin}${wayStr}`;
+
+    // Action button
+    const actions = document.getElementById('rota-actions');
+    actions.innerHTML = `
+        <button class="btn btn-success" onclick="window.open('${calculatedRotaUrl}','_blank')" style="padding:14px;font-size:14px;">
+            🗺️ Google Maps'te Aç (${route.length} Durak)
+        </button>
+    `;
+
+    notify(`✅ ${route.length} duraklı rota hazır!`);
+    mapDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function v(id) { return (document.getElementById(id)?.value || '').trim(); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function overlayKapat(e, overlayId, closeFn) {
+    if (e.target === document.getElementById(overlayId)) window[closeFn]();
+}
+
+let notifTimer;
+function notify(msg) {
+    const el = document.getElementById('notif');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(notifTimer);
+    notifTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    updateSelects();
+    renderListe();
+});
+</script>
+</body>
+</html>
