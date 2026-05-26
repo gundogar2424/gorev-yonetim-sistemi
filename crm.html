@@ -854,21 +854,66 @@ function sil() {
 function initLocMap(lat, lng) {
     if (locMap) { locMap.remove(); locMap = null; locMarker = null; }
 
-    const center = lat && lng ? [parseFloat(lat), parseFloat(lng)] : [40.756, 30.378];
-    const zoom   = lat && lng ? 15 : 9;
-
-    locMap = L.map('loc-map').setView(center, zoom);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://openstreetmap.org">OSM</a>'
-    }).addTo(locMap);
-
-    if (lat && lng) {
-        locMarker = L.marker([parseFloat(lat), parseFloat(lng)]).addTo(locMap);
+    if (typeof L === 'undefined') {
+        showMapFallback(lat, lng);
+        return;
     }
 
-    locMap.on('click', e => {
-        setMapPoint(e.latlng.lat, e.latlng.lng);
-    });
+    try {
+        const center = lat && lng ? [parseFloat(lat), parseFloat(lng)] : [40.756, 30.378];
+        const zoom   = lat && lng ? 15 : 9;
+
+        locMap = L.map('loc-map').setView(center, zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://openstreetmap.org">OSM</a>'
+        }).addTo(locMap);
+
+        if (lat && lng) {
+            locMarker = L.marker([parseFloat(lat), parseFloat(lng)]).addTo(locMap);
+        }
+
+        locMap.on('click', e => {
+            setMapPoint(e.latlng.lat, e.latlng.lng);
+        });
+    } catch(e) {
+        showMapFallback(lat, lng);
+    }
+}
+
+function showMapFallback(lat, lng) {
+    const mapDiv = document.getElementById('loc-map');
+    mapDiv.style.height = 'auto';
+    mapDiv.innerHTML = `
+        <div style="padding:12px; background:#f8fafc; border-radius:8px; border:1.5px solid #e2e8f0;">
+            <p style="font-size:12px; color:#64748b; margin-bottom:10px;">🗺️ Harita yüklenemedi (internet gerekli). Koordinatı elle girin:</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div>
+                    <label style="font-size:11px; font-weight:700; display:block; margin-bottom:4px;">Enlem (Lat)</label>
+                    <input type="number" id="fallback-lat" step="any" placeholder="40.7569"
+                        style="width:100%; padding:8px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:13px;"
+                        value="${lat || ''}" onchange="setCoordFromFallback()">
+                </div>
+                <div>
+                    <label style="font-size:11px; font-weight:700; display:block; margin-bottom:4px;">Boylam (Lng)</label>
+                    <input type="number" id="fallback-lng" step="any" placeholder="30.3781"
+                        style="width:100%; padding:8px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:13px;"
+                        value="${lng || ''}" onchange="setCoordFromFallback()">
+                </div>
+            </div>
+            <p style="font-size:11px; color:#64748b; margin-top:8px;">💡 Google Maps'ten sağ tıklayıp koordinatı kopyalayabilirsiniz.</p>
+        </div>
+    `;
+    if (lat && lng) showCoords(lat, lng);
+}
+
+function setCoordFromFallback() {
+    const lat = document.getElementById('fallback-lat')?.value;
+    const lng = document.getElementById('fallback-lng')?.value;
+    if (lat && lng) {
+        document.getElementById('f-lat').value = lat;
+        document.getElementById('f-lng').value = lng;
+        showCoords(lat, lng);
+    }
 }
 
 function setMapPoint(lat, lng) {
@@ -1098,31 +1143,39 @@ function buildRota(customers, startLat, startLng, hasUserLoc) {
         `).join('')}
     `;
 
-    // Leaflet map
+    // Leaflet map (isteğe bağlı — yüklenmediyse atla)
     const mapDiv = document.getElementById('rota-map');
-    mapDiv.style.display = 'block';
-    if (rotaMapInst) { rotaMapInst.remove(); rotaMapInst = null; }
+    if (typeof L !== 'undefined') {
+        try {
+            mapDiv.style.display = 'block';
+            if (rotaMapInst) { rotaMapInst.remove(); rotaMapInst = null; }
 
-    const firstLatLng = [parseFloat(route[0].lat), parseFloat(route[0].lng)];
-    rotaMapInst = L.map('rota-map').setView(firstLatLng, 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(rotaMapInst);
+            const firstLatLng = [parseFloat(route[0].lat), parseFloat(route[0].lng)];
+            rotaMapInst = L.map('rota-map').setView(firstLatLng, 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(rotaMapInst);
 
-    const latlngs = route.map((m, i) => {
-        const lt = parseFloat(m.lat), ln = parseFloat(m.lng);
-        const icon = L.divIcon({
-            html: `<div style="background:#1d4ed8;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);">${i+1}</div>`,
-            className: '', iconSize: [26,26], iconAnchor: [13,13]
-        });
-        L.marker([lt, ln], { icon })
-            .addTo(rotaMapInst)
-            .bindPopup(`<b>${i+1}. ${m.firma}</b>${m.adres ? '<br>'+m.adres : ''}`);
-        return [lt, ln];
-    });
+            const latlngs = route.map((m, i) => {
+                const lt = parseFloat(m.lat), ln = parseFloat(m.lng);
+                const icon = L.divIcon({
+                    html: `<div style="background:#1d4ed8;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.35);">${i+1}</div>`,
+                    className: '', iconSize: [26,26], iconAnchor: [13,13]
+                });
+                L.marker([lt, ln], { icon })
+                    .addTo(rotaMapInst)
+                    .bindPopup(`<b>${i+1}. ${m.firma}</b>${m.adres ? '<br>'+m.adres : ''}`);
+                return [lt, ln];
+            });
 
-    L.polyline(latlngs, { color: '#1d4ed8', weight: 3, opacity: 0.65, dashArray: '8,6' }).addTo(rotaMapInst);
-    rotaMapInst.fitBounds(L.latLngBounds(latlngs), { padding: [18,18] });
+            L.polyline(latlngs, { color: '#1d4ed8', weight: 3, opacity: 0.65, dashArray: '8,6' }).addTo(rotaMapInst);
+            rotaMapInst.fitBounds(L.latLngBounds(latlngs), { padding: [18,18] });
+        } catch(e) {
+            mapDiv.style.display = 'none';
+        }
+    } else {
+        mapDiv.style.display = 'none';
+    }
 
     // Google Maps URL
     const wayStr = route.map(m => `${m.lat},${m.lng}`).join('/');
