@@ -308,6 +308,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         </div>
       </div>
 
+      <div class="fsec">
+        <div class="fsec-ttl">📅 Ziyaret & Teklif</div>
+        <div class="frow">
+          <div class="fg">
+            <label class="flbl">Son Ziyaret</label>
+            <input type="date" class="fc" id="f-sonziyaret">
+          </div>
+          <div class="fg">
+            <label class="flbl">Sonraki Ziyaret</label>
+            <input type="date" class="fc" id="f-sonrakiziyaret">
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flbl">Teklif / Satin Alma Notu</label>
+          <textarea class="fc" id="f-teklif" rows="2" placeholder="Verilen teklifler, alinan urunler..."></textarea>
+        </div>
+      </div>
+
     </div><!-- mbody -->
     <div class="mfoot">
       <button class="btn btn-red btn-sm" id="btn-sil" style="display:none" onclick="silMusteri()">🗑️</button>
@@ -326,6 +344,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
       <button class="mclose" onclick="kapDet()">&#215;</button>
     </div>
     <div class="mbody" id="det-body"></div>
+    <!-- iletisim gecmisi -->
+    <div style="padding:0 18px 10px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:10px">📋 İletişim Geçmişi</div>
+      <div id="det-gecmis" style="margin-bottom:10px"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-blue btn-sm" onclick="gecmisEkle('Ziyaret')">✅ Ziyaret Ettim</button>
+        <button class="btn btn-ghost btn-sm" onclick="gecmisEkle('Arama')">📞 Arama Yaptim</button>
+        <button class="btn btn-ghost btn-sm" onclick="gecmisEkleNot()">📝 Not Ekle</button>
+      </div>
+    </div>
     <div class="mfoot">
       <button class="btn btn-out" onclick="duzenle()" style="flex:1">✏️ Duzenle</button>
       <a id="det-maps" href="#" target="_blank" style="flex:1;text-decoration:none">
@@ -432,6 +460,7 @@ function renderListe() {
       +'<span class="tag '+gc+'">⭐ '+gp+'/10</span>'
       +(m.maliPuan?'<span class="tag to">💰 '+m.maliPuan+'/10</span>':'')
       +'<span class="tag '+(hasL?'tg':'tr')+'">'+(hasL?'📍 Konumlu':'📍 Konum Yok')+'</span>'
+      +(m.sonrakiZiyaret ? '<span class="tag ts">📅 '+m.sonrakiZiyaret+'</span>' : '')
       +'</div></div>';
   }
   c.innerHTML = html;
@@ -461,7 +490,7 @@ function kapForm() {
 }
 
 function temizle() {
-  var ids = ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres','f-takim','f-makine','f-notlar'];
+  var ids = ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres','f-takim','f-makine','f-notlar','f-teklif','f-sonziyaret','f-sonrakiziyaret'];
   for (var i=0; i<ids.length; i++) { var e=el(ids[i]); if(e) e.value=''; }
   el('f-calisan').value = '';
   el('f-teshir').value = '';
@@ -486,6 +515,9 @@ function doldur(m) {
   el('f-mali').value    = m.maliPuan  || 5; el('v-mali').textContent  = m.maliPuan  || 5;
   el('f-genel').value   = m.genelPuan || 5; el('v-genel').textContent = m.genelPuan || 5;
   el('f-notlar').value  = m.notlar  || '';
+  el('f-teklif').value  = m.teklif  || '';
+  el('f-sonziyaret').value      = m.sonZiyaret      || '';
+  el('f-sonrakiziyaret').value  = m.sonrakiZiyaret  || '';
   el('f-lat').value     = m.lat     || '';
   el('f-lng').value     = m.lng     || '';
   el('coord-ok').style.display = (m.lat && m.lng) ? 'block' : 'none';
@@ -529,12 +561,16 @@ function kaydet() {
     calisan:   val('f-calisan'),
     teshir:    val('f-teshir'),
     makine:    val('f-makine'),
-    maliPuan:  parseInt(el('f-mali').value)  || 5,
-    genelPuan: parseInt(el('f-genel').value) || 5,
-    notlar:    val('f-notlar'),
-    lat:       lat || null,
-    lng:       lng || null,
-    tarih:     eski ? eski.tarih : new Date().toISOString()
+    maliPuan:        parseInt(el('f-mali').value)  || 5,
+    genelPuan:       parseInt(el('f-genel').value) || 5,
+    notlar:          val('f-notlar'),
+    teklif:          val('f-teklif'),
+    sonZiyaret:      val('f-sonziyaret')     || null,
+    sonrakiZiyaret:  val('f-sonrakiziyaret') || null,
+    lat:             lat || null,
+    lng:             lng || null,
+    gecmis:          eski ? (eski.gecmis || []) : [],
+    tarih:           eski ? eski.tarih : new Date().toISOString()
   };
 
   if (editId) {
@@ -563,19 +599,22 @@ function acDet(id) {
   el('det-ttl').textContent = m.firma;
 
   var rows = [
-    ['👤 Yetkili',     m.yetkili],
-    ['📞 Telefon',     m.tel ? '<a href="tel:'+esc(m.tel)+'" style="color:var(--blue)">'+esc(m.tel)+'</a>' : null],
-    ['📧 E-posta',     m.mail ? '<a href="mailto:'+esc(m.mail)+'" style="color:var(--blue)">'+esc(m.mail)+'</a>' : null],
-    ['📍 Ilce/Sehir',  [m.ilce,m.sehir].filter(Boolean).join(' / ')],
-    ['🏠 Adres',       m.adres],
-    ['⚽ Takim',       m.takim],
-    ['👥 Calisan',     m.calisan ? m.calisan+' kisi' : null],
-    ['🏭 Makine',      m.makine],
-    ['📺 Teshir',      m.teshir],
-    ['💰 Mali Puan',   m.maliPuan  ? yildiz(m.maliPuan)+' '+m.maliPuan+'/10'  : null],
-    ['⭐ Genel Puan',  m.genelPuan ? yildiz(m.genelPuan)+' '+m.genelPuan+'/10': null],
-    ['📝 Notlar',      m.notlar],
-    ['🌍 Koordinat',   (m.lat&&m.lng) ? parseFloat(m.lat).toFixed(5)+', '+parseFloat(m.lng).toFixed(5) : null]
+    ['👤 Yetkili',        m.yetkili],
+    ['📞 Telefon',        m.tel ? '<a href="tel:'+esc(m.tel)+'" style="color:var(--blue)">'+esc(m.tel)+'</a>' : null],
+    ['📧 E-posta',        m.mail ? '<a href="mailto:'+esc(m.mail)+'" style="color:var(--blue)">'+esc(m.mail)+'</a>' : null],
+    ['📍 Ilce/Sehir',     [m.ilce,m.sehir].filter(Boolean).join(' / ')],
+    ['🏠 Adres',          m.adres],
+    ['⚽ Takim',          m.takim],
+    ['👥 Calisan',        m.calisan ? m.calisan+' kisi' : null],
+    ['🏭 Makine',         m.makine],
+    ['📺 Teshir',         m.teshir],
+    ['💰 Mali Puan',      m.maliPuan  ? yildiz(m.maliPuan)+' '+m.maliPuan+'/10'  : null],
+    ['⭐ Genel Puan',     m.genelPuan ? yildiz(m.genelPuan)+' '+m.genelPuan+'/10': null],
+    ['📝 Notlar',         m.notlar],
+    ['📦 Teklif/Satin',   m.teklif],
+    ['🗓️ Son Ziyaret',    m.sonZiyaret     ? tarihFormat(m.sonZiyaret)     : null],
+    ['📅 Sonraki Ziyaret',m.sonrakiZiyaret ? tarihFormat(m.sonrakiZiyaret) : null],
+    ['🌍 Koordinat',      (m.lat&&m.lng) ? parseFloat(m.lat).toFixed(5)+', '+parseFloat(m.lng).toFixed(5) : null]
   ];
 
   var html = '';
@@ -585,6 +624,9 @@ function acDet(id) {
           + '<span class="dval">'+rows[i][1]+'</span></div>';
   }
   el('det-body').innerHTML = html;
+
+  // iletisim gecmisi
+  renderGecmis(m);
 
   var lnk = el('det-maps');
   if (m.lat && m.lng) {
@@ -600,6 +642,58 @@ function yildiz(n) {
   var s = '<span class="stars">';
   for (var i=0; i<10; i++) s += '<span class="'+(i<n?'s1':'s0')+'">★</span>';
   return s + '</span>';
+}
+
+function tarihFormat(d) {
+  if (!d) return '';
+  var t = new Date(d);
+  if (isNaN(t)) return d;
+  return t.toLocaleDateString('tr-TR', {day:'numeric',month:'long',year:'numeric'});
+}
+
+function renderGecmis(m) {
+  var list = m.gecmis || [];
+  var gd = el('det-gecmis');
+  if (!list.length) {
+    gd.innerHTML = '<p style="font-size:12px;color:var(--muted)">Henuz kayit yok.</p>';
+    return;
+  }
+  var html = '';
+  for (var i=list.length-1; i>=0; i--) {
+    var g = list[i];
+    var icon = g.tip==='Ziyaret' ? '✅' : g.tip==='Arama' ? '📞' : '📝';
+    html += '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'
+      +'<span style="font-size:16px;flex-shrink:0">'+icon+'</span>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:13px;font-weight:600">'+esc(g.tip)
+      +(g.not ? ' — <span style="font-weight:400">'+esc(g.not)+'</span>' : '')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted)">'+tarihFormat(g.tarih)+'</div>'
+      +'</div></div>';
+  }
+  gd.innerHTML = html;
+}
+
+function gecmisEkle(tip) {
+  var m = dbBul(detId);
+  if (!m) return;
+  if (!m.gecmis) m.gecmis = [];
+  m.gecmis.push({tip:tip, tarih:new Date().toISOString(), not:''});
+  if (tip==='Ziyaret') m.sonZiyaret = new Date().toISOString().split('T')[0];
+  kayit();
+  renderGecmis(m);
+  bildir(tip+' kaydedildi');
+}
+
+function gecmisEkleNot() {
+  var not = prompt('Notu girin:');
+  if (!not || !not.trim()) return;
+  var m = dbBul(detId);
+  if (!m) return;
+  if (!m.gecmis) m.gecmis = [];
+  m.gecmis.push({tip:'Not', tarih:new Date().toISOString(), not:not.trim()});
+  kayit();
+  renderGecmis(m);
+  bildir('Not eklendi');
 }
 
 function kapDet() { el('ov-det').className = 'overlay'; }
