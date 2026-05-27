@@ -1117,6 +1117,7 @@ function acEkle() {
   el('btn-sil').style.display = 'none';
   temizle();
   el('ov-form').className = 'overlay on';
+  setTimeout(function(){ var mb=el('ov-form').querySelector('.mbody'); if(mb) mb.scrollTop=0; },50);
 }
 
 function acDuz(id) {
@@ -1127,6 +1128,7 @@ function acDuz(id) {
   el('btn-sil').style.display = 'inline-flex';
   doldur(m);
   el('ov-form').className = 'overlay on';
+  setTimeout(function(){ var mb=el('ov-form').querySelector('.mbody'); if(mb) mb.scrollTop=0; },50);
 }
 
 function kapForm() { el('ov-form').className = 'overlay'; }
