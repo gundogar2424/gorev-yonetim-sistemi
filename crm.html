@@ -1198,40 +1198,71 @@ function setKonum(i, r) {
   reverseGeocode(r.lat, r.lng);
 }
 
+function cariCoord(text) {
+  var patterns = [
+    /@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+    /center=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+    /"(-?\d{1,3}\.\d{5,}),(-?\d{1,3}\.\d{5,})"/,
+    /\bll=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+    /maps\/place\/[^@]+@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/
+  ];
+  for (var p=0; p<patterns.length; p++) {
+    var m = text.match(patterns[p]);
+    if (m) {
+      var r = {lat: parseFloat(m[1]), lng: parseFloat(m[2])};
+      if (gecerliK(r.lat, r.lng)) return r;
+    }
+  }
+  return null;
+}
+
 function cozKisaltma(url, idx) {
   bildir('⏳ Link çözülüyor...');
-  var proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', proxy, true);
-  xhr.timeout = 12000;
-  xhr.onload = function() {
-    if (xhr.status !== 200) { bildir('❌ Link çözülemedi — Maps\'te açıp tam URL\'yi kopyalayın'); return; }
-    try {
-      var data = JSON.parse(xhr.responseText);
-      // Check final redirected URL first
-      var finalUrl = (data.status && data.status.url) || '';
-      var r = konumParse(finalUrl);
-      if (r) { el('kl-'+idx).value = finalUrl; setKonum(idx, r); return; }
-      // Search in page content for coordinate patterns
-      var c = data.contents || '';
-      var patterns = [
-        /@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
-        /center=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
-        /"(-?\d{1,3}\.\d{5,}),(-?\d{1,3}\.\d{5,})"/,
-        /\bll=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/
-      ];
-      for (var p=0; p<patterns.length; p++) {
-        var m = c.match(patterns[p]);
-        if (m) {
-          var r2 = {lat: parseFloat(m[1]), lng: parseFloat(m[2])};
-          if (gecerliK(r2.lat, r2.lng)) { setKonum(idx, r2); return; }
+  var encUrl = encodeURIComponent(url);
+  var proxyList = [
+    'https://api.allorigins.win/get?url=' + encUrl,
+    'https://api.codetabs.com/v1/proxy?quest=' + encUrl
+  ];
+  var pi = 0;
+
+  function dene() {
+    if (pi >= proxyList.length) {
+      // Tüm proxy'ler başarısız → rehber mesaj göster
+      bildir('❌ Otomatik çözülemedi — aşağıdaki yöntemi deneyin');
+      setTimeout(function() {
+        alert('📍 Konum almanın en kolay yolu:\n\n1️⃣ Google Maps\'i açın\n2️⃣ Konuma UZUN basın (pin çakılır)\n3️⃣ Üstte çıkan koordinatı kopyalayın\n   örn: 40.7562, 30.3891\n4️⃣ CRM\'e yapıştırıp "Çöz" basın\n\nBu yöntem %100 çalışır!');
+      }, 500);
+      return;
+    }
+    var proxyUrl = proxyList[pi++];
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', proxyUrl, true);
+    xhr.timeout = 10000;
+    xhr.onload = function() {
+      if (xhr.status !== 200) { dene(); return; }
+      try {
+        // allorigins.win → JSON wrapper
+        var isJson = proxyUrl.indexOf('allorigins') !== -1;
+        var finalUrl = '', content = '';
+        if (isJson) {
+          var data = JSON.parse(xhr.responseText);
+          finalUrl = (data.status && data.status.url) || '';
+          content  = data.contents || '';
+        } else {
+          content = xhr.responseText || '';
+          // codetabs returns raw HTML — look for Maps URL in it
+          var mm = content.match(/https:\/\/www\.google\.com\/maps[^\s"'<>]*/);
+          if (mm) finalUrl = mm[0];
         }
-      }
-      bildir('❌ Koordinat bulunamadı — Maps\'te açıp URL\'yi kopyalayın');
-    } catch(e) { bildir('❌ Link çözülemedi'); }
-  };
-  xhr.onerror = xhr.ontimeout = function() { bildir('❌ Bağlantı hatası — internetinizi kontrol edin'); };
-  xhr.send();
+        var r = konumParse(finalUrl) || cariCoord(finalUrl) || cariCoord(content);
+        if (r) { if (finalUrl) el('kl-'+idx).value = finalUrl; setKonum(idx, r); return; }
+        dene();
+      } catch(e) { dene(); }
+    };
+    xhr.onerror = xhr.ontimeout = function() { dene(); };
+    xhr.send();
+  }
+  dene();
 }
 
 function konumCozIdx(i) {
