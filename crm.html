@@ -475,7 +475,7 @@ function goTab(t) {
 // ── export / import ───────────────────────────
 function disaAktar() {
   var json = JSON.stringify(db, null, 2);
-  var blob = new Blob([json], {type:'application/json'});
+  var blob = new Blob(['﻿'+json], {type:'application/json;charset=utf-8'});
   var url  = URL.createObjectURL(blob);
   var a    = document.createElement('a');
   var tarih = new Date().toISOString().slice(0,10);
@@ -492,7 +492,8 @@ function iceriAktar(e) {
   var reader = new FileReader();
   reader.onload = function(ev) {
     try {
-      var yeni = JSON.parse(ev.target.result);
+      var text = ev.target.result.replace(/^﻿/, '');
+      var yeni = JSON.parse(text);
       if (!Array.isArray(yeni)) { bildir('❌ Geçersiz dosya'); return; }
       // Üstüne ekle, çakışanları güncelle
       var eklenen = 0, guncellenen = 0;
@@ -507,7 +508,7 @@ function iceriAktar(e) {
       el('ayar-sayi').textContent = db.length;
     } catch(err) { bildir('❌ Dosya okunamadı'); }
   };
-  reader.readAsText(file);
+  reader.readAsText(file, 'UTF-8');
   e.target.value = '';
 }
 
