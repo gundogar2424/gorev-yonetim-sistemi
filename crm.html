@@ -150,6 +150,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 <div class="tabs">
   <div class="tab on" id="t-liste" onclick="goTab('liste')">👥 Musteriler</div>
   <div class="tab" id="t-rota" onclick="goTab('rota')">🗺️ Rota</div>
+  <div class="tab" id="t-ayar" onclick="goTab('ayar')">⚙️</div>
 </div>
 
 <!-- LISTE -->
@@ -182,6 +183,54 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px">
       Google Maps acildiktan sonra "Rotayi optimize et" secenegini kullanabilirsiniz.
     </p>
+  </div>
+</div>
+
+<!-- AYARLAR / YEDEK -->
+<div class="page" id="p-ayar">
+  <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
+
+    <div style="background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:18px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px">💾 Yedekleme</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Tüm müşteri verilerinizi bir dosyaya kaydedin. Google Drive'a atabilir, güvende tutabilirsiniz.</div>
+      <button class="btn btn-blue btn-full" onclick="disaAktar()" style="padding:13px">⬇️ Verileri İndir (Yedek Al)</button>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:18px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px">📤 Veri Yükle</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Daha önce aldığınız yedeği veya başkasından gelen veriyi yükleyin. <strong>Mevcut veriler silinmez, üstüne eklenir.</strong></div>
+      <label class="btn btn-out btn-full" style="padding:13px;cursor:pointer">
+        ⬆️ Dosyadan Veri Yükle
+        <input type="file" id="imp-input" accept=".json" onchange="iceriAktar(event)" style="display:none">
+      </label>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:18px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px">🔗 Paylaşım</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Verilerinizi başkasına göndermek için: <strong>Verileri İndir</strong> → dosyayı WhatsApp veya e-posta ile gönderin. Karşı taraf <strong>Dosyadan Veri Yükle</strong> ile kendi uygulamasına alır.</div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:18px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px">📱 Telefona Kısayol Ekleme</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        Uygulamayı telefona kısayol olarak eklemek için:<br>
+        1. <strong>netlify.com/drop</strong> adresine gidin<br>
+        2. crm.html dosyasını sürükleyip bırakın<br>
+        3. Size bir link verir (örn: <em>xyz.netlify.app</em>)<br>
+        4. O linki telefonunuzda açın<br>
+        5. Tarayıcı menüsünden <strong>"Ana Ekrana Ekle"</strong> seçin<br>
+        6. Artık uygulama gibi açılır ✅
+      </div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:18px">
+      <div style="font-weight:700;font-size:15px;margin-bottom:8px;color:var(--red)">⚠️ Veriyi Sıfırla</div>
+      <button class="btn btn-red btn-full" onclick="sifirla()" style="padding:13px">Tüm Verileri Sil</button>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:var(--muted);padding:8px">
+      Toplam <span id="ayar-sayi">0</span> müşteri kayıtlı
+    </div>
   </div>
 </div>
 
@@ -414,12 +463,61 @@ function guncelleSec() {
 
 // ── tab ───────────────────────────────────────
 function goTab(t) {
-  el('p-liste').className = 'page' + (t==='liste' ? ' on' : '');
-  el('p-rota').className  = 'page' + (t==='rota'  ? ' on' : '');
-  el('t-liste').className = 'tab'  + (t==='liste' ? ' on' : '');
-  el('t-rota').className  = 'tab'  + (t==='rota'  ? ' on' : '');
+  ['liste','rota','ayar'].forEach(function(x){
+    el('p-'+x).className = 'page'+(t===x?' on':'');
+    el('t-'+x).className = 'tab' +(t===x?' on':'');
+  });
   el('fab').style.display = t==='liste' ? 'flex' : 'none';
   if (t==='rota') guncelleSec();
+  if (t==='ayar') el('ayar-sayi').textContent = db.length;
+}
+
+// ── export / import ───────────────────────────
+function disaAktar() {
+  var json = JSON.stringify(db, null, 2);
+  var blob = new Blob([json], {type:'application/json'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  var tarih = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = 'musteri-crm-'+tarih+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  bildir('✅ Veri indirildi');
+}
+
+function iceriAktar(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var yeni = JSON.parse(ev.target.result);
+      if (!Array.isArray(yeni)) { bildir('❌ Geçersiz dosya'); return; }
+      // Üstüne ekle, çakışanları güncelle
+      var eklenen = 0, guncellenen = 0;
+      yeni.forEach(function(m) {
+        var idx = -1;
+        for (var i=0; i<db.length; i++) { if (db[i].id===m.id) { idx=i; break; } }
+        if (idx >= 0) { db[idx]=m; guncellenen++; }
+        else { db.push(m); eklenen++; }
+      });
+      kayit(); guncelleSec(); renderListe();
+      bildir('✅ '+eklenen+' eklendi, '+guncellenen+' güncellendi');
+      el('ayar-sayi').textContent = db.length;
+    } catch(err) { bildir('❌ Dosya okunamadı'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function sifirla() {
+  if (!confirm('Tüm müşteri verileri silinecek. Emin misiniz?')) return;
+  if (!confirm('Son onay: Bu işlem geri alınamaz!')) return;
+  db = [];
+  kayit(); guncelleSec(); renderListe();
+  el('ayar-sayi').textContent = 0;
+  bildir('Tüm veriler silindi');
 }
 
 // ── liste ─────────────────────────────────────
