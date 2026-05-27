@@ -605,20 +605,20 @@ input[type=range]::-webkit-slider-thumb{
         <div class="fsec-ttl">📋 Firma Bilgileri</div>
         <div class="fg">
           <label class="flbl">Firma Adı <span style="color:var(--danger)">*</span></label>
-          <input type="text" class="fc" id="f-firma" placeholder="Firma adı">
+          <input type="text" class="fc" id="f-firma" placeholder="Firma adı" autocomplete="off">
         </div>
         <div class="fg">
           <label class="flbl">Yetkili Kişi</label>
-          <input type="text" class="fc" id="f-yetkili" placeholder="Ad Soyad">
+          <input type="text" class="fc" id="f-yetkili" placeholder="Ad Soyad" autocomplete="off">
         </div>
         <div class="frow">
           <div class="fg">
             <label class="flbl">Telefon</label>
-            <input type="tel" class="fc" id="f-tel" placeholder="05XX XXX XX XX">
+            <input type="tel" class="fc" id="f-tel" placeholder="05XX XXX XX XX" autocomplete="off">
           </div>
           <div class="fg">
             <label class="flbl">E-posta</label>
-            <input type="email" class="fc" id="f-mail" placeholder="info@firma.com">
+            <input type="email" class="fc" id="f-mail" placeholder="info@firma.com" autocomplete="off">
           </div>
         </div>
       </div>
@@ -627,17 +627,17 @@ input[type=range]::-webkit-slider-thumb{
         <div class="fsec-ttl">📍 Konum</div>
         <div class="frow">
           <div class="fg">
-            <label class="flbl">İlçe</label>
-            <input type="text" class="fc" id="f-ilce" placeholder="Akyazı">
+            <label class="flbl">İlçe <small id="ilce-hint" style="color:var(--success);display:none">← konum'dan alındı</small></label>
+            <input type="text" class="fc" id="f-ilce" placeholder="Akyazı" autocomplete="off">
           </div>
           <div class="fg">
-            <label class="flbl">Şehir</label>
-            <input type="text" class="fc" id="f-sehir" placeholder="Sakarya">
+            <label class="flbl">Şehir (İl) <small id="sehir-hint" style="color:var(--success);display:none">← konum'dan alındı</small></label>
+            <input type="text" class="fc" id="f-sehir" placeholder="Sakarya" autocomplete="off">
           </div>
         </div>
         <div class="fg">
           <label class="flbl">Adres</label>
-          <input type="text" class="fc" id="f-adres" placeholder="Mahalle, cadde, no">
+          <input type="text" class="fc" id="f-adres" placeholder="Mahalle, cadde, no" autocomplete="off">
         </div>
         <div id="konum-list"></div>
         <button class="btn btn-ghost btn-full btn-sm" onclick="konumEkle()" style="margin-top:2px">
@@ -1199,6 +1199,7 @@ function konumCozIdx(i) {
     el('kok-'+i).style.display = 'block';
     el('kok-'+i).textContent = '✅ Konum çözüldü: '+r.lat.toFixed(5)+', '+r.lng.toFixed(5);
     bildir('✅ Konum çözüldü!');
+    reverseGeocode(r.lat, r.lng);
     return;
   }
   if (/goo\.gl|maps\.app\.goo\.gl/.test(text)) {
@@ -1220,10 +1221,44 @@ function gpsAlIdx(i) {
       el('kok-'+i).style.display = 'block';
       el('kok-'+i).textContent = '✅ GPS konumu alındı!';
       bildir('✅ GPS konumu alındı!');
+      reverseGeocode(pos.coords.latitude, pos.coords.longitude);
     },
     function(err) { bildir('GPS hatası: ' + err.message); },
     {enableHighAccuracy:true, timeout:10000}
   );
+}
+
+function reverseGeocode(lat, lng) {
+  var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&accept-language=tr&zoom=10';
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.timeout = 6000;
+  xhr.onload = function() {
+    if (xhr.status !== 200) return;
+    try {
+      var data = JSON.parse(xhr.responseText);
+      var addr = data.address || {};
+      var il    = addr.province || addr.state || addr.region || '';
+      var ilce  = addr.district || addr.county || addr.town || addr.municipality || '';
+      // "Sakarya ili" → "Sakarya"
+      il   = il.replace(/\s+ili?$/i,'').trim();
+      ilce = ilce.replace(/\s+il[çc]esi?$/i,'').trim();
+      if (il && !el('f-sehir').value) {
+        el('f-sehir').value = il;
+        el('sehir-hint').style.display = 'inline';
+        setTimeout(function(){ el('sehir-hint').style.display='none'; }, 4000);
+      }
+      if (ilce && !el('f-ilce').value) {
+        el('f-ilce').value = ilce;
+        el('ilce-hint').style.display = 'inline';
+        setTimeout(function(){ el('ilce-hint').style.display='none'; }, 4000);
+      }
+      if (il || ilce) bildir('📍 İl/İlçe otomatik dolduruldu');
+    } catch(e) {}
+  };
+  xhr.onerror = xhr.ontimeout = function() {};
+  xhr.send();
 }
 
 function kaydet() {
