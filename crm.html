@@ -238,6 +238,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
         <div class="fg">
           <label class="flbl">Konum <small>— rota icin gerekli</small></label>
           <div class="gps-box">
+            <!-- Yapistir alani -->
+            <label class="flbl" style="margin-bottom:5px">WhatsApp / Google Maps linki veya koordinat yapistir</label>
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+              <input type="text" class="fc" id="f-konumlink"
+                placeholder="https://maps.google.com/?q=... veya 40.756, 30.378">
+              <button class="btn btn-blue" onclick="konumCoz()" style="white-space:nowrap">Çöz</button>
+            </div>
             <button class="btn btn-out btn-full" onclick="gpsAl()" style="margin-bottom:10px">
               📍 GPS ile Su Anki Konumumu Al
             </button>
@@ -490,7 +497,7 @@ function kapForm() {
 }
 
 function temizle() {
-  var ids = ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres','f-takim','f-makine','f-notlar','f-teklif','f-sonziyaret','f-sonrakiziyaret'];
+  var ids = ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres','f-takim','f-makine','f-notlar','f-teklif','f-sonziyaret','f-sonrakiziyaret','f-konumlink'];
   for (var i=0; i<ids.length; i++) { var e=el(ids[i]); if(e) e.value=''; }
   el('f-calisan').value = '';
   el('f-teshir').value = '';
@@ -521,6 +528,74 @@ function doldur(m) {
   el('f-lat').value     = m.lat     || '';
   el('f-lng').value     = m.lng     || '';
   el('coord-ok').style.display = (m.lat && m.lng) ? 'block' : 'none';
+}
+
+// ── konum çözücü ──────────────────────────────
+function konumParse(text) {
+  text = (text || '').trim();
+
+  var lat, lng, m;
+
+  // 1. Google Maps URL: @lat,lng  (share linki, yer sayfasi)
+  m = text.match(/@(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (m) { lat=parseFloat(m[1]); lng=parseFloat(m[2]); if (gecerliK(lat,lng)) return {lat:lat,lng:lng}; }
+
+  // 2. ?q=lat,lng  (WhatsApp konum paylasimi)
+  m = text.match(/[?&]q=(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (m) { lat=parseFloat(m[1]); lng=parseFloat(m[2]); if (gecerliK(lat,lng)) return {lat:lat,lng:lng}; }
+
+  // 3. ?ll=lat,lng
+  m = text.match(/[?&]ll=(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (m) { lat=parseFloat(m[1]); lng=parseFloat(m[2]); if (gecerliK(lat,lng)) return {lat:lat,lng:lng}; }
+
+  // 4. /place/Ad/@lat,lng veya /maps/lat,lng,zoom
+  m = text.match(/\/(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (m) { lat=parseFloat(m[1]); lng=parseFloat(m[2]); if (gecerliK(lat,lng)) return {lat:lat,lng:lng}; }
+
+  // 5. Duz koordinat: "40.756, 30.378" veya "40.756 30.378"
+  m = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/);
+  if (m) { lat=parseFloat(m[1]); lng=parseFloat(m[2]); if (gecerliK(lat,lng)) return {lat:lat,lng:lng}; }
+
+  // 6. DMS: 40°45'24.8"N 30°22'41.2"E
+  m = text.match(/(\d+)[°ºd](\d+)[\'′m]?([\d.]+)[\"″s]?\s*([NS])\s*(\d+)[°ºd](\d+)[\'′m]?([\d.]+)[\"″s]?\s*([EWew])/i);
+  if (m) {
+    lat = dms2dec(m[1],m[2],m[3],m[4]);
+    lng = dms2dec(m[5],m[6],m[7],m[8]);
+    if (gecerliK(lat,lng)) return {lat:lat,lng:lng};
+  }
+
+  return null;
+}
+
+function gecerliK(lat,lng) {
+  return !isNaN(lat)&&!isNaN(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;
+}
+
+function dms2dec(d,m,s,dir) {
+  var v = parseFloat(d)+parseFloat(m)/60+parseFloat(s)/3600;
+  return (dir.toUpperCase()==='S'||dir.toUpperCase()==='W') ? -v : v;
+}
+
+function konumCoz() {
+  var text = val('f-konumlink');
+  if (!text) { bildir('⚠️ Önce bir şey yapıştırın'); return; }
+
+  var r = konumParse(text);
+  if (r) {
+    el('f-lat').value = r.lat.toFixed(6);
+    el('f-lng').value = r.lng.toFixed(6);
+    el('coord-ok').style.display = 'block';
+    el('coord-ok').textContent = '✅ Konum çözüldü: '+r.lat.toFixed(5)+', '+r.lng.toFixed(5);
+    bildir('✅ Konum çözüldü!');
+    return;
+  }
+
+  // Kisaltilmis link uyarisi
+  if (/goo\.gl|maps\.app\.goo\.gl/.test(text)) {
+    bildir('⚠️ Kısaltılmış link açılamıyor — Maps\'te açıp tam URL\'yi kopyalayın');
+  } else {
+    bildir('❌ Konum anlaşılamadı');
+  }
 }
 
 function gpsAl() {
