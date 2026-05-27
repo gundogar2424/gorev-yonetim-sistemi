@@ -565,6 +565,20 @@ input[type=range]::-webkit-slider-thumb{
       </div>
     </div>
 
+    <!-- PDF / Yazdır -->
+    <div class="scard">
+      <div class="scard-hdr">
+        <div class="scard-icon" style="background:#fef9c3">🖨️</div>
+        <div class="scard-hdr-txt">
+          <h3>PDF / Yazdır</h3>
+          <p>Müşteri listesini PDF olarak kaydedin</p>
+        </div>
+      </div>
+      <div class="scard-body">
+        <button class="btn btn-primary btn-full" onclick="yazdir()">🖨️ PDF / Yazdır</button>
+      </div>
+    </div>
+
     <!-- Sıfırla -->
     <div class="scard">
       <div class="scard-body">
@@ -970,6 +984,46 @@ function iceriAktar(e) {
   e.target.value = '';
 }
 
+function yazdir() {
+  var html = '<html><head><meta charset="utf-8"><title>Müşteri Listesi</title><style>'
+    + 'body{font-family:Arial,sans-serif;font-size:12px;margin:20px}'
+    + 'h1{font-size:16px;margin-bottom:4px}p{color:#666;margin:0 0 16px}'
+    + 'table{width:100%;border-collapse:collapse}'
+    + 'th{background:#1e3a5f;color:#fff;padding:7px 8px;text-align:left;font-size:11px}'
+    + 'td{padding:6px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}'
+    + 'tr:nth-child(even){background:#f9fafb}'
+    + '.kat{display:inline-block;padding:2px 6px;border-radius:10px;font-size:10px;font-weight:700}'
+    + '.vip{background:#fef3c7;color:#92400e}.akt{background:#d1fae5;color:#065f46}'
+    + '.pot{background:#dbeafe;color:#1e40af}.sog{background:#f3f4f6;color:#374151}'
+    + '@media print{body{margin:10px}}'
+    + '</style></head><body>'
+    + '<h1>Müşteri CRM — ' + new Date().toLocaleDateString('tr-TR') + '</h1>'
+    + '<p>Toplam: ' + db.length + ' müşteri</p>'
+    + '<table><tr>'
+    + '<th>#</th><th>Firma</th><th>Yetkili</th><th>Telefon</th>'
+    + '<th>İlçe / Şehir</th><th>Kategori</th><th>Puan</th><th>Notlar</th>'
+    + '</tr>';
+  var sorted = db.slice().sort(function(a,b){ return (b.genelPuan||5)-(a.genelPuan||5); });
+  var katCls = {VIP:'vip',Aktif:'akt',Potansiyel:'pot',Soğuk:'sog',Eski:'sog'};
+  for (var i=0; i<sorted.length; i++) {
+    var m = sorted[i];
+    html += '<tr>'
+      + '<td>'+(i+1)+'</td>'
+      + '<td><strong>'+(m.firma||'')+'</strong></td>'
+      + '<td>'+(m.yetkili||'')+'</td>'
+      + '<td>'+(m.tel||'')+'</td>'
+      + '<td>'+(m.ilce||'')+( m.sehir?' / '+m.sehir:'')+'</td>'
+      + '<td>'+(m.kategori?'<span class="kat '+(katCls[m.kategori]||'sog')+'">'+m.kategori+'</span>':'')+'</td>'
+      + '<td>⭐'+(m.genelPuan||5)+' / 💰'+(m.maliPuan||5)+'</td>'
+      + '<td style="max-width:180px;white-space:pre-wrap">'+(m.notlar||'')+'</td>'
+      + '</tr>';
+  }
+  html += '</table></body></html>';
+  var w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); w.print(); }
+  else { bildir('⚠️ Tarayıcı yeni sekme açmayı engelledi'); }
+}
+
 function sifirla() {
   if (!confirm('Tüm müşteri verileri silinecek. Emin misiniz?')) return;
   if (!confirm('Son onay: Bu işlem geri alınamaz!')) return;
@@ -1024,7 +1078,10 @@ function renderListe() {
       +'<div class="card-firm">'+esc(m.firma)+'</div>'
       +(m.ilce?'<span class="card-dist">'+esc(m.ilce)+'</span>':'')
       +'</div>'
-      +(m.yetkili?'<div class="card-sub">👤 '+esc(m.yetkili)+(m.tel?' · 📞 '+esc(m.tel):'')+'</div>':'')
+      +(m.yetkili||m.tel?'<div class="card-sub">'+
+        (m.yetkili?'👤 '+esc(m.yetkili):'') +
+        (m.tel?' · <a href="tel:'+esc(m.tel)+'" onclick="event.stopPropagation()" style="color:var(--primary);font-weight:600;text-decoration:none">📞 '+esc(m.tel)+'</a>':'')+
+        '</div>':'')
       +'<div class="tags">'
       +(m.kategori?'<span class="cat-chip '+(katMap[m.kategori]||'cat-soguk')+'">'+esc(m.kategori)+'</span>':'')
       +'<span class="tag '+scoreClass+'">⭐ '+gp+'/10</span>'
