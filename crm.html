@@ -617,8 +617,12 @@ input[type=range]::-webkit-slider-thumb{
         </div>
         <div class="frow">
           <div class="fg">
-            <label class="flbl">Eşinin Adı</label>
-            <input type="text" class="fc" id="f-es" placeholder="Ad Soyad">
+            <label class="flbl">Medeni Durum</label>
+            <select class="fc" id="f-es">
+              <option value="">Bilinmiyor</option>
+              <option value="Evli">💍 Evli</option>
+              <option value="Bekar">🙂 Bekar</option>
+            </select>
           </div>
           <div class="fg">
             <label class="flbl">Çocuk Sayısı</label>
@@ -1182,7 +1186,7 @@ function acDet(id) {
     ['📍 İlçe/Şehir',    [m.ilce,m.sehir].filter(Boolean).join(' / ')],
     ['🏠 Adres',          m.adres],
     ['🎂 Doğum Günü',    dogumStr],
-    ['💍 Eşi',            m.es],
+    ['💍 Medeni Durum',   m.es],
     ['👶 Çocuk',          m.cocuk ? m.cocuk+' çocuk' : null],
     ['🎯 Hobiler',        m.hobi],
     ['🧠 Kişilik',        m.kisilik],
