@@ -631,16 +631,13 @@ input[type=range]::-webkit-slider-thumb{
           <input type="text" class="fc" id="f-adres" placeholder="Mahalle, cadde, no">
         </div>
         <div class="fg">
-          <label class="flbl">Koordinat <small>— rota için gerekli</small></label>
+          <label class="flbl">🏭 İmalat / Fabrika Konumu <small>— rota bu konumu kullanır</small></label>
           <div class="gps-box">
-            <label class="flbl" style="margin-bottom:6px;font-size:11px">WhatsApp / Google Maps linki veya koordinat yapıştır</label>
-            <div style="display:flex;gap:6px;margin-bottom:10px">
-              <input type="text" class="fc" id="f-konumlink" placeholder="https://maps.google.com/?q=... veya 40.756, 30.378">
-              <button class="btn btn-primary btn-sm" onclick="konumCoz()" style="white-space:nowrap;flex-shrink:0">Çöz</button>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <input type="text" class="fc" id="f-konumlink" placeholder="Link yapıştır veya 40.756, 30.378">
+              <button class="btn btn-primary btn-sm" onclick="konumCoz('1')" style="white-space:nowrap;flex-shrink:0">Çöz</button>
             </div>
-            <button class="btn btn-outline btn-full btn-sm" onclick="gpsAl()" style="margin-bottom:10px">
-              📍 GPS ile Konumumu Al
-            </button>
+            <button class="btn btn-outline btn-full btn-sm" onclick="gpsAl('1')" style="margin-bottom:8px">📍 GPS Al</button>
             <div class="frow">
               <div>
                 <label class="flbl">Enlem</label>
@@ -651,8 +648,28 @@ input[type=range]::-webkit-slider-thumb{
                 <input type="number" class="fc" id="f-lng" step="any" placeholder="30.378">
               </div>
             </div>
-            <div class="coord-hint">💡 Google Maps'ten sağ tıkla → koordinatı kopyala</div>
             <div class="coord-ok" id="coord-ok">✅ Konum kaydedildi</div>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flbl">🏪 Mağaza / Teşhir Konumu <small>— ikinci adres</small></label>
+          <div class="gps-box">
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <input type="text" class="fc" id="f-konumlink2" placeholder="Link yapıştır veya 40.756, 30.378">
+              <button class="btn btn-primary btn-sm" onclick="konumCoz('2')" style="white-space:nowrap;flex-shrink:0">Çöz</button>
+            </div>
+            <button class="btn btn-outline btn-full btn-sm" onclick="gpsAl('2')" style="margin-bottom:8px">📍 GPS Al</button>
+            <div class="frow">
+              <div>
+                <label class="flbl">Enlem</label>
+                <input type="number" class="fc" id="f-lat2" step="any" placeholder="40.756">
+              </div>
+              <div>
+                <label class="flbl">Boylam</label>
+                <input type="number" class="fc" id="f-lng2" step="any" placeholder="30.378">
+              </div>
+            </div>
+            <div class="coord-ok" id="coord-ok2">✅ Konum kaydedildi</div>
           </div>
         </div>
       </div>
@@ -714,7 +731,7 @@ input[type=range]::-webkit-slider-thumb{
         </div>
         <div class="frow">
           <div class="fg">
-            <label class="flbl">Teşhir</label>
+            <label class="flbl">Teşhir Durumu</label>
             <select class="fc" id="f-teshir">
               <option value="">Bilinmiyor</option>
               <option value="Teşhir Var">Teşhir Var</option>
@@ -723,9 +740,13 @@ input[type=range]::-webkit-slider-thumb{
             </select>
           </div>
           <div class="fg">
-            <label class="flbl">Makine Parkı</label>
-            <input type="text" class="fc" id="f-makine" placeholder="5 tezgah, CNC...">
+            <label class="flbl">Teşhir Alanı (m²)</label>
+            <input type="number" class="fc" id="f-teshirm2" placeholder="25" min="0">
           </div>
+        </div>
+        <div class="fg">
+          <label class="flbl">Makine Parkı</label>
+          <input type="text" class="fc" id="f-makine" placeholder="5 tezgah, CNC...">
         </div>
         <div class="frow">
           <div class="fg">
@@ -826,12 +847,10 @@ input[type=range]::-webkit-slider-thumb{
         <button class="btn btn-ghost btn-sm" onclick="gecmisEkleNot()">📝 Not</button>
       </div>
     </div>
-    <div class="mfoot" style="flex-wrap:wrap;gap:8px">
-      <button class="btn btn-outline" onclick="duzenle()" style="flex:1;min-width:90px">✏️ Düzenle</button>
-      <button class="btn wa-btn" onclick="waModal()" style="flex:1;min-width:110px;border-radius:10px;box-shadow:none">💬 WhatsApp</button>
-      <a id="det-maps" href="#" target="_blank" style="flex:1;min-width:110px;text-decoration:none">
-        <button class="btn btn-success btn-full">🗺️ Harita</button>
-      </a>
+    <div class="mfoot" style="flex-wrap:wrap;gap:7px">
+      <button class="btn btn-outline" onclick="duzenle()" style="flex:1;min-width:80px">✏️ Düzenle</button>
+      <button class="btn wa-btn" onclick="waModal()" style="flex:1;min-width:100px;border-radius:9px;box-shadow:none">💬 WA</button>
+      <div id="det-maps-wrap" style="flex:1;min-width:100px;display:flex;gap:5px"></div>
     </div>
   </div>
 </div>
@@ -1068,15 +1087,17 @@ function kapForm() { el('ov-form').className = 'overlay'; }
 
 function temizle() {
   var ids = ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres',
-    'f-takim','f-makine','f-notlar','f-teklif','f-sonziyaret','f-sonrakiziyaret','f-konumlink',
-    'f-es','f-hobi','f-kisilik','f-rakip','f-dogum','f-cocuk'];
+    'f-takim','f-makine','f-notlar','f-teklif','f-sonziyaret','f-sonrakiziyaret',
+    'f-konumlink','f-konumlink2','f-es','f-hobi','f-kisilik','f-rakip','f-dogum','f-cocuk','f-teshirm2'];
   for (var i=0; i<ids.length; i++) { var e=el(ids[i]); if(e) e.value=''; }
   el('f-calisan').value=''; el('f-teshir').value='';
   el('f-kategori').value=''; el('f-ciro').value=''; el('f-odeme').value='';
   el('f-mali').value=5;  updRange('f-mali','v-mali');
   el('f-genel').value=5; updRange('f-genel','v-genel');
   el('f-lat').value=''; el('f-lng').value='';
+  el('f-lat2').value=''; el('f-lng2').value='';
   el('coord-ok').style.display='none';
+  el('coord-ok2').style.display='none';
 }
 
 function doldur(m) {
@@ -1100,6 +1121,7 @@ function doldur(m) {
   el('f-ciro').value    = m.ciro     || '';
   el('f-odeme').value   = m.odeme    || '';
   el('f-rakip').value   = m.rakip    || '';
+  el('f-teshirm2').value= m.teshirm2  || '';
   el('f-mali').value    = m.maliPuan  || 5; updRange('f-mali','v-mali');
   el('f-genel').value   = m.genelPuan || 5; updRange('f-genel','v-genel');
   el('f-notlar').value  = m.notlar   || '';
@@ -1108,7 +1130,10 @@ function doldur(m) {
   el('f-sonrakiziyaret').value = m.sonrakiZiyaret || '';
   el('f-lat').value     = m.lat      || '';
   el('f-lng').value     = m.lng      || '';
-  el('coord-ok').style.display = (m.lat && m.lng) ? 'block' : 'none';
+  el('f-lat2').value    = m.lat2     || '';
+  el('f-lng2').value    = m.lng2     || '';
+  el('coord-ok').style.display  = (m.lat  && m.lng)  ? 'block' : 'none';
+  el('coord-ok2').style.display = (m.lat2 && m.lng2) ? 'block' : 'none';
 }
 
 // ── konum çözücü ─────────────────────────────
@@ -1143,15 +1168,16 @@ function dms2dec(d,m,s,dir) {
   return (dir.toUpperCase()==='S'||dir.toUpperCase()==='W') ? -v : v;
 }
 
-function konumCoz() {
-  var text = val('f-konumlink');
+function konumCoz(no) {
+  var sfx = (no==='2') ? '2' : '';
+  var text = val('f-konumlink'+sfx);
   if (!text) { bildir('⚠️ Önce bir şey yapıştırın'); return; }
   var r = konumParse(text);
   if (r) {
-    el('f-lat').value = r.lat.toFixed(6);
-    el('f-lng').value = r.lng.toFixed(6);
-    el('coord-ok').style.display = 'block';
-    el('coord-ok').textContent = '✅ Konum çözüldü: '+r.lat.toFixed(5)+', '+r.lng.toFixed(5);
+    el('f-lat'+sfx).value = r.lat.toFixed(6);
+    el('f-lng'+sfx).value = r.lng.toFixed(6);
+    el('coord-ok'+sfx).style.display = 'block';
+    el('coord-ok'+sfx).textContent = '✅ Konum çözüldü: '+r.lat.toFixed(5)+', '+r.lng.toFixed(5);
     bildir('✅ Konum çözüldü!');
     return;
   }
@@ -1162,15 +1188,16 @@ function konumCoz() {
   }
 }
 
-function gpsAl() {
+function gpsAl(no) {
   if (!navigator.geolocation) { bildir('Tarayıcı GPS desteklemiyor'); return; }
+  var sfx = (no==='2') ? '2' : '';
   bildir('📍 Konum alınıyor...');
   navigator.geolocation.getCurrentPosition(
     function(pos) {
-      el('f-lat').value = pos.coords.latitude.toFixed(6);
-      el('f-lng').value = pos.coords.longitude.toFixed(6);
-      el('coord-ok').style.display = 'block';
-      el('coord-ok').textContent = '✅ GPS konumu alındı!';
+      el('f-lat'+sfx).value = pos.coords.latitude.toFixed(6);
+      el('f-lng'+sfx).value = pos.coords.longitude.toFixed(6);
+      el('coord-ok'+sfx).style.display = 'block';
+      el('coord-ok'+sfx).textContent = '✅ GPS konumu alındı!';
       bildir('✅ GPS konumu alındı!');
     },
     function(err) { bildir('GPS hatası: ' + err.message); },
@@ -1200,6 +1227,7 @@ function kaydet() {
     takim:    val('f-takim'),
     calisan:  val('f-calisan'),
     teshir:   val('f-teshir'),
+    teshirm2: val('f-teshirm2'),
     makine:   val('f-makine'),
     ciro:     val('f-ciro'),
     odeme:    val('f-odeme'),
@@ -1210,8 +1238,10 @@ function kaydet() {
     teklif:         val('f-teklif'),
     sonZiyaret:     val('f-sonziyaret')     || null,
     sonrakiZiyaret: val('f-sonrakiziyaret') || null,
-    lat:            val('f-lat') || null,
-    lng:            val('f-lng') || null,
+    lat:            val('f-lat')  || null,
+    lng:            val('f-lng')  || null,
+    lat2:           val('f-lat2') || null,
+    lng2:           val('f-lng2') || null,
     gecmis:         eski ? (eski.gecmis || []) : [],
     tarih:          eski ? eski.tarih : new Date().toISOString()
   };
@@ -1267,7 +1297,7 @@ function acDet(id) {
     ['⚽ Takım',          m.takim],
     ['👥 Çalışan',        m.calisan ? m.calisan+' kişi' : null],
     ['🏭 Makine',         m.makine],
-    ['📺 Teşhir',         m.teshir],
+    ['📺 Teşhir',         m.teshir ? m.teshir + (m.teshirm2 ? ' — '+m.teshirm2+' m²' : '') : null],
     ['💵 Ciro Tahmini',   m.ciro],
     ['🧾 Ödeme',          m.odeme],
     ['🔄 Rakip Ürünler',  m.rakip],
@@ -1277,7 +1307,8 @@ function acDet(id) {
     ['📦 Teklif/Satın',   m.teklif],
     ['🗓️ Son Ziyaret',   m.sonZiyaret     ? tarihFormat(m.sonZiyaret)     : null],
     ['📅 Sonraki',        m.sonrakiZiyaret ? tarihFormat(m.sonrakiZiyaret) : null],
-    ['🌍 Koordinat',      (m.lat&&m.lng) ? parseFloat(m.lat).toFixed(5)+', '+parseFloat(m.lng).toFixed(5) : null]
+    ['🏭 İmalat Konumu',  (m.lat&&m.lng)   ? parseFloat(m.lat).toFixed(5)+', '+parseFloat(m.lng).toFixed(5)   : null],
+    ['🏪 Mağaza Konumu',  (m.lat2&&m.lng2) ? parseFloat(m.lat2).toFixed(5)+', '+parseFloat(m.lng2).toFixed(5) : null]
   ];
 
   var html = '';
@@ -1289,11 +1320,16 @@ function acDet(id) {
   el('det-body').innerHTML = html;
   renderGecmis(m);
 
-  var lnk = el('det-maps');
-  if (m.lat && m.lng) {
-    lnk.href = 'https://www.google.com/maps?q='+m.lat+','+m.lng;
+  var mapsBtn = el('det-maps-wrap');
+  if (m.lat && m.lng && m.lat2 && m.lng2) {
+    mapsBtn.innerHTML = '<button class="btn btn-success btn-sm" onclick="hMaps(1)">🏭 İmalat</button>'
+      +'<button class="btn btn-success btn-sm" onclick="hMaps(2)">🏪 Mağaza</button>';
   } else {
-    lnk.href = 'https://www.google.com/maps/search/'+encodeURIComponent([m.firma,m.adres,m.ilce,m.sehir].filter(Boolean).join(', '));
+    var href = (m.lat && m.lng)
+      ? 'https://www.google.com/maps?q='+m.lat+','+m.lng
+      : 'https://www.google.com/maps/search/'+encodeURIComponent([m.firma,m.adres,m.ilce,m.sehir].filter(Boolean).join(', '));
+    mapsBtn.innerHTML = '<a href="'+href+'" target="_blank" style="flex:1;text-decoration:none">'
+      +'<button class="btn btn-success btn-full">🗺️ Haritada Gör</button></a>';
   }
   el('ov-det').className = 'overlay on';
 }
@@ -1357,6 +1393,18 @@ function gecmisEkleNot() {
 
 function kapDet() { el('ov-det').className = 'overlay'; }
 function duzenle() { kapDet(); setTimeout(function(){ acDuz(detId); }, 150); }
+
+function hMaps(no) {
+  var m = dbBul(detId);
+  if (!m) return;
+  var lat = no===2 ? m.lat2 : m.lat;
+  var lng = no===2 ? m.lng2 : m.lng;
+  if (lat && lng) {
+    window.open('https://www.google.com/maps?q='+lat+','+lng, '_blank');
+  } else {
+    window.open('https://www.google.com/maps/search/'+encodeURIComponent([m.firma,m.adres,m.ilce,m.sehir].filter(Boolean).join(', ')), '_blank');
+  }
+}
 
 // ── WhatsApp ─────────────────────────────────
 function waModal() {
