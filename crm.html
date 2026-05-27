@@ -419,7 +419,7 @@ input[type=range]::-webkit-slider-thumb{
   <div class="bar">
     <div class="bar-search">
       <span>🔍</span>
-      <input type="search" id="s-ara" placeholder="Firma, yetkili veya ilçe ara..." oninput="renderListe()" onkeyup="renderListe()" onsearch="renderListe()">
+      <input type="search" id="s-ara" placeholder="Firma, yetkili veya ilçe ara..." oninput="renderListe()" onkeyup="renderListe()" onsearch="renderListe()" onkeydown="if(event.key==='Enter'){renderListe();this.blur();}">
     </div>
     <select id="s-ilce" onchange="renderListe()">
       <option value="">Tüm İlçeler</option>
@@ -1082,7 +1082,7 @@ function renderListe() {
       +'</div>'
       +(m.yetkili||m.tel?'<div class="card-sub">'+
         (m.yetkili?'👤 '+esc(m.yetkili):'') +
-        (m.tel?' · <a href="tel:'+esc(m.tel)+'" onclick="event.stopPropagation()" style="color:var(--primary);font-weight:600;text-decoration:none">📞 '+esc(m.tel)+'</a>':'')+
+        (m.tel?' · <a href="tel:'+esc(m.tel)+'" onclick="event.stopPropagation();event.preventDefault();window.location.href=\'tel:'+esc(m.tel)+'\'" style="color:var(--primary);font-weight:600;text-decoration:none;padding:6px 4px;display:inline-block">📞 '+esc(m.tel)+'</a>':'')+
         '</div>':'')
       +'<div class="tags">'
       +(m.kategori?'<span class="cat-chip '+(katMap[m.kategori]||'cat-soguk')+'">'+esc(m.kategori)+'</span>':'')
