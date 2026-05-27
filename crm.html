@@ -1117,7 +1117,7 @@ function acEkle() {
   el('btn-sil').style.display = 'none';
   temizle();
   el('ov-form').className = 'overlay on';
-  setTimeout(function(){ var mb=el('ov-form').querySelector('.mbody'); if(mb) mb.scrollTop=0; },50);
+  setTimeout(function(){ var mo=el('ov-form').querySelector('.modal'); if(mo) mo.scrollTop=0; },80);
 }
 
 function acDuz(id) {
@@ -1128,7 +1128,7 @@ function acDuz(id) {
   el('btn-sil').style.display = 'inline-flex';
   doldur(m);
   el('ov-form').className = 'overlay on';
-  setTimeout(function(){ var mb=el('ov-form').querySelector('.mbody'); if(mb) mb.scrollTop=0; },50);
+  setTimeout(function(){ var mo=el('ov-form').querySelector('.modal'); if(mo) mo.scrollTop=0; },80);
 }
 
 function kapForm() { el('ov-form').className = 'overlay'; }
@@ -1230,16 +1230,31 @@ function renderKonumForm() {
     html += '<div class="konum-item" id="ki-'+i+'">'
       +'<div class="konum-item-hdr">'
       +'<span style="font-size:13px;flex-shrink:0">📍</span>'
-      +'<input type="text" id="kad-'+i+'" value="'+esc(k.ad)+'" placeholder="İmalat, Mağaza, Depo..." oninput="formKonumlar['+i+'].ad=this.value">'
+      +'<input type="text" id="kad-'+i+'" value="'+esc(k.ad)+'" placeholder="İmalat, Mağaza, Depo..." oninput="konumAdGir('+i+',this.value)">'
       +(formKonumlar.length>1 ? '<button class="konum-sil" onclick="konumSil('+i+')" title="Sil">×</button>' : '')
       +'</div>'
       +'<div class="konum-item-body">'
-      +'<label class="flbl">Koordinat</label>'
+      +'<label class="flbl" style="font-size:12px;color:var(--primary);font-weight:700">▶ Koordinatı buraya yapıştırın</label>'
       +'<input type="text" class="fc" id="kcoord-'+i+'" value="'+esc(coordStr)+'" placeholder="40.7562, 30.3891" autocomplete="off" style="font-size:13px;padding:9px 11px;letter-spacing:0.3px" oninput="konumCoordGir('+i+',this.value)">'
       +'<div class="coord-ok" id="kok-'+i+'" style="display:'+(hasCoord?'block':'none')+';margin-top:6px">✅ Konum kaydedildi</div>'
       +'</div></div>';
   }
   el('konum-list').innerHTML = html;
+}
+
+function konumAdGir(i, v) {
+  var r = konumParse(v);
+  if (r) {
+    // Koordinat yanlış alana girildi — otomatik taşı
+    el('kad-'+i).value = '';
+    formKonumlar[i].ad = '';
+    var coordVal = r.lat.toFixed(6)+', '+r.lng.toFixed(6);
+    el('kcoord-'+i).value = coordVal;
+    konumCoordGir(i, coordVal);
+    bildir('✅ Koordinat algılandı ve yerleştirildi!');
+  } else {
+    formKonumlar[i].ad = v;
+  }
 }
 
 function konumCoordGir(i, text) {
@@ -1729,7 +1744,8 @@ function waGonder() {
   if (tel.startsWith('0')) tel = '90' + tel.slice(1);
   else if (!tel.startsWith('90') && tel.length <= 10) tel = '90' + tel;
   var url = 'https://wa.me/'+tel+'?text='+encodeURIComponent(txt);
-  linkAc(url);
+  kapWa();
+  setTimeout(function(){ location.href = url; }, 200);
 }
 
 // ── Toplu Mesaj ──────────────────────────────
