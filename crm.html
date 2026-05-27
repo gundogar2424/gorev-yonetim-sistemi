@@ -960,6 +960,11 @@ function proxyTest() {
 function el(id) { return document.getElementById(id); }
 function val(id) { var e=el(id); return e ? (e.value||'').trim() : ''; }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function linkAc(url) {
+  var a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
 
 function updRange(rid, vid) {
   var e = el(rid);
@@ -1473,6 +1478,16 @@ function reverseGeocode(lat, lng) {
 }
 
 function kaydet() {
+  // Koordinat alanlarını kaydetmeden önce oku (oninput mobilde tetiklenmeyebilir)
+  for (var ci=0; ci<formKonumlar.length; ci++) {
+    var kEl = el('kcoord-'+ci);
+    var kAd = el('kad-'+ci);
+    if (kAd) formKonumlar[ci].ad = kAd.value || '';
+    if (kEl && kEl.value.trim()) {
+      var rr = konumParse(kEl.value);
+      if (rr) { formKonumlar[ci].lat = rr.lat.toFixed(6); formKonumlar[ci].lng = rr.lng.toFixed(6); }
+    }
+  }
   var firma = val('f-firma');
   if (!firma) { bildir('⚠️ Firma adı zorunlu!'); return; }
   var eski = editId ? dbBul(editId) : null;
@@ -1672,7 +1687,7 @@ function hMapsK(ki) {
   var kl = (m.konumlar && m.konumlar.length) ? m.konumlar : [];
   var k = kl[ki];
   if (k && k.lat && k.lng) {
-    window.open('https://www.google.com/maps?q='+k.lat+','+k.lng, '_blank');
+    linkAc('https://www.google.com/maps?q='+k.lat+','+k.lng);
   }
 }
 
@@ -1712,7 +1727,7 @@ function waGonder() {
   if (tel.startsWith('0')) tel = '90' + tel.slice(1);
   else if (!tel.startsWith('90') && tel.length <= 10) tel = '90' + tel;
   var url = 'https://wa.me/'+tel+'?text='+encodeURIComponent(txt);
-  window.open(url, '_blank');
+  linkAc(url);
 }
 
 // ── Toplu Mesaj ──────────────────────────────
@@ -1840,7 +1855,7 @@ function renderTopluAdim() {
 }
 
 function topluWaAc(encodedUrl) {
-  window.open(decodeURIComponent(encodedUrl), '_blank');
+  linkAc(decodeURIComponent(encodedUrl));
   topluSonraki(true);
 }
 
@@ -1912,7 +1927,7 @@ function mapsAc() {
   if (!wl.length) { bildir('⚠️ Seçili müşterilerin konumu yok!'); return; }
   var duraklar = '';
   for (var i=0; i<wl.length; i++) { var rk=rotaKonum(wl[i]); duraklar += rk.lat+','+rk.lng+'/'; }
-  window.open('https://www.google.com/maps/dir/'+duraklar.slice(0,-1), '_blank');
+  linkAc('https://www.google.com/maps/dir/'+duraklar.slice(0,-1));
 }
 
 // ── bildirim ─────────────────────────────────
