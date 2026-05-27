@@ -335,6 +335,23 @@ input[type=range]::-webkit-slider-thumb{
 }
 .notif.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ── WHATSAPP ── */
+.wa-btn{background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border:none;border-radius:10px;
+  padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:center;
+  box-shadow:0 2px 8px rgba(37,211,102,.35);transition:opacity .15s}
+.wa-btn:active{opacity:.82}
+.tpl-hint{font-size:11px;color:var(--muted);margin-top:6px;background:var(--surface);
+  padding:8px 10px;border-radius:8px;line-height:1.6}
+
+/* ── CATEGORY CHIP ── */
+.cat-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.cat-vip{background:#fef3c7;color:#92400e}
+.cat-aktif{background:#d1fae5;color:#065f46}
+.cat-pot{background:#dbeafe;color:#1e40af}
+.cat-soguk{background:#f1f5f9;color:#475569}
+.cat-eski{background:#fee2e2;color:#7f1d1d}
+
 @media(min-width:580px){
   .overlay{align-items:center}
   .modal{max-width:480px;margin:auto;border-radius:20px;max-height:90vh}
@@ -580,6 +597,45 @@ input[type=range]::-webkit-slider-thumb{
       </div>
 
       <div class="fsec">
+        <div class="fsec-ttl">👤 Kişisel &amp; İlişki</div>
+        <div class="frow">
+          <div class="fg">
+            <label class="flbl">Müşteri Kategorisi</label>
+            <select class="fc" id="f-kategori">
+              <option value="">Seçin</option>
+              <option value="VIP">⭐ VIP</option>
+              <option value="Aktif">✅ Aktif</option>
+              <option value="Potansiyel">🔵 Potansiyel</option>
+              <option value="Soğuk">❄️ Soğuk</option>
+              <option value="Eski">🔴 Eski</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="flbl">Doğum Günü</label>
+            <input type="date" class="fc" id="f-dogum">
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fg">
+            <label class="flbl">Eşinin Adı</label>
+            <input type="text" class="fc" id="f-es" placeholder="Ad Soyad">
+          </div>
+          <div class="fg">
+            <label class="flbl">Çocuk Sayısı</label>
+            <input type="number" class="fc" id="f-cocuk" placeholder="2" min="0">
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flbl">Hobiler &amp; İlgi Alanları</label>
+          <input type="text" class="fc" id="f-hobi" placeholder="Balık tutma, futbol, araba...">
+        </div>
+        <div class="fg">
+          <label class="flbl">Kişilik &amp; İletişim Notu</label>
+          <input type="text" class="fc" id="f-kisilik" placeholder="Samimi, titiz, pazarlık sever...">
+        </div>
+      </div>
+
+      <div class="fsec">
         <div class="fsec-ttl">🔍 İstihbarat Bilgileri</div>
         <div class="frow">
           <div class="fg">
@@ -605,6 +661,34 @@ input[type=range]::-webkit-slider-thumb{
             <label class="flbl">Makine Parkı</label>
             <input type="text" class="fc" id="f-makine" placeholder="5 tezgah, CNC...">
           </div>
+        </div>
+        <div class="frow">
+          <div class="fg">
+            <label class="flbl">Ciro Tahmini</label>
+            <select class="fc" id="f-ciro">
+              <option value="">Bilinmiyor</option>
+              <option value="&lt;500K">0–500K ₺</option>
+              <option value="500K-1M">500K–1M ₺</option>
+              <option value="1M-5M">1M–5M ₺</option>
+              <option value="5M-10M">5M–10M ₺</option>
+              <option value=">10M">10M+ ₺</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="flbl">Ödeme Alışkanlığı</label>
+            <select class="fc" id="f-odeme">
+              <option value="">Bilinmiyor</option>
+              <option value="Peşin">Peşin</option>
+              <option value="30 Gün Vadeli">30 Gün</option>
+              <option value="60 Gün Vadeli">60 Gün</option>
+              <option value="90 Gün Vadeli">90 Gün</option>
+              <option value="Geç Ödeme">Geç Ödeme</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flbl">Rakip Ürünler Kullanıyor</label>
+          <input type="text" class="fc" id="f-rakip" placeholder="Marka X, Marka Y...">
         </div>
         <div class="fg">
           <div class="range-wrap">
@@ -677,11 +761,46 @@ input[type=range]::-webkit-slider-thumb{
         <button class="btn btn-ghost btn-sm" onclick="gecmisEkleNot()">📝 Not</button>
       </div>
     </div>
-    <div class="mfoot">
-      <button class="btn btn-outline" onclick="duzenle()" style="flex:1">✏️ Düzenle</button>
-      <a id="det-maps" href="#" target="_blank" style="flex:1;text-decoration:none">
-        <button class="btn btn-success btn-full">🗺️ Haritada Gör</button>
+    <div class="mfoot" style="flex-wrap:wrap;gap:8px">
+      <button class="btn btn-outline" onclick="duzenle()" style="flex:1;min-width:90px">✏️ Düzenle</button>
+      <button class="btn wa-btn" onclick="waModal()" style="flex:1;min-width:110px;border-radius:10px;box-shadow:none">💬 WhatsApp</button>
+      <a id="det-maps" href="#" target="_blank" style="flex:1;min-width:110px;text-decoration:none">
+        <button class="btn btn-success btn-full">🗺️ Harita</button>
       </a>
+    </div>
+  </div>
+</div>
+
+<!-- WHATSAPP MODAL -->
+<div class="overlay" id="ov-wa" onclick="ovKapat(event,'ov-wa',kapWa)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="mhdr">
+      <h2>💬 WhatsApp Mesajı</h2>
+      <button class="mclose" onclick="kapWa()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="fg">
+        <label class="flbl">Telefon Numarası</label>
+        <input type="tel" class="fc" id="wa-tel" placeholder="05XX XXX XX XX">
+      </div>
+      <div class="fg">
+        <label class="flbl">Mesaj Şablonu</label>
+        <textarea class="fc" id="wa-mesaj" rows="5"
+          placeholder="Sayın {isim},&#10;&#10;Mesajınızı buraya yazın..."></textarea>
+        <div class="tpl-hint">
+          💡 <strong>{isim}</strong> → yetkili kişinin adıyla değiştirilir<br>
+          💡 <strong>{firma}</strong> → firma adıyla değiştirilir
+        </div>
+      </div>
+      <div class="fg" id="wa-onizleme" style="display:none">
+        <label class="flbl">Önizleme</label>
+        <div id="wa-onizleme-txt" style="background:var(--surface);padding:12px;border-radius:10px;font-size:13px;white-space:pre-wrap;line-height:1.6;color:var(--text-2)"></div>
+      </div>
+    </div>
+    <div class="mfoot" style="flex-direction:column;gap:8px">
+      <button class="btn btn-ghost btn-full" onclick="waOnizle()">👁️ Önizle</button>
+      <button class="wa-btn" onclick="waGonder()">📤 WhatsApp'ta Aç</button>
     </div>
   </div>
 </div>
@@ -825,6 +944,7 @@ function renderListe() {
     var accentColor = gp>=8?'#059669':gp>=5?'#d97706':'#dc2626';
     var scoreClass  = gp>=8?'tg':gp>=5?'ty':'tr';
     var hasL = m.lat && m.lng;
+    var katMap = {VIP:'cat-vip',Aktif:'cat-aktif','Potansiyel':'cat-pot','Soğuk':'cat-soguk','Eski':'cat-eski'};
     html += '<div class="card" onclick="acDet('+m.id+')">'
       +'<div class="card-accent" style="background:'+accentColor+'"></div>'
       +'<div class="card-body">'
@@ -834,6 +954,7 @@ function renderListe() {
       +'</div>'
       +(m.yetkili?'<div class="card-sub">👤 '+esc(m.yetkili)+(m.tel?' · 📞 '+esc(m.tel):'')+'</div>':'')
       +'<div class="tags">'
+      +(m.kategori?'<span class="cat-chip '+(katMap[m.kategori]||'cat-soguk')+'">'+esc(m.kategori)+'</span>':'')
       +'<span class="tag '+scoreClass+'">⭐ '+gp+'/10</span>'
       +(m.maliPuan?'<span class="tag to">💰 '+m.maliPuan+'/10</span>':'')
       +(m.calisan?'<span class="tag ts">👥 '+esc(m.calisan)+'</span>':'')
@@ -868,35 +989,47 @@ function acDuz(id) {
 function kapForm() { el('ov-form').className = 'overlay'; }
 
 function temizle() {
-  var ids = ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres','f-takim','f-makine','f-notlar','f-teklif','f-sonziyaret','f-sonrakiziyaret','f-konumlink'];
+  var ids = ['f-firma','f-yetkili','f-tel','f-mail','f-ilce','f-sehir','f-adres',
+    'f-takim','f-makine','f-notlar','f-teklif','f-sonziyaret','f-sonrakiziyaret','f-konumlink',
+    'f-es','f-hobi','f-kisilik','f-rakip','f-dogum','f-cocuk'];
   for (var i=0; i<ids.length; i++) { var e=el(ids[i]); if(e) e.value=''; }
-  el('f-calisan').value = ''; el('f-teshir').value = '';
-  el('f-mali').value = 5;  updRange('f-mali','v-mali');
-  el('f-genel').value = 5; updRange('f-genel','v-genel');
-  el('f-lat').value = ''; el('f-lng').value = '';
-  el('coord-ok').style.display = 'none';
+  el('f-calisan').value=''; el('f-teshir').value='';
+  el('f-kategori').value=''; el('f-ciro').value=''; el('f-odeme').value='';
+  el('f-mali').value=5;  updRange('f-mali','v-mali');
+  el('f-genel').value=5; updRange('f-genel','v-genel');
+  el('f-lat').value=''; el('f-lng').value='';
+  el('coord-ok').style.display='none';
 }
 
 function doldur(m) {
-  el('f-firma').value   = m.firma   || '';
-  el('f-yetkili').value = m.yetkili || '';
-  el('f-tel').value     = m.tel     || '';
-  el('f-mail').value    = m.mail    || '';
-  el('f-ilce').value    = m.ilce    || '';
-  el('f-sehir').value   = m.sehir   || '';
-  el('f-adres').value   = m.adres   || '';
-  el('f-takim').value   = m.takim   || '';
-  el('f-calisan').value = m.calisan || '';
-  el('f-teshir').value  = m.teshir  || '';
-  el('f-makine').value  = m.makine  || '';
+  el('f-firma').value   = m.firma    || '';
+  el('f-yetkili').value = m.yetkili  || '';
+  el('f-tel').value     = m.tel      || '';
+  el('f-mail').value    = m.mail     || '';
+  el('f-ilce').value    = m.ilce     || '';
+  el('f-sehir').value   = m.sehir    || '';
+  el('f-adres').value   = m.adres    || '';
+  el('f-takim').value   = m.takim    || '';
+  el('f-calisan').value = m.calisan  || '';
+  el('f-teshir').value  = m.teshir   || '';
+  el('f-makine').value  = m.makine   || '';
+  el('f-kategori').value= m.kategori || '';
+  el('f-dogum').value   = m.dogum    || '';
+  el('f-es').value      = m.es       || '';
+  el('f-cocuk').value   = m.cocuk    || '';
+  el('f-hobi').value    = m.hobi     || '';
+  el('f-kisilik').value = m.kisilik  || '';
+  el('f-ciro').value    = m.ciro     || '';
+  el('f-odeme').value   = m.odeme    || '';
+  el('f-rakip').value   = m.rakip    || '';
   el('f-mali').value    = m.maliPuan  || 5; updRange('f-mali','v-mali');
   el('f-genel').value   = m.genelPuan || 5; updRange('f-genel','v-genel');
-  el('f-notlar').value  = m.notlar  || '';
-  el('f-teklif').value  = m.teklif  || '';
+  el('f-notlar').value  = m.notlar   || '';
+  el('f-teklif').value  = m.teklif   || '';
   el('f-sonziyaret').value     = m.sonZiyaret     || '';
   el('f-sonrakiziyaret').value = m.sonrakiZiyaret || '';
-  el('f-lat').value     = m.lat     || '';
-  el('f-lng').value     = m.lng     || '';
+  el('f-lat').value     = m.lat      || '';
+  el('f-lng').value     = m.lng      || '';
   el('coord-ok').style.display = (m.lat && m.lng) ? 'block' : 'none';
 }
 
@@ -980,10 +1113,19 @@ function kaydet() {
     ilce:     val('f-ilce'),
     sehir:    val('f-sehir'),
     adres:    val('f-adres'),
+    kategori: val('f-kategori'),
+    dogum:    val('f-dogum')   || null,
+    es:       val('f-es'),
+    cocuk:    val('f-cocuk'),
+    hobi:     val('f-hobi'),
+    kisilik:  val('f-kisilik'),
     takim:    val('f-takim'),
     calisan:  val('f-calisan'),
     teshir:   val('f-teshir'),
     makine:   val('f-makine'),
+    ciro:     val('f-ciro'),
+    odeme:    val('f-odeme'),
+    rakip:    val('f-rakip'),
     maliPuan:       parseInt(el('f-mali').value)  || 5,
     genelPuan:      parseInt(el('f-genel').value) || 5,
     notlar:         val('f-notlar'),
@@ -1019,21 +1161,43 @@ function acDet(id) {
   detId = id;
   el('det-ttl').textContent = m.firma;
 
+  var katCls = {VIP:'cat-vip',Aktif:'cat-aktif','Potansiyel':'cat-pot','Soğuk':'cat-soguk','Eski':'cat-eski'};
+  var katHtml = m.kategori ? '<span class="cat-chip '+(katCls[m.kategori]||'cat-soguk')+'">'+esc(m.kategori)+'</span>' : null;
+
+  var dogumStr = null;
+  if (m.dogum) {
+    var today = new Date(); var bd = new Date(m.dogum);
+    var buAy = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
+    var kalan = Math.round((buAy - today) / 86400000);
+    if (kalan < 0) buAy.setFullYear(today.getFullYear()+1);
+    kalan = Math.round((buAy - today) / 86400000);
+    dogumStr = tarihFormat(m.dogum) + (kalan===0 ? ' 🎂 <strong>Bugün!</strong>' : kalan<=7 ? ' 🎂 <strong>'+kalan+' gün kaldı!</strong>' : '');
+  }
+
   var rows = [
+    ['🏷️ Kategori',      katHtml],
     ['👤 Yetkili',        m.yetkili],
     ['📞 Telefon',        m.tel ? '<a href="tel:'+esc(m.tel)+'" style="color:var(--primary);font-weight:600">'+esc(m.tel)+'</a>' : null],
     ['📧 E-posta',        m.mail ? '<a href="mailto:'+esc(m.mail)+'" style="color:var(--primary);font-weight:600">'+esc(m.mail)+'</a>' : null],
-    ['📍 İlçe/Şehir',     [m.ilce,m.sehir].filter(Boolean).join(' / ')],
+    ['📍 İlçe/Şehir',    [m.ilce,m.sehir].filter(Boolean).join(' / ')],
     ['🏠 Adres',          m.adres],
+    ['🎂 Doğum Günü',    dogumStr],
+    ['💍 Eşi',            m.es],
+    ['👶 Çocuk',          m.cocuk ? m.cocuk+' çocuk' : null],
+    ['🎯 Hobiler',        m.hobi],
+    ['🧠 Kişilik',        m.kisilik],
     ['⚽ Takım',          m.takim],
     ['👥 Çalışan',        m.calisan ? m.calisan+' kişi' : null],
     ['🏭 Makine',         m.makine],
     ['📺 Teşhir',         m.teshir],
+    ['💵 Ciro Tahmini',   m.ciro],
+    ['🧾 Ödeme',          m.odeme],
+    ['🔄 Rakip Ürünler',  m.rakip],
     ['💰 Mali Puan',      m.maliPuan  ? yildiz(m.maliPuan)+' <strong>'+m.maliPuan+'</strong>/10'  : null],
     ['⭐ Genel Puan',     m.genelPuan ? yildiz(m.genelPuan)+' <strong>'+m.genelPuan+'</strong>/10': null],
     ['📝 Notlar',         m.notlar],
     ['📦 Teklif/Satın',   m.teklif],
-    ['🗓️ Son Ziyaret',    m.sonZiyaret     ? tarihFormat(m.sonZiyaret)     : null],
+    ['🗓️ Son Ziyaret',   m.sonZiyaret     ? tarihFormat(m.sonZiyaret)     : null],
     ['📅 Sonraki',        m.sonrakiZiyaret ? tarihFormat(m.sonrakiZiyaret) : null],
     ['🌍 Koordinat',      (m.lat&&m.lng) ? parseFloat(m.lat).toFixed(5)+', '+parseFloat(m.lng).toFixed(5) : null]
   ];
@@ -1115,6 +1279,45 @@ function gecmisEkleNot() {
 
 function kapDet() { el('ov-det').className = 'overlay'; }
 function duzenle() { kapDet(); setTimeout(function(){ acDuz(detId); }, 150); }
+
+// ── WhatsApp ─────────────────────────────────
+function waModal() {
+  var m = dbBul(detId);
+  if (!m) return;
+  el('wa-tel').value = m.tel || '';
+  el('wa-mesaj').value = '';
+  el('wa-onizleme').style.display = 'none';
+  el('ov-wa').className = 'overlay on';
+}
+
+function kapWa() { el('ov-wa').className = 'overlay'; }
+
+function waMesajCoz() {
+  var m = dbBul(detId);
+  if (!m) return '';
+  var isim = (m.yetkili || m.firma || '').split(' ')[0];
+  return el('wa-mesaj').value
+    .replace(/\{isim\}/gi, isim)
+    .replace(/\{firma\}/gi, m.firma || '');
+}
+
+function waOnizle() {
+  var txt = waMesajCoz();
+  if (!txt) { bildir('⚠️ Mesaj boş'); return; }
+  el('wa-onizleme-txt').textContent = txt;
+  el('wa-onizleme').style.display = 'block';
+}
+
+function waGonder() {
+  var tel = el('wa-tel').value.replace(/\s|-|\(|\)/g,'');
+  if (!tel) { bildir('⚠️ Telefon numarası girin'); return; }
+  var txt = waMesajCoz();
+  if (!txt) { bildir('⚠️ Mesaj boş'); return; }
+  if (tel.startsWith('0')) tel = '90' + tel.slice(1);
+  else if (!tel.startsWith('90') && tel.length <= 10) tel = '90' + tel;
+  var url = 'https://api.whatsapp.com/send?phone='+encodeURIComponent(tel)+'&text='+encodeURIComponent(txt);
+  window.open(url, '_blank');
+}
 function ovKapat(e, id, fn) { if (e.target === el(id)) fn(); }
 
 // ── rota ─────────────────────────────────────
