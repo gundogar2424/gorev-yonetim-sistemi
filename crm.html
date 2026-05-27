@@ -1240,7 +1240,11 @@ function konumCoordGir(i, text) {
   if (r) {
     formKonumlar[i].lat = r.lat.toFixed(6);
     formKonumlar[i].lng = r.lng.toFixed(6);
-    el('kok-'+i).style.display = 'block';
+    var kok = el('kok-'+i);
+    kok.style.display = 'block';
+    kok.innerHTML = '✅ Konum kaydedildi &nbsp;'
+      + '<a href="https://www.google.com/maps?q='+r.lat+','+r.lng+'" target="_blank" '
+      + 'style="color:var(--primary);font-weight:600;text-decoration:none">🗺️ Haritada Gör</a>';
     reverseGeocode(r.lat, r.lng);
   } else {
     formKonumlar[i].lat = '';
@@ -1451,17 +1455,17 @@ function reverseGeocode(lat, lng) {
       // "Sakarya ili" → "Sakarya"
       il   = il.replace(/\s+ili?$/i,'').trim();
       ilce = ilce.replace(/\s+il[çc]esi?$/i,'').trim();
-      if (il && !el('f-sehir').value) {
+      if (il) {
         el('f-sehir').value = il;
         el('sehir-hint').style.display = 'inline';
-        setTimeout(function(){ el('sehir-hint').style.display='none'; }, 4000);
+        setTimeout(function(){ el('sehir-hint').style.display='none'; }, 3000);
       }
-      if (ilce && !el('f-ilce').value) {
+      if (ilce) {
         el('f-ilce').value = ilce;
         el('ilce-hint').style.display = 'inline';
-        setTimeout(function(){ el('ilce-hint').style.display='none'; }, 4000);
+        setTimeout(function(){ el('ilce-hint').style.display='none'; }, 3000);
       }
-      if (il || ilce) bildir('📍 İl/İlçe otomatik dolduruldu');
+      if (il || ilce) bildir('📍 İl/İlçe güncellendi: '+(ilce||'')+' / '+(il||''));
     } catch(e) {}
   };
   xhr.onerror = xhr.ontimeout = function() {};
@@ -1707,7 +1711,7 @@ function waGonder() {
   if (!txt) { bildir('⚠️ Mesaj boş'); return; }
   if (tel.startsWith('0')) tel = '90' + tel.slice(1);
   else if (!tel.startsWith('90') && tel.length <= 10) tel = '90' + tel;
-  var url = 'https://api.whatsapp.com/send?phone='+encodeURIComponent(tel)+'&text='+encodeURIComponent(txt);
+  var url = 'https://wa.me/'+tel+'?text='+encodeURIComponent(txt);
   window.open(url, '_blank');
 }
 
@@ -1722,7 +1726,7 @@ function waFonksiyon(tel, isim, firma, sablon) {
   if (tel.startsWith('0')) tel = '90' + tel.slice(1);
   else if (!tel.startsWith('90') && tel.length <= 10) tel = '90' + tel;
   return {
-    url: 'https://api.whatsapp.com/send?phone='+encodeURIComponent(tel)+'&text='+encodeURIComponent(txt),
+    url: 'https://wa.me/'+tel+'?text='+encodeURIComponent(txt),
     preview: txt
   };
 }
