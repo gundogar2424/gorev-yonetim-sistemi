@@ -1685,6 +1685,68 @@ function gecmisEkleNot() {
 function kapDet() { el('ov-det').className = 'overlay'; }
 function duzenle() { kapDet(); setTimeout(function(){ acDuz(detId); }, 150); }
 
+function musteriPDF() {
+  var m = dbBul(detId);
+  if (!m) return;
+  var sat = function(lbl, val) {
+    if (!val && val !== 0) return '';
+    return '<tr><td style="color:#64748b;padding:6px 12px 6px 0;font-size:14px;white-space:nowrap;vertical-align:top">'+lbl+'</td>'
+          +'<td style="padding:6px 0;font-size:14px;font-weight:500">'+val+'</td></tr>';
+  };
+  var konumHtml = '';
+  if (m.konumlar && m.konumlar.length) {
+    for (var ki=0; ki<m.konumlar.length; ki++) {
+      var k = m.konumlar[ki];
+      var kStr = k.ad || '';
+      if (k.lat && k.lng) {
+        var mapsUrl = 'https://www.google.com/maps?q='+k.lat+','+k.lng;
+        kStr += (kStr?' — ':'')+'<a href="'+mapsUrl+'">'+k.lat+', '+k.lng+'</a>';
+      }
+      if (kStr) konumHtml += '<li style="margin-bottom:4px">'+kStr+'</li>';
+    }
+  }
+  var etiketler = (m.etiketler && m.etiketler.length) ? m.etiketler.join(', ') : '';
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8">'
+    +'<title>'+esc(m.firma||'Müşteri')+'</title>'
+    +'<style>body{font-family:sans-serif;color:#1e293b;padding:32px;max-width:700px;margin:0 auto}'
+    +'h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;color:#64748b;margin:0 0 24px;font-weight:400}'
+    +'h3{font-size:14px;color:#0ea5e9;margin:18px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px}'
+    +'table{width:100%;border-collapse:collapse}a{color:#0ea5e9}'
+    +'@media print{body{padding:16px}}</style></head><body>'
+    +'<h1>'+esc(m.firma||'—')+'</h1>'
+    +'<h2>'+(m.il||'')+(m.ilce?', '+m.ilce:'')+(m.kategori?' · '+m.kategori:'')+'</h2>'
+    +'<h3>İletişim</h3><table>'
+    +sat('Telefon', m.tel ? '<a href="tel:'+esc(m.tel)+'">'+esc(m.tel)+'</a>' : '')
+    +sat('E-posta', m.eposta ? '<a href="mailto:'+esc(m.eposta)+'">'+esc(m.eposta)+'</a>' : '')
+    +sat('Web', m.web ? '<a href="'+esc(m.web)+'">'+esc(m.web)+'</a>' : '')
+    +'</table>'
+    +'<h3>Ticari Bilgiler</h3><table>'
+    +sat('Vergi No', m.vergiNo)
+    +sat('Vergi Dairesi', m.vergiDairesi)
+    +sat('Sektör', m.sektor)
+    +sat('Kategori', m.kategori)
+    +sat('Etkinlik Puanı', m.puan)
+    +sat('Etiketler', etiketler)
+    +'</table>'
+    +'<h3>Kişisel Bilgiler</h3><table>'
+    +sat('İl', m.il)
+    +sat('İlçe', m.ilce)
+    +sat('Adres', m.adres)
+    +'</table>'
+    +(konumHtml ? '<h3>Konumlar</h3><ul style="margin:0;padding-left:20px">'+konumHtml+'</ul>' : '')
+    +(m.notlar ? '<h3>Notlar</h3><p style="font-size:14px;line-height:1.6;white-space:pre-wrap">'+esc(m.notlar)+'</p>' : '')
+    +'<p style="margin-top:32px;font-size:12px;color:#94a3b8">Oluşturulma: '+(m.olusturma||'')+'</p>'
+    +'</body></html>';
+  var w = window.open('', '_blank');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    setTimeout(function(){ w.print(); }, 500);
+  } else {
+    bildir('⚠️ Tarayıcı sekme açmayı engelledi — pop-up iznini açın');
+  }
+}
+
 function hMapsK(ki) {
   var m = dbBul(detId);
   if (!m) return;
