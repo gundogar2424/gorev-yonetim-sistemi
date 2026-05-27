@@ -536,6 +536,32 @@ input[type=range]::-webkit-slider-thumb{
       </div>
     </div>
 
+    <!-- Konum Servisi -->
+    <div class="scard">
+      <div class="scard-hdr">
+        <div class="scard-icon" style="background:#dcfce7">🌐</div>
+        <div class="scard-hdr-txt">
+          <h3>Konum Servisi (Google Apps Script)</h3>
+          <p>share.google linklerini otomatik çözmek için</p>
+        </div>
+      </div>
+      <div class="scard-body">
+        <div style="font-size:12px;color:var(--text-2);margin-bottom:8px">
+          <strong>Kurulum (bir kere):</strong><br>
+          1. <a href="https://script.google.com" target="_blank" style="color:var(--primary)">script.google.com</a> → Yeni proje<br>
+          2. <strong>koordinat-cozucu.gs</strong> dosyasındaki kodu yapıştır<br>
+          3. Deploy → Web App → Anyone → URL'yi kopyala<br>
+          4. Aşağıya yapıştır → Kaydet
+        </div>
+        <input type="text" class="fc" id="ayar-proxy" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" style="font-size:12px;margin-bottom:8px">
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="proxyKaydet()" style="flex:1">💾 Kaydet</button>
+          <button class="btn btn-outline btn-sm" onclick="proxyTest()" style="flex:1">🔍 Test Et</button>
+        </div>
+        <div id="proxy-status" style="font-size:12px;margin-top:6px;display:none"></div>
+      </div>
+    </div>
+
     <!-- Sıfırla -->
     <div class="scard">
       <div class="scard-body">
@@ -880,11 +906,54 @@ var db = [];
 var editId = null;
 var detId = null;
 var ntimer = null;
+var proxyUrl = '';
 
 try { db = JSON.parse(localStorage.getItem('crm') || '[]'); } catch(e) { db = []; }
+try { proxyUrl = localStorage.getItem('crm-proxy') || ''; } catch(e) { proxyUrl = ''; }
 
 function kayit() {
   try { localStorage.setItem('crm', JSON.stringify(db)); } catch(e) {}
+}
+
+function proxyKaydet() {
+  var v = (el('ayar-proxy').value || '').trim();
+  proxyUrl = v;
+  try { localStorage.setItem('crm-proxy', v); } catch(e) {}
+  bildir(v ? '✅ Konum servisi kaydedildi' : '✅ Konum servisi temizlendi');
+}
+
+function proxyTest() {
+  var v = (el('ayar-proxy').value || '').trim();
+  if (!v) { bildir('⚠️ Önce URL girin'); return; }
+  var st = el('proxy-status');
+  st.style.display = 'block';
+  st.style.color = '#888';
+  st.textContent = '⏳ Test ediliyor...';
+  // Test isteği: bilinen bir Google Maps koordinatını çöz
+  var testLink = 'https://maps.google.com/?q=41.0082,28.9784';
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', v + '?url=' + encodeURIComponent(testLink), true);
+  xhr.timeout = 10000;
+  xhr.onload = function() {
+    try {
+      var d = JSON.parse(xhr.responseText);
+      if (d.lat && d.lng) {
+        st.style.color = 'var(--success)';
+        st.textContent = '✅ Servis çalışıyor! ('+d.lat.toFixed(4)+', '+d.lng.toFixed(4)+')';
+      } else {
+        st.style.color = '#e67e22';
+        st.textContent = '⚠️ Bağlandı ama koordinat dönmedi: '+(d.error||'?');
+      }
+    } catch(e) {
+      st.style.color = 'var(--danger)';
+      st.textContent = '❌ Geçersiz yanıt';
+    }
+  };
+  xhr.onerror = xhr.ontimeout = function() {
+    st.style.color = 'var(--danger)';
+    st.textContent = '❌ Bağlanamadı — URL\'yi kontrol edin';
+  };
+  xhr.send();
 }
 
 // ── yardımcı ──────────────────────────────────
@@ -927,7 +996,7 @@ function goTab(t) {
   el('fab').style.display = t==='liste' ? 'flex' : 'none';
   if (t==='rota') guncelleSec();
   if (t==='mesaj') { guncelleIlceMesaj(); loadMesajListe(); }
-  if (t==='ayar') el('ayar-sayi').textContent = db.length;
+  if (t==='ayar') { el('ayar-sayi').textContent = db.length; el('ayar-proxy').value = proxyUrl; }
 }
 
 // ── export / import ───────────────────────────
@@ -1225,42 +1294,50 @@ function cariCoord(text) {
 function cozKisaltma(url, idx) {
   bildir('⏳ Link çözülüyor...');
   var encUrl = encodeURIComponent(url);
-  var proxyList = [
-    'https://api.allorigins.win/get?url=' + encUrl,
-    'https://api.codetabs.com/v1/proxy?quest=' + encUrl
-  ];
+  // Kişisel Google Apps Script servisi varsa önce onu dene
+  var proxyList = [];
+  if (proxyUrl) {
+    proxyList.push({ url: proxyUrl + '?url=' + encUrl, tip: 'gas' });
+  }
+  proxyList.push({ url: 'https://api.allorigins.win/get?url=' + encUrl, tip: 'allorigins' });
+  proxyList.push({ url: 'https://api.codetabs.com/v1/proxy?quest=' + encUrl, tip: 'codetabs' });
   var pi = 0;
 
   function dene() {
     if (pi >= proxyList.length) {
-      // Tüm proxy'ler başarısız → rehber mesaj göster
       bildir('❌ Otomatik çözülemedi — aşağıdaki yöntemi deneyin');
       setTimeout(function() {
-        alert('📍 Konum almanın en kolay yolu:\n\n1️⃣ Google Maps\'i açın\n2️⃣ Konuma UZUN basın (pin çakılır)\n3️⃣ Üstte çıkan koordinatı kopyalayın\n   örn: 40.7562, 30.3891\n4️⃣ CRM\'e yapıştırıp "Çöz" basın\n\nBu yöntem %100 çalışır!');
+        alert('📍 Konum almanın en kolay yolu:\n\n1️⃣ Google Maps\'i açın\n2️⃣ Konuma UZUN basın (pin çakılır)\n3️⃣ Üstte çıkan koordinatı kopyalayın\n   örn: 40.7562, 30.3891\n4️⃣ CRM\'e yapıştırıp "Çöz" basın\n\nYa da Ayarlar → Konum Servisi kurulumu yapın.');
       }, 500);
       return;
     }
-    var proxyUrl = proxyList[pi++];
+    var entry = proxyList[pi++];
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', proxyUrl, true);
+    xhr.open('GET', entry.url, true);
     xhr.timeout = 10000;
     xhr.onload = function() {
       if (xhr.status !== 200) { dene(); return; }
       try {
-        // allorigins.win → JSON wrapper
-        var isJson = proxyUrl.indexOf('allorigins') !== -1;
-        var finalUrl = '', content = '';
-        if (isJson) {
+        var finalUrl = '', content = '', r;
+        if (entry.tip === 'gas') {
+          // Google Apps Script → {lat, lng, finalUrl}
+          var d = JSON.parse(xhr.responseText);
+          if (d.lat && d.lng && gecerliK(d.lat, d.lng)) {
+            if (d.finalUrl) el('kl-'+idx).value = d.finalUrl;
+            setKonum(idx, {lat: d.lat, lng: d.lng});
+            return;
+          }
+          dene(); return;
+        } else if (entry.tip === 'allorigins') {
           var data = JSON.parse(xhr.responseText);
           finalUrl = (data.status && data.status.url) || '';
           content  = data.contents || '';
         } else {
           content = xhr.responseText || '';
-          // codetabs returns raw HTML — look for Maps URL in it
           var mm = content.match(/https:\/\/www\.google\.com\/maps[^\s"'<>]*/);
           if (mm) finalUrl = mm[0];
         }
-        var r = konumParse(finalUrl) || cariCoord(finalUrl) || cariCoord(content);
+        r = konumParse(finalUrl) || cariCoord(finalUrl) || cariCoord(content);
         if (r) { if (finalUrl) el('kl-'+idx).value = finalUrl; setKonum(idx, r); return; }
         dene();
       } catch(e) { dene(); }
