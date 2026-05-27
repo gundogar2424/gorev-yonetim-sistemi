@@ -576,31 +576,6 @@ input[type=range]::-webkit-slider-thumb{
 </div>
 
 <!-- MESAJ SEKMESI -->
-<div class="page" id="p-mesaj">
-  <div class="msg-bar">
-    <select id="m-ilce" onchange="loadMesajListe()">
-      <option value="">Tüm İlçeler</option>
-    </select>
-    <button class="btn btn-ghost btn-sm" onclick="mesajHepsiniSec()">Tümünü Seç</button>
-  </div>
-  <div class="msg-tpl">
-    <label style="display:block;font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:6px">📝 Mesaj Şablonu</label>
-    <textarea id="m-sablon" placeholder="Sayın {isim} Bey/Hanım,&#10;&#10;Mesajınızı buraya yazın..."></textarea>
-    <div class="msg-tpl-hint">💡 <strong>{isim}</strong> → yetkili adı &nbsp;|&nbsp; <strong>{firma}</strong> → firma adı</div>
-  </div>
-  <div id="m-list" class="rlist">
-    <div class="empty">
-      <div class="empty-ico">💬</div>
-      <h3>Müşteri Seçin</h3>
-      <p>Mesaj göndermek istediğiniz müşterileri işaretleyin</p>
-    </div>
-  </div>
-  <div class="msg-footer" id="m-footer" style="display:none">
-    <button class="wa-btn" onclick="topluGonderBasla()">
-      💬 Seçilenlere WhatsApp Mesajı Gönder (<span id="m-secili-sayi">0</span> kişi)
-    </button>
-  </div>
-</div>
 
 <!-- BOTTOM NAV -->
 <nav class="nav">
@@ -609,9 +584,6 @@ input[type=range]::-webkit-slider-thumb{
   </button>
   <button class="nav-btn" id="t-rota" onclick="goTab('rota')">
     <span class="ni">🗺️</span>ROTA
-  </button>
-  <button class="nav-btn" id="t-mesaj" onclick="goTab('mesaj')">
-    <span class="ni">💬</span>MESAJ
   </button>
   <button class="nav-btn" id="t-ayar" onclick="goTab('ayar')">
     <span class="ni">⚙️</span>AYARLAR
@@ -855,17 +827,6 @@ input[type=range]::-webkit-slider-thumb{
 </div>
 
 
-<!-- TOPLU GÖNDERICI OVERLAY -->
-<div class="overlay" id="ov-toplu" onclick="ovKapat(event,'ov-toplu',kapToplu)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="mhdr">
-      <h2 id="toplu-ttl">WhatsApp Gönder</h2>
-      <button class="mclose" onclick="kapToplu()">✕</button>
-    </div>
-    <div class="mbody" id="toplu-body"></div>
-  </div>
-</div>
 
 <div class="notif" id="notif"></div>
 
@@ -963,13 +924,12 @@ function guncelleSec() {
 
 // ── tab ──────────────────────────────────────
 function goTab(t) {
-  ['liste','rota','mesaj','ayar'].forEach(function(x){
+  ['liste','rota','ayar'].forEach(function(x){
     el('p-'+x).className = 'page'+(t===x?' on':'');
     el('t-'+x).className = 'nav-btn'+(t===x?' on':'');
   });
   el('fab').style.display = t==='liste' ? 'flex' : 'none';
   if (t==='rota') guncelleSec();
-  if (t==='mesaj') { guncelleIlceMesaj(); loadMesajListe(); }
   if (t==='ayar') { el('ayar-sayi').textContent = db.length; el('ayar-proxy').value = proxyUrl; }
 }
 
@@ -1677,184 +1637,6 @@ function hMapsK(ki) {
   }
 }
 
-// ── WhatsApp ─────────────────────────────────
-function waModal() {
-  var m = dbBul(detId);
-  if (!m) return;
-  el('wa-tel').value = m.tel || '';
-  el('wa-mesaj').value = '';
-  el('wa-onizleme').style.display = 'none';
-  el('ov-wa').className = 'overlay on';
-}
-
-function kapWa() { el('ov-wa').className = 'overlay'; }
-
-function waMesajCoz() {
-  var m = dbBul(detId);
-  if (!m) return '';
-  var isim = (m.yetkili || m.firma || '').split(' ')[0];
-  return el('wa-mesaj').value
-    .replace(/\{isim\}/gi, isim)
-    .replace(/\{firma\}/gi, m.firma || '');
-}
-
-function waOnizle() {
-  var txt = waMesajCoz();
-  if (!txt) { bildir('⚠️ Mesaj boş'); return; }
-  el('wa-onizleme-txt').textContent = txt;
-  el('wa-onizleme').style.display = 'block';
-}
-
-function waGonder() {
-  var tel = el('wa-tel').value.replace(/\s|-|\(|\)/g,'');
-  if (!tel) { bildir('⚠️ Telefon numarası girin'); return; }
-  var txt = waMesajCoz();
-  if (!txt) { bildir('⚠️ Mesaj boş'); return; }
-  if (tel.startsWith('0')) tel = '90' + tel.slice(1);
-  else if (!tel.startsWith('90') && tel.length <= 10) tel = '90' + tel;
-  var url = 'https://wa.me/'+tel+'?text='+encodeURIComponent(txt);
-  kapWa();
-  setTimeout(function(){ location.href = url; }, 200);
-}
-
-// ── Toplu Mesaj ──────────────────────────────
-var topluListe = [];
-var topluIdx = 0;
-
-function waFonksiyon(tel, isim, firma, sablon) {
-  var isimKisa = (isim || firma || '').split(' ')[0];
-  var txt = sablon.replace(/\{isim\}/gi, isimKisa).replace(/\{firma\}/gi, firma || '');
-  tel = tel.replace(/\s|-|\(|\)/g,'');
-  if (tel.startsWith('0')) tel = '90' + tel.slice(1);
-  else if (!tel.startsWith('90') && tel.length <= 10) tel = '90' + tel;
-  return {
-    url: 'https://wa.me/'+tel+'?text='+encodeURIComponent(txt),
-    preview: txt
-  };
-}
-
-function guncelleIlceMesaj() {
-  var list = ilceler();
-  var mi = el('m-ilce');
-  var mv = mi.value;
-  mi.innerHTML = '<option value="">Tüm İlçeler</option>';
-  for (var i=0; i<list.length; i++) mi.innerHTML += '<option>'+esc(list[i])+'</option>';
-  mi.value = mv;
-}
-
-function loadMesajListe() {
-  var ilce = el('m-ilce').value;
-  var kaynak = ilce ? db.filter(function(m){ return m.ilce===ilce; }) : db.slice();
-  var listEl = el('m-list');
-  el('m-footer').style.display = 'none';
-
-  if (!kaynak.length) {
-    listEl.innerHTML = '<div class="empty"><div class="empty-ico">💬</div><h3>Müşteri yok</h3><p>Farklı ilçe seçin</p></div>';
-    return;
-  }
-
-  var html = '';
-  for (var i=0; i<kaynak.length; i++) {
-    var m = kaynak[i];
-    var hasTel = !!m.tel;
-    html += '<div class="ri'+(hasTel?'':' ri-notel')+'" id="mri'+m.id+'" onclick="'+(hasTel?'togMRI('+m.id+')':'bildir(\'⚠️ Bu müşterinin telefonu yok\')')
-      +'" style="'+(hasTel?'':'opacity:.5;cursor:default')+'">'
-      +'<input type="checkbox" id="mrc'+m.id+'" '+(hasTel?'onclick="event.stopPropagation();togMRI('+m.id+')"':'disabled')+' style="'+(hasTel?'':'opacity:.3')+'">'
-      +'<div class="ri-info"><div class="ri-firm">'+esc(m.firma)+'</div>'
-      +'<div class="ri-sub">'+(hasTel?'📞 '+esc(m.tel):'📵 Telefon yok')+(m.yetkili?' · 👤 '+esc(m.yetkili):'')+'</div></div>'
-      +'</div>';
-  }
-  listEl.innerHTML = html;
-}
-
-function togMRI(id) {
-  var cb = el('mrc'+id), ri = el('mri'+id);
-  cb.checked = !cb.checked;
-  ri.className = 'ri' + (cb.checked ? ' on' : '');
-  var secili = document.querySelectorAll('[id^="mrc"]:checked').length;
-  el('m-secili-sayi').textContent = secili;
-  el('m-footer').style.display = secili > 0 ? 'block' : 'none';
-}
-
-function mesajHepsiniSec() {
-  var cbs = document.querySelectorAll('[id^="mrc"]:not(:disabled)');
-  var allOn = true;
-  for (var i=0; i<cbs.length; i++) { if (!cbs[i].checked) { allOn=false; break; } }
-  for (var i=0; i<cbs.length; i++) {
-    cbs[i].checked = !allOn;
-    el('mri'+cbs[i].id.replace('mrc','')).className = 'ri'+(!allOn?' on':'');
-  }
-  var secili = allOn ? 0 : cbs.length;
-  el('m-secili-sayi').textContent = secili;
-  el('m-footer').style.display = secili > 0 ? 'block' : 'none';
-}
-
-function topluGonderBasla() {
-  var sablon = el('m-sablon').value.trim();
-  if (!sablon) { bildir('⚠️ Mesaj şablonu boş'); return; }
-
-  var cbs = document.querySelectorAll('[id^="mrc"]:checked');
-  var ids = [];
-  for (var i=0; i<cbs.length; i++) ids.push(parseInt(cbs[i].id.replace('mrc','')));
-  topluListe = db.filter(function(m){ return ids.indexOf(m.id)>=0 && m.tel; });
-
-  if (!topluListe.length) { bildir('⚠️ Telefon numarası olan müşteri seçin'); return; }
-  topluIdx = 0;
-  el('ov-toplu').className = 'overlay on';
-  renderTopluAdim();
-}
-
-function renderTopluAdim() {
-  var toplam = topluListe.length;
-  var sablon = el('m-sablon').value.trim();
-  el('toplu-ttl').textContent = 'WhatsApp Gönder · '+(topluIdx+1)+'/'+toplam;
-
-  if (topluIdx >= toplam) {
-    el('toplu-body').innerHTML = '<div class="send-done">'
-      +'<div style="font-size:42px;margin-bottom:10px">🎉</div>'
-      +'<div style="font-size:17px;font-weight:800;color:#065f46;margin-bottom:6px">Tümü Tamamlandı!</div>'
-      +'<div style="font-size:13px;color:#059669">'+toplam+' müşteriye mesaj gönderildi.</div>'
-      +'<button class="btn btn-ghost" onclick="kapToplu()" style="margin-top:16px;width:100%">Kapat</button>'
-      +'</div>';
-    return;
-  }
-
-  var m = topluListe[topluIdx];
-  var wa = waFonksiyon(m.tel, m.yetkili, m.firma, sablon);
-  var pct = Math.round((topluIdx / toplam) * 100);
-
-  el('toplu-body').innerHTML =
-    '<div class="send-prog">'
-    +'<div class="send-prog-txt">'+( topluIdx+1)+' / '+toplam+' kişi</div>'
-    +'<div class="send-prog-bar"><div class="send-prog-fill" style="width:'+pct+'%"></div></div>'
-    +'</div>'
-    +'<div class="send-card">'
-    +'<div class="send-card-name">'+esc(m.firma)+'</div>'
-    +'<div class="send-card-tel">'+(m.yetkili?'👤 '+esc(m.yetkili)+' · ':'')+'📞 '+esc(m.tel)+'</div>'
-    +'<div class="send-preview">'+esc(wa.preview)+'</div>'
-    +'</div>'
-    +'<div class="send-actions">'
-    +'<button class="send-skip" onclick="topluSonraki(false)">Atla</button>'
-    +'<button class="wa-btn" onclick="topluWaAc(\''+encodeURIComponent(wa.url)+'\')" style="flex:1">'
-    +'💬 WhatsApp\'ta Aç → Sonraki'
-    +'</button>'
-    +'</div>';
-}
-
-function topluWaAc(encodedUrl) {
-  linkAc(decodeURIComponent(encodedUrl));
-  topluSonraki(true);
-}
-
-function topluSonraki(gonderildi) {
-  topluIdx++;
-  renderTopluAdim();
-}
-
-function kapToplu() {
-  el('ov-toplu').className = 'overlay';
-  topluListe = []; topluIdx = 0;
-}
 function ovKapat(e, id, fn) { if (e.target === el(id)) fn(); }
 
 // ── rota ─────────────────────────────────────
