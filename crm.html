@@ -1157,8 +1157,14 @@ function renderKonumForm() {
       +(formKonumlar.length>1 ? '<button class="konum-sil" onclick="konumSil('+i+')" title="Sil">×</button>' : '')
       +'</div>'
       +'<div class="konum-item-body">'
+      +'<div style="display:flex;gap:5px;margin-bottom:5px">'
+      +'<input type="text" class="fc" id="ksearch-'+i+'" placeholder="Adres veya yer adı yaz... (örn: Akyazı OSB)" style="flex:1;font-size:12px;padding:7px 9px" autocomplete="off" onkeydown="if(event.key===\'Enter\')konumAraIdx('+i+')">'
+      +'<button class="btn btn-primary btn-sm" onclick="konumAraIdx('+i+')" style="flex-shrink:0">🔍 Ara</button>'
+      +'</div>'
+      +'<div id="ksearch-result-'+i+'" style="display:none;margin-bottom:6px"></div>'
+      +'<div style="text-align:center;color:var(--muted);font-size:11px;margin:5px 0">— veya link / koordinat yapıştır —</div>'
       +'<div style="display:flex;gap:5px;margin-bottom:7px">'
-      +'<input type="text" class="fc" id="kl-'+i+'" placeholder="Link yapıştır veya 40.756, 30.378" style="flex:1;font-size:12px;padding:7px 9px">'
+      +'<input type="text" class="fc" id="kl-'+i+'" placeholder="Maps linki veya 40.756, 30.378" style="flex:1;font-size:12px;padding:7px 9px">'
       +'<button class="btn btn-primary btn-sm" onclick="konumCozIdx('+i+')" style="flex-shrink:0">Çöz</button>'
       +'</div>'
       +'<button class="btn btn-outline btn-full btn-sm" onclick="gpsAlIdx('+i+')" style="margin-bottom:7px">📍 GPS Al</button>'
@@ -1276,6 +1282,53 @@ function konumCozIdx(i) {
     return;
   }
   bildir('❌ Konum anlaşılamadı — koordinat veya Maps linki girin');
+}
+
+function konumAraIdx(i) {
+  var q = ((el('ksearch-'+i) && el('ksearch-'+i).value) || '').trim();
+  if (!q) { bildir('⚠️ Arama kutusu boş'); return; }
+  bildir('🔍 Aranıyor...');
+  var url = 'https://nominatim.openstreetmap.org/search?format=json&q='
+    + encodeURIComponent(q) + '&countrycodes=tr&limit=5&accept-language=tr';
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.timeout = 8000;
+  xhr.onload = function() {
+    if (xhr.status !== 200) { bildir('❌ Arama hatası'); return; }
+    try {
+      var results = JSON.parse(xhr.responseText);
+      if (!results || !results.length) { bildir('❌ Sonuç bulunamadı — farklı anahtar kelime deneyin'); return; }
+      var html = '<div style="border:1.5px solid var(--border);border-radius:9px;overflow:hidden">';
+      for (var j=0; j<results.length; j++) {
+        var res = results[j];
+        var parts = (res.display_name || '').split(',');
+        var line1 = parts.slice(0,2).join(',').trim();
+        var line2 = parts.slice(2,5).join(',').trim();
+        var lat = res.lat, lng = res.lon;
+        html += '<div onclick="konumSecIdx('+i+','+lat+','+lng+')" '
+          + 'style="padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;'
+          + 'font-size:12px;display:flex;align-items:center;gap:8px">'
+          + '<span style="font-size:14px;flex-shrink:0">📍</span>'
+          + '<div><div style="font-weight:600;color:var(--text)">'+esc(line1)+'</div>'
+          + (line2 ? '<div style="color:var(--muted);font-size:11px">'+esc(line2)+'</div>' : '')
+          + '</div></div>';
+      }
+      html += '</div>';
+      el('ksearch-result-'+i).innerHTML = html;
+      el('ksearch-result-'+i).style.display = 'block';
+      bildir('✅ '+results.length+' sonuç — birini seçin');
+    } catch(e) { bildir('❌ Arama hatası'); }
+  };
+  xhr.onerror = xhr.ontimeout = function() { bildir('❌ Bağlantı hatası'); };
+  xhr.send();
+}
+
+function konumSecIdx(i, lat, lng) {
+  var r = {lat: parseFloat(lat), lng: parseFloat(lng)};
+  if (!gecerliK(r.lat, r.lng)) return;
+  el('ksearch-result-'+i).style.display = 'none';
+  setKonum(i, r);
 }
 
 function gpsAlIdx(i) {
