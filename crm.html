@@ -1409,7 +1409,12 @@ function konumSecIdx(i, lat, lng) {
 }
 
 function gpsAlIdx(i) {
-  if (!navigator.geolocation) { bildir('Tarayıcı GPS desteklemiyor'); return; }
+  if (!navigator.geolocation) { bildir('❌ Tarayıcı GPS desteklemiyor'); return; }
+  // HTTPS kontrolü
+  if (location.protocol === 'file:') {
+    alert('📍 GPS sadece HTTPS\'te çalışır.\n\nDosyayı Netlify\'a yükleyin:\n1. netlify.com/drop → crm.html sürükle\n2. Verilen HTTPS linkten açın\n3. GPS çalışır ✅\n\nYa da "Adres Ara" veya link yapıştırma yöntemini kullanın.');
+    return;
+  }
   bildir('📍 Konum alınıyor...');
   navigator.geolocation.getCurrentPosition(
     function(pos) {
@@ -1422,7 +1427,10 @@ function gpsAlIdx(i) {
       bildir('✅ GPS konumu alındı!');
       reverseGeocode(pos.coords.latitude, pos.coords.longitude);
     },
-    function(err) { bildir('GPS hatası: ' + err.message); },
+    function(err) {
+      if (err.code === 1) bildir('❌ GPS izni reddedildi — tarayıcı ayarlarından izin verin');
+      else bildir('❌ GPS hatası: ' + err.message);
+    },
     {enableHighAccuracy:true, timeout:10000}
   );
 }
