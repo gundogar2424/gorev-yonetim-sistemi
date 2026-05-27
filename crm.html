@@ -1219,6 +1219,7 @@ function renderKonumForm() {
   for (var i=0; i<formKonumlar.length; i++) {
     var k = formKonumlar[i];
     var hasCoord = k.lat && k.lng;
+    var coordStr = hasCoord ? (parseFloat(k.lat).toFixed(6)+', '+parseFloat(k.lng).toFixed(6)) : '';
     html += '<div class="konum-item" id="ki-'+i+'">'
       +'<div class="konum-item-hdr">'
       +'<span style="font-size:13px;flex-shrink:0">📍</span>'
@@ -1226,27 +1227,26 @@ function renderKonumForm() {
       +(formKonumlar.length>1 ? '<button class="konum-sil" onclick="konumSil('+i+')" title="Sil">×</button>' : '')
       +'</div>'
       +'<div class="konum-item-body">'
-      +'<div style="display:flex;gap:5px;margin-bottom:5px">'
-      +'<input type="text" class="fc" id="ksearch-'+i+'" placeholder="Adres veya yer adı yaz... (örn: Akyazı OSB)" style="flex:1;font-size:12px;padding:7px 9px" autocomplete="off" onkeydown="if(event.key===\'Enter\')konumAraIdx('+i+')">'
-      +'<button class="btn btn-primary btn-sm" onclick="konumAraIdx('+i+')" style="flex-shrink:0">🔍 Ara</button>'
-      +'</div>'
-      +'<div id="ksearch-result-'+i+'" style="display:none;margin-bottom:6px"></div>'
-      +'<div style="text-align:center;color:var(--muted);font-size:11px;margin:5px 0">— veya link / koordinat yapıştır —</div>'
-      +'<div style="display:flex;gap:5px;margin-bottom:7px">'
-      +'<input type="text" class="fc" id="kl-'+i+'" placeholder="Maps linki veya 40.756, 30.378" style="flex:1;font-size:12px;padding:7px 9px">'
-      +'<button class="btn btn-primary btn-sm" onclick="konumCozIdx('+i+')" style="flex-shrink:0">Çöz</button>'
-      +'</div>'
-      +'<button class="btn btn-outline btn-full btn-sm" onclick="gpsAlIdx('+i+')" style="margin-bottom:7px">📍 GPS Al</button>'
-      +'<div class="frow">'
-      +'<div><label class="flbl">Enlem</label>'
-      +'<input type="number" class="fc" id="klat-'+i+'" step="any" placeholder="40.756" value="'+esc(k.lat||'')+'" oninput="formKonumlar['+i+'].lat=this.value" style="font-size:12px;padding:7px 9px"></div>'
-      +'<div><label class="flbl">Boylam</label>'
-      +'<input type="number" class="fc" id="klng-'+i+'" step="any" placeholder="30.378" value="'+esc(k.lng||'')+'" oninput="formKonumlar['+i+'].lng=this.value" style="font-size:12px;padding:7px 9px"></div>'
-      +'</div>'
-      +'<div class="coord-ok" id="kok-'+i+'" style="display:'+(hasCoord?'block':'none')+'">✅ '+(hasCoord?parseFloat(k.lat).toFixed(5)+', '+parseFloat(k.lng).toFixed(5):'')+'</div>'
+      +'<label class="flbl">Koordinat</label>'
+      +'<input type="text" class="fc" id="kcoord-'+i+'" value="'+esc(coordStr)+'" placeholder="40.7562, 30.3891" autocomplete="off" style="font-size:13px;padding:9px 11px;letter-spacing:0.3px" oninput="konumCoordGir('+i+',this.value)">'
+      +'<div class="coord-ok" id="kok-'+i+'" style="display:'+(hasCoord?'block':'none')+';margin-top:6px">✅ Konum kaydedildi</div>'
       +'</div></div>';
   }
   el('konum-list').innerHTML = html;
+}
+
+function konumCoordGir(i, text) {
+  var r = konumParse(text);
+  if (r) {
+    formKonumlar[i].lat = r.lat.toFixed(6);
+    formKonumlar[i].lng = r.lng.toFixed(6);
+    el('kok-'+i).style.display = 'block';
+    reverseGeocode(r.lat, r.lng);
+  } else {
+    formKonumlar[i].lat = '';
+    formKonumlar[i].lng = '';
+    el('kok-'+i).style.display = 'none';
+  }
 }
 
 function konumEkle() {
