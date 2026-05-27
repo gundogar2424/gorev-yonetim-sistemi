@@ -1187,26 +1187,64 @@ function konumSil(i) {
   renderKonumForm();
 }
 
+function setKonum(i, r) {
+  formKonumlar[i].lat = r.lat.toFixed(6);
+  formKonumlar[i].lng = r.lng.toFixed(6);
+  el('klat-'+i).value = formKonumlar[i].lat;
+  el('klng-'+i).value = formKonumlar[i].lng;
+  el('kok-'+i).style.display = 'block';
+  el('kok-'+i).textContent = '✅ Konum çözüldü: '+r.lat.toFixed(5)+', '+r.lng.toFixed(5);
+  bildir('✅ Konum çözüldü!');
+  reverseGeocode(r.lat, r.lng);
+}
+
+function cozKisaltma(url, idx) {
+  bildir('⏳ Link çözülüyor...');
+  var proxy = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', proxy, true);
+  xhr.timeout = 12000;
+  xhr.onload = function() {
+    if (xhr.status !== 200) { bildir('❌ Link çözülemedi — Maps\'te açıp tam URL\'yi kopyalayın'); return; }
+    try {
+      var data = JSON.parse(xhr.responseText);
+      // Check final redirected URL first
+      var finalUrl = (data.status && data.status.url) || '';
+      var r = konumParse(finalUrl);
+      if (r) { el('kl-'+idx).value = finalUrl; setKonum(idx, r); return; }
+      // Search in page content for coordinate patterns
+      var c = data.contents || '';
+      var patterns = [
+        /@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+        /center=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+        /"(-?\d{1,3}\.\d{5,}),(-?\d{1,3}\.\d{5,})"/,
+        /\bll=(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/
+      ];
+      for (var p=0; p<patterns.length; p++) {
+        var m = c.match(patterns[p]);
+        if (m) {
+          var r2 = {lat: parseFloat(m[1]), lng: parseFloat(m[2])};
+          if (gecerliK(r2.lat, r2.lng)) { setKonum(idx, r2); return; }
+        }
+      }
+      bildir('❌ Koordinat bulunamadı — Maps\'te açıp URL\'yi kopyalayın');
+    } catch(e) { bildir('❌ Link çözülemedi'); }
+  };
+  xhr.onerror = xhr.ontimeout = function() { bildir('❌ Bağlantı hatası — internetinizi kontrol edin'); };
+  xhr.send();
+}
+
 function konumCozIdx(i) {
   var text = (el('kl-'+i).value || '').trim();
   if (!text) { bildir('⚠️ Önce bir şey yapıştırın'); return; }
   var r = konumParse(text);
-  if (r) {
-    formKonumlar[i].lat = r.lat.toFixed(6);
-    formKonumlar[i].lng = r.lng.toFixed(6);
-    el('klat-'+i).value = formKonumlar[i].lat;
-    el('klng-'+i).value = formKonumlar[i].lng;
-    el('kok-'+i).style.display = 'block';
-    el('kok-'+i).textContent = '✅ Konum çözüldü: '+r.lat.toFixed(5)+', '+r.lng.toFixed(5);
-    bildir('✅ Konum çözüldü!');
-    reverseGeocode(r.lat, r.lng);
+  if (r) { setKonum(i, r); return; }
+  // Kısaltılmış / redirect linkler: share.google, goo.gl, maps.app.goo.gl
+  if (/share\.google|maps\.app\.goo\.gl|goo\.gl/.test(text)) {
+    cozKisaltma(text, i);
     return;
   }
-  if (/goo\.gl|maps\.app\.goo\.gl/.test(text)) {
-    bildir('⚠️ Kısaltılmış link — Maps\'te açıp tam URL\'yi kopyalayın');
-  } else {
-    bildir('❌ Konum anlaşılamadı');
-  }
+  bildir('❌ Konum anlaşılamadı — koordinat veya Maps linki girin');
 }
 
 function gpsAlIdx(i) {
