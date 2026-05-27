@@ -175,6 +175,9 @@ body{
 /* ── OVERLAY + MODAL ── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;backdrop-filter:blur(2px)}
 .overlay.on{display:flex}
+#ov-form{background:#fff;backdrop-filter:none}
+#ov-form.on{display:block!important;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#ov-form .modal{max-height:none!important;border-radius:0;overflow-y:visible;box-shadow:none}
 .modal{
   background:#fff;width:100%;max-height:94vh;
   border-radius:22px 22px 0 0;overflow-y:auto;
@@ -846,45 +849,11 @@ input[type=range]::-webkit-slider-thumb{
     </div>
     <div class="mfoot" style="flex-wrap:wrap;gap:7px">
       <button class="btn btn-outline" onclick="duzenle()" style="flex:1;min-width:80px">✏️ Düzenle</button>
-      <button class="btn wa-btn" onclick="waModal()" style="flex:1;min-width:100px;border-radius:9px;box-shadow:none">💬 WA</button>
       <div id="det-maps-wrap" style="flex:1;min-width:100px;display:flex;gap:5px"></div>
     </div>
   </div>
 </div>
 
-<!-- WHATSAPP MODAL -->
-<div class="overlay" id="ov-wa" onclick="ovKapat(event,'ov-wa',kapWa)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="mhdr">
-      <h2>💬 WhatsApp Mesajı</h2>
-      <button class="mclose" onclick="kapWa()">✕</button>
-    </div>
-    <div class="mbody">
-      <div class="fg">
-        <label class="flbl">Telefon Numarası</label>
-        <input type="tel" class="fc" id="wa-tel" placeholder="05XX XXX XX XX">
-      </div>
-      <div class="fg">
-        <label class="flbl">Mesaj Şablonu</label>
-        <textarea class="fc" id="wa-mesaj" rows="5"
-          placeholder="Sayın {isim},&#10;&#10;Mesajınızı buraya yazın..."></textarea>
-        <div class="tpl-hint">
-          💡 <strong>{isim}</strong> → yetkili kişinin adıyla değiştirilir<br>
-          💡 <strong>{firma}</strong> → firma adıyla değiştirilir
-        </div>
-      </div>
-      <div class="fg" id="wa-onizleme" style="display:none">
-        <label class="flbl">Önizleme</label>
-        <div id="wa-onizleme-txt" style="background:var(--surface);padding:12px;border-radius:10px;font-size:13px;white-space:pre-wrap;line-height:1.6;color:var(--text-2)"></div>
-      </div>
-    </div>
-    <div class="mfoot" style="flex-direction:column;gap:8px">
-      <button class="btn btn-ghost btn-full" onclick="waOnizle()">👁️ Önizle</button>
-      <button class="wa-btn" onclick="waGonder()">📤 WhatsApp'ta Aç</button>
-    </div>
-  </div>
-</div>
 
 <!-- TOPLU GÖNDERICI OVERLAY -->
 <div class="overlay" id="ov-toplu" onclick="ovKapat(event,'ov-toplu',kapToplu)">
