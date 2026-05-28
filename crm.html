@@ -1317,6 +1317,11 @@ function cozKisaltmaCoord(url, idx) {
   kok.innerHTML = '⏳ Link çözülüyor...';
   var encUrl = encodeURIComponent(url);
   var proxyList = [];
+  // Netlify'da çalışıyorsa kendi sunucu fonksiyonunu kullan (en güvenilir)
+  var proto = window.location.protocol;
+  if (proto !== 'file:' && proto !== 'content:') {
+    proxyList.push({ url: '/.netlify/functions/coz?url=' + encUrl, tip: 'netlify' });
+  }
   if (proxyUrl) proxyList.push({ url: proxyUrl + '?url=' + encUrl, tip: 'gas' });
   proxyList.push({ url: 'https://api.allorigins.win/get?url=' + encUrl, tip: 'allorigins' });
   proxyList.push({ url: 'https://api.codetabs.com/v1/proxy?quest=' + encUrl, tip: 'codetabs' });
@@ -1334,7 +1339,7 @@ function cozKisaltmaCoord(url, idx) {
       if (xhr.status !== 200) { dene(); return; }
       try {
         var finalUrl = '', content = '', r;
-        if (entry.tip === 'gas') {
+        if (entry.tip === 'netlify' || entry.tip === 'gas') {
           var d = JSON.parse(xhr.responseText);
           if (d.lat && d.lng && gecerliK(d.lat, d.lng)) {
             r = {lat: d.lat, lng: d.lng};
