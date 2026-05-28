@@ -1246,6 +1246,12 @@ function konumAdGir(i, v) {
 }
 
 function konumCoordGir(i, text) {
+  text = (text || '').trim();
+  // URL yapıştırıldıysa link çözücüye gönder
+  if (/^https?:\/\//i.test(text)) {
+    cozKisaltmaCoord(text, i);
+    return;
+  }
   var r = konumParse(text);
   if (r) {
     formKonumlar[i].lat = r.lat.toFixed(6);
@@ -1303,6 +1309,64 @@ function cariCoord(text) {
     }
   }
   return null;
+}
+
+function cozKisaltmaCoord(url, idx) {
+  var kok = el('kok-'+idx);
+  kok.style.display = 'block';
+  kok.innerHTML = '⏳ Link çözülüyor...';
+  var encUrl = encodeURIComponent(url);
+  var proxyList = [];
+  if (proxyUrl) proxyList.push({ url: proxyUrl + '?url=' + encUrl, tip: 'gas' });
+  proxyList.push({ url: 'https://api.allorigins.win/get?url=' + encUrl, tip: 'allorigins' });
+  proxyList.push({ url: 'https://api.codetabs.com/v1/proxy?quest=' + encUrl, tip: 'codetabs' });
+  var pi = 0;
+  function dene() {
+    if (pi >= proxyList.length) {
+      kok.innerHTML = '❌ Otomatik çözülemedi — koordinatı elle girin (ör: 40.7562, 30.3891)';
+      return;
+    }
+    var entry = proxyList[pi++];
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', entry.url, true);
+    xhr.timeout = 10000;
+    xhr.onload = function() {
+      if (xhr.status !== 200) { dene(); return; }
+      try {
+        var finalUrl = '', content = '', r;
+        if (entry.tip === 'gas') {
+          var d = JSON.parse(xhr.responseText);
+          if (d.lat && d.lng && gecerliK(d.lat, d.lng)) {
+            r = {lat: d.lat, lng: d.lng};
+          } else { dene(); return; }
+        } else if (entry.tip === 'allorigins') {
+          var data = JSON.parse(xhr.responseText);
+          finalUrl = (data.status && data.status.url) || '';
+          content  = data.contents || '';
+          r = cariCoord(finalUrl) || cariCoord(content);
+        } else {
+          content = xhr.responseText || '';
+          var mm = content.match(/https:\/\/www\.google\.com\/maps[^\s"'<>]*/);
+          if (mm) finalUrl = mm[0];
+          r = cariCoord(finalUrl) || cariCoord(content);
+        }
+        if (r && gecerliK(r.lat, r.lng)) {
+          formKonumlar[idx].lat = r.lat.toFixed(6);
+          formKonumlar[idx].lng = r.lng.toFixed(6);
+          var coordStr = r.lat.toFixed(6)+', '+r.lng.toFixed(6);
+          el('kcoord-'+idx).value = coordStr;
+          kok.innerHTML = '✅ Koordinat bulundu &nbsp;'
+            +'<a href="https://www.google.com/maps?q='+r.lat+','+r.lng+'" target="_blank" '
+            +'style="color:var(--primary);font-weight:600;text-decoration:none">🗺️ Haritada Gör</a>';
+          reverseGeocode(r.lat, r.lng);
+          bildir('✅ Konum çözüldü!');
+        } else { dene(); }
+      } catch(e) { dene(); }
+    };
+    xhr.onerror = xhr.ontimeout = function() { dene(); };
+    xhr.send();
+  }
+  dene();
 }
 
 function cozKisaltma(url, idx) {
