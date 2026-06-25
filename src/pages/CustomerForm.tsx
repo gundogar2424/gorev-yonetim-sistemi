@@ -5,6 +5,7 @@ import { db } from '../db'
 import type { Customer, Ownership, PaymentType } from '../types'
 import { fileToResizedDataUrl } from '../lib/image'
 import { getCurrentPosition } from '../lib/geo'
+import { resolveLocationAsync, isShortMapsLink } from '../lib/location'
 import Header from '../components/Header'
 
 const emptyCustomer: Customer = {
@@ -46,6 +47,9 @@ export default function CustomerForm() {
   const [loaded, setLoaded] = useState(!editing)
   const [gpsBusy, setGpsBusy] = useState(false)
   const [error, setError] = useState('')
+  const [locInput, setLocInput] = useState('')
+  const [locMsg, setLocMsg] = useState('')
+  const [locBusy, setLocBusy] = useState(false)
 
   useEffect(() => {
     if (!editing) return
@@ -85,6 +89,29 @@ export default function CustomerForm() {
       setError(err instanceof Error ? err.message : 'Konum alınamadı.')
     } finally {
       setGpsBusy(false)
+    }
+  }
+
+  async function applyPastedLocation() {
+    setLocMsg('')
+    setLocBusy(true)
+    if (isShortMapsLink(locInput)) setLocMsg('Kısa link çözülüyor…')
+    try {
+      const res = await resolveLocationAsync(locInput)
+      if (res.status === 'ok' && res.point) {
+        update('gps', res.point)
+        setLocInput('')
+        setLocMsg('✓ Konum alındı.')
+      } else if (res.status === 'short-link') {
+        setLocMsg(
+          'Kısa link otomatik çözülemedi (internet/güvenlik engeli). Lütfen Haritalar’da konuma ' +
+            'parmağını basılı tutup “dropped pin” oluştur, çıkan koordinatları (örn. 41.0082, 28.9784) kopyalayıp yapıştır.'
+        )
+      } else {
+        setLocMsg('Konum bulunamadı. Koordinat (41.0082, 28.9784) veya tam harita bağlantısı yapıştırın.')
+      }
+    } finally {
+      setLocBusy(false)
     }
   }
 
@@ -221,6 +248,31 @@ export default function CustomerForm() {
                 </a>
               </p>
             )}
+          </Field>
+
+          <Field label="Konum Yapıştır (Google Haritalar)">
+            <div className="flex items-center gap-2">
+              <input
+                className="field-input"
+                value={locInput}
+                onChange={(e) => setLocInput(e.target.value)}
+                placeholder="41.0082, 28.9784 veya harita bağlantısı"
+                inputMode="text"
+              />
+              <button onClick={applyPastedLocation} disabled={!locInput.trim() || locBusy} className="btn-ghost px-4">
+                {locBusy ? '…' : 'Uygula'}
+              </button>
+            </div>
+            {locMsg && (
+              <p className={`text-xs mt-1 ${locMsg.startsWith('✓') ? 'text-green-700' : 'text-amber-700'}`}>
+                {locMsg}
+              </p>
+            )}
+            <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+              İpucu: Koordinat çıkmıyorsa, işletme adının olduğu bir yere basmışsındır. Haritalar’da
+              biraz <b>yakınlaş</b> ve binanın <b>boş bir noktasına parmağını basılı tut</b> →
+              kırmızı bir iğne düşer ve altta koordinatlar çıkar → dokununca kopyalanır → buraya yapıştır.
+            </p>
           </Field>
         </Section>
 
