@@ -1,9 +1,17 @@
 // Claude API ile fotograftan yemek tanima ve motivasyon uretimi.
 // Tarayicidan dogrudan cagrilir (kullanici kendi API anahtarini saglar).
-import Anthropic from '@anthropic-ai/sdk'
+// NOT: SDK yalnizca cagri aninda (dinamik import) yuklenir; boylece sayfa
+// acilisinda SDK yuzunden bir hata olsa bile uygulama yine de acilir.
 import type { FoodAnalysis } from './types'
 
 export const DEFAULT_MODEL = 'claude-opus-4-8'
+
+// SDK'yi geç (lazy) yukle ve istemciyi olustur
+async function createClient(apiKey: string) {
+  const mod = await import('@anthropic-ai/sdk')
+  const Anthropic = mod.default
+  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+}
 
 // Yapay zekanin dolduracagi yapilandirilmis cikti semasi (JSON Schema).
 // Tum alanlar zorunlu; ek alan yok (structured outputs gereksinimi).
@@ -58,32 +66,26 @@ function splitDataUrl(dataUrl: string): { mediaType: string; base64: string } | 
   return { mediaType: m[1], base64: m[2] }
 }
 
-// API hatalarini kullaniciya anlasilir Turkce mesaja cevirir
+// API hatalarini kullaniciya anlasilir Turkce mesaja cevirir.
+// SDK siniflarina (instanceof) bagli kalmadan durum kodu/ada gore calisir.
 function friendlyError(err: unknown): Error {
-  if (err instanceof Anthropic.AuthenticationError) {
-    return new Error('API anahtarı geçersiz. Ayarlardan anahtarınızı kontrol edin.')
-  }
-  if (err instanceof Anthropic.PermissionDeniedError) {
-    return new Error('API anahtarınızın bu modele erişim izni yok.')
-  }
-  if (err instanceof Anthropic.RateLimitError) {
-    return new Error('Çok fazla istek gönderildi. Lütfen birazdan tekrar deneyin.')
-  }
-  if (err instanceof Anthropic.NotFoundError) {
-    // Genellikle model adi yanlis ya da bu anahtara kapali
+  const e = err as { status?: number; name?: string; message?: string }
+  const status = typeof e?.status === 'number' ? e.status : undefined
+  const detail = e?.message ?? ''
+
+  if (status === 401) return new Error('API anahtarı geçersiz. Ayarlardan anahtarınızı kontrol edin.')
+  if (status === 403) return new Error('API anahtarınızın bu modele erişim izni yok ya da bakiyeniz yetersiz.')
+  if (status === 429) return new Error('Çok fazla istek gönderildi. Lütfen birazdan tekrar deneyin.')
+  if (status === 404) {
     return new Error(
-      `Model bulunamadı. Ayarlar'dan model adını kontrol edin (örn. ${DEFAULT_MODEL} veya claude-sonnet-4-6). Ayrıntı: ${err.message}`
+      `Model bulunamadı. Ayarlar'dan model adını kontrol edin (örn. ${DEFAULT_MODEL} veya claude-sonnet-4-6). Ayrıntı: ${detail}`
     )
   }
-  if (err instanceof Anthropic.BadRequestError) {
-    return new Error(`Geçersiz istek (400): ${err.message}`)
-  }
-  if (err instanceof Anthropic.APIConnectionError) {
+  if (status === 400) return new Error(`Geçersiz istek (400): ${detail}`)
+  if (e?.name === 'APIConnectionError' || e?.name === 'APIConnectionTimeoutError') {
     return new Error('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.')
   }
-  if (err instanceof Anthropic.APIError) {
-    return new Error(`İnceleme başarısız (${err.status ?? '?'}): ${err.message}`)
-  }
+  if (status) return new Error(`İnceleme başarısız (${status}): ${detail}`)
   return new Error(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.')
 }
 
@@ -117,7 +119,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
     ? `\n\nDİYET LİSTEM (bu yemeği buna göre değerlendir ve uyum yüzdesi ver):\n${dietPlan.trim()}`
     : ''
 
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+  const client = await createClient(apiKey)
 
   try {
     const response = await client.messages.create({
@@ -188,7 +190,7 @@ export async function extractDietPlan(opts: {
   const img = splitDataUrl(photoDataUrl)
   if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
 
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+  const client = await createClient(apiKey)
 
   try {
     const response = await client.messages.create({
