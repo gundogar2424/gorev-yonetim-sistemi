@@ -13,7 +13,9 @@ export default defineConfig({
       //  - diyet.html  -> Diyet Kocu (bagimsiz program)
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
-        diyet: fileURLToPath(new URL('./diyet.html', import.meta.url))
+        diyet: fileURLToPath(new URL('./diyet.html', import.meta.url)),
+        // Telefonun onbelleginde eski kopya kalmamasi icin yepyeni giris adresi
+        diyetkocu: fileURLToPath(new URL('./diyetkocu.html', import.meta.url))
       }
     }
   },
@@ -21,6 +23,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Servis-iscisini kendini imha edecek sekilde yayinla: tum cihazlardaki
+      // bozuk/eski onbellegi temizler ve kapanir; sayfa hep internetten taze yuklenir.
+      selfDestroying: true,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Saha CRM',
