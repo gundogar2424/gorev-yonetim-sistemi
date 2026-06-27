@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, getDietSettings, saveDietSettings } from '../db'
+import { dietDb, readDietSettings, saveDietSettings } from '../db'
 import { badgesForStreak, computeStats } from '../streak'
 import { DEFAULT_MODEL, extractDietPlan } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
 
 export default function DietSettings() {
-  const settings = useLiveQuery(() => getDietSettings(), [], undefined)
+  const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
   const stats = computeStats(entries ?? [])
   const { earned, locked } = badgesForStreak(stats.streak)

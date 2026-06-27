@@ -19,16 +19,21 @@ export class DietCoachDB extends Dexie {
 
 export const dietDb = new DietCoachDB()
 
-// Ayarlari getir (yoksa olustur)
-export async function getDietSettings(): Promise<DietSettings> {
+// Ayarlari OKU (SALT OKUNUR — hicbir yazma yapmaz).
+// useLiveQuery icinde cagrildigi icin burada DB'ye yazmak yasak
+// (Dexie "Readwrite transaction in liveQuery context" hatasi verir).
+// Kayit yoksa, DB'ye dokunmadan bellekte varsayilan bir nesne dondurur.
+export async function readDietSettings(): Promise<DietSettings> {
   const s = await dietDb.settings.toCollection().first()
-  if (s) return s
-  const id = await dietDb.settings.add({ model: 'claude-opus-4-8' })
-  return { id, model: 'claude-opus-4-8' }
+  return s ?? { model: 'claude-opus-4-8' }
 }
 
-// Ayarlari guncelle
+// Ayarlari guncelle (yazma baglami — kayit yoksa olusturur, varsa gunceller)
 export async function saveDietSettings(patch: Partial<DietSettings>) {
-  const s = await getDietSettings()
-  await dietDb.settings.update(s.id!, patch)
+  const s = await dietDb.settings.toCollection().first()
+  if (s?.id != null) {
+    await dietDb.settings.update(s.id, patch)
+  } else {
+    await dietDb.settings.add({ model: 'claude-opus-4-8', ...patch })
+  }
 }
