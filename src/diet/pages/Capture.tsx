@@ -102,7 +102,7 @@ export default function Capture() {
             <p className="font-semibold mb-1">⚙️ Kurulum gerekli</p>
             <p>
               Fotoğraf analizi için bir Anthropic API anahtarı gerekiyor.{' '}
-              <Link to="/diyet/ayarlar" className="underline font-semibold">
+              <Link to="/ayarlar" className="underline font-semibold">
                 Ayarlar
               </Link>{' '}
               bölümünden ekleyin.
@@ -233,7 +233,7 @@ export default function Capture() {
             <button onClick={reset} className="btn-primary w-full">
               Yeni Fotoğraf
             </button>
-            <Link to="/diyet/gecmis" className="block text-sm text-emerald-700 underline">
+            <Link to="/gecmis" className="block text-sm text-emerald-700 underline">
               Geçmişi gör
             </Link>
           </div>

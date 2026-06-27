@@ -24,9 +24,14 @@ Bu bir **PWA** (Progressive Web App — telefona uygulama gibi kurulabilen web u
 | 💾 **Yedekleme** | Fotoğraflar dahil tüm veriyi tek dosyaya indir, istediğinde geri yükle |
 | ⚙️ **İl/İlçe Yönetimi** | 81 il hazır gelir; istediğini ekle/çıkar |
 
-## 🥗 Diyet Koçu (ikinci uygulama)
+## 🥗 Diyet Koçu (ayrı program)
 
-Aynı PWA içinde, CRM'den **tamamen bağımsız** ikinci bir uygulama bulunur: **Diyet Koçu**. Alt menüdeki **🥗 Diyet** sekmesinden (veya doğrudan `#/diyet` adresinden) açılır.
+Bu depoda, Saha CRM'den **tamamen ayrı, bağımsız ikinci bir program** bulunur: **Diyet Koçu**. Kendi giriş sayfası (`diyet.html`) vardır ve CRM'in hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **Saha CRM** → `index.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/`)
+- **Diyet Koçu** → `diyet.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/diyet.html`)
+
+Her ikisi de aynı depodan derlenir ama ayrı sayfalardır; telefonda istediğini ayrı ayrı "Ana ekrana ekle" ile kurabilirsin.
 
 **Ne yapar?** Diyet yapan kişi bir yemeği **yemeden önce fotoğrafını çeker**; yapay zeka (Claude) yemeği tanır ve:
 
