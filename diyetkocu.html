@@ -8,6 +8,27 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Diyet Koçu</title>
+    <script>
+      // Tani amacli: her turlu hatayi ekranda kirmizi serit olarak goster
+      (function () {
+        function showErr(msg) {
+          try {
+            var d = document.createElement('div')
+            d.style.cssText =
+              'position:fixed;left:0;right:0;bottom:0;max-height:55%;overflow:auto;background:#b91c1c;color:#fff;padding:12px;font:12px/1.4 system-ui,sans-serif;z-index:99999;white-space:pre-wrap'
+            d.textContent = 'HATA: ' + msg
+            ;(document.body || document.documentElement).appendChild(d)
+          } catch (_) {}
+        }
+        window.addEventListener('error', function (e) {
+          showErr((e.message || 'bilinmiyor') + '  @ ' + (e.filename || '') + ':' + (e.lineno || ''))
+        })
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason
+          showErr('promise: ' + (r && (r.stack || r.message) ? r.stack || r.message : String(r)))
+        })
+      })()
+    </script>
   </head>
   <body style="margin:0;font-family:system-ui,sans-serif">
     <div id="root">
