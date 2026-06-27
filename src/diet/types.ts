@@ -7,7 +7,7 @@ export type Decision = 'none' | 'resisted' | 'ate'
 // Risk seviyesi (yapay zekanin yemege bictigi diyet riski)
 export type RiskLevel = 'düşük' | 'orta' | 'yüksek'
 
-// Yapay zekanin fotograftan urettigi analiz
+// Yapay zekanin fotograftan urettigi inceleme
 export interface FoodAnalysis {
   foodFound: boolean // Goruntude yemek bulundu mu?
   foodName: string // Taninan yemegin adi
@@ -18,9 +18,12 @@ export interface FoodAnalysis {
   motivations: string[] // Diyeti bozmamak icin motive edici sozler
   healthierAlternative: string // Daha saglikli alternatif oneri
   verdict: string // Tek cumlelik ozet karar
+  // Diyet listesine uyum (liste yuklendiyse): 0-100, liste yoksa -1
+  compliancePercent: number
+  complianceNote: string // Neyin uydugu/uymadiginin kisa aciklamasi
 }
 
-// Veritabaninda saklanan bir kayit (analiz + karar + fotograf)
+// Veritabaninda saklanan bir kayit (inceleme + karar + fotograf)
 export interface DietEntry extends FoodAnalysis {
   id?: number
   photo: string // Kucultulmus base64 data URL
@@ -36,4 +39,5 @@ export interface DietSettings {
   model?: string // Kullanilacak model (varsayilan: claude-opus-4-8)
   userName?: string // Kullanici adi (kisisellestirme icin)
   goal?: string // Diyet hedefi (yapay zekaya baglam olarak verilir)
+  dietPlan?: string // Kullanicinin diyet listesi (ogunler) — uyum karsilastirmasi icin
 }

@@ -19,7 +19,9 @@ const OUTPUT_SCHEMA = {
     harms: { type: 'array', items: { type: 'string' } },
     motivations: { type: 'array', items: { type: 'string' } },
     healthierAlternative: { type: 'string' },
-    verdict: { type: 'string' }
+    verdict: { type: 'string' },
+    compliancePercent: { type: 'integer' },
+    complianceNote: { type: 'string' }
   },
   required: [
     'foodFound',
@@ -30,7 +32,9 @@ const OUTPUT_SCHEMA = {
     'harms',
     'motivations',
     'healthierAlternative',
-    'verdict'
+    'verdict',
+    'compliancePercent',
+    'complianceNote'
   ]
 } as const
 
@@ -40,6 +44,10 @@ Görseldeki yemeği tanı ve şu kurallara göre değerlendir:
 - Eğer görselde yemek/içecek yoksa: foodFound=false, foodName="Yemek bulunamadı", diğer alanları nazikçe boş/nötr doldur ve verdict'te net bir fotoğraf çekmesini iste.
 - Yemek sağlıksız/yüksek kalorili ise (tatlı, kızartma, fast food, şekerli içecek vb.): Kullanıcıyı SAMİMİ ama KARARLI bir dille uyar. harms alanına bu yemeğin somut zararlarını yaz (kilo, kan şekeri, yağlanma, tokluk hissi vb.). motivations alanına onu vazgeçirecek, içini güçlendirecek motive edici sözler yaz.
 - Yemek sağlıklı ise (sebze, ızgara, salata, meyve vb.): healthy=true, riskLevel="düşük" ver ve motivations alanında kullanıcıyı TEBRİK ederek doğru seçim yaptığını söyle.
+
+DİYET LİSTESİ KARŞILAŞTIRMASI:
+- Eğer kullanıcı bir DİYET LİSTESİ verdiyse: çektiği yemeğin bu listeye ne kadar uyduğunu yüzde olarak değerlendir. compliancePercent = 0-100 arası bir tam sayı (100 = listeye birebir uygun bir öğün, 0 = listeye tamamen aykırı). complianceNote = neyin uyduğunu/uymadığını TEK kısa cümleyle açıkla (örn. "Listende öğle için ızgara tavuk+salata var, bu uygun" veya "Listende tatlı yok, bu öğün listene aykırı"). Uyum düşükse motivations sözlerini de buna göre kur.
+- Eğer diyet listesi VERİLMEDİYSE: compliancePercent = -1 ve complianceNote = "" (boş) bırak.
 
 Üslubun: Türkçe, sıcak, abartısız, suçlayıcı değil GÜÇLENDİRİCİ. Kısa ve vurucu cümleler kur. harms ve motivations için 2-4 madde yeterli. Kaloriyi gram göz kararı tahmin et (porsiyon başına).`
 
@@ -74,7 +82,7 @@ function friendlyError(err: unknown): Error {
     return new Error('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.')
   }
   if (err instanceof Anthropic.APIError) {
-    return new Error(`Analiz başarısız (${err.status ?? '?'}): ${err.message}`)
+    return new Error(`İnceleme başarısız (${err.status ?? '?'}): ${err.message}`)
   }
   return new Error(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.')
 }
@@ -85,11 +93,12 @@ interface AnalyzeOptions {
   model?: string
   userName?: string
   goal?: string
+  dietPlan?: string
 }
 
-// Fotografi analiz eder ve yapilandirilmis sonucu dondurur
+// Fotografi inceler ve yapilandirilmis sonucu dondurur
 export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal } = opts
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
 
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const img = splitDataUrl(photoDataUrl)
@@ -101,6 +110,11 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
   if (goal) contextLines.push(`Diyet hedefi: ${goal}.`)
   const contextText = contextLines.length
     ? `\n\nKullanıcı bağlamı: ${contextLines.join(' ')} Sözlerini bu hedefe göre kişiselleştir.`
+    : ''
+
+  // Diyet listesi varsa karsilastirma icin ekle
+  const planText = dietPlan?.trim()
+    ? `\n\nDİYET LİSTEM (bu yemeği buna göre değerlendir ve uyum yüzdesi ver):\n${dietPlan.trim()}`
     : ''
 
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
@@ -120,7 +134,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
             },
             {
               type: 'text',
-              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}`
+              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}`
             }
           ]
         }
@@ -156,6 +170,57 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
       const snippet = cleaned.slice(0, 120)
       throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${snippet}…"`)
     }
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// Diyet listesinin (kagit/PDF) fotografini okuyup duz metne cevirir.
+// Boylece kullanici listeyi elle yazmak yerine fotografini cekebilir.
+export async function extractDietPlan(opts: {
+  apiKey: string
+  photoDataUrl: string
+  model?: string
+}): Promise<string> {
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL } = opts
+
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  const img = splitDataUrl(photoDataUrl)
+  if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
+
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1500,
+      system:
+        'Sen bir diyet listesi okuyucususun. Verilen görseldeki diyet listesini/öğün planını OLDUĞU GİBI, düzenli ve okunaklı bir metne dökersin. Öğünleri (Kahvaltı, Ara Öğün, Öğle, Akşam vb.) başlıklarıyla, maddeler hâlinde yaz. Yorum ekleme, sadece listeyi metne çevir. Görselde diyet listesi yoksa "Listede okunabilir bir diyet planı bulunamadı." yaz.',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: img.mediaType as 'image/jpeg', data: img.base64 }
+            },
+            { type: 'text', text: 'Bu diyet listesini düzenli bir metne çevir.' }
+          ]
+        }
+      ]
+    })
+
+    if (response.stop_reason === 'refusal') {
+      throw new Error('İstek güvenlik nedeniyle reddedildi. Farklı bir fotoğraf deneyin.')
+    }
+
+    const text = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+
+    if (!text) throw new Error('Listeden metin çıkarılamadı. Lütfen daha net bir fotoğraf deneyin.')
+    return text
   } catch (err) {
     throw friendlyError(err)
   }

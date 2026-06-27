@@ -43,12 +43,12 @@ Kullanıcı sonra **"💪 Vazgeçtim"** veya **"😋 Yine de yedim"** kararını
 
 | Özellik | Açıklama |
 |---|---|
-| 📸 **Foto + analiz** | Yemeğin fotoğrafını çek, yapay zeka tanısın; zararları ve motive edici sözleri gör |
+| 📸 **Foto + inceleme** | Yemeğin fotoğrafını çek, yapay zeka tanısın; zararları ve motive edici sözleri gör |
 | 📅 **Geçmiş** | Tüm fotoğraf ve kararların günlere göre kayıtlı listesi |
 | 🔥 **Diyet serisi (streak)** | "Kaç gündür diyetini bozmadın" sayacı |
 | 🏅 **Rozetler** | 1 / 3 / 7 / 14 / 30 / 60 / 100 / 365 günde açılan başarı rozetleri |
 
-**Kurulum:** Fotoğraf analizi için bir **Anthropic (Claude) API anahtarı** gerekir. Diyet Koçu → **Ayarlar** bölümünden girilir; anahtar **yalnızca cihazda** saklanır, hiçbir sunucuya gönderilmez. Anahtar [console.anthropic.com](https://console.anthropic.com/settings/keys) üzerinden alınır. Analizler doğrudan tarayıcıdan Claude API'sine yapılır (varsayılan model `claude-opus-4-8`).
+**Kurulum:** Fotoğraf incelemesi için bir **Anthropic (Claude) API anahtarı** gerekir. Diyet Koçu → **Ayarlar** bölümünden girilir; anahtar **yalnızca cihazda** saklanır, hiçbir sunucuya gönderilmez. Anahtar [console.anthropic.com](https://console.anthropic.com/settings/keys) üzerinden alınır. İncelemeler doğrudan tarayıcıdan Claude API'sine yapılır (varsayılan model `claude-opus-4-8`).
 
 > Diyet Koçu kendi yerel veritabanını (`diet-coach`) kullanır; CRM verilerine dokunmaz.
 

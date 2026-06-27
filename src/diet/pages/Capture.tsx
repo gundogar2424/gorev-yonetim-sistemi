@@ -48,7 +48,8 @@ export default function Capture() {
         photoDataUrl: dataUrl,
         model: settings?.model,
         userName: settings?.userName,
-        goal: settings?.goal
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan
       })
       setAnalysis(result)
       setPhase('result')
@@ -101,7 +102,7 @@ export default function Capture() {
           <div className="card p-4 bg-amber-50 border-amber-200 text-amber-800 text-sm">
             <p className="font-semibold mb-1">⚙️ Kurulum gerekli</p>
             <p>
-              Fotoğraf analizi için bir Anthropic API anahtarı gerekiyor.{' '}
+              Fotoğraf incelemesi için bir Anthropic API anahtarı gerekiyor.{' '}
               <Link to="/ayarlar" className="underline font-semibold">
                 Ayarlar
               </Link>{' '}
@@ -134,7 +135,7 @@ export default function Capture() {
           </div>
         )}
 
-        {/* Analiz ediliyor */}
+        {/* Inceleniyor */}
         {phase === 'analyzing' && (
           <div className="card p-4 space-y-3 text-center">
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-72 object-cover" />}
@@ -162,6 +163,9 @@ export default function Capture() {
                 <span>🔥 ~{analysis.estimatedCalories} kcal</span>
                 <span>{analysis.healthy ? '✅ Sağlıklı' : '⚠️ Diyetini zorlayabilir'}</span>
               </div>
+
+              {/* Diyet listesine uyum (yalnizca liste yuklendiyse, yani >= 0) */}
+              {analysis.compliancePercent >= 0 && <ComplianceBar analysis={analysis} />}
 
               <p className="text-slate-700 text-sm font-medium bg-slate-50 rounded-xl p-3">“{analysis.verdict}”</p>
 
@@ -239,6 +243,30 @@ export default function Capture() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Diyet listesine uyum yuzdesini renkli bir cubukla gosterir
+function ComplianceBar({ analysis }: { analysis: FoodAnalysis }) {
+  const pct = Math.max(0, Math.min(100, analysis.compliancePercent))
+  const color =
+    pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+  const textColor =
+    pct >= 80 ? 'text-emerald-700' : pct >= 50 ? 'text-amber-700' : 'text-rose-700'
+  const label = pct >= 80 ? 'Listene uygun 👍' : pct >= 50 ? 'Kısmen uyuyor' : 'Listene aykırı'
+
+  return (
+    <div className="bg-slate-50 rounded-xl p-3 space-y-2">
+      <div className="flex items-end justify-between">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Diyet listene uyum</span>
+        <span className={`text-2xl font-extrabold ${textColor}`}>%{pct}</span>
+      </div>
+      <div className="h-2.5 w-full bg-slate-200 rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className={`text-sm font-semibold ${textColor}`}>{label}</p>
+      {analysis.complianceNote && <p className="text-sm text-slate-600">{analysis.complianceNote}</p>}
     </div>
   )
 }

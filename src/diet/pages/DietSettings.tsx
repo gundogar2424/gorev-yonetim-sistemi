@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, getDietSettings, saveDietSettings } from '../db'
 import { badgesForStreak, computeStats } from '../streak'
-import { DEFAULT_MODEL } from '../ai'
+import { DEFAULT_MODEL, extractDietPlan } from '../ai'
+import { fileToResizedDataUrl } from '../../lib/image'
 
 export default function DietSettings() {
   const settings = useLiveQuery(() => getDietSettings(), [], undefined)
@@ -13,10 +14,34 @@ export default function DietSettings() {
 
   const [showKey, setShowKey] = useState(false)
   const [msg, setMsg] = useState('')
+  const [planBusy, setPlanBusy] = useState(false)
+  const planFileRef = useRef<HTMLInputElement>(null)
 
   function flash(m: string) {
     setMsg(m)
     setTimeout(() => setMsg(''), 3000)
+  }
+
+  // Diyet listesinin fotografini cekip yapay zekayla metne cevir
+  async function onPlanPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (planFileRef.current) planFileRef.current.value = ''
+    if (!file) return
+    if (!settings?.apiKey) {
+      flash('Önce API anahtarını gir.')
+      return
+    }
+    setPlanBusy(true)
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 1100, 0.85)
+      const text = await extractDietPlan({ apiKey: settings.apiKey, photoDataUrl: dataUrl, model: settings.model })
+      await saveDietSettings({ dietPlan: text })
+      flash('Diyet listesi fotoğraftan okundu ve kaydedildi.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Liste okunamadı.')
+    } finally {
+      setPlanBusy(false)
+    }
   }
 
   async function clearAll() {
@@ -59,7 +84,7 @@ export default function DietSettings() {
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yapay Zeka Anahtarı</h2>
           <p className="text-xs text-slate-500">
-            Fotoğraf analizi Anthropic (Claude) ile yapılır. Kendi API anahtarınızı girin. Anahtar{' '}
+            Fotoğraf incelemesi Anthropic (Claude) ile yapılır. Kendi API anahtarınızı girin. Anahtar{' '}
             <span className="font-semibold">yalnızca bu cihazda</span> saklanır, hiçbir sunucuya gönderilmez.
           </p>
           <div className="flex gap-2">
@@ -119,6 +144,50 @@ export default function DietSettings() {
               onChange={(e) => saveDietSettings({ goal: e.target.value })}
             />
           </div>
+        </section>
+
+        {/* Diyet listesi */}
+        <section className="card p-4 space-y-3">
+          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Diyet Listem</h2>
+          <p className="text-xs text-slate-500">
+            Diyetisyeninin verdiği öğün listesini buraya ekle. Eklersen, çektiğin her yemeğin listene{' '}
+            <span className="font-semibold">% kaç uyduğunu</span> görürsün. Elle yazabilir veya listenin fotoğrafını
+            çekip okutabilirsin.
+          </p>
+
+          <button
+            onClick={() => planFileRef.current?.click()}
+            disabled={planBusy || !settings?.apiKey}
+            className="btn-ghost w-full"
+          >
+            {planBusy ? 'Liste okunuyor…' : '📷 Listenin Fotoğrafını Çek (otomatik okusun)'}
+          </button>
+          <input
+            ref={planFileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={onPlanPhoto}
+          />
+
+          <div>
+            <label className="field-label">Liste (elle düzenleyebilirsin)</label>
+            <textarea
+              className="field-input font-mono text-xs"
+              rows={8}
+              placeholder={'örn.\nKahvaltı: 2 yumurta, 1 dilim peynir, domates-salatalık\nÖğle: 120g ızgara tavuk + salata\nAkşam: sebze yemeği + yoğurt'}
+              value={settings?.dietPlan ?? ''}
+              onChange={(e) => saveDietSettings({ dietPlan: e.target.value })}
+            />
+          </div>
+          {settings?.dietPlan?.trim() ? (
+            <button onClick={() => saveDietSettings({ dietPlan: '' })} className="text-xs text-rose-500 underline">
+              Listeyi temizle
+            </button>
+          ) : (
+            <p className="text-[11px] text-slate-400">Liste boşsa uyum yüzdesi gösterilmez.</p>
+          )}
         </section>
 
         {/* Tehlikeli bolge */}
