@@ -61,9 +61,16 @@ export default function History() {
                     <p className="text-xs text-slate-500">
                       ~{e.estimatedCalories} kcal · {new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    <span className={`inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full ${d.cls}`}>
-                      {d.text}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1 mt-1">
+                      <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${d.cls}`}>
+                        {d.text}
+                      </span>
+                      {e.compliancePercent >= 0 && (
+                        <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${complianceCls(e.compliancePercent)}`}>
+                          %{e.compliancePercent} uyum
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button onClick={() => remove(e.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1">
                     🗑️
@@ -85,6 +92,13 @@ function Stat({ value, label, accent }: { value: number; label: string; accent: 
       <p className="text-xs text-slate-500">{label}</p>
     </div>
   )
+}
+
+// Uyum yuzdesine gore rozet rengi
+function complianceCls(pct: number): string {
+  if (pct >= 80) return 'bg-emerald-100 text-emerald-800'
+  if (pct >= 50) return 'bg-amber-100 text-amber-800'
+  return 'bg-rose-100 text-rose-800'
 }
 
 function groupByDate(entries: DietEntry[]): [string, DietEntry[]][] {

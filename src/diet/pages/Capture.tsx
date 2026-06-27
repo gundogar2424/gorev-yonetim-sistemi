@@ -10,10 +10,44 @@ import type { Decision, FoodAnalysis } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
-const RISK_STYLES: Record<string, string> = {
-  düşük: 'bg-emerald-100 text-emerald-800',
-  orta: 'bg-amber-100 text-amber-800',
-  yüksek: 'bg-rose-100 text-rose-800'
+// Yemegin saglik durumuna gore renk temasi (yesil = saglikli, sari = orta, kirmizi = riskli)
+interface Theme {
+  band: string
+  soft: string
+  text: string
+  chip: string
+  emoji: string
+  label: string
+}
+function healthTheme(a: FoodAnalysis): Theme {
+  if (a.healthy || a.riskLevel === 'düşük') {
+    return {
+      band: 'from-emerald-500 to-emerald-600',
+      soft: 'bg-emerald-50',
+      text: 'text-emerald-700',
+      chip: 'bg-emerald-100 text-emerald-800',
+      emoji: '✅',
+      label: 'Sağlıklı seçim'
+    }
+  }
+  if (a.riskLevel === 'orta') {
+    return {
+      band: 'from-amber-400 to-amber-500',
+      soft: 'bg-amber-50',
+      text: 'text-amber-700',
+      chip: 'bg-amber-100 text-amber-800',
+      emoji: '⚠️',
+      label: 'Dikkatli ol'
+    }
+  }
+  return {
+    band: 'from-rose-500 to-rose-600',
+    soft: 'bg-rose-50',
+    text: 'text-rose-700',
+    chip: 'bg-rose-100 text-rose-800',
+    emoji: '🚫',
+    label: 'Diyetini bozar'
+  }
 }
 
 export default function Capture() {
@@ -151,58 +185,7 @@ export default function Capture() {
           <div className="space-y-3">
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-2xl max-h-72 object-cover shadow" />}
 
-            <div className="card p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-bold text-slate-800">{analysis.foodName}</h2>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${RISK_STYLES[analysis.riskLevel] ?? ''}`}>
-                  {analysis.riskLevel.toUpperCase()} RİSK
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <span>🔥 ~{analysis.estimatedCalories} kcal</span>
-                <span>{analysis.healthy ? '✅ Sağlıklı' : '⚠️ Diyetini zorlayabilir'}</span>
-              </div>
-
-              {/* Diyet listesine uyum (yalnizca liste yuklendiyse, yani >= 0) */}
-              {analysis.compliancePercent >= 0 && <ComplianceBar analysis={analysis} />}
-
-              <p className="text-slate-700 text-sm font-medium bg-slate-50 rounded-xl p-3">“{analysis.verdict}”</p>
-
-              {analysis.harms.length > 0 && (
-                <div>
-                  <p className="text-xs font-bold text-rose-600 uppercase tracking-wide mb-1">Zararları</p>
-                  <ul className="space-y-1">
-                    {analysis.harms.map((h, i) => (
-                      <li key={i} className="text-sm text-slate-700 flex gap-2">
-                        <span className="text-rose-500">⊘</span>
-                        <span>{h}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {analysis.motivations.length > 0 && (
-                <div className="bg-emerald-50 rounded-xl p-3">
-                  <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">Sana bir söz</p>
-                  <ul className="space-y-1.5">
-                    {analysis.motivations.map((m, i) => (
-                      <li key={i} className="text-sm text-emerald-900 flex gap-2">
-                        <span>💚</span>
-                        <span>{m}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {analysis.healthierAlternative && (
-                <p className="text-sm text-slate-600">
-                  <span className="font-semibold">Daha iyisi:</span> {analysis.healthierAlternative}
-                </p>
-              )}
-            </div>
+            <ResultCard analysis={analysis} />
 
             {/* Karar butonlari */}
             <div className="grid grid-cols-2 gap-2">
@@ -242,6 +225,80 @@ export default function Capture() {
             </Link>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// Renkli, okunakli sonuc karti — yemegin saglik durumuna gore renklenir
+function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
+  const t = healthTheme(analysis)
+  return (
+    <div className="card overflow-hidden border-0 shadow-md">
+      {/* Renkli ust bant */}
+      <div className={`bg-gradient-to-br ${t.band} text-white px-4 py-3`}>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xl font-extrabold leading-tight">{analysis.foodName}</h2>
+          <span className="text-3xl">{t.emoji}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">🔥 ~{analysis.estimatedCalories} kcal</span>
+          <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">{t.label}</span>
+          <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">
+            {analysis.riskLevel.toUpperCase()} RİSK
+          </span>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {/* Diyet listesine uyum (yalnizca liste yuklendiyse, yani >= 0) */}
+        {analysis.compliancePercent >= 0 && <ComplianceBar analysis={analysis} />}
+
+        {/* Ozet karar */}
+        <p className={`text-base font-semibold ${t.text} ${t.soft} rounded-xl p-3 leading-snug`}>“{analysis.verdict}”</p>
+
+        {/* Zararlari */}
+        {analysis.harms.length > 0 && (
+          <div className="bg-rose-50 rounded-xl p-3">
+            <p className="text-xs font-bold text-rose-600 uppercase tracking-wide mb-1.5">⊘ Zararları</p>
+            <ul className="space-y-1.5">
+              {analysis.harms.map((h, i) => (
+                <li key={i} className="text-sm text-rose-900 flex gap-2 leading-snug">
+                  <span className="text-rose-400 mt-0.5">•</span>
+                  <span>{h}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Motive edici sozler */}
+        {analysis.motivations.length > 0 && (
+          <div className="bg-emerald-50 rounded-xl p-3">
+            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1.5">💚 Sana bir söz</p>
+            <ul className="space-y-1.5">
+              {analysis.motivations.map((m, i) => (
+                <li key={i} className="text-sm text-emerald-900 flex gap-2 leading-snug">
+                  <span className="mt-0.5">›</span>
+                  <span>{m}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Daha saglikli alternatif */}
+        {analysis.healthierAlternative && (
+          <div className="bg-sky-50 rounded-xl p-3">
+            <p className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-1">🥗 Daha iyisi</p>
+            <p className="text-sm text-sky-900 leading-snug">{analysis.healthierAlternative}</p>
+          </div>
+        )}
+
+        {/* Afiyet olsun / uyari notu */}
+        <p className={`text-center text-sm font-semibold ${t.text}`}>
+          {analysis.healthy ? 'Afiyet olsun! 🍽️' : 'Karar senin — sen bundan güçlüsün 💪'}
+        </p>
       </div>
     </div>
   )
