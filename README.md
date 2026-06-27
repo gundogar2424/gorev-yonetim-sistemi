@@ -24,6 +24,29 @@ Bu bir **PWA** (Progressive Web App — telefona uygulama gibi kurulabilen web u
 | 💾 **Yedekleme** | Fotoğraflar dahil tüm veriyi tek dosyaya indir, istediğinde geri yükle |
 | ⚙️ **İl/İlçe Yönetimi** | 81 il hazır gelir; istediğini ekle/çıkar |
 
+## 🥗 Diyet Koçu (ikinci uygulama)
+
+Aynı PWA içinde, CRM'den **tamamen bağımsız** ikinci bir uygulama bulunur: **Diyet Koçu**. Alt menüdeki **🥗 Diyet** sekmesinden (veya doğrudan `#/diyet` adresinden) açılır.
+
+**Ne yapar?** Diyet yapan kişi bir yemeği **yemeden önce fotoğrafını çeker**; yapay zeka (Claude) yemeği tanır ve:
+
+- O yemeğin **zararlarını** ve tahmini kalorisini gösterir,
+- Diyeti bozmamak için **motive edici, güçlendirici sözler** sunar,
+- Daha sağlıklı bir **alternatif** önerir.
+
+Kullanıcı sonra **"💪 Vazgeçtim"** veya **"😋 Yine de yedim"** kararını verir. Tüm kararlar kaydedilir.
+
+| Özellik | Açıklama |
+|---|---|
+| 📸 **Foto + analiz** | Yemeğin fotoğrafını çek, yapay zeka tanısın; zararları ve motive edici sözleri gör |
+| 📅 **Geçmiş** | Tüm fotoğraf ve kararların günlere göre kayıtlı listesi |
+| 🔥 **Diyet serisi (streak)** | "Kaç gündür diyetini bozmadın" sayacı |
+| 🏅 **Rozetler** | 1 / 3 / 7 / 14 / 30 / 60 / 100 / 365 günde açılan başarı rozetleri |
+
+**Kurulum:** Fotoğraf analizi için bir **Anthropic (Claude) API anahtarı** gerekir. Diyet Koçu → **Ayarlar** bölümünden girilir; anahtar **yalnızca cihazda** saklanır, hiçbir sunucuya gönderilmez. Anahtar [console.anthropic.com](https://console.anthropic.com/settings/keys) üzerinden alınır. Analizler doğrudan tarayıcıdan Claude API'sine yapılır (varsayılan model `claude-opus-4-8`).
+
+> Diyet Koçu kendi yerel veritabanını (`diet-coach`) kullanır; CRM verilerine dokunmaz.
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz
