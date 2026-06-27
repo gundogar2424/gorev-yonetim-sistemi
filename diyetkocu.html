@@ -9,6 +9,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Diyet Koçu</title>
     <script>
+      // Eski servis-iscilerini ve onbellekleri temizle (PWA kaldirildi).
+      // Boylece cihazda kalmis bozuk kopyalar silinir, sayfa internetten taze yuklenir.
+      (function () {
+        if (!('serviceWorker' in navigator)) return
+        navigator.serviceWorker
+          .getRegistrations()
+          .then(function (regs) {
+            var had = regs.length > 0
+            regs.forEach(function (r) {
+              r.unregister()
+            })
+            if (window.caches && caches.keys) {
+              caches.keys().then(function (keys) {
+                keys.forEach(function (k) {
+                  caches.delete(k)
+                })
+              })
+            }
+            if (had && !sessionStorage.getItem('sw-temizlendi')) {
+              sessionStorage.setItem('sw-temizlendi', '1')
+              location.reload()
+            }
+          })
+          .catch(function () {})
+      })()
+    </script>
+    <script>
       // Tani amacli: her turlu hatayi ekranda kirmizi serit olarak goster
       (function () {
         function showErr(msg) {
