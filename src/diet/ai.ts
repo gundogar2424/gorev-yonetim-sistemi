@@ -61,6 +61,15 @@ function friendlyError(err: unknown): Error {
   if (err instanceof Anthropic.RateLimitError) {
     return new Error('Çok fazla istek gönderildi. Lütfen birazdan tekrar deneyin.')
   }
+  if (err instanceof Anthropic.NotFoundError) {
+    // Genellikle model adi yanlis ya da bu anahtara kapali
+    return new Error(
+      `Model bulunamadı. Ayarlar'dan model adını kontrol edin (örn. ${DEFAULT_MODEL} veya claude-sonnet-4-6). Ayrıntı: ${err.message}`
+    )
+  }
+  if (err instanceof Anthropic.BadRequestError) {
+    return new Error(`Geçersiz istek (400): ${err.message}`)
+  }
   if (err instanceof Anthropic.APIConnectionError) {
     return new Error('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.')
   }
@@ -99,7 +108,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 1500,
+      max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: [
         {
@@ -123,19 +132,31 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
     if (response.stop_reason === 'refusal') {
       throw new Error('İstek güvenlik nedeniyle reddedildi. Farklı bir fotoğraf deneyin.')
     }
-
-    const textBlock = response.content.find((b) => b.type === 'text')
-    if (!textBlock || textBlock.type !== 'text') {
-      throw new Error('Modelden geçerli bir yanıt alınamadı.')
+    // Yanit token sinirina takildiysa JSON yarim kalmis olur
+    if (response.stop_reason === 'max_tokens') {
+      throw new Error('Yanıt çok uzun oldu ve yarıda kesildi. Lütfen tekrar deneyin.')
     }
 
-    const parsed = JSON.parse(textBlock.text) as FoodAnalysis
-    return parsed
+    // Tum metin bloklarini birlestir, olasi kod-blogu (```json) sarmalamasini temizle
+    const rawText = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+
+    if (!rawText) {
+      throw new Error('Modelden boş yanıt geldi. Lütfen tekrar deneyin.')
+    }
+
+    const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+
+    try {
+      return JSON.parse(cleaned) as FoodAnalysis
+    } catch {
+      // Gercek nedeni gormek icin yanitin basini hata mesajina ekle
+      const snippet = cleaned.slice(0, 120)
+      throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${snippet}…"`)
+    }
   } catch (err) {
-    // JSON.parse hatasi da dahil, kullaniciya temiz mesaj ver
-    if (err instanceof SyntaxError) {
-      throw new Error('Yapay zeka yanıtı çözümlenemedi. Lütfen tekrar deneyin.')
-    }
     throw friendlyError(err)
   }
 }
