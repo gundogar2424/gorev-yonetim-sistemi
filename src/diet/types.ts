@@ -83,6 +83,15 @@ export interface Reminder {
   enabled: boolean
 }
 
+// Egzersiz kaydi (kullanici ne yaptigini yazar; +puan kazandirir)
+export interface Exercise {
+  id?: number
+  createdAt: number
+  dateStr: string // YYYY-MM-DD
+  text: string // Ne yaptin? (orn. "30 dk yürüyüş")
+  minutes?: number // Suresi (dk, istege bagli)
+}
+
 // Alisveris listesi ogesi
 export interface ShoppingItem {
   id?: number

@@ -1,7 +1,7 @@
 // Diyet Kocu icin AYRI bir Dexie (IndexedDB) veritabani.
 // CRM veritabanina hic dokunmaz; semasi ve surumu bagimsizdir.
 import Dexie, { type Table } from 'dexie'
-import type { DietEntry, DietSettings, Measurement, Vital, Lab, ShoppingItem } from './types'
+import type { DietEntry, DietSettings, Measurement, Vital, Lab, ShoppingItem, Exercise } from './types'
 
 export class DietCoachDB extends Dexie {
   entries!: Table<DietEntry, number>
@@ -10,6 +10,7 @@ export class DietCoachDB extends Dexie {
   vitals!: Table<Vital, number>
   labs!: Table<Lab, number>
   shopping!: Table<ShoppingItem, number>
+  exercises!: Table<Exercise, number>
 
   constructor() {
     super('diet-coach')
@@ -33,6 +34,16 @@ export class DietCoachDB extends Dexie {
       vitals: '++id, dateStr, createdAt, kind',
       labs: '++id, dateStr, createdAt',
       shopping: '++id, createdAt, done'
+    })
+    // Surum 4: egzersiz kayitlari (+puan)
+    this.version(4).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt'
     })
   }
 }
@@ -73,6 +84,22 @@ export async function updateLab(id: number, patch: Partial<Lab>) {
 }
 export async function deleteLab(id: number) {
   await dietDb.labs.delete(id)
+}
+
+// ---- Egzersiz kayitlari (SALT OKUNUR sorgu; +puan kazandirir) ----
+export function listExercises(): Promise<Exercise[]> {
+  return dietDb.exercises.orderBy('createdAt').reverse().toArray()
+}
+export async function addExercise(text: string, minutes?: number) {
+  await dietDb.exercises.add({
+    text,
+    minutes,
+    createdAt: Date.now(),
+    dateStr: new Date().toLocaleDateString('en-CA')
+  })
+}
+export async function deleteExercise(id: number) {
+  await dietDb.exercises.delete(id)
 }
 
 // ---- Alisveris listesi ----

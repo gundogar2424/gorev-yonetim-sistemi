@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings } from '../db'
+import { dietDb, readDietSettings, listExercises } from '../db'
 import { computeStats, todayStr } from '../streak'
 import { buildDailyReport, shareText, whatsappLink } from '../lib/report'
 import type { DietEntry } from '../types'
@@ -15,7 +15,8 @@ const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
 export default function History() {
   // En yeni en ustte
   const entries = useLiveQuery(() => dietDb.entries.orderBy('createdAt').reverse().toArray(), [], [])
-  const stats = computeStats(entries ?? [])
+  const exercises = useLiveQuery(() => listExercises(), [], [])
+  const stats = computeStats(entries ?? [], exercises ?? [])
   const [reportDate, setReportDate] = useState(todayStr())
   const [msg, setMsg] = useState('')
 

@@ -6,6 +6,7 @@ import More from './pages/More'
 import Labs from './pages/Labs'
 import Shopping from './pages/Shopping'
 import Reminders from './pages/Reminders'
+import ExercisePage from './pages/Exercise'
 import DietSettings from './pages/DietSettings'
 
 // Diyet Kocu'nun kendi alt gezinme cubugu (CRM'den bagimsiz)
@@ -30,6 +31,7 @@ export default function DietApp() {
           <Route path="/tahliller" element={<Labs />} />
           <Route path="/alisveris" element={<Shopping />} />
           <Route path="/hatirlaticilar" element={<Reminders />} />
+          <Route path="/egzersiz" element={<ExercisePage />} />
           <Route path="/ayarlar" element={<DietSettings />} />
         </Routes>
       </main>

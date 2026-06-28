@@ -1,5 +1,11 @@
 // Diyet serisi (streak), istatistikler ve rozet hesaplamalari.
-import type { DietEntry } from './types'
+import type { DietEntry, Exercise } from './types'
+
+// Bir egzersiz kaydinin kazandirdigi puan: 8 taban + her 15 dk icin +2 (en cok +12)
+export function exercisePoints(ex: Exercise): number {
+  const bonus = Math.min(12, Math.floor((ex.minutes ?? 0) / 15) * 2)
+  return 8 + bonus
+}
 
 // Yerel tarihi YYYY-MM-DD olarak verir (en-CA formati bu kaliba uyar)
 export function todayStr(d: Date = new Date()): string {
@@ -25,11 +31,13 @@ export interface DietStats {
   totalAte: number // Toplam kac kez yenildi
   brokeCount: number // Toplam diyet bozma sayisi
   totalEntries: number
-  points: number // Toplam puan (vazgecis +10, saglikli yeme +5)
+  points: number // Toplam puan (vazgecis +10, saglikli yeme +5, egzersiz +8 ve uzeri)
+  exerciseCount: number // Toplam egzersiz kaydi
+  exerciseMinutes: number // Toplam egzersiz dakikasi
 }
 
-// Tum kayitlardan istatistikleri hesaplar
-export function computeStats(entries: DietEntry[]): DietStats {
+// Tum kayitlardan istatistikleri hesaplar (egzersizler de puana eklenir)
+export function computeStats(entries: DietEntry[], exercises: Exercise[] = []): DietStats {
   const today = todayStr()
   let lastBreakDate: string | null = null
   let totalResisted = 0
@@ -63,6 +71,13 @@ export function computeStats(entries: DietEntry[]): DietStats {
     streak = Math.max(0, daysBetween(firstDate, today)) + 1
   }
 
+  // Egzersiz puanlari ve toplamlari
+  let exerciseMinutes = 0
+  for (const ex of exercises) {
+    points += exercisePoints(ex)
+    exerciseMinutes += ex.minutes ?? 0
+  }
+
   return {
     streak,
     lastBreakDate,
@@ -70,7 +85,9 @@ export function computeStats(entries: DietEntry[]): DietStats {
     totalAte,
     brokeCount,
     totalEntries: entries.length,
-    points
+    points,
+    exerciseCount: exercises.length,
+    exerciseMinutes
   }
 }
 
@@ -97,5 +114,29 @@ export const BADGES: Badge[] = [
 export function badgesForStreak(streak: number): { earned: Badge[]; locked: Badge[] } {
   const earned = BADGES.filter((b) => streak >= b.days)
   const locked = BADGES.filter((b) => streak < b.days)
+  return { earned, locked }
+}
+
+// Egzersiz rozeti: belli sayida egzersiz kaydina ulasinca acilir
+export interface ExerciseBadge {
+  count: number // Gereken egzersiz sayisi
+  emoji: string
+  name: string
+  desc: string
+}
+
+export const EXERCISE_BADGES: ExerciseBadge[] = [
+  { count: 1, emoji: '👟', name: 'İlk Adım', desc: 'İlk egzersizini kaydettin' },
+  { count: 5, emoji: '🚶', name: 'Hareketli', desc: '5 egzersiz tamamladın' },
+  { count: 10, emoji: '🏃', name: 'Koşar Adım', desc: '10 egzersiz oldu' },
+  { count: 25, emoji: '🚴', name: 'Azimli', desc: '25 egzersiz — süper!' },
+  { count: 50, emoji: '🏋️', name: 'Demir İrade', desc: '50 egzersiz devirdin' },
+  { count: 100, emoji: '🥇', name: 'Şampiyon', desc: '100 egzersiz — efsane!' }
+]
+
+// Toplam egzersiz sayisina gore acilan/acilmayan egzersiz rozetleri
+export function exerciseBadges(count: number): { earned: ExerciseBadge[]; locked: ExerciseBadge[] } {
+  const earned = EXERCISE_BADGES.filter((b) => count >= b.count)
+  const locked = EXERCISE_BADGES.filter((b) => count < b.count)
   return { earned, locked }
 }

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings } from '../db'
+import { dietDb, readDietSettings, listExercises } from '../db'
 import { analyzeFood } from '../ai'
 import { computeStats, todayStr } from '../streak'
 import { fileToResizedDataUrl } from '../../lib/image'
@@ -53,7 +53,8 @@ function healthTheme(a: FoodAnalysis): Theme {
 export default function Capture() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
-  const stats = computeStats(entries ?? [])
+  const exercises = useLiveQuery(() => listExercises(), [], [])
+  const stats = computeStats(entries ?? [], exercises ?? [])
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [phase, setPhase] = useState<Phase>('idle')
