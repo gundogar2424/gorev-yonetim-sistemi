@@ -50,14 +50,6 @@ export default function Reminders() {
     await persist({ reminders: reminders.map((r) => (r.id === id ? { ...r, lead } : r)) })
   }
 
-  async function toggleWater(enabled: boolean) {
-    if (enabled && native && !(await ensurePermission())) {
-      flash('Bildirim izni verilmedi.')
-      return
-    }
-    await persist({ waterReminderEnabled: enabled })
-  }
-
   async function toggleMotivation(enabled: boolean) {
     if (enabled && native && !(await ensurePermission())) {
       flash('Bildirim izni verilmedi.')
@@ -82,7 +74,7 @@ export default function Reminders() {
 
   return (
     <div>
-      <DietHeader title="Hatırlatıcılar" subtitle="Öğün, su ve motivasyon bildirimleri" />
+      <DietHeader title="Hatırlatıcılar" subtitle="Öğün ve motivasyon bildirimleri" />
 
       <div className="p-3 space-y-4">
         {msg && <p className="card p-3 bg-emerald-50 text-emerald-800 text-sm border-emerald-100">{msg}</p>}
@@ -130,18 +122,6 @@ export default function Reminders() {
               </div>
             </div>
           ))}
-        </section>
-
-        {/* Su hatirlaticisi */}
-        <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">💧 Su hatırlatıcısı</h3>
-          <div className="card p-3 flex items-center gap-3">
-            <div className="flex-1">
-              <p className="font-medium text-slate-700">Gün içinde su iç</p>
-              <p className="text-xs text-slate-500">09:00–21:00 arası her 2 saatte bir hatırlatır.</p>
-            </div>
-            <Switch on={!!settings?.waterReminderEnabled} onClick={() => toggleWater(!settings?.waterReminderEnabled)} />
-          </div>
         </section>
 
         {/* Motivasyon bildirimi */}

@@ -1,19 +1,16 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, listExercises, listWater, listMeasurements, listSteps, listSleep } from '../db'
+import { dietDb, listExercises, listMeasurements } from '../db'
 import { computeWeekly } from '../streak'
 
 export default function Weekly() {
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
   const exercises = useLiveQuery(() => listExercises(), [], [])
-  const waters = useLiveQuery(() => listWater(), [], [])
   const measurements = useLiveQuery(() => listMeasurements(), [], [])
-  const steps = useLiveQuery(() => listSteps(), [], [])
-  const sleeps = useLiveQuery(() => listSleep(), [], [])
   const [days, setDays] = useState(7)
 
-  const s = computeWeekly(entries ?? [], exercises ?? [], waters ?? [], measurements ?? [], steps ?? [], sleeps ?? [], days)
+  const s = computeWeekly(entries ?? [], exercises ?? [], [], measurements ?? [], [], [], days)
 
   return (
     <div>
@@ -48,9 +45,6 @@ export default function Weekly() {
           <Tile emoji="⚠️" value={s.broke} label="Diyet bozma" accent="text-rose-600" />
           <Tile emoji="🔥" value={s.kcalAte} label="Alınan kalori" accent="text-orange-600" />
           <Tile emoji="🏃" value={s.exerciseCount} label={`Egzersiz (${s.exerciseMinutes} dk)`} accent="text-indigo-600" />
-          <Tile emoji="💧" value={s.waterAvg} label="Günlük su (ort.)" accent="text-sky-600" />
-          <Tile emoji="👟" value={s.stepsAvg} label="Günlük adım (ort.)" accent="text-teal-600" />
-          <Tile emoji="😴" value={s.sleepAvg} label="Günlük uyku sa (ort.)" accent="text-violet-600" />
         </div>
 
         {/* Kilo degisimi */}

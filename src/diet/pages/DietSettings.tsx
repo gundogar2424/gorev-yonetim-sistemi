@@ -188,21 +188,9 @@ export default function DietSettings() {
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Hedeflerim</h2>
           <p className="text-xs text-slate-500">
-            Boş bırakırsan su için 8 bardak varsayılır; kalori ve haftalık egzersiz hedefi gizli kalır.
+            Boş bırakırsan kalori ve haftalık egzersiz hedefi gizli kalır.
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="field-label">💧 Su (bardak)</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                className="field-input"
-                placeholder="8"
-                value={settings?.waterGoal ?? ''}
-                onChange={(e) => saveDietSettings({ waterGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
-              />
-            </div>
             <div>
               <label className="field-label">🔥 Kalori</label>
               <input
@@ -226,34 +214,6 @@ export default function DietSettings() {
                 value={settings?.weeklyExerciseGoal ?? ''}
                 onChange={(e) =>
                   saveDietSettings({ weeklyExerciseGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })
-                }
-              />
-            </div>
-            <div>
-              <label className="field-label">👟 Adım/gün</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                className="field-input"
-                placeholder="örn 8000"
-                value={settings?.stepGoal ?? ''}
-                onChange={(e) => saveDietSettings({ stepGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
-              />
-            </div>
-            <div>
-              <label className="field-label">😴 Uyku/gün (sa)</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.5"
-                min={0}
-                max={24}
-                className="field-input"
-                placeholder="örn 8"
-                value={settings?.sleepGoal ?? ''}
-                onChange={(e) =>
-                  saveDietSettings({ sleepGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })
                 }
               />
             </div>

@@ -2,17 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import {
-  dietDb,
-  readDietSettings,
-  listExercises,
-  getWaterDay,
-  setWaterDay,
-  getStepsDay,
-  setStepsDay,
-  getSleepDay,
-  setSleepDay
-} from '../db'
+import { dietDb, readDietSettings, listExercises } from '../db'
 import { analyzeFood } from '../ai'
 import { computeStats, todayStr } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -157,15 +147,8 @@ export default function Capture() {
           “{quoteOfDay(todayStr())}”
         </div>
 
-        {/* Bugunun su ve kalori takibi */}
-        <div className="grid grid-cols-2 gap-3">
-          <WaterCard goal={settings?.waterGoal} />
-          <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
-        </div>
-
-        {/* Gunluk adim ve uyku takibi (elle) */}
-        <StepsCard goal={settings?.stepGoal} />
-        <SleepCard goal={settings?.sleepGoal} />
+        {/* Bugunku kalori takibi */}
+        <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
 
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
         <PendingCheckIn entries={entries ?? []} />
@@ -279,47 +262,6 @@ export default function Capture() {
   )
 }
 
-// Bugunku su tuketimi: bardak ekle/cikar, hedefe gore renkli ilerleme
-function WaterCard({ goal }: { goal?: number }) {
-  const today = todayStr()
-  const glasses = useLiveQuery(() => getWaterDay(today), [today], 0) ?? 0
-  const target = goal && goal > 0 ? goal : 8
-  const pct = Math.min(100, Math.round((glasses / target) * 100))
-  const reached = glasses >= target
-
-  return (
-    <div className="card p-3 bg-sky-50 border-sky-100 flex flex-col">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-sky-700 uppercase tracking-wide">💧 Su</span>
-        <span className="text-xs text-sky-600">/{target} bardak</span>
-      </div>
-      <p className="text-3xl font-extrabold text-sky-700 mt-1">
-        {glasses}
-        {reached && <span className="text-base ml-1">🎉</span>}
-      </p>
-      <div className="h-2 w-full bg-sky-100 rounded-full overflow-hidden mt-1">
-        <div className="h-full bg-sky-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="flex gap-2 mt-2">
-        <button
-          onClick={() => setWaterDay(today, glasses - 1)}
-          className="flex-1 bg-white text-sky-700 font-bold rounded-lg py-1.5 active:scale-95 transition border border-sky-200"
-          aria-label="Bir bardak azalt"
-        >
-          −
-        </button>
-        <button
-          onClick={() => setWaterDay(today, glasses + 1)}
-          className="flex-1 bg-sky-500 text-white font-bold rounded-lg py-1.5 active:scale-95 transition"
-          aria-label="Bir bardak ekle"
-        >
-          + Bardak
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // Bugun YENEN ogunlerin toplam tahmini kalorisi; hedef girildiyse ona gore renk
 function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number }) {
   const today = todayStr()
@@ -351,137 +293,6 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
         <p className="text-xs text-orange-600/80 mt-auto pt-2">
           Bugün alınan kalori. Hedef için Ayarlar.
         </p>
-      )}
-    </div>
-  )
-}
-
-// Gunluk adim takibi: Samsung Health/Google Fit'teki adimi elle gir, hedefe gore ilerleme
-function StepsCard({ goal }: { goal?: number }) {
-  const today = todayStr()
-  const steps = useLiveQuery(() => getStepsDay(today), [today], 0) ?? 0
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
-  const target = goal && goal > 0 ? goal : 0
-  const pct = target ? Math.min(100, Math.round((steps / target) * 100)) : 0
-  const reached = target > 0 && steps >= target
-
-  async function save() {
-    await setStepsDay(today, draft ? Number(draft) : 0)
-    setEditing(false)
-  }
-
-  return (
-    <div className="card p-3 bg-teal-50 border-teal-100">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">👟 Bugünkü adım</span>
-        {target > 0 && <span className="text-xs text-teal-600">/{target.toLocaleString('tr-TR')}</span>}
-      </div>
-      <div className="flex items-end justify-between mt-1">
-        <p className="text-3xl font-extrabold text-teal-700">
-          {steps.toLocaleString('tr-TR')}
-          {reached && <span className="text-base ml-1">🎉</span>}
-        </p>
-        {!editing && (
-          <button
-            onClick={() => {
-              setDraft(steps ? String(steps) : '')
-              setEditing(true)
-            }}
-            className="text-sm font-bold text-teal-700 bg-white border border-teal-200 rounded-lg px-3 py-1.5"
-          >
-            {steps ? 'Düzenle' : '+ Gir'}
-          </button>
-        )}
-      </div>
-      {target > 0 && (
-        <div className="h-2 w-full bg-teal-100 rounded-full overflow-hidden mt-1.5">
-          <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-        </div>
-      )}
-      {editing && (
-        <div className="flex gap-2 mt-2">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            autoFocus
-            className="field-input flex-1"
-            placeholder="örn. 8000"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && save()}
-          />
-          <button onClick={save} className="btn-primary px-4">
-            Kaydet
-          </button>
-        </div>
-      )}
-      <p className="text-[11px] text-teal-600/80 mt-1.5">Adımı Samsung Health / Google Fit'ten bakıp buraya yaz.</p>
-    </div>
-  )
-}
-
-// Gunluk uyku takibi: kac saat uyudugunu elle gir, hedefe gore ilerleme
-function SleepCard({ goal }: { goal?: number }) {
-  const today = todayStr()
-  const hours = useLiveQuery(() => getSleepDay(today), [today], 0) ?? 0
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
-  const target = goal && goal > 0 ? goal : 8
-  const pct = Math.min(100, Math.round((hours / target) * 100))
-  const reached = hours >= target
-
-  async function save() {
-    await setSleepDay(today, draft ? Number(draft.replace(',', '.')) : 0)
-    setEditing(false)
-  }
-
-  return (
-    <div className="card p-3 bg-violet-50 border-violet-100">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-violet-700 uppercase tracking-wide">😴 Bugünkü uyku</span>
-        <span className="text-xs text-violet-600">/{target} sa</span>
-      </div>
-      <div className="flex items-end justify-between mt-1">
-        <p className="text-3xl font-extrabold text-violet-700">
-          {hours ? `${hours} sa` : '—'}
-          {reached && hours > 0 && <span className="text-base ml-1">🌙</span>}
-        </p>
-        {!editing && (
-          <button
-            onClick={() => {
-              setDraft(hours ? String(hours) : '')
-              setEditing(true)
-            }}
-            className="text-sm font-bold text-violet-700 bg-white border border-violet-200 rounded-lg px-3 py-1.5"
-          >
-            {hours ? 'Düzenle' : '+ Gir'}
-          </button>
-        )}
-      </div>
-      <div className="h-2 w-full bg-violet-100 rounded-full overflow-hidden mt-1.5">
-        <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-      </div>
-      {editing && (
-        <div className="flex gap-2 mt-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.5"
-            min={0}
-            max={24}
-            autoFocus
-            className="field-input flex-1"
-            placeholder="örn. 7.5"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && save()}
-          />
-          <button onClick={save} className="btn-primary px-4">
-            Kaydet
-          </button>
-        </div>
       )}
     </div>
   )
