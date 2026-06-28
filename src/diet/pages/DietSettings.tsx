@@ -5,6 +5,7 @@ import { dietDb, readDietSettings, saveDietSettings } from '../db'
 import { badgesForStreak, computeStats } from '../streak'
 import { DEFAULT_MODEL, extractDietPlan } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
+import { downloadDietBackup, parseDietBackup, restoreDietBackup, clearOldPhotos } from '../lib/backup'
 
 export default function DietSettings() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -16,6 +17,7 @@ export default function DietSettings() {
   const [msg, setMsg] = useState('')
   const [planBusy, setPlanBusy] = useState(false)
   const planFileRef = useRef<HTMLInputElement>(null)
+  const restoreFileRef = useRef<HTMLInputElement>(null)
 
   function flash(m: string) {
     setMsg(m)
@@ -49,6 +51,42 @@ export default function DietSettings() {
     await dietDb.entries.clear()
     await dietDb.settings.clear()
     flash('Tüm veriler silindi.')
+  }
+
+  // Yedek indir
+  async function doBackup() {
+    try {
+      const b = await downloadDietBackup()
+      flash(`Yedek indirildi (${b.entries.length} öğün, ${b.measurements.length} ölçü, ${b.vitals.length} sağlık).`)
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Yedekleme başarısız.')
+    }
+  }
+
+  // Yedekten geri yukle
+  async function onRestoreFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (restoreFileRef.current) restoreFileRef.current.value = ''
+    if (!file) return
+    try {
+      const b = parseDietBackup(await file.text())
+      const mode = confirm(
+        `Yedekte ${b.entries.length} öğün var.\n\nTAMAM = mevcut verinin yerine koy (sil & geri yükle)\nİPTAL = mevcut verinin üstüne ekle (birleştir)`
+      )
+        ? 'replace'
+        : 'merge'
+      const res = await restoreDietBackup(b, mode)
+      flash(`Geri yüklendi: ${res.entries} öğün, ${res.measurements} ölçü, ${res.vitals} sağlık.`)
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Geri yükleme başarısız.')
+    }
+  }
+
+  // Eski fotograflari sil (yer ac)
+  async function doClearPhotos() {
+    if (!confirm('Son 7 gün hariç eski yemek fotoğrafları silinecek (kayıtlar kalır, yer açılır). Devam?')) return
+    const n = await clearOldPhotos(7)
+    flash(n > 0 ? `${n} eski fotoğraf silindi, yer açıldı.` : 'Silinecek eski fotoğraf yok.')
   }
 
   return (
@@ -188,6 +226,31 @@ export default function DietSettings() {
           ) : (
             <p className="text-[11px] text-slate-400">Liste boşsa uyum yüzdesi gösterilmez.</p>
           )}
+        </section>
+
+        {/* Yedekleme & yer acma */}
+        <section className="card p-4 space-y-3">
+          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme & Yer Açma</h2>
+          <p className="text-xs text-slate-500">
+            Tüm öğünlerin, ölçülerin ve sağlık verilerin tek dosyaya iner. Telefon değiştirince veya silmeden önce
+            yedek al; istediğinde geri yükle. (Güvenlik için API anahtarı yedeğe yazılmaz.)
+          </p>
+          <button onClick={doBackup} className="btn-primary w-full">
+            ⬇️ Yedeği İndir
+          </button>
+          <button onClick={() => restoreFileRef.current?.click()} className="btn-ghost w-full">
+            ⬆️ Yedekten Geri Yükle
+          </button>
+          <input
+            ref={restoreFileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={onRestoreFile}
+          />
+          <button onClick={doClearPhotos} className="btn-ghost w-full">
+            🧹 Eski Fotoğrafları Sil (yer aç)
+          </button>
         </section>
 
         {/* Tehlikeli bolge */}

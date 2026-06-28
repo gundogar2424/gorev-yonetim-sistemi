@@ -32,6 +32,37 @@ export interface DietEntry extends FoodAnalysis {
   dateStr: string // Yerel tarih (YYYY-MM-DD)
 }
 
+// Vucut olcusu kaydi (belli bir tarihte). Tum olculer cm, kilo kg; hepsi istege bagli.
+export interface Measurement {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  createdAt: number
+  weight?: number // Kilo (kg)
+  arm?: number // Kol (cm)
+  chest?: number // Gogus (cm)
+  waist?: number // Bel (cm)
+  fold?: number // Bel kivrimi (cm)
+  navel?: number // Gobek deligi hizasi (cm)
+  hip?: number // Kalca (cm)
+  leg?: number // Bacak (cm)
+}
+
+// Seker / tansiyon olcumu (saat bazli)
+export interface Vital {
+  id?: number
+  kind: 'seker' | 'tansiyon'
+  createdAt: number
+  dateStr: string // YYYY-MM-DD
+  time: string // SS:DD
+  // Seker
+  sugar?: number // mg/dL
+  sugarContext?: string // ac / tok
+  // Tansiyon
+  systolic?: number // buyuk tansiyon
+  diastolic?: number // kucuk tansiyon
+  pulse?: number // nabiz
+}
+
 // Uygulama ayarlari (API anahtari ve kullanici baglami)
 export interface DietSettings {
   id?: number
