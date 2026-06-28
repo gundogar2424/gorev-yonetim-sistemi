@@ -25,6 +25,7 @@ export interface DietStats {
   totalAte: number // Toplam kac kez yenildi
   brokeCount: number // Toplam diyet bozma sayisi
   totalEntries: number
+  points: number // Toplam puan (vazgecis +10, saglikli yeme +5)
 }
 
 // Tum kayitlardan istatistikleri hesaplar
@@ -36,10 +37,17 @@ export function computeStats(entries: DietEntry[]): DietStats {
   let brokeCount = 0
   let firstDate: string | null = null
 
+  let points = 0
   for (const e of entries) {
     if (!firstDate || e.dateStr < firstDate) firstDate = e.dateStr
-    if (e.decision === 'resisted') totalResisted++
-    if (e.decision === 'ate') totalAte++
+    if (e.decision === 'resisted') {
+      totalResisted++
+      points += 10 // vazgecmek en degerli
+    }
+    if (e.decision === 'ate') {
+      totalAte++
+      if (e.healthy) points += 5 // saglikli yemek de iyidir
+    }
     if (isBreak(e)) {
       brokeCount++
       if (!lastBreakDate || e.dateStr > lastBreakDate) lastBreakDate = e.dateStr
@@ -61,7 +69,8 @@ export function computeStats(entries: DietEntry[]): DietStats {
     totalResisted,
     totalAte,
     brokeCount,
-    totalEntries: entries.length
+    totalEntries: entries.length,
+    points
   }
 }
 

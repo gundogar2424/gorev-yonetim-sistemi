@@ -2,6 +2,9 @@ import { NavLink, Route, Routes } from 'react-router-dom'
 import Capture from './pages/Capture'
 import History from './pages/History'
 import Track from './pages/Track'
+import More from './pages/More'
+import Labs from './pages/Labs'
+import Shopping from './pages/Shopping'
 import DietSettings from './pages/DietSettings'
 
 // Diyet Kocu'nun kendi alt gezinme cubugu (CRM'den bagimsiz)
@@ -9,6 +12,7 @@ const tabs = [
   { to: '/', label: 'Çek', icon: '📸', end: true },
   { to: '/takip', label: 'Takip', icon: '📈', end: false },
   { to: '/gecmis', label: 'Geçmiş', icon: '📅', end: false },
+  { to: '/daha', label: 'Daha', icon: '➕', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: '⚙️', end: false }
 ]
 
@@ -20,12 +24,15 @@ export default function DietApp() {
           <Route path="/" element={<Capture />} />
           <Route path="/takip" element={<Track />} />
           <Route path="/gecmis" element={<History />} />
+          <Route path="/daha" element={<More />} />
+          <Route path="/tahliller" element={<Labs />} />
+          <Route path="/alisveris" element={<Shopping />} />
           <Route path="/ayarlar" element={<DietSettings />} />
         </Routes>
       </main>
 
       {/* Alt gezinme cubugu (mobil icin sabit) */}
-      <nav className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-4 z-20">
+      <nav className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-5 z-20">
         {tabs.map((t) => (
           <NavLink
             key={t.to}

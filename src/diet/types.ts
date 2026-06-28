@@ -63,6 +63,24 @@ export interface Vital {
   pulse?: number // nabiz
 }
 
+// Tahlil/lab sonucu: foto veya PDF'ten metne cevrilip hafizada tutulur
+export interface Lab {
+  id?: number
+  createdAt: number
+  dateStr: string // Tahlil tarihi (YYYY-MM-DD)
+  title: string // Kisa baslik (orn. "Kan tahlili")
+  text: string // Yapay zekanin cikardigi duz metin
+  analysis?: string // Yapay zekanin yorumu/karsilastirmasi (istege bagli)
+}
+
+// Alisveris listesi ogesi
+export interface ShoppingItem {
+  id?: number
+  createdAt: number
+  text: string
+  done: boolean
+}
+
 // Uygulama ayarlari (API anahtari ve kullanici baglami)
 export interface DietSettings {
   id?: number

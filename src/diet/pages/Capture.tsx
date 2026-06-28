@@ -6,7 +6,7 @@ import { dietDb, readDietSettings } from '../db'
 import { analyzeFood } from '../ai'
 import { computeStats, todayStr } from '../streak'
 import { fileToResizedDataUrl } from '../../lib/image'
-import type { Decision, FoodAnalysis } from '../types'
+import type { Decision, DietEntry, FoodAnalysis } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
@@ -121,16 +121,27 @@ export default function Capture() {
       <div className="p-3 space-y-4">
         {/* Seri kartim */}
         <div className="card p-4 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-0">
-          <p className="text-emerald-50 text-xs uppercase tracking-wide">Diyet serin</p>
-          <p className="text-4xl font-extrabold mt-1">
-            {stats.streak} <span className="text-lg font-semibold">gün</span>
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-emerald-50 text-xs uppercase tracking-wide">Diyet serin</p>
+              <p className="text-4xl font-extrabold mt-1">
+                {stats.streak} <span className="text-lg font-semibold">gün</span>
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-emerald-50 text-xs uppercase tracking-wide">Puan</p>
+              <p className="text-2xl font-extrabold mt-1">⭐ {stats.points}</p>
+            </div>
+          </div>
           <p className="text-emerald-50 text-sm mt-1">
             {stats.streak === 0
               ? 'Bugün temiz bir başlangıç yap! 💪'
               : `${stats.streak} gündür diyetini bozmadın. Devam! 🔥`}
           </p>
         </div>
+
+        {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
+        <PendingCheckIn entries={entries ?? []} />
 
         {!hasKey && (
           <div className="card p-4 bg-amber-50 border-amber-200 text-amber-800 text-sm">
@@ -199,6 +210,9 @@ export default function Capture() {
                 😋 Yine de yedim
               </button>
             </div>
+            <button onClick={() => decide('none')} className="btn-ghost w-full py-2.5">
+              ⏳ Sonra karar ver (akşam sor)
+            </button>
             <button onClick={reset} className="w-full text-center text-sm text-slate-400 py-1">
               Vazgeç, baştan
             </button>
@@ -208,14 +222,22 @@ export default function Capture() {
         {/* Kaydedildi */}
         {phase === 'saved' && (
           <div className="card p-6 text-center space-y-4">
-            <div className="text-6xl">{savedDecision === 'resisted' ? '🎉' : '🤝'}</div>
+            <div className="text-6xl">
+              {savedDecision === 'resisted' ? '🎉' : savedDecision === 'ate' ? '🤝' : '⏳'}
+            </div>
             <p className="text-lg font-bold text-slate-800">
-              {savedDecision === 'resisted' ? 'Aferin sana! Vazgeçtin.' : 'Kaydedildi. Yarın yeni bir gün.'}
+              {savedDecision === 'resisted'
+                ? 'Aferin sana! Vazgeçtin.'
+                : savedDecision === 'ate'
+                  ? 'Kaydedildi. Yarın yeni bir gün.'
+                  : 'Kaydedildi, karar sende.'}
             </p>
             <p className="text-sm text-slate-600">
               {savedDecision === 'resisted'
-                ? `Diyet serin: ${stats.streak} gün. İraden için tebrikler! 🌟`
-                : 'Önemli olan pes etmemek. Bir sonrakinde sen kazanacaksın. 💪'}
+                ? `+10 puan! Diyet serin: ${stats.streak} gün. İraden için tebrikler! 🌟`
+                : savedDecision === 'ate'
+                  ? 'Önemli olan pes etmemek. Bir sonrakinde sen kazanacaksın. 💪'
+                  : 'Akşam uygulamayı açınca "yedin mi?" diye soracağım. 🌙'}
             </p>
             <button onClick={reset} className="btn-primary w-full">
               Yeni Fotoğraf
@@ -226,6 +248,41 @@ export default function Capture() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Aksam kontrolu: bugun "sonra karar ver" denmis ogunleri sorar
+function PendingCheckIn({ entries }: { entries: DietEntry[] }) {
+  const today = todayStr()
+  const pending = entries.filter((e) => e.decision === 'none' && e.dateStr === today)
+  if (pending.length === 0) return null
+
+  async function decide(id: number, decision: Decision) {
+    await dietDb.entries.update(id, { decision })
+  }
+
+  return (
+    <div className="card p-4 bg-amber-50 border-amber-200 space-y-2.5">
+      <p className="font-bold text-amber-800 text-sm">🌙 Akşam kontrolü — bunları yedin mi?</p>
+      {pending.map((e) => (
+        <div key={e.id} className="bg-white rounded-xl p-2 flex items-center gap-2">
+          {e.photo && <img src={e.photo} alt={e.foodName} className="w-11 h-11 rounded-lg object-cover flex-shrink-0" />}
+          <p className="text-sm font-semibold text-slate-700 flex-1 min-w-0 truncate">{e.foodName}</p>
+          <button
+            onClick={() => decide(e.id!, 'resisted')}
+            className="text-xs font-bold bg-emerald-600 text-white rounded-lg px-2.5 py-2"
+          >
+            Yemedim 💪
+          </button>
+          <button
+            onClick={() => decide(e.id!, 'ate')}
+            className="text-xs font-bold bg-slate-200 text-slate-700 rounded-lg px-2.5 py-2"
+          >
+            Yedim
+          </button>
+        </div>
+      ))}
     </div>
   )
 }

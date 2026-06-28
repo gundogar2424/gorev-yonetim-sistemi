@@ -66,6 +66,21 @@ function splitDataUrl(dataUrl: string): { mediaType: string; base64: string } | 
   return { mediaType: m[1], base64: m[2] }
 }
 
+// Goruntu VEYA PDF data URL'inden uygun mesaj icerik blogu olusturur
+function mediaBlock(dataUrl: string): Record<string, unknown> | null {
+  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+  if (!m) return null
+  const media = m[1]
+  const data = m[2]
+  if (media === 'application/pdf') {
+    return { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
+  }
+  if (media.startsWith('image/')) {
+    return { type: 'image', source: { type: 'base64', media_type: media, data } }
+  }
+  return null
+}
+
 // API hatalarini kullaniciya anlasilir Turkce mesaja cevirir.
 // SDK siniflarina (instanceof) bagli kalmadan durum kodu/ada gore calisir.
 function friendlyError(err: unknown): Error {
@@ -222,6 +237,84 @@ export async function extractDietPlan(opts: {
       .trim()
 
     if (!text) throw new Error('Listeden metin çıkarılamadı. Lütfen daha net bir fotoğraf deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// Tahlil/lab sonucunu (foto veya PDF) okuyup duz, duzenli metne cevirir
+export async function extractLabText(opts: {
+  apiKey: string
+  dataUrl: string
+  model?: string
+}): Promise<string> {
+  const { apiKey, dataUrl, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  const block = mediaBlock(dataUrl)
+  if (!block) throw new Error('Dosya okunamadı (yalnızca görsel veya PDF).')
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 2000,
+      system:
+        'Sen bir tıbbi tahlil okuyucususun. Verilen tahlil/lab sonucundaki TÜM test adlarını, değerlerini, birimlerini ve (varsa) referans aralıklarını düzenli, okunaklı bir metne dök. Tarih varsa en üste yaz. Yorum/teşhis EKLEME, sadece veriyi sadık şekilde metne çevir. Sonuç bulunamazsa "Okunabilir tahlil verisi bulunamadı." yaz.',
+      messages: [
+        {
+          role: 'user',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          content: [block as any, { type: 'text', text: 'Bu tahlili düzenli bir metne çevir.' }]
+        }
+      ]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi. Farklı bir dosya deneyin.')
+    const text = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!text) throw new Error('Tahlilden metin çıkarılamadı. Daha net bir görsel/PDF deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// Kayitli tahlilleri sade bir dille yorumlar/karsilastirir (tibbi teshis koymaz)
+export async function analyzeLabs(opts: {
+  apiKey: string
+  labsText: string
+  model?: string
+  userName?: string
+  goal?: string
+}): Promise<string> {
+  const { apiKey, labsText, model = DEFAULT_MODEL, userName, goal } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Diyet hedefi: ${goal}.`)
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 2000,
+      system: `Sen bir sağlık asistanısın. Kullanıcının geçmiş tahlil sonuçlarını sade, anlaşılır Türkçe ile yorumla: hangi değerler normal/yüksek/düşük görünüyor, zamanla nasıl değişmiş, diyet/beslenme açısından nelere dikkat edebilir. ÇOK ÖNEMLİ: Bu tıbbi teşhis veya tedavi değildir; kesin değerlendirme için doktora danışması gerektiğini mutlaka belirt. ${ctx.join(' ')}`,
+      messages: [
+        {
+          role: 'user',
+          content: `İşte tahlillerim (tarih sırasıyla). Bunları yorumla ve diyetim için önerilerde bulun:\n\n${labsText}`
+        }
+      ]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!text) throw new Error('Yorum üretilemedi. Lütfen tekrar deneyin.')
     return text
   } catch (err) {
     throw friendlyError(err)
