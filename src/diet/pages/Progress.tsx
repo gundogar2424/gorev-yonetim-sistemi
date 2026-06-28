@@ -57,7 +57,7 @@ export default function Progress() {
           <button onClick={() => fileRef.current?.click()} disabled={busy} className="btn-primary w-full">
             {busy ? 'Ekleniyor…' : '📷 Fotoğraf Çek / Ekle'}
           </button>
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
         </section>
 
         {/* Karsilastirma: ilk vs son */}

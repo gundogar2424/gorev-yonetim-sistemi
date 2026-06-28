@@ -234,16 +234,9 @@ export default function DietSettings() {
             disabled={planBusy || !settings?.apiKey}
             className="btn-ghost w-full"
           >
-            {planBusy ? 'Liste okunuyor…' : '📷 Listenin Fotoğrafını Çek (otomatik okusun)'}
+            {planBusy ? 'Liste okunuyor…' : '📷 Liste Fotoğrafı (çek veya galeriden seç)'}
           </button>
-          <input
-            ref={planFileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={onPlanPhoto}
-          />
+          <input ref={planFileRef} type="file" accept="image/*" className="hidden" onChange={onPlanPhoto} />
 
           <div>
             <label className="field-label">Liste (elle düzenleyebilirsin)</label>

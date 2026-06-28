@@ -180,16 +180,9 @@ export default function Capture() {
               yardım etsin.
             </p>
             <button onClick={() => fileRef.current?.click()} disabled={!hasKey} className="btn-primary w-full">
-              📷 Yemeğin Fotoğrafını Çek
+              📷 Fotoğraf Çek / Galeriden Seç
             </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={onPick}
-            />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
           </div>
         )}
 

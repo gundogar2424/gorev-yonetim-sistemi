@@ -78,9 +78,9 @@ export default function Suggest() {
               <span className="font-semibold">ve makro</span> (protein/karbonhidrat/yağ) ile.
             </p>
             <button onClick={() => fileRef.current?.click()} disabled={!hasKey} className="btn-primary w-full">
-              📷 Ürünlerin Fotoğrafını Çek
+              📷 Ürün Fotoğrafı (çek veya galeriden seç)
             </button>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
             {!settings?.dietPlan?.trim() && (
               <p className="text-[11px] text-slate-400">
                 İpucu: Ayarlar'a diyet listeni eklersen öneriler listene göre kişiselleşir.
