@@ -4,6 +4,7 @@ import DietHeader from '../DietHeader'
 const links = [
   { to: '/takip?tab=saglik', icon: '🩺', title: 'Şeker & Tansiyon', desc: 'Kan şekeri ve tansiyon kaydı + grafikler' },
   { to: '/oneri', icon: '🍳', title: 'Ne Yesem?', desc: 'Elindeki ürünleri çek, gramajlı öğün + makro önersin' },
+  { to: '/barkod', icon: '🏷️', title: 'Barkod Okut', desc: 'Paketli ürünü okut, "şu kadar gram yedim" de (token gerekmez)' },
   { to: '/fotograf', icon: '📸', title: 'Önce - Sonra', desc: 'İlerleme fotoğrafları, yan yana karşılaştırma' },
   { to: '/ozet', icon: '📊', title: 'Özet Rapor', desc: 'Son 7/14/30 günün genel durumu' },
   { to: '/egzersiz', icon: '🏃', title: 'Egzersiz', desc: 'Yaptığın egzersizi yaz, puan ve rozet kazan' },
