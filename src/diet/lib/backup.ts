@@ -31,12 +31,9 @@ export async function buildBackupData(): Promise<DietBackup> {
     dietDb.progress.toArray(),
     dietDb.settings.toCollection().first()
   ])
-  // Guvenlik: API anahtarini yedek dosyasina YAZMA (dosya paylasilirsa sizmasin)
-  let settings: DietSettings | null = null
-  if (settingsRow) {
-    settings = { ...settingsRow }
-    delete settings.apiKey
-  }
+  // API anahtari da yedege dahil edilir ki yeniden kurulumda tekrar girmek
+  // gerekmesin. (Yedek dosyasi kisiseldir; baskasiyla paylasma.)
+  const settings: DietSettings | null = settingsRow ? { ...settingsRow } : null
   return {
     app: 'diet-coach',
     version: 4,

@@ -268,8 +268,9 @@ export default function DietSettings() {
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme & Yer Açma</h2>
           <p className="text-xs text-slate-500">
-            Tüm öğünlerin, ölçülerin ve sağlık verilerin tek dosyaya iner. Telefon değiştirince veya silmeden önce
-            yedek al; istediğinde geri yükle. (Güvenlik için API anahtarı yedeğe yazılmaz.)
+            Tüm öğünlerin, ölçülerin, sağlık verilerin ve API anahtarın tek dosyaya iner. Uygulamayı silmeden önce
+            yedek al; yeniden kurunca geri yükle, anahtarı tekrar girmen gerekmez. (Yedek dosyası kişiseldir,
+            başkasıyla paylaşma.)
           </p>
           <button onClick={doBackup} className="btn-primary w-full">
             ⬇️ Yedeği İndir
@@ -298,7 +299,7 @@ export default function DietSettings() {
         </section>
 
         <p className="text-center text-xs text-slate-400 pt-1">
-          Diyet Koçu · Verilerin yalnızca bu cihazda saklanır.
+          Diyet Koçu · Sürüm {__APP_BUILD__} · Verilerin yalnızca bu cihazda saklanır.
         </p>
       </div>
     </div>

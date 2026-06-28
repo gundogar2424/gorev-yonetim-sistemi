@@ -31,6 +31,8 @@ jobs:
 
       - name: Web derlemesi
         run: npm run build
+        env:
+          APP_BUILD: ${{ github.run_number }}
 
       - name: Diyet uygulamasını APK girişi yap
         run: cp dist/diyetkocu.html dist/index.html
@@ -49,6 +51,14 @@ jobs:
 
       - name: Web varlıklarını senkronla
         run: npx cap sync android
+
+      - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
+        run: |
+          cd android/app
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" build.gradle
+          sed -i -E "s/versionName \"[^\"]+\"/versionName \"1.0.${{ github.run_number }}\"/" build.gradle
+          echo "versionCode -> ${{ github.run_number }}"
+          grep -E "versionCode|versionName" build.gradle
 
       - name: Sabit debug imza anahtarı (güncellemeler üstüne kurulabilsin)
         run: |

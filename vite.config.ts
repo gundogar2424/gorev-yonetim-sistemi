@@ -10,6 +10,11 @@ import react from '@vitejs/plugin-react'
 // Cihazlarda kalmis eski servis-iscileri, HTML'lerdeki temizleyici betikle silinir.
 export default defineConfig({
   base: './',
+  // Uygulama sürüm/derleme etiketi (Ayarlar'da gösterilir; hangi sürümde
+  // olunduğu net görünsün diye). CI'da APP_BUILD ortam değişkeniyle gelir.
+  define: {
+    __APP_BUILD__: JSON.stringify(process.env.APP_BUILD || 'dev')
+  },
   build: {
     rollupOptions: {
       // Iki AYRI uygulama, iki ayri giris sayfasi:
