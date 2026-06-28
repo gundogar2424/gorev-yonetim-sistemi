@@ -1,5 +1,5 @@
 // Diyet serisi (streak), istatistikler ve rozet hesaplamalari.
-import type { DietEntry, Exercise } from './types'
+import type { DietEntry, Exercise, Water, Measurement } from './types'
 
 // Bir egzersiz kaydinin kazandirdigi puan: 8 taban + her 15 dk icin +2 (en cok +12)
 export function exercisePoints(ex: Exercise): number {
@@ -88,6 +88,87 @@ export function computeStats(entries: DietEntry[], exercises: Exercise[] = []): 
     points,
     exerciseCount: exercises.length,
     exerciseMinutes
+  }
+}
+
+// Son N gunun (bugun dahil) ozet istatistikleri — haftalik rapor icin.
+export interface WeeklySummary {
+  days: number
+  resisted: number
+  ate: number
+  broke: number
+  points: number // Bu donemde kazanilan puan (yemek + egzersiz)
+  exerciseCount: number
+  exerciseMinutes: number
+  waterTotal: number // Toplam bardak
+  waterAvg: number // Gunluk ortalama bardak
+  kcalAte: number // Yenen ogunlerin toplam tahmini kalorisi
+  weightChange: number | null // Donem ici kilo degisimi (kg), yoksa null
+}
+
+export function computeWeekly(
+  entries: DietEntry[],
+  exercises: Exercise[],
+  waters: Water[],
+  measurements: Measurement[] = [],
+  days = 7
+): WeeklySummary {
+  // Donemin baslangic tarihi (bugun dahil son `days` gun)
+  const start = todayStr(new Date(Date.now() - (days - 1) * 86_400_000))
+  const inRange = (d: string) => d >= start
+
+  let resisted = 0
+  let ate = 0
+  let broke = 0
+  let points = 0
+  let kcalAte = 0
+  for (const e of entries) {
+    if (!inRange(e.dateStr)) continue
+    if (e.decision === 'resisted') {
+      resisted++
+      points += 10
+    }
+    if (e.decision === 'ate') {
+      ate++
+      kcalAte += e.estimatedCalories || 0
+      if (e.healthy) points += 5
+    }
+    if (isBreak(e)) broke++
+  }
+
+  let exerciseCount = 0
+  let exerciseMinutes = 0
+  for (const ex of exercises) {
+    if (!inRange(ex.dateStr)) continue
+    exerciseCount++
+    exerciseMinutes += ex.minutes ?? 0
+    points += exercisePoints(ex)
+  }
+
+  let waterTotal = 0
+  for (const w of waters) {
+    if (inRange(w.dateStr)) waterTotal += w.glasses
+  }
+
+  // Donem ici kilo degisimi: aralikta tartilan ilk ve son kilo arasindaki fark
+  const weights = measurements
+    .filter((m) => inRange(m.dateStr) && m.weight != null)
+    .sort((a, b) => a.createdAt - b.createdAt)
+  const weightChange =
+    weights.length >= 2 ? Math.round((weights[weights.length - 1].weight! - weights[0].weight!) * 10) / 10 : null
+
+  return {
+    days,
+    resisted,
+    ate,
+    broke,
+    points,
+    exerciseCount,
+    exerciseMinutes,
+    waterTotal,
+    waterAvg: Math.round((waterTotal / days) * 10) / 10,
+    kcalAte,
+    weightChange
   }
 }
 

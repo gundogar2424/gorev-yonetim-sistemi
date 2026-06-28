@@ -1,7 +1,7 @@
 // Diyet Kocu icin AYRI bir Dexie (IndexedDB) veritabani.
 // CRM veritabanina hic dokunmaz; semasi ve surumu bagimsizdir.
 import Dexie, { type Table } from 'dexie'
-import type { DietEntry, DietSettings, Measurement, Vital, Lab, ShoppingItem, Exercise } from './types'
+import type { DietEntry, DietSettings, Measurement, Vital, Lab, ShoppingItem, Exercise, Water } from './types'
 
 export class DietCoachDB extends Dexie {
   entries!: Table<DietEntry, number>
@@ -11,6 +11,7 @@ export class DietCoachDB extends Dexie {
   labs!: Table<Lab, number>
   shopping!: Table<ShoppingItem, number>
   exercises!: Table<Exercise, number>
+  water!: Table<Water, number>
 
   constructor() {
     super('diet-coach')
@@ -44,6 +45,17 @@ export class DietCoachDB extends Dexie {
       labs: '++id, dateStr, createdAt',
       shopping: '++id, createdAt, done',
       exercises: '++id, dateStr, createdAt'
+    })
+    // Surum 5: gunluk su takibi
+    this.version(5).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr'
     })
   }
 }
@@ -100,6 +112,27 @@ export async function addExercise(text: string, minutes?: number) {
 }
 export async function deleteExercise(id: number) {
   await dietDb.exercises.delete(id)
+}
+
+// ---- Gunluk su takibi ----
+// Bir gunun bardak sayisini OKU (SALT OKUNUR; useLiveQuery icinde guvenli)
+export async function getWaterDay(dateStr: string): Promise<number> {
+  const row = await dietDb.water.where('dateStr').equals(dateStr).first()
+  return row?.glasses ?? 0
+}
+export function listWater(): Promise<Water[]> {
+  return dietDb.water.orderBy('dateStr').toArray()
+}
+// Bir gunun bardak sayisini ayarla (yazma baglami; 0'a duserse kaydi siler)
+export async function setWaterDay(dateStr: string, glasses: number) {
+  const g = Math.max(0, Math.round(glasses))
+  const row = await dietDb.water.where('dateStr').equals(dateStr).first()
+  if (row?.id != null) {
+    if (g === 0) await dietDb.water.delete(row.id)
+    else await dietDb.water.update(row.id, { glasses: g })
+  } else if (g > 0) {
+    await dietDb.water.add({ dateStr, glasses: g, createdAt: Date.now() })
+  }
 }
 
 // ---- Alisveris listesi ----

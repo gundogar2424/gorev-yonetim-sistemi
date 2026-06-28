@@ -10,10 +10,12 @@ const TR_DECISION: Record<string, string> = {
 
 // Belirli bir gunun (YYYY-MM-DD) raporunu duz metin olarak uretir
 export async function buildDailyReport(dateStr: string, userName?: string): Promise<string> {
-  const [entries, measurements, vitals] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
-    dietDb.vitals.where('dateStr').equals(dateStr).toArray()
+    dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
+    dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
+    dietDb.water.where('dateStr').equals(dateStr).first()
   ])
 
   const lines: string[] = []
@@ -53,6 +55,21 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
       if (m.leg != null) parts.push(`Bacak ${m.leg}cm`)
       lines.push('  • ' + parts.join(', '))
     }
+    lines.push('')
+  }
+
+  // Egzersiz
+  if (exercises.length) {
+    lines.push('🏃 EGZERSİZ')
+    for (const ex of exercises.sort((a, b) => a.createdAt - b.createdAt)) {
+      lines.push(`  • ${ex.text}${ex.minutes ? ` (${ex.minutes} dk)` : ''}`)
+    }
+    lines.push('')
+  }
+
+  // Su
+  if (waterRow?.glasses) {
+    lines.push(`💧 SU: ${waterRow.glasses} bardak (~${waterRow.glasses * 200} ml)`)
     lines.push('')
   }
 

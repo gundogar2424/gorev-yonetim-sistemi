@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises } from '../db'
+import { dietDb, readDietSettings, listExercises, getWaterDay, setWaterDay } from '../db'
 import { analyzeFood } from '../ai'
 import { computeStats, todayStr } from '../streak'
 import { fileToResizedDataUrl } from '../../lib/image'
@@ -141,6 +141,12 @@ export default function Capture() {
           </p>
         </div>
 
+        {/* Bugunun su ve kalori takibi */}
+        <div className="grid grid-cols-2 gap-3">
+          <WaterCard goal={settings?.waterGoal} />
+          <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
+        </div>
+
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
         <PendingCheckIn entries={entries ?? []} />
 
@@ -249,6 +255,83 @@ export default function Capture() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Bugunku su tuketimi: bardak ekle/cikar, hedefe gore renkli ilerleme
+function WaterCard({ goal }: { goal?: number }) {
+  const today = todayStr()
+  const glasses = useLiveQuery(() => getWaterDay(today), [today], 0) ?? 0
+  const target = goal && goal > 0 ? goal : 8
+  const pct = Math.min(100, Math.round((glasses / target) * 100))
+  const reached = glasses >= target
+
+  return (
+    <div className="card p-3 bg-sky-50 border-sky-100 flex flex-col">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-sky-700 uppercase tracking-wide">💧 Su</span>
+        <span className="text-xs text-sky-600">/{target} bardak</span>
+      </div>
+      <p className="text-3xl font-extrabold text-sky-700 mt-1">
+        {glasses}
+        {reached && <span className="text-base ml-1">🎉</span>}
+      </p>
+      <div className="h-2 w-full bg-sky-100 rounded-full overflow-hidden mt-1">
+        <div className="h-full bg-sky-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => setWaterDay(today, glasses - 1)}
+          className="flex-1 bg-white text-sky-700 font-bold rounded-lg py-1.5 active:scale-95 transition border border-sky-200"
+          aria-label="Bir bardak azalt"
+        >
+          −
+        </button>
+        <button
+          onClick={() => setWaterDay(today, glasses + 1)}
+          className="flex-1 bg-sky-500 text-white font-bold rounded-lg py-1.5 active:scale-95 transition"
+          aria-label="Bir bardak ekle"
+        >
+          + Bardak
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Bugun YENEN ogunlerin toplam tahmini kalorisi; hedef girildiyse ona gore renk
+function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number }) {
+  const today = todayStr()
+  const kcal = entries
+    .filter((e) => e.dateStr === today && e.decision === 'ate')
+    .reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+  const target = goal && goal > 0 ? goal : 0
+  const pct = target ? Math.min(100, Math.round((kcal / target) * 100)) : 0
+  const over = target > 0 && kcal > target
+  const barColor = !target ? 'bg-slate-300' : over ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+
+  return (
+    <div className="card p-3 bg-orange-50 border-orange-100 flex flex-col">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">🔥 Kalori</span>
+        {target > 0 && <span className="text-xs text-orange-600">/{target}</span>}
+      </div>
+      <p className={`text-3xl font-extrabold mt-1 ${over ? 'text-rose-600' : 'text-orange-700'}`}>{kcal}</p>
+      {target > 0 ? (
+        <>
+          <div className="h-2 w-full bg-orange-100 rounded-full overflow-hidden mt-1">
+            <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+          </div>
+          <p className={`text-xs font-semibold mt-2 ${over ? 'text-rose-600' : 'text-orange-700'}`}>
+            {over ? `Hedefi ${kcal - target} kcal aştın` : `${target - kcal} kcal kaldı`}
+          </p>
+        </>
+      ) : (
+        <p className="text-xs text-orange-600/80 mt-auto pt-2">
+          Bugün alınan kalori. Hedef için Ayarlar.
+        </p>
+      )}
     </div>
   )
 }

@@ -184,6 +184,54 @@ export default function DietSettings() {
           </div>
         </section>
 
+        {/* Hedefler */}
+        <section className="card p-4 space-y-3">
+          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Hedeflerim</h2>
+          <p className="text-xs text-slate-500">
+            Boş bırakırsan su için 8 bardak varsayılır; kalori ve haftalık egzersiz hedefi gizli kalır.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="field-label">💧 Su (bardak)</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="8"
+                value={settings?.waterGoal ?? ''}
+                onChange={(e) => saveDietSettings({ waterGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
+              />
+            </div>
+            <div>
+              <label className="field-label">🔥 Kalori</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="örn 1800"
+                value={settings?.calorieGoal ?? ''}
+                onChange={(e) => saveDietSettings({ calorieGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
+              />
+            </div>
+            <div>
+              <label className="field-label">🏃 Egzersiz/hafta</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="örn 4"
+                value={settings?.weeklyExerciseGoal ?? ''}
+                onChange={(e) =>
+                  saveDietSettings({ weeklyExerciseGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })
+                }
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Diyet listesi */}
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Diyet Listem</h2>

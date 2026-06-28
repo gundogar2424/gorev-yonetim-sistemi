@@ -92,6 +92,14 @@ export interface Exercise {
   minutes?: number // Suresi (dk, istege bagli)
 }
 
+// Gunluk su tuketimi (bir tarih icin bardak sayisi)
+export interface Water {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  glasses: number // Icilen bardak sayisi (1 bardak ~ 200 ml)
+  createdAt: number
+}
+
 // Alisveris listesi ogesi
 export interface ShoppingItem {
   id?: number
@@ -109,4 +117,8 @@ export interface DietSettings {
   goal?: string // Diyet hedefi (yapay zekaya baglam olarak verilir)
   dietPlan?: string // Kullanicinin diyet listesi (ogunler) — uyum karsilastirmasi icin
   reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)
+  // Gunluk/haftalik hedefler (istege bagli; bos birakilirsa varsayilan kullanilir)
+  waterGoal?: number // Gunluk su hedefi (bardak)
+  calorieGoal?: number // Gunluk kalori hedefi (kcal)
+  weeklyExerciseGoal?: number // Haftalik egzersiz hedefi (adet)
 }

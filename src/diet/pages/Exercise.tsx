@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { listExercises, addExercise, deleteExercise } from '../db'
+import { listExercises, addExercise, deleteExercise, readDietSettings } from '../db'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
 import type { Exercise } from '../types'
 
 export default function ExercisePage() {
   const exercises = useLiveQuery(() => listExercises(), [], [])
+  const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const [text, setText] = useState('')
   const [minutes, setMinutes] = useState('')
   const [flash, setFlash] = useState('')
@@ -15,6 +16,12 @@ export default function ExercisePage() {
   const totalPoints = list.reduce((sum, e) => sum + exercisePoints(e), 0)
   const totalMinutes = list.reduce((sum, e) => sum + (e.minutes ?? 0), 0)
   const { earned, locked } = exerciseBadges(list.length)
+
+  // Haftalik hedef (son 7 gun, bugun dahil)
+  const weekStart = todayStr(new Date(Date.now() - 6 * 86_400_000))
+  const weekCount = list.filter((e) => e.dateStr >= weekStart).length
+  const weekGoal = settings?.weeklyExerciseGoal && settings.weeklyExerciseGoal > 0 ? settings.weeklyExerciseGoal : 0
+  const weekPct = weekGoal ? Math.min(100, Math.round((weekCount / weekGoal) * 100)) : 0
 
   async function save() {
     const t = text.trim()
@@ -53,6 +60,29 @@ export default function ExercisePage() {
             </div>
           </div>
         </div>
+
+        {/* Haftalik hedef (Ayarlar'dan girilirse gosterilir) */}
+        {weekGoal > 0 && (
+          <section className="card p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">🎯 Haftalık Hedef</h3>
+              <span className={`text-sm font-bold ${weekCount >= weekGoal ? 'text-emerald-600' : 'text-slate-600'}`}>
+                {weekCount}/{weekGoal}
+              </span>
+            </div>
+            <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${weekCount >= weekGoal ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                style={{ width: `${weekPct}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              {weekCount >= weekGoal
+                ? 'Bu haftanın hedefini tamamladın! 🎉'
+                : `Bu hafta hedefe ${weekGoal - weekCount} egzersiz kaldı.`}
+            </p>
+          </section>
+        )}
 
         {/* Yeni egzersiz ekle */}
         <section className="card p-4 space-y-3">
