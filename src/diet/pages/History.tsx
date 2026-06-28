@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
-import { computeStats, todayStr } from '../streak'
+import { computeStats, todayStr, dayAdherence } from '../streak'
 import { buildDailyReport, shareText, whatsappLink } from '../lib/report'
 import type { DietEntry } from '../types'
 
@@ -77,7 +77,10 @@ export default function History() {
 
         {groups.map(([date, items]) => (
           <section key={date} className="space-y-2">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">{formatDate(date)}</h3>
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">{formatDate(date)}</h3>
+              <DayScoreBadge entries={items} date={date} />
+            </div>
             {items.map((e) => {
               const d = DECISION_LABEL[e.decision] ?? DECISION_LABEL.none
               return (
@@ -116,6 +119,14 @@ export default function History() {
       </div>
     </div>
   )
+}
+
+// Bir gunun diyet basari yuzdesi rozeti (gun basligi yaninda)
+function DayScoreBadge({ entries, date }: { entries: DietEntry[]; date: string }) {
+  const pct = dayAdherence(entries, date)
+  if (pct == null) return null
+  const cls = pct >= 80 ? 'bg-emerald-100 text-emerald-800' : pct >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+  return <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cls}`}>Başarı %{pct}</span>
 }
 
 function Stat({ value, label, accent }: { value: number; label: string; accent: string }) {

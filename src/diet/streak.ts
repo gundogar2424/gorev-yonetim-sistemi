@@ -195,6 +195,29 @@ export function computeWeekly(
   }
 }
 
+// Bir yemek kaydinin "diyet basari" puani (0-100):
+// vazgecti=100, yedi=listeye uyum% (liste yoksa saglikliysa 85, degilse 25).
+// Karar verilmemis (none) kayitlar hesaba katilmaz (null).
+export function entryScore(e: DietEntry): number | null {
+  if (e.decision === 'resisted') return 100
+  if (e.decision === 'ate') {
+    if (e.compliancePercent >= 0) return e.compliancePercent
+    return e.healthy ? 85 : 25
+  }
+  return null
+}
+
+// Bir gunun toplam diyet basari yuzdesi (o gunku kararlarin ortalamasi).
+// O gune ait karar verilmis kayit yoksa null doner.
+export function dayAdherence(entries: DietEntry[], dateStr: string): number | null {
+  const scores = entries
+    .filter((e) => e.dateStr === dateStr)
+    .map(entryScore)
+    .filter((s): s is number => s !== null)
+  if (scores.length === 0) return null
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+}
+
 export interface Badge {
   days: number
   emoji: string

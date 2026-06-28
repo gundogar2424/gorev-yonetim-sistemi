@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
 import { analyzeFood } from '../ai'
-import { computeStats, todayStr } from '../streak'
+import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { fileToResizedDataUrl } from '../../lib/image'
 import type { Decision, DietEntry, FoodAnalysis } from '../types'
@@ -142,6 +142,9 @@ export default function Capture() {
           </p>
         </div>
 
+        {/* Bugunku diyet basari yuzdesi */}
+        <DailyScore entries={entries ?? []} />
+
         {/* Gunluk motivasyon sozu */}
         <div className="card p-3 bg-amber-50 border-amber-100 text-amber-900 text-sm font-medium text-center">
           “{quoteOfDay(todayStr())}”
@@ -258,6 +261,32 @@ export default function Capture() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Bugunku diyet basari yuzdesi: o gunku kararlarin ortalamasi (renkli, mesajli)
+function DailyScore({ entries }: { entries: DietEntry[] }) {
+  const pct = dayAdherence(entries, todayStr())
+  if (pct == null) return null // bugun karar verilmis kayit yoksa gosterme
+
+  const theme =
+    pct >= 80
+      ? { bar: 'bg-emerald-500', text: 'text-emerald-700', soft: 'bg-emerald-50 border-emerald-100', msg: 'Harika gidiyorsun! 🌟' }
+      : pct >= 50
+        ? { bar: 'bg-amber-500', text: 'text-amber-700', soft: 'bg-amber-50 border-amber-100', msg: 'Fena değil, biraz daha dikkat. 💪' }
+        : { bar: 'bg-rose-500', text: 'text-rose-700', soft: 'bg-rose-50 border-rose-100', msg: 'Bugün zor geçti, yarın telafi. 🌅' }
+
+  return (
+    <div className={`card p-4 border ${theme.soft}`}>
+      <div className="flex items-end justify-between">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Bugünkü diyet başarın</span>
+        <span className={`text-3xl font-extrabold ${theme.text}`}>%{pct}</span>
+      </div>
+      <div className="h-2.5 w-full bg-white rounded-full overflow-hidden mt-2 border border-slate-100">
+        <div className={`h-full ${theme.bar} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className={`text-sm font-semibold mt-2 ${theme.text}`}>{theme.msg}</p>
     </div>
   )
 }
