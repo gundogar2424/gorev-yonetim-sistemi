@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import DietHeader from '../DietHeader'
 
 const links = [
+  { to: '/takip?tab=saglik', icon: '🩺', title: 'Şeker & Tansiyon', desc: 'Kan şekeri ve tansiyon kaydı + grafikler' },
   { to: '/oneri', icon: '🍳', title: 'Ne Yesem?', desc: 'Elindeki ürünleri çek, gramajlı öğün + makro önersin' },
   { to: '/fotograf', icon: '📸', title: 'Önce - Sonra', desc: 'İlerleme fotoğrafları, yan yana karşılaştırma' },
   { to: '/ozet', icon: '📊', title: 'Özet Rapor', desc: 'Son 7/14/30 günün genel durumu' },

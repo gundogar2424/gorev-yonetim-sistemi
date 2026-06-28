@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import MiniChart from '../components/MiniChart'
@@ -47,7 +48,10 @@ function shortDate(dateStr: string): string {
 }
 
 export default function Track() {
-  const [tab, setTab] = useState<Tab>('olcu')
+  // URL'de ?tab=saglik varsa dogrudan Seker & Tansiyon sekmesiyle ac
+  const location = useLocation()
+  const initialTab: Tab = new URLSearchParams(location.search).get('tab') === 'saglik' ? 'saglik' : 'olcu'
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [range, setRange] = useState(30)
 
   return (
@@ -218,16 +222,30 @@ function VitalPanel({ range }: { range: number }) {
   const sysPoints = rows
     .filter((v) => v.kind === 'tansiyon' && typeof v.systolic === 'number')
     .map((v) => ({ label: shortDate(v.dateStr), value: v.systolic as number }))
+  const diaPoints = rows
+    .filter((v) => v.kind === 'tansiyon' && typeof v.diastolic === 'number')
+    .map((v) => ({ label: shortDate(v.dateStr), value: v.diastolic as number }))
+  const pulsePoints = rows
+    .filter((v) => v.kind === 'tansiyon' && typeof v.pulse === 'number')
+    .map((v) => ({ label: shortDate(v.dateStr), value: v.pulse as number }))
 
   return (
     <div className="space-y-4">
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-rose-500 uppercase tracking-wide">🩸 Şeker (mg/dL)</h3>
+        <h3 className="text-xs font-bold text-rose-500 uppercase tracking-wide">🩸 Kan Şekeri (mg/dL)</h3>
         <MiniChart points={sugarPoints} color="#ef4444" unit="mg/dL" />
       </section>
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-sky-600 uppercase tracking-wide">💓 Büyük Tansiyon</h3>
+        <h3 className="text-xs font-bold text-sky-600 uppercase tracking-wide">💓 Büyük Tansiyon (sistolik)</h3>
         <MiniChart points={sysPoints} color="#0ea5e9" unit="" />
+      </section>
+      <section className="card p-3 space-y-2">
+        <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wide">🫀 Küçük Tansiyon (diastolik)</h3>
+        <MiniChart points={diaPoints} color="#6366f1" unit="" />
+      </section>
+      <section className="card p-3 space-y-2">
+        <h3 className="text-xs font-bold text-rose-600 uppercase tracking-wide">❤️ Nabız</h3>
+        <MiniChart points={pulsePoints} color="#f43f5e" unit="" />
       </section>
 
       <VitalForm />
