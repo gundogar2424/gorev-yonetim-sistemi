@@ -1,7 +1,7 @@
 // Diyet Kocu verisinin yedeklenmesi / geri yuklenmesi ve yer acma islemleri.
 // Tum veri tek bir JSON dosyasina indirilir; istenince geri yuklenir.
 import { dietDb } from '../db'
-import type { DietEntry, Measurement, Vital, DietSettings, Exercise, Water, Steps } from '../types'
+import type { DietEntry, Measurement, Vital, DietSettings, Exercise, Water, Steps, Sleep, ProgressPhoto } from '../types'
 
 interface DietBackup {
   app: 'diet-coach'
@@ -13,18 +13,22 @@ interface DietBackup {
   exercises: Exercise[]
   water: Water[]
   steps: Steps[]
+  sleep: Sleep[]
+  progress: ProgressPhoto[]
   settings: DietSettings | null
 }
 
 // Tum diyet verisini topla
 async function collect(): Promise<DietBackup> {
-  const [entries, measurements, vitals, exercises, water, steps, settingsRow] = await Promise.all([
+  const [entries, measurements, vitals, exercises, water, steps, sleep, progress, settingsRow] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.toArray(),
     dietDb.vitals.toArray(),
     dietDb.exercises.toArray(),
     dietDb.water.toArray(),
     dietDb.steps.toArray(),
+    dietDb.sleep.toArray(),
+    dietDb.progress.toArray(),
     dietDb.settings.toCollection().first()
   ])
   // Guvenlik: API anahtarini yedek dosyasina YAZMA (dosya paylasilirsa sizmasin)
@@ -33,7 +37,20 @@ async function collect(): Promise<DietBackup> {
     settings = { ...settingsRow }
     delete settings.apiKey
   }
-  return { app: 'diet-coach', version: 3, exportedAt: Date.now(), entries, measurements, vitals, exercises, water, steps, settings }
+  return {
+    app: 'diet-coach',
+    version: 4,
+    exportedAt: Date.now(),
+    entries,
+    measurements,
+    vitals,
+    exercises,
+    water,
+    steps,
+    sleep,
+    progress,
+    settings
+  }
 }
 
 // Yedek dosyasini indir
@@ -70,6 +87,8 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
     await dietDb.exercises.clear()
     await dietDb.water.clear()
     await dietDb.steps.clear()
+    await dietDb.sleep.clear()
+    await dietDb.progress.clear()
   }
   // id catismasini onlemek icin id'leri dusurerek ekle
   const strip = <T extends { id?: number }>(arr: T[]) => arr.map(({ id: _id, ...rest }) => rest)
@@ -79,6 +98,8 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
   if (b.exercises?.length) await dietDb.exercises.bulkAdd(strip(b.exercises) as Exercise[])
   if (b.water?.length) await dietDb.water.bulkAdd(strip(b.water) as Water[])
   if (b.steps?.length) await dietDb.steps.bulkAdd(strip(b.steps) as Steps[])
+  if (b.sleep?.length) await dietDb.sleep.bulkAdd(strip(b.sleep) as Sleep[])
+  if (b.progress?.length) await dietDb.progress.bulkAdd(strip(b.progress) as ProgressPhoto[])
   // Ayarlar (apiKey haric) yedekte varsa, mevcut ayara isle
   if (b.settings) {
     const cur = await dietDb.settings.toCollection().first()
@@ -93,7 +114,9 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
     vitals: b.vitals?.length ?? 0,
     exercises: b.exercises?.length ?? 0,
     water: b.water?.length ?? 0,
-    steps: b.steps?.length ?? 0
+    steps: b.steps?.length ?? 0,
+    sleep: b.sleep?.length ?? 0,
+    progress: b.progress?.length ?? 0
   }
 }
 

@@ -3,6 +3,7 @@ import DietHeader from '../DietHeader'
 
 const links = [
   { to: '/oneri', icon: '🍳', title: 'Ne Yesem?', desc: 'Elindeki ürünleri çek, gramajlı öğün + makro önersin' },
+  { to: '/fotograf', icon: '📸', title: 'Önce - Sonra', desc: 'İlerleme fotoğrafları, yan yana karşılaştırma' },
   { to: '/ozet', icon: '📊', title: 'Özet Rapor', desc: 'Son 7/14/30 günün genel durumu' },
   { to: '/egzersiz', icon: '🏃', title: 'Egzersiz', desc: 'Yaptığın egzersizi yaz, puan ve rozet kazan' },
   { to: '/hatirlaticilar', icon: '🔔', title: 'Hatırlatıcılar', desc: 'Öğün saatlerinde bildirim (APK)' },

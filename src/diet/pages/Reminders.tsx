@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { readDietSettings, saveDietSettings } from '../db'
-import { defaultReminders, ensurePermission, scheduleReminders, isNative } from '../lib/notify'
-import type { Reminder } from '../types'
+import { defaultReminders, ensurePermission, applyNotifications, isNative } from '../lib/notify'
+import type { Reminder, DietSettings } from '../types'
 
 export default function Reminders() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -20,11 +20,14 @@ export default function Reminders() {
     setTimeout(() => setMsg(''), 3500)
   }
 
-  async function apply(next: Reminder[]) {
-    await saveDietSettings({ reminders: next })
+  // Ayara yamayi kaydet, sonra TUM bildirimleri (ogun+su+motivasyon) yeniden kur
+  async function persist(patch: Partial<DietSettings>) {
+    await saveDietSettings(patch)
     if (native) {
       await ensurePermission()
-      await scheduleReminders(next)
+      const merged: DietSettings = { ...(settings ?? {}), ...patch }
+      if (!merged.reminders?.length) merged.reminders = reminders
+      await applyNotifications(merged)
     }
   }
 
@@ -36,15 +39,35 @@ export default function Reminders() {
         return
       }
     }
-    await apply(reminders.map((r) => (r.id === id ? { ...r, enabled } : r)))
+    await persist({ reminders: reminders.map((r) => (r.id === id ? { ...r, enabled } : r)) })
   }
 
   async function setTime(id: string, time: string) {
-    await apply(reminders.map((r) => (r.id === id ? { ...r, time } : r)))
+    await persist({ reminders: reminders.map((r) => (r.id === id ? { ...r, time } : r)) })
   }
 
   async function setLead(id: string, lead: number) {
-    await apply(reminders.map((r) => (r.id === id ? { ...r, lead } : r)))
+    await persist({ reminders: reminders.map((r) => (r.id === id ? { ...r, lead } : r)) })
+  }
+
+  async function toggleWater(enabled: boolean) {
+    if (enabled && native && !(await ensurePermission())) {
+      flash('Bildirim izni verilmedi.')
+      return
+    }
+    await persist({ waterReminderEnabled: enabled })
+  }
+
+  async function toggleMotivation(enabled: boolean) {
+    if (enabled && native && !(await ensurePermission())) {
+      flash('Bildirim izni verilmedi.')
+      return
+    }
+    await persist({ motivationReminderEnabled: enabled })
+  }
+
+  async function setMotivationTime(time: string) {
+    await persist({ motivationReminderTime: time })
   }
 
   async function testNotify() {
@@ -53,13 +76,13 @@ export default function Reminders() {
       return
     }
     const ok = await ensurePermission()
-    flash(ok ? 'İzin verildi. Açık hatırlatıcılar kuruldu. ✅' : 'İzin verilmedi.')
-    await scheduleReminders(reminders)
+    flash(ok ? 'İzin verildi. Açık bildirimler kuruldu. ✅' : 'İzin verilmedi.')
+    await applyNotifications({ ...(settings ?? {}), reminders })
   }
 
   return (
     <div>
-      <DietHeader title="Hatırlatıcılar" subtitle="Öğün saatlerinde bildirim" />
+      <DietHeader title="Hatırlatıcılar" subtitle="Öğün, su ve motivasyon bildirimleri" />
 
       <div className="p-3 space-y-4">
         {msg && <p className="card p-3 bg-emerald-50 text-emerald-800 text-sm border-emerald-100">{msg}</p>}
@@ -74,7 +97,9 @@ export default function Reminders() {
           </div>
         )}
 
+        {/* Ogun hatirlaticilari */}
         <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🍽️ Öğün hatırlatıcıları</h3>
           {reminders.map((r) => (
             <div key={r.id} className="card p-3 space-y-2">
               <div className="flex items-center gap-3">
@@ -85,22 +110,8 @@ export default function Reminders() {
                   onChange={(e) => setTime(r.id, e.target.value)}
                 />
                 <span className="flex-1 font-medium text-slate-700">{r.label}</span>
-                {/* Ac/kapa anahtari */}
-                <button
-                  onClick={() => toggle(r.id, !r.enabled)}
-                  className={`w-12 h-7 rounded-full transition relative flex-shrink-0 ${
-                    r.enabled ? 'bg-emerald-500' : 'bg-slate-300'
-                  }`}
-                  aria-label={r.enabled ? 'Kapat' : 'Aç'}
-                >
-                  <span
-                    className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition ${
-                      r.enabled ? 'left-[22px]' : 'left-0.5'
-                    }`}
-                  />
-                </button>
+                <Switch on={r.enabled} onClick={() => toggle(r.id, !r.enabled)} />
               </div>
-              {/* Ogunden kac dakika once */}
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <span>⏰ Bildirim:</span>
                 <select
@@ -121,14 +132,67 @@ export default function Reminders() {
           ))}
         </section>
 
+        {/* Su hatirlaticisi */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">💧 Su hatırlatıcısı</h3>
+          <div className="card p-3 flex items-center gap-3">
+            <div className="flex-1">
+              <p className="font-medium text-slate-700">Gün içinde su iç</p>
+              <p className="text-xs text-slate-500">09:00–21:00 arası her 2 saatte bir hatırlatır.</p>
+            </div>
+            <Switch on={!!settings?.waterReminderEnabled} onClick={() => toggleWater(!settings?.waterReminderEnabled)} />
+          </div>
+        </section>
+
+        {/* Motivasyon bildirimi */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🌟 Motivasyon bildirimi</h3>
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">Günlük cesaret sözü</p>
+                <p className="text-xs text-slate-500">Her gün seni motive eden bir bildirim gönderir.</p>
+              </div>
+              <Switch
+                on={!!settings?.motivationReminderEnabled}
+                onClick={() => toggleMotivation(!settings?.motivationReminderEnabled)}
+              />
+            </div>
+            {settings?.motivationReminderEnabled && (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>🕘 Saat:</span>
+                <input
+                  type="time"
+                  className="field-input w-28"
+                  value={settings?.motivationReminderTime ?? '09:00'}
+                  onChange={(e) => setMotivationTime(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
         <button onClick={testNotify} className="btn-primary w-full">
-          {native ? '🔔 İzni Ver & Hatırlatıcıları Kur' : '🔔 Bildirim Durumunu Kontrol Et'}
+          {native ? '🔔 İzni Ver & Bildirimleri Kur' : '🔔 Bildirim Durumunu Kontrol Et'}
         </button>
 
-        <p className="text-center text-xs text-slate-400">
-          Saatleri istediğin gibi ayarla; açık olanlar her gün aynı saatte hatırlatır.
-        </p>
+        <p className="text-center text-xs text-slate-400">Açık olan tüm bildirimler her gün aynı saatte tekrarlanır.</p>
       </div>
     </div>
+  )
+}
+
+// Ac/kapa anahtari
+function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-12 h-7 rounded-full transition relative flex-shrink-0 ${on ? 'bg-emerald-500' : 'bg-slate-300'}`}
+      aria-label={on ? 'Kapat' : 'Aç'}
+    >
+      <span
+        className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition ${on ? 'left-[22px]' : 'left-0.5'}`}
+      />
+    </button>
   )
 }

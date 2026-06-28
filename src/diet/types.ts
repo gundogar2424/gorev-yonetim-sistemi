@@ -133,6 +133,23 @@ export interface Steps {
   createdAt: number
 }
 
+// Gunluk uyku suresi (elle girilir, saat cinsinden; orn. 7.5)
+export interface Sleep {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  hours: number // Uyku suresi (saat)
+  createdAt: number
+}
+
+// Ilerleme/onceki-sonraki fotografi (vucut takibi icin)
+export interface ProgressPhoto {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  photo: string // Kucultulmus base64 data URL
+  note?: string // Kisa not (orn. kilo)
+  createdAt: number
+}
+
 // Alisveris listesi ogesi
 export interface ShoppingItem {
   id?: number
@@ -155,4 +172,9 @@ export interface DietSettings {
   calorieGoal?: number // Gunluk kalori hedefi (kcal)
   weeklyExerciseGoal?: number // Haftalik egzersiz hedefi (adet)
   stepGoal?: number // Gunluk adim hedefi
+  sleepGoal?: number // Gunluk uyku hedefi (saat)
+  // Ek bildirimler (yalnizca APK)
+  waterReminderEnabled?: boolean // Gun icinde su icme hatirlatmasi
+  motivationReminderEnabled?: boolean // Gunluk motivasyon bildirimi
+  motivationReminderTime?: string // Motivasyon bildirimi saati (SS:DD)
 }

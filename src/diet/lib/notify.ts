@@ -2,7 +2,11 @@
 // web'de sessizce devre disidir (tarayici kapaliyken bildirim gonderemez).
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import type { Reminder } from '../types'
+import type { Reminder, DietSettings } from '../types'
+
+// Bildirim kimlik araliklari (catismayi onlemek icin sabit)
+const WATER_IDS_START = 201 // su hatirlaticilari 201..2xx
+const MOTIVATION_ID = 301 // gunluk motivasyon
 
 export function isNative(): boolean {
   return Capacitor.isNativePlatform()
@@ -50,19 +54,74 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   const active = reminders.filter((r) => r.enabled)
   if (active.length === 0) return
 
-  await LocalNotifications.schedule({
-    notifications: active.map((r) => {
-      const { hour, minute } = notifyHM(r.time, r.lead)
-      const body =
-        (r.lead || 0) > 0
-          ? `${r.label} (${r.time}) yaklaşıyor — ${r.lead} dk var. Yemeden önce fotoğrafını çek!`
-          : `${r.label} vakti! Yemeden önce fotoğrafını çekmeyi unutma.`
-      return {
-        id: r.notifId,
-        title: '🥗 Diyet Koçu',
-        body,
-        schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true }
-      }
+  await LocalNotifications.schedule({ notifications: active.map(mealNotification) })
+}
+
+// Tek bir ogun hatirlaticisini bildirim nesnesine cevirir
+function mealNotification(r: Reminder) {
+  const { hour, minute } = notifyHM(r.time, r.lead)
+  const body =
+    (r.lead || 0) > 0
+      ? `${r.label} (${r.time}) yaklaşıyor — ${r.lead} dk var. Yemeden önce fotoğrafını çek!`
+      : `${r.label} vakti! Yemeden önce fotoğrafını çekmeyi unutma.`
+  return {
+    id: r.notifId,
+    title: '🥗 Diyet Koçu',
+    body,
+    schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true }
+  }
+}
+
+// Su icme hatirlaticilari: gunduz 09:00-21:00 arasi her 2 saatte bir
+function waterNotifications() {
+  const list = []
+  let i = 0
+  for (let hour = 9; hour <= 21; hour += 2) {
+    list.push({
+      id: WATER_IDS_START + i++,
+      title: '💧 Su zamanı',
+      body: 'Bir bardak su iç ve uygulamaya işaretle. Su, tokluk ve metabolizma için şart!',
+      schedule: { on: { hour, minute: 0 }, repeats: true, allowWhileIdle: true }
     })
-  })
+  }
+  return list
+}
+
+// Gunluk motivasyon bildirimi (belirtilen saatte)
+function motivationNotification(time: string) {
+  const [h, m] = (time || '09:00').split(':').map(Number)
+  return {
+    id: MOTIVATION_ID,
+    title: '🌟 Diyet Koçu',
+    body: 'Bugün de sen kazan! Hedefine bir adım daha yaklaş. 💪',
+    schedule: { on: { hour: h || 9, minute: m || 0 }, repeats: true, allowWhileIdle: true }
+  }
+}
+
+// TUM bildirimleri ayarlardan kurar: once hepsini iptal eder, sonra
+// acik olan ogun + su + motivasyon bildirimlerini birlikte kurar.
+export async function applyNotifications(settings: DietSettings): Promise<void> {
+  if (!isNative()) return
+  try {
+    const pending = await LocalNotifications.getPending()
+    if (pending.notifications.length) {
+      await LocalNotifications.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) })
+    }
+  } catch {
+    // yok say
+  }
+
+  const reminders = settings.reminders?.length ? settings.reminders : defaultReminders()
+  const notifications: ReturnType<typeof mealNotification>[] = []
+
+  for (const r of reminders) {
+    if (r.enabled) notifications.push(mealNotification({ ...r, lead: r.lead ?? 0 }))
+  }
+  if (settings.waterReminderEnabled) notifications.push(...waterNotifications())
+  if (settings.motivationReminderEnabled) {
+    notifications.push(motivationNotification(settings.motivationReminderTime || '09:00'))
+  }
+
+  if (notifications.length === 0) return
+  await LocalNotifications.schedule({ notifications })
 }

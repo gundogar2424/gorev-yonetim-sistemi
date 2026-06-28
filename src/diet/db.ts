@@ -1,7 +1,19 @@
 // Diyet Kocu icin AYRI bir Dexie (IndexedDB) veritabani.
 // CRM veritabanina hic dokunmaz; semasi ve surumu bagimsizdir.
 import Dexie, { type Table } from 'dexie'
-import type { DietEntry, DietSettings, Measurement, Vital, Lab, ShoppingItem, Exercise, Water, Steps } from './types'
+import type {
+  DietEntry,
+  DietSettings,
+  Measurement,
+  Vital,
+  Lab,
+  ShoppingItem,
+  Exercise,
+  Water,
+  Steps,
+  Sleep,
+  ProgressPhoto
+} from './types'
 
 export class DietCoachDB extends Dexie {
   entries!: Table<DietEntry, number>
@@ -13,6 +25,8 @@ export class DietCoachDB extends Dexie {
   exercises!: Table<Exercise, number>
   water!: Table<Water, number>
   steps!: Table<Steps, number>
+  sleep!: Table<Sleep, number>
+  progress!: Table<ProgressPhoto, number>
 
   constructor() {
     super('diet-coach')
@@ -69,6 +83,20 @@ export class DietCoachDB extends Dexie {
       exercises: '++id, dateStr, createdAt',
       water: '++id, dateStr',
       steps: '++id, dateStr'
+    })
+    // Surum 7: uyku takibi + ilerleme fotograflari
+    this.version(7).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt'
     })
   }
 }
@@ -166,6 +194,41 @@ export async function setStepsDay(dateStr: string, count: number) {
   } else if (c > 0) {
     await dietDb.steps.add({ dateStr, count: c, createdAt: Date.now() })
   }
+}
+
+// ---- Gunluk uyku takibi (elle, saat) ----
+export async function getSleepDay(dateStr: string): Promise<number> {
+  const row = await dietDb.sleep.where('dateStr').equals(dateStr).first()
+  return row?.hours ?? 0
+}
+export function listSleep(): Promise<Sleep[]> {
+  return dietDb.sleep.orderBy('dateStr').toArray()
+}
+export async function setSleepDay(dateStr: string, hours: number) {
+  const h = Math.max(0, Math.min(24, Math.round(hours * 10) / 10))
+  const row = await dietDb.sleep.where('dateStr').equals(dateStr).first()
+  if (row?.id != null) {
+    if (h === 0) await dietDb.sleep.delete(row.id)
+    else await dietDb.sleep.update(row.id, { hours: h })
+  } else if (h > 0) {
+    await dietDb.sleep.add({ dateStr, hours: h, createdAt: Date.now() })
+  }
+}
+
+// ---- Ilerleme fotograflari (once-sonra) ----
+export function listProgress(): Promise<ProgressPhoto[]> {
+  return dietDb.progress.orderBy('createdAt').reverse().toArray()
+}
+export async function addProgress(photo: string, note?: string): Promise<number> {
+  return dietDb.progress.add({
+    photo,
+    note,
+    createdAt: Date.now(),
+    dateStr: new Date().toLocaleDateString('en-CA')
+  })
+}
+export async function deleteProgress(id: number) {
+  await dietDb.progress.delete(id)
 }
 
 // ---- Alisveris listesi ----

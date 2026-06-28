@@ -241,6 +241,22 @@ export default function DietSettings() {
                 onChange={(e) => saveDietSettings({ stepGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
               />
             </div>
+            <div>
+              <label className="field-label">😴 Uyku/gün (sa)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                min={0}
+                max={24}
+                className="field-input"
+                placeholder="örn 8"
+                value={settings?.sleepGoal ?? ''}
+                onChange={(e) =>
+                  saveDietSettings({ sleepGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })
+                }
+              />
+            </div>
           </div>
         </section>
 

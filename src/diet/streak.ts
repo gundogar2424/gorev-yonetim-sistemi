@@ -1,5 +1,5 @@
 // Diyet serisi (streak), istatistikler ve rozet hesaplamalari.
-import type { DietEntry, Exercise, Water, Measurement, Steps } from './types'
+import type { DietEntry, Exercise, Water, Measurement, Steps, Sleep } from './types'
 
 // Bir egzersiz kaydinin kazandirdigi puan: 8 taban + her 15 dk icin +2 (en cok +12)
 export function exercisePoints(ex: Exercise): number {
@@ -104,6 +104,7 @@ export interface WeeklySummary {
   waterAvg: number // Gunluk ortalama bardak
   stepsTotal: number // Toplam adim
   stepsAvg: number // Gunluk ortalama adim
+  sleepAvg: number // Gunluk ortalama uyku (saat), kayit olan gunlerin ortalamasi
   kcalAte: number // Yenen ogunlerin toplam tahmini kalorisi
   weightChange: number | null // Donem ici kilo degisimi (kg), yoksa null
 }
@@ -114,6 +115,7 @@ export function computeWeekly(
   waters: Water[],
   measurements: Measurement[] = [],
   steps: Steps[] = [],
+  sleeps: Sleep[] = [],
   days = 7
 ): WeeklySummary {
   // Donemin baslangic tarihi (bugun dahil son `days` gun)
@@ -158,6 +160,16 @@ export function computeWeekly(
     if (inRange(st.dateStr)) stepsTotal += st.count
   }
 
+  // Uyku: yalnizca kayit girilen gunlerin ortalamasi
+  let sleepSum = 0
+  let sleepDays = 0
+  for (const sl of sleeps) {
+    if (inRange(sl.dateStr) && sl.hours > 0) {
+      sleepSum += sl.hours
+      sleepDays++
+    }
+  }
+
   // Donem ici kilo degisimi: aralikta tartilan ilk ve son kilo arasindaki fark
   const weights = measurements
     .filter((m) => inRange(m.dateStr) && m.weight != null)
@@ -177,6 +189,7 @@ export function computeWeekly(
     waterAvg: Math.round((waterTotal / days) * 10) / 10,
     stepsTotal,
     stepsAvg: Math.round(stepsTotal / days),
+    sleepAvg: sleepDays ? Math.round((sleepSum / sleepDays) * 10) / 10 : 0,
     kcalAte,
     weightChange
   }
