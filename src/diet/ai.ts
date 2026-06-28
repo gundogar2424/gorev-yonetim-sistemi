@@ -29,7 +29,9 @@ const OUTPUT_SCHEMA = {
     healthierAlternative: { type: 'string' },
     verdict: { type: 'string' },
     compliancePercent: { type: 'integer' },
-    complianceNote: { type: 'string' }
+    complianceNote: { type: 'string' },
+    cravingPortion: { type: 'string' },
+    cravingNote: { type: 'string' }
   },
   required: [
     'foodFound',
@@ -42,7 +44,9 @@ const OUTPUT_SCHEMA = {
     'healthierAlternative',
     'verdict',
     'compliancePercent',
-    'complianceNote'
+    'complianceNote',
+    'cravingPortion',
+    'cravingNote'
   ]
 } as const
 
@@ -56,6 +60,11 @@ Görseldeki yemeği tanı ve şu kurallara göre değerlendir:
 DİYET LİSTESİ KARŞILAŞTIRMASI:
 - Eğer kullanıcı bir DİYET LİSTESİ verdiyse: çektiği yemeğin bu listeye ne kadar uyduğunu yüzde olarak değerlendir. compliancePercent = 0-100 arası bir tam sayı (100 = listeye birebir uygun bir öğün, 0 = listeye tamamen aykırı). complianceNote = neyin uyduğunu/uymadığını TEK kısa cümleyle açıkla (örn. "Listende öğle için ızgara tavuk+salata var, bu uygun" veya "Listende tatlı yok, bu öğün listene aykırı"). Uyum düşükse motivations sözlerini de buna göre kur.
 - Eğer diyet listesi VERİLMEDİYSE: compliancePercent = -1 ve complianceNote = "" (boş) bırak.
+
+KONTROLLÜ KAÇAMAK (çok önemli):
+- Yemek sağlıksız/riskli ise, kullanıcıyı tamamen yasaklayıp pişman etmek yerine GERÇEKÇİ ol: bazen canı çok çeker. cravingPortion alanına, diyeti tamamen bozmayacak MAKUL ve ÖLÇÜLEBİLİR bir miktar öner — "şu kadar gram" veya "şu kadar parça/dilim/kare" gibi net olsun (örn. "2 kare bitter çikolata (~20 g)", "yarım dilim (~30 g)", "1 küçük avuç (~15 g)"). Miktar küçük ama tatmin edici olsun.
+- cravingNote alanına, o miktarda durması için motive edici, suçlamayan KISA bir söz yaz (örn. "Tadına bak, keyfini çıkar ve orada dur — bu bir kaçamak, teslim olmak değil.").
+- Yemek SAĞLIKLI ise ya da görselde yemek yoksa: cravingPortion="" ve cravingNote="" (boş) bırak; sağlıklı yemekte kısıtlama önerme.
 
 Üslubun: Türkçe, sıcak, abartısız, suçlayıcı değil GÜÇLENDİRİCİ. Kısa ve vurucu cümleler kur. harms ve motivations için 2-4 madde yeterli. Kaloriyi gram göz kararı tahmin et (porsiyon başına).`
 

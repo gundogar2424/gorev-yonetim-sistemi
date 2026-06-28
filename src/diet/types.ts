@@ -21,6 +21,10 @@ export interface FoodAnalysis {
   // Diyet listesine uyum (liste yuklendiyse): 0-100, liste yoksa -1
   compliancePercent: number
   complianceNote: string // Neyin uydugu/uymadiginin kisa aciklamasi
+  // Kontrollu kacamak: yemek saglıksızsa ve cok canı cektiyse, diyeti
+  // tamamen bozmayacak makul bir miktar onerisi (saglikli yemekte bos "").
+  cravingPortion: string // orn. "2 kare bitter çikolata (~20 g)"
+  cravingNote: string // orada durmasi icin motive edici kisa not
 }
 
 // Veritabaninda saklanan bir kayit (inceleme + karar + fotograf)

@@ -428,6 +428,18 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
           </div>
         )}
 
+        {/* Kontrollu kacamak: cok canı cektiyse makul bir miktar oner */}
+        {analysis.cravingPortion?.trim() && (
+          <div className="bg-violet-50 rounded-xl p-3 border border-violet-100">
+            <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1.5">🍫 Çok mu canın çekti?</p>
+            <p className="text-sm text-violet-900 leading-snug">
+              İllaki yiyeceksen bu kadarı diyetini bozmaz:{' '}
+              <span className="font-extrabold">{analysis.cravingPortion}</span>
+            </p>
+            {analysis.cravingNote && <p className="text-sm text-violet-700 mt-1 leading-snug">{analysis.cravingNote}</p>}
+          </div>
+        )}
+
         {/* Daha saglikli alternatif */}
         {analysis.healthierAlternative && (
           <div className="bg-sky-50 rounded-xl p-3">
