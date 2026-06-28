@@ -50,6 +50,11 @@ jobs:
       - name: Web varlıklarını senkronla
         run: npx cap sync android
 
+      - name: Sabit debug imza anahtarı (güncellemeler üstüne kurulabilsin)
+        run: |
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
+
       - name: APK derle (debug)
         run: |
           cd android

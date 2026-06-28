@@ -20,7 +20,8 @@ const tabs = [
 export default function DietApp() {
   return (
     <div className="min-h-full flex flex-col max-w-xl mx-auto bg-slate-100">
-      <main className="flex-1 pb-20">
+      {/* Alt menu + sistem tuslari icin guvenli alan kadar bosluk birak */}
+      <main className="flex-1" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<Capture />} />
           <Route path="/takip" element={<Track />} />
@@ -33,8 +34,12 @@ export default function DietApp() {
         </Routes>
       </main>
 
-      {/* Alt gezinme cubugu (mobil icin sabit) */}
-      <nav className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-5 z-20">
+      {/* Alt gezinme cubugu (mobil icin sabit). Sistem tuslarinin ustunde kalsin diye
+          alttan guvenli alan (safe-area) kadar bosluk eklenir. */}
+      <nav
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-5 z-20"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {tabs.map((t) => (
           <NavLink
             key={t.to}
