@@ -73,6 +73,15 @@ export interface Lab {
   analysis?: string // Yapay zekanin yorumu/karsilastirmasi (istege bagli)
 }
 
+// Ogun hatirlaticisi (APK'da belli saatte bildirim gonderir)
+export interface Reminder {
+  id: string // 'kahvalti' vb.
+  notifId: number // isletim sistemi icin sabit sayisal kimlik
+  label: string
+  time: string // SS:DD
+  enabled: boolean
+}
+
 // Alisveris listesi ogesi
 export interface ShoppingItem {
   id?: number
@@ -89,4 +98,5 @@ export interface DietSettings {
   userName?: string // Kullanici adi (kisisellestirme icin)
   goal?: string // Diyet hedefi (yapay zekaya baglam olarak verilir)
   dietPlan?: string // Kullanicinin diyet listesi (ogunler) — uyum karsilastirmasi icin
+  reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)
 }
