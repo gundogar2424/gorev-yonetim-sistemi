@@ -120,11 +120,12 @@ interface AnalyzeOptions {
   userName?: string
   goal?: string
   dietPlan?: string
+  note?: string // Kullanicinin duzeltmesi/aciklamasi (yemek adi, miktar vb.)
 }
 
 // Fotografi inceler ve yapilandirilmis sonucu dondurur
 export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note } = opts
 
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const img = splitDataUrl(photoDataUrl)
@@ -141,6 +142,11 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
   // Diyet listesi varsa karsilastirma icin ekle
   const planText = dietPlan?.trim()
     ? `\n\nDİYET LİSTEM (bu yemeği buna göre değerlendir ve uyum yüzdesi ver):\n${dietPlan.trim()}`
+    : ''
+
+  // Kullanici duzeltmesi varsa, gorseldeki tahminden ONCE gelir (otorite kullanicidir)
+  const noteText = note?.trim()
+    ? `\n\nKULLANICININ DÜZELTMESİ (ÇOK ÖNEMLİ — buna KESIN uy): Bu yemek/öğün aslında şudur: "${note.trim()}". foodName alanını ve miktar/kalori tahminini KULLANICININ söylediğine göre belirle; görseldeki görüntüyle çelişse bile kullanıcının beyanını esas al. Belirttiği miktarı (porsiyon/gram) kaloride dikkate al.`
     : ''
 
   const client = await createClient(apiKey)
@@ -160,7 +166,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
             },
             {
               type: 'text',
-              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}`
+              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${noteText}`
             }
           ]
         }

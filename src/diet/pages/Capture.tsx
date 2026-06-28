@@ -65,30 +65,42 @@ export default function Capture() {
   const [error, setError] = useState('')
   const [savedDecision, setSavedDecision] = useState<Decision>('none')
   const [mealType, setMealType] = useState<MealType>(guessMeal())
+  const [note, setNote] = useState('') // kullanici duzeltmesi
+  const [editing, setEditing] = useState(false) // duzeltme kutusu acik mi
 
   const hasKey = !!settings?.apiKey
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) await runAnalysis(file)
     if (fileRef.current) fileRef.current.value = ''
-  }
-
-  async function runAnalysis(file: File) {
-    setError('')
-    setAnalysis(null)
+    if (!file) return
+    setNote('')
+    setEditing(false)
     setMealType(guessMeal()) // saate gore varsayilan ogun
     try {
       const dataUrl = await fileToResizedDataUrl(file, 800, 0.8)
       setPhoto(dataUrl)
-      setPhase('analyzing')
+      await analyze(dataUrl, '')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fotoğraf okunamadı.')
+      setPhase('idle')
+    }
+  }
+
+  // Fotografi (varsa duzeltme notuyla) incele
+  async function analyze(dataUrl: string, noteArg: string) {
+    setError('')
+    setAnalysis(null)
+    setPhase('analyzing')
+    try {
       const result = await analyzeFood({
         apiKey: settings!.apiKey!,
         photoDataUrl: dataUrl,
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
-        dietPlan: settings?.dietPlan
+        dietPlan: settings?.dietPlan,
+        note: noteArg || undefined
       })
       setAnalysis(result)
       setPhase('result')
@@ -96,6 +108,13 @@ export default function Capture() {
       setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
       setPhase('idle')
     }
+  }
+
+  // Kullanici "yanlis tanidi" deyip aciklama yazinca ayni fotografi tekrar incele
+  async function reanalyze() {
+    if (!photo || !note.trim()) return
+    setEditing(false)
+    await analyze(photo, note)
   }
 
   async function decide(decision: Decision) {
@@ -118,6 +137,8 @@ export default function Capture() {
     setAnalysis(null)
     setSavedDecision('none')
     setError('')
+    setNote('')
+    setEditing(false)
   }
 
   return (
@@ -207,6 +228,42 @@ export default function Capture() {
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-2xl max-h-72 object-cover shadow" />}
 
             <ResultCard analysis={analysis} />
+
+            {/* Yanlis tanidiysa kullanici duzeltir, ayni foto tekrar incelenir */}
+            {!editing ? (
+              <button
+                onClick={() => {
+                  setNote('')
+                  setEditing(true)
+                }}
+                className="w-full text-center text-sm text-slate-500 underline py-1"
+              >
+                ✏️ Yanlış mı tanıdı? Ne olduğunu yaz, düzelteyim
+              </button>
+            ) : (
+              <div className="card p-3 space-y-2 border-emerald-200">
+                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Bu yemek aslında ne? Ne kadar?</p>
+                <textarea
+                  className="field-input min-h-[64px]"
+                  autoFocus
+                  placeholder="örn. Bamya yemeği, 1 porsiyon (~250 g), zeytinyağlı + 1 dilim esmer ekmek"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2.5"
+                  >
+                    Vazgeç
+                  </button>
+                  <button onClick={reanalyze} disabled={!note.trim()} className="btn-primary py-2.5">
+                    🔁 Tekrar incele
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400">Yazdığını esas alır; fotoğrafla çelişse bile seni dinler.</p>
+              </div>
+            )}
 
             {/* Hangi ogun? — saate gore varsayilan secili gelir */}
             <div className="card p-3 space-y-2">
