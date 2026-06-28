@@ -125,6 +125,14 @@ export interface Water {
   createdAt: number
 }
 
+// Gunluk adim sayisi (elle girilir; orn. Samsung Health'ten)
+export interface Steps {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  count: number // Adim sayisi
+  createdAt: number
+}
+
 // Alisveris listesi ogesi
 export interface ShoppingItem {
   id?: number
@@ -146,4 +154,5 @@ export interface DietSettings {
   waterGoal?: number // Gunluk su hedefi (bardak)
   calorieGoal?: number // Gunluk kalori hedefi (kcal)
   weeklyExerciseGoal?: number // Haftalik egzersiz hedefi (adet)
+  stepGoal?: number // Gunluk adim hedefi
 }

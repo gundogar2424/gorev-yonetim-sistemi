@@ -190,7 +190,7 @@ export default function DietSettings() {
           <p className="text-xs text-slate-500">
             Boş bırakırsan su için 8 bardak varsayılır; kalori ve haftalık egzersiz hedefi gizli kalır.
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="field-label">💧 Su (bardak)</label>
               <input
@@ -227,6 +227,18 @@ export default function DietSettings() {
                 onChange={(e) =>
                   saveDietSettings({ weeklyExerciseGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })
                 }
+              />
+            </div>
+            <div>
+              <label className="field-label">👟 Adım/gün</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="örn 8000"
+                value={settings?.stepGoal ?? ''}
+                onChange={(e) => saveDietSettings({ stepGoal: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
               />
             </div>
           </div>

@@ -1,7 +1,7 @@
 // Diyet Kocu icin AYRI bir Dexie (IndexedDB) veritabani.
 // CRM veritabanina hic dokunmaz; semasi ve surumu bagimsizdir.
 import Dexie, { type Table } from 'dexie'
-import type { DietEntry, DietSettings, Measurement, Vital, Lab, ShoppingItem, Exercise, Water } from './types'
+import type { DietEntry, DietSettings, Measurement, Vital, Lab, ShoppingItem, Exercise, Water, Steps } from './types'
 
 export class DietCoachDB extends Dexie {
   entries!: Table<DietEntry, number>
@@ -12,6 +12,7 @@ export class DietCoachDB extends Dexie {
   shopping!: Table<ShoppingItem, number>
   exercises!: Table<Exercise, number>
   water!: Table<Water, number>
+  steps!: Table<Steps, number>
 
   constructor() {
     super('diet-coach')
@@ -56,6 +57,18 @@ export class DietCoachDB extends Dexie {
       shopping: '++id, createdAt, done',
       exercises: '++id, dateStr, createdAt',
       water: '++id, dateStr'
+    })
+    // Surum 6: gunluk adim takibi
+    this.version(6).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr'
     })
   }
 }
@@ -132,6 +145,26 @@ export async function setWaterDay(dateStr: string, glasses: number) {
     else await dietDb.water.update(row.id, { glasses: g })
   } else if (g > 0) {
     await dietDb.water.add({ dateStr, glasses: g, createdAt: Date.now() })
+  }
+}
+
+// ---- Gunluk adim takibi (elle girilir) ----
+export async function getStepsDay(dateStr: string): Promise<number> {
+  const row = await dietDb.steps.where('dateStr').equals(dateStr).first()
+  return row?.count ?? 0
+}
+export function listSteps(): Promise<Steps[]> {
+  return dietDb.steps.orderBy('dateStr').toArray()
+}
+// Bir gunun adim sayisini ayarla (0'a duserse kaydi siler)
+export async function setStepsDay(dateStr: string, count: number) {
+  const c = Math.max(0, Math.round(count))
+  const row = await dietDb.steps.where('dateStr').equals(dateStr).first()
+  if (row?.id != null) {
+    if (c === 0) await dietDb.steps.delete(row.id)
+    else await dietDb.steps.update(row.id, { count: c })
+  } else if (c > 0) {
+    await dietDb.steps.add({ dateStr, count: c, createdAt: Date.now() })
   }
 }
 

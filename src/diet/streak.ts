@@ -1,5 +1,5 @@
 // Diyet serisi (streak), istatistikler ve rozet hesaplamalari.
-import type { DietEntry, Exercise, Water, Measurement } from './types'
+import type { DietEntry, Exercise, Water, Measurement, Steps } from './types'
 
 // Bir egzersiz kaydinin kazandirdigi puan: 8 taban + her 15 dk icin +2 (en cok +12)
 export function exercisePoints(ex: Exercise): number {
@@ -102,6 +102,8 @@ export interface WeeklySummary {
   exerciseMinutes: number
   waterTotal: number // Toplam bardak
   waterAvg: number // Gunluk ortalama bardak
+  stepsTotal: number // Toplam adim
+  stepsAvg: number // Gunluk ortalama adim
   kcalAte: number // Yenen ogunlerin toplam tahmini kalorisi
   weightChange: number | null // Donem ici kilo degisimi (kg), yoksa null
 }
@@ -111,6 +113,7 @@ export function computeWeekly(
   exercises: Exercise[],
   waters: Water[],
   measurements: Measurement[] = [],
+  steps: Steps[] = [],
   days = 7
 ): WeeklySummary {
   // Donemin baslangic tarihi (bugun dahil son `days` gun)
@@ -150,6 +153,11 @@ export function computeWeekly(
     if (inRange(w.dateStr)) waterTotal += w.glasses
   }
 
+  let stepsTotal = 0
+  for (const st of steps) {
+    if (inRange(st.dateStr)) stepsTotal += st.count
+  }
+
   // Donem ici kilo degisimi: aralikta tartilan ilk ve son kilo arasindaki fark
   const weights = measurements
     .filter((m) => inRange(m.dateStr) && m.weight != null)
@@ -167,6 +175,8 @@ export function computeWeekly(
     exerciseMinutes,
     waterTotal,
     waterAvg: Math.round((waterTotal / days) * 10) / 10,
+    stepsTotal,
+    stepsAvg: Math.round(stepsTotal / days),
     kcalAte,
     weightChange
   }

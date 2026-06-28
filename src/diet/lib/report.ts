@@ -10,12 +10,13 @@ const TR_DECISION: Record<string, string> = {
 
 // Belirli bir gunun (YYYY-MM-DD) raporunu duz metin olarak uretir
 export async function buildDailyReport(dateStr: string, userName?: string): Promise<string> {
-  const [entries, measurements, vitals, exercises, waterRow] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, stepsRow] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
     dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
-    dietDb.water.where('dateStr').equals(dateStr).first()
+    dietDb.water.where('dateStr').equals(dateStr).first(),
+    dietDb.steps.where('dateStr').equals(dateStr).first()
   ])
 
   const lines: string[] = []
@@ -70,6 +71,12 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
   // Su
   if (waterRow?.glasses) {
     lines.push(`💧 SU: ${waterRow.glasses} bardak (~${waterRow.glasses * 200} ml)`)
+    lines.push('')
+  }
+
+  // Adim
+  if (stepsRow?.count) {
+    lines.push(`👟 ADIM: ${stepsRow.count.toLocaleString('tr-TR')}`)
     lines.push('')
   }
 

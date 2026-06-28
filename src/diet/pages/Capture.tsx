@@ -2,9 +2,10 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, getWaterDay, setWaterDay } from '../db'
+import { dietDb, readDietSettings, listExercises, getWaterDay, setWaterDay, getStepsDay, setStepsDay } from '../db'
 import { analyzeFood } from '../ai'
 import { computeStats, todayStr } from '../streak'
+import { quoteOfDay } from '../lib/quotes'
 import { fileToResizedDataUrl } from '../../lib/image'
 import type { Decision, DietEntry, FoodAnalysis } from '../types'
 
@@ -141,11 +142,19 @@ export default function Capture() {
           </p>
         </div>
 
+        {/* Gunluk motivasyon sozu */}
+        <div className="card p-3 bg-amber-50 border-amber-100 text-amber-900 text-sm font-medium text-center">
+          “{quoteOfDay(todayStr())}”
+        </div>
+
         {/* Bugunun su ve kalori takibi */}
         <div className="grid grid-cols-2 gap-3">
           <WaterCard goal={settings?.waterGoal} />
           <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
         </div>
+
+        {/* Gunluk adim takibi (elle) */}
+        <StepsCard goal={settings?.stepGoal} />
 
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
         <PendingCheckIn entries={entries ?? []} />
@@ -332,6 +341,72 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
           Bugün alınan kalori. Hedef için Ayarlar.
         </p>
       )}
+    </div>
+  )
+}
+
+// Gunluk adim takibi: Samsung Health/Google Fit'teki adimi elle gir, hedefe gore ilerleme
+function StepsCard({ goal }: { goal?: number }) {
+  const today = todayStr()
+  const steps = useLiveQuery(() => getStepsDay(today), [today], 0) ?? 0
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const target = goal && goal > 0 ? goal : 0
+  const pct = target ? Math.min(100, Math.round((steps / target) * 100)) : 0
+  const reached = target > 0 && steps >= target
+
+  async function save() {
+    await setStepsDay(today, draft ? Number(draft) : 0)
+    setEditing(false)
+  }
+
+  return (
+    <div className="card p-3 bg-teal-50 border-teal-100">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">👟 Bugünkü adım</span>
+        {target > 0 && <span className="text-xs text-teal-600">/{target.toLocaleString('tr-TR')}</span>}
+      </div>
+      <div className="flex items-end justify-between mt-1">
+        <p className="text-3xl font-extrabold text-teal-700">
+          {steps.toLocaleString('tr-TR')}
+          {reached && <span className="text-base ml-1">🎉</span>}
+        </p>
+        {!editing && (
+          <button
+            onClick={() => {
+              setDraft(steps ? String(steps) : '')
+              setEditing(true)
+            }}
+            className="text-sm font-bold text-teal-700 bg-white border border-teal-200 rounded-lg px-3 py-1.5"
+          >
+            {steps ? 'Düzenle' : '+ Gir'}
+          </button>
+        )}
+      </div>
+      {target > 0 && (
+        <div className="h-2 w-full bg-teal-100 rounded-full overflow-hidden mt-1.5">
+          <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      )}
+      {editing && (
+        <div className="flex gap-2 mt-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            autoFocus
+            className="field-input flex-1"
+            placeholder="örn. 8000"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && save()}
+          />
+          <button onClick={save} className="btn-primary px-4">
+            Kaydet
+          </button>
+        </div>
+      )}
+      <p className="text-[11px] text-teal-600/80 mt-1.5">Adımı Samsung Health / Google Fit'ten bakıp buraya yaz.</p>
     </div>
   )
 }
