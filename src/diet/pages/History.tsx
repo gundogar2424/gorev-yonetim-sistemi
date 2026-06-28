@@ -3,8 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
 import { computeStats, todayStr, dayAdherence } from '../streak'
-import { buildDailyReport, shareText, whatsappLink } from '../lib/report'
-import { buildDailyImage, shareImage } from '../lib/reportImage'
+import { mealEmoji, mealLabel } from '../lib/meals'
+import { buildDailyReport, whatsappLink } from '../lib/report'
+import { buildDailyImage } from '../lib/reportImage'
+import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { DietEntry } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
@@ -26,15 +28,15 @@ export default function History() {
     await dietDb.entries.delete(id)
   }
 
-  // Secilen gunun raporunu diyetisyene gonder (yazili)
+  // Secilen gunun raporunu diyetisyene gonder (yazili) — APK'da WhatsApp menusu acilir
   async function sendReport() {
     const settings = await readDietSettings()
     const text = await buildDailyReport(reportDate, settings.userName)
-    const res = await shareText(text)
-    if (res === 'shared') setMsg('Rapor paylaşıldı.')
-    else if (res === 'copied') setMsg('Rapor panoya kopyalandı, istediğin yere yapıştır.')
+    const res = await shareTextSmart(text)
+    if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+    else if (res === 'copied') setMsg('Rapor panoya kopyalandı, WhatsApp’a yapıştır.')
+    else if (res === 'cancelled') setMsg('')
     else {
-      // Son care: WhatsApp baglantisini ac
       window.open(whatsappLink(text), '_blank')
       setMsg('WhatsApp açılıyor…')
     }
@@ -47,8 +49,11 @@ export default function History() {
     try {
       const settings = await readDietSettings()
       const blob = await buildDailyImage(reportDate, settings.userName)
-      const res = await shareImage(blob, `diyet-rapor-${reportDate}.png`)
-      setMsg(res === 'shared' ? 'Görsel rapor paylaşıldı.' : 'Görsel rapor indirildi, diyetisyenine gönderebilirsin.')
+      const res = await shareImageSmart(blob, `diyet-rapor-${reportDate}.png`)
+      if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Görsel gönderilemedi.')
     } catch {
       setMsg('Görsel rapor oluşturulamadı.')
     }
@@ -116,7 +121,9 @@ export default function History() {
                       <p className="font-semibold text-slate-800 truncate">{e.foodName}</p>
                     </div>
                     <p className="text-xs text-slate-500">
-                      ~{e.estimatedCalories} kcal · {new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      {e.mealType ? `${mealEmoji(e.mealType)} ${mealLabel(e.mealType)} · ` : ''}
+                      {new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ~
+                      {e.estimatedCalories} kcal
                     </p>
                     <div className="flex flex-wrap items-center gap-1 mt-1">
                       <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${d.cls}`}>

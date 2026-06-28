@@ -5,7 +5,8 @@ import { dietDb, readDietSettings, saveDietSettings } from '../db'
 import { badgesForStreak, computeStats } from '../streak'
 import { DEFAULT_MODEL, extractDietPlan } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
-import { downloadDietBackup, parseDietBackup, restoreDietBackup, clearOldPhotos } from '../lib/backup'
+import { buildBackupData, parseDietBackup, restoreDietBackup, clearOldPhotos } from '../lib/backup'
+import { saveJsonSmart } from '../lib/share'
 
 export default function DietSettings() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -53,11 +54,17 @@ export default function DietSettings() {
     flash('Tüm veriler silindi.')
   }
 
-  // Yedek indir
+  // Yedek al: APK'da paylaş menüsü (WhatsApp/Drive/Dosyalar), web'de indir
   async function doBackup() {
     try {
-      const b = await downloadDietBackup()
-      flash(`Yedek indirildi (${b.entries.length} öğün, ${b.measurements.length} ölçü, ${b.vitals.length} sağlık).`)
+      const b = await buildBackupData()
+      const stamp = new Date().toISOString().slice(0, 10)
+      const res = await saveJsonSmart(JSON.stringify(b), `diyet-yedek-${stamp}.json`)
+      const ozet = `${b.entries.length} öğün, ${b.measurements.length} ölçü, ${b.vitals.length} sağlık`
+      if (res === 'shared') flash(`Yedek hazır (${ozet}) — kaydet/gönder menüsünü kullan.`)
+      else if (res === 'copied') flash(`Yedek indirildi (${ozet}).`)
+      else if (res === 'cancelled') flash('')
+      else flash('Yedekleme başarısız.')
     } catch (err) {
       flash(err instanceof Error ? err.message : 'Yedekleme başarısız.')
     }

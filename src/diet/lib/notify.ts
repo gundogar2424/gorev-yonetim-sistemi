@@ -7,6 +7,7 @@ import type { Reminder, DietSettings } from '../types'
 // Bildirim kimlik araliklari (catismayi onlemek icin sabit)
 const WATER_IDS_START = 201 // su hatirlaticilari 201..2xx
 const MOTIVATION_ID = 301 // gunluk motivasyon
+const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 
 export function isNative(): boolean {
   return Capacitor.isNativePlatform()
@@ -19,8 +20,36 @@ export function defaultReminders(): Reminder[] {
     { id: 'ara1', notifId: 102, label: 'Ara öğün', time: '11:00', lead: 0, enabled: false },
     { id: 'ogle', notifId: 103, label: 'Öğle yemeği', time: '13:00', lead: 0, enabled: false },
     { id: 'ikindi', notifId: 104, label: 'İkindi', time: '16:00', lead: 0, enabled: false },
-    { id: 'aksam', notifId: 105, label: 'Akşam yemeği', time: '19:00', lead: 0, enabled: false }
+    { id: 'aksam', notifId: 105, label: 'Akşam yemeği', time: '19:00', lead: 0, enabled: false },
+    { id: 'gece', notifId: 106, label: 'Gece ara öğün', time: '21:30', lead: 0, enabled: false }
   ]
+}
+
+// Kayitli hatirlaticilari varsayilanlarla birlestir (yeni eklenen 'gece' gibi
+// ogunler eski kullanicilarda da gorunsun diye). Kayitli degerler korunur.
+export function mergeReminders(saved?: Reminder[]): Reminder[] {
+  const defaults = defaultReminders()
+  if (!saved?.length) return defaults
+  const byId = new Map(saved.map((r) => [r.id, { ...r, lead: r.lead ?? 0 }]))
+  return defaults.map((d) => byId.get(d.id) ?? d)
+}
+
+// Android bildirim kanalini olustur (ses + titresim). Kullanici telefon
+// ayarlarindan bu kanalin SESINI/TONUNU degistirebilir.
+async function ensureChannel(): Promise<void> {
+  if (!isNative()) return
+  try {
+    await LocalNotifications.createChannel({
+      id: CHANNEL_ID,
+      name: 'Öğün Hatırlatıcıları',
+      description: 'Öğün, su ve motivasyon bildirimleri',
+      importance: 5, // yuksek: ses + ekranda belirir
+      visibility: 1,
+      vibration: true
+    })
+  } catch {
+    // kanal zaten varsa ya da desteklenmiyorsa yok say
+  }
 }
 
 // Ogun saatinden "lead" dakika cikararak bildirim saatini hesaplar (gece yarisi sarmasini da yonetir)
@@ -54,6 +83,7 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   const active = reminders.filter((r) => r.enabled)
   if (active.length === 0) return
 
+  await ensureChannel()
   await LocalNotifications.schedule({ notifications: active.map(mealNotification) })
 }
 
@@ -66,6 +96,7 @@ function mealNotification(r: Reminder) {
       : `${r.label} vakti! Yemeden önce fotoğrafını çekmeyi unutma.`
   return {
     id: r.notifId,
+    channelId: CHANNEL_ID,
     title: '🥗 Diyet Koçu',
     body,
     schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true }
@@ -79,6 +110,7 @@ function waterNotifications() {
   for (let hour = 9; hour <= 21; hour += 2) {
     list.push({
       id: WATER_IDS_START + i++,
+      channelId: CHANNEL_ID,
       title: '💧 Su zamanı',
       body: 'Bir bardak su iç ve uygulamaya işaretle. Su, tokluk ve metabolizma için şart!',
       schedule: { on: { hour, minute: 0 }, repeats: true, allowWhileIdle: true }
@@ -92,6 +124,7 @@ function motivationNotification(time: string) {
   const [h, m] = (time || '09:00').split(':').map(Number)
   return {
     id: MOTIVATION_ID,
+    channelId: CHANNEL_ID,
     title: '🌟 Diyet Koçu',
     body: 'Bugün de sen kazan! Hedefine bir adım daha yaklaş. 💪',
     schedule: { on: { hour: h || 9, minute: m || 0 }, repeats: true, allowWhileIdle: true }
@@ -111,7 +144,7 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
     // yok say
   }
 
-  const reminders = settings.reminders?.length ? settings.reminders : defaultReminders()
+  const reminders = mergeReminders(settings.reminders)
   const notifications: ReturnType<typeof mealNotification>[] = []
 
   for (const r of reminders) {
@@ -123,5 +156,6 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   }
 
   if (notifications.length === 0) return
+  await ensureChannel()
   await LocalNotifications.schedule({ notifications })
 }

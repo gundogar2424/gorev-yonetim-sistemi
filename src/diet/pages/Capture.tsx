@@ -7,7 +7,8 @@ import { analyzeFood } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { fileToResizedDataUrl } from '../../lib/image'
-import type { Decision, DietEntry, FoodAnalysis } from '../types'
+import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
+import type { Decision, DietEntry, FoodAnalysis, MealType } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
@@ -63,6 +64,7 @@ export default function Capture() {
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null)
   const [error, setError] = useState('')
   const [savedDecision, setSavedDecision] = useState<Decision>('none')
+  const [mealType, setMealType] = useState<MealType>(guessMeal())
 
   const hasKey = !!settings?.apiKey
 
@@ -75,6 +77,7 @@ export default function Capture() {
   async function runAnalysis(file: File) {
     setError('')
     setAnalysis(null)
+    setMealType(guessMeal()) // saate gore varsayilan ogun
     try {
       const dataUrl = await fileToResizedDataUrl(file, 800, 0.8)
       setPhoto(dataUrl)
@@ -101,6 +104,7 @@ export default function Capture() {
       ...analysis,
       photo,
       decision,
+      mealType,
       createdAt: Date.now(),
       dateStr: todayStr()
     })
@@ -203,6 +207,24 @@ export default function Capture() {
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-2xl max-h-72 object-cover shadow" />}
 
             <ResultCard analysis={analysis} />
+
+            {/* Hangi ogun? — saate gore varsayilan secili gelir */}
+            <div className="card p-3 space-y-2">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Hangi öğün?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {MEAL_OPTIONS.map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => setMealType(m.value)}
+                    className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
+                      mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {m.emoji} {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Karar butonlari */}
             <div className="grid grid-cols-2 gap-2">

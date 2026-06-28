@@ -27,11 +27,15 @@ export interface FoodAnalysis {
   cravingNote: string // orada durmasi icin motive edici kisa not
 }
 
+// Ogun turu (hangi ogune ait)
+export type MealType = 'kahvalti' | 'ara1' | 'ogle' | 'ikindi' | 'aksam' | 'gece' | 'serbest'
+
 // Veritabaninda saklanan bir kayit (inceleme + karar + fotograf)
 export interface DietEntry extends FoodAnalysis {
   id?: number
   photo: string // Kucultulmus base64 data URL
   decision: Decision // Kullanicinin karari
+  mealType?: MealType // Hangi ogune ait (kahvalti/ogle/aksam/ara/gece/serbest)
   createdAt: number // Zaman damgasi (ms)
   dateStr: string // Yerel tarih (YYYY-MM-DD)
 }

@@ -2,16 +2,13 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { readDietSettings, saveDietSettings } from '../db'
-import { defaultReminders, ensurePermission, applyNotifications, isNative } from '../lib/notify'
+import { mergeReminders, ensurePermission, applyNotifications, isNative } from '../lib/notify'
 import type { Reminder, DietSettings } from '../types'
 
 export default function Reminders() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
-  // Eski kayitlarda 'lead' olmayabilir; 0 ile tamamla
-  const reminders: Reminder[] = (settings?.reminders?.length ? settings.reminders : defaultReminders()).map((r) => ({
-    ...r,
-    lead: r.lead ?? 0
-  }))
+  // Kayitli + varsayilan birlestirilir (yeni 'gece' ogunu de gorunsun)
+  const reminders: Reminder[] = mergeReminders(settings?.reminders)
   const [msg, setMsg] = useState('')
   const native = isNative()
 
@@ -155,6 +152,16 @@ export default function Reminders() {
         <button onClick={testNotify} className="btn-primary w-full">
           {native ? '🔔 İzni Ver & Bildirimleri Kur' : '🔔 Bildirim Durumunu Kontrol Et'}
         </button>
+
+        {native && (
+          <div className="card p-3 bg-sky-50 border-sky-100 text-sky-900 text-sm">
+            <p className="font-semibold mb-1">🔊 Bildirim sesini/tonunu seçmek için</p>
+            <p>
+              Telefon <b>Ayarlar → Uygulamalar → Diyet Koçu → Bildirimler → "Öğün Hatırlatıcıları"</b> kanalına gir; oradan
+              istediğin <b>sesi/tonu ve titreşimi</b> seçebilirsin. (Önce yukarıdan "İzni Ver & Kur"a bas ki kanal oluşsun.)
+            </p>
+          </div>
+        )}
 
         <p className="text-center text-xs text-slate-400">Açık olan tüm bildirimler her gün aynı saatte tekrarlanır.</p>
       </div>

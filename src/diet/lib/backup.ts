@@ -18,8 +18,8 @@ interface DietBackup {
   settings: DietSettings | null
 }
 
-// Tum diyet verisini topla
-async function collect(): Promise<DietBackup> {
+// Tum diyet verisini topla (yedek nesnesi)
+export async function buildBackupData(): Promise<DietBackup> {
   const [entries, measurements, vitals, exercises, water, steps, sleep, progress, settingsRow] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.toArray(),
@@ -55,7 +55,7 @@ async function collect(): Promise<DietBackup> {
 
 // Yedek dosyasini indir
 export async function downloadDietBackup() {
-  const data = await collect()
+  const data = await buildBackupData()
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

@@ -3,6 +3,7 @@
 // resim olarak gonderilebilir. Token harcamaz; her sey cihazda cizilir.
 import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
+import { mealLabel } from './meals'
 
 const W = 820
 const PAD = 32
@@ -176,7 +177,8 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
       ctx.fillStyle = '#64748b'
       ctx.font = '19px sans-serif'
       const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-      ctx.fillText(`${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
+      const meal = e.mealType ? `${mealLabel(e.mealType)} · ` : ''
+      ctx.fillText(`${meal}${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
       if (e.compliancePercent >= 0) {
         ctx.fillStyle = '#475569'
         ctx.font = '18px sans-serif'
