@@ -78,7 +78,8 @@ export interface Reminder {
   id: string // 'kahvalti' vb.
   notifId: number // isletim sistemi icin sabit sayisal kimlik
   label: string
-  time: string // SS:DD
+  time: string // Ogun saati (SS:DD)
+  lead: number // Ogunden kac dakika ONCE bildirim (0 = tam saatinde)
   enabled: boolean
 }
 

@@ -7,7 +7,11 @@ import type { Reminder } from '../types'
 
 export default function Reminders() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
-  const reminders: Reminder[] = settings?.reminders?.length ? settings.reminders : defaultReminders()
+  // Eski kayitlarda 'lead' olmayabilir; 0 ile tamamla
+  const reminders: Reminder[] = (settings?.reminders?.length ? settings.reminders : defaultReminders()).map((r) => ({
+    ...r,
+    lead: r.lead ?? 0
+  }))
   const [msg, setMsg] = useState('')
   const native = isNative()
 
@@ -39,6 +43,10 @@ export default function Reminders() {
     await apply(reminders.map((r) => (r.id === id ? { ...r, time } : r)))
   }
 
+  async function setLead(id: string, lead: number) {
+    await apply(reminders.map((r) => (r.id === id ? { ...r, lead } : r)))
+  }
+
   async function testNotify() {
     if (!native) {
       flash('Bildirim testi yalnızca APK (uygulama) sürümünde çalışır.')
@@ -68,26 +76,47 @@ export default function Reminders() {
 
         <section className="space-y-2">
           {reminders.map((r) => (
-            <div key={r.id} className="card p-3 flex items-center gap-3">
-              <input
-                type="time"
-                className="field-input w-28"
-                value={r.time}
-                onChange={(e) => setTime(r.id, e.target.value)}
-              />
-              <span className="flex-1 font-medium text-slate-700">{r.label}</span>
-              {/* Ac/kapa anahtari */}
-              <button
-                onClick={() => toggle(r.id, !r.enabled)}
-                className={`w-12 h-7 rounded-full transition relative ${r.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                aria-label={r.enabled ? 'Kapat' : 'Aç'}
-              >
-                <span
-                  className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition ${
-                    r.enabled ? 'left-[22px]' : 'left-0.5'
-                  }`}
+            <div key={r.id} className="card p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <input
+                  type="time"
+                  className="field-input w-28"
+                  value={r.time}
+                  onChange={(e) => setTime(r.id, e.target.value)}
                 />
-              </button>
+                <span className="flex-1 font-medium text-slate-700">{r.label}</span>
+                {/* Ac/kapa anahtari */}
+                <button
+                  onClick={() => toggle(r.id, !r.enabled)}
+                  className={`w-12 h-7 rounded-full transition relative flex-shrink-0 ${
+                    r.enabled ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
+                  aria-label={r.enabled ? 'Kapat' : 'Aç'}
+                >
+                  <span
+                    className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition ${
+                      r.enabled ? 'left-[22px]' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+              {/* Ogunden kac dakika once */}
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>⏰ Bildirim:</span>
+                <select
+                  className="field-input w-auto py-1.5 flex-1"
+                  value={r.lead}
+                  onChange={(e) => setLead(r.id, Number(e.target.value))}
+                >
+                  <option value={0}>Tam saatinde</option>
+                  <option value={5}>5 dakika önce</option>
+                  <option value={10}>10 dakika önce</option>
+                  <option value={15}>15 dakika önce</option>
+                  <option value={30}>30 dakika önce</option>
+                  <option value={45}>45 dakika önce</option>
+                  <option value={60}>1 saat önce</option>
+                </select>
+              </div>
             </div>
           ))}
         </section>

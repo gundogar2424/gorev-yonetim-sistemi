@@ -11,12 +11,20 @@ export function isNative(): boolean {
 // Varsayilan hatirlaticilar (kapali baslar)
 export function defaultReminders(): Reminder[] {
   return [
-    { id: 'kahvalti', notifId: 101, label: 'Kahvaltı', time: '08:00', enabled: false },
-    { id: 'ara1', notifId: 102, label: 'Ara öğün', time: '11:00', enabled: false },
-    { id: 'ogle', notifId: 103, label: 'Öğle yemeği', time: '13:00', enabled: false },
-    { id: 'ikindi', notifId: 104, label: 'İkindi', time: '16:00', enabled: false },
-    { id: 'aksam', notifId: 105, label: 'Akşam yemeği', time: '19:00', enabled: false }
+    { id: 'kahvalti', notifId: 101, label: 'Kahvaltı', time: '08:00', lead: 0, enabled: false },
+    { id: 'ara1', notifId: 102, label: 'Ara öğün', time: '11:00', lead: 0, enabled: false },
+    { id: 'ogle', notifId: 103, label: 'Öğle yemeği', time: '13:00', lead: 0, enabled: false },
+    { id: 'ikindi', notifId: 104, label: 'İkindi', time: '16:00', lead: 0, enabled: false },
+    { id: 'aksam', notifId: 105, label: 'Akşam yemeği', time: '19:00', lead: 0, enabled: false }
   ]
+}
+
+// Ogun saatinden "lead" dakika cikararak bildirim saatini hesaplar (gece yarisi sarmasini da yonetir)
+function notifyHM(time: string, lead: number): { hour: number; minute: number } {
+  const [h, m] = time.split(':').map(Number)
+  let total = h * 60 + m - (lead || 0)
+  total = ((total % 1440) + 1440) % 1440 // 0..1439 araliginda tut
+  return { hour: Math.floor(total / 60), minute: total % 60 }
 }
 
 // Bildirim izni iste (yalnizca native)
@@ -44,12 +52,16 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
 
   await LocalNotifications.schedule({
     notifications: active.map((r) => {
-      const [h, m] = r.time.split(':').map(Number)
+      const { hour, minute } = notifyHM(r.time, r.lead)
+      const body =
+        (r.lead || 0) > 0
+          ? `${r.label} (${r.time}) yaklaşıyor — ${r.lead} dk var. Yemeden önce fotoğrafını çek!`
+          : `${r.label} vakti! Yemeden önce fotoğrafını çekmeyi unutma.`
       return {
         id: r.notifId,
         title: '🥗 Diyet Koçu',
-        body: `${r.label} vakti! Yemeden önce fotoğrafını çekmeyi unutma.`,
-        schedule: { on: { hour: h, minute: m }, repeats: true, allowWhileIdle: true }
+        body,
+        schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true }
       }
     })
   })
