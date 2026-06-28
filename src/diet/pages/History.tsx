@@ -4,6 +4,7 @@ import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { buildDailyReport, shareText, whatsappLink } from '../lib/report'
+import { buildDailyImage, shareImage } from '../lib/reportImage'
 import type { DietEntry } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
@@ -25,7 +26,7 @@ export default function History() {
     await dietDb.entries.delete(id)
   }
 
-  // Secilen gunun raporunu diyetisyene gonder
+  // Secilen gunun raporunu diyetisyene gonder (yazili)
   async function sendReport() {
     const settings = await readDietSettings()
     const text = await buildDailyReport(reportDate, settings.userName)
@@ -36,6 +37,20 @@ export default function History() {
       // Son care: WhatsApp baglantisini ac
       window.open(whatsappLink(text), '_blank')
       setMsg('WhatsApp açılıyor…')
+    }
+    setTimeout(() => setMsg(''), 4000)
+  }
+
+  // Secilen gunun GORSEL raporunu (fotograf + basari grafigi) gonder
+  async function sendImage() {
+    setMsg('Görsel rapor hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildDailyImage(reportDate, settings.userName)
+      const res = await shareImage(blob, `diyet-rapor-${reportDate}.png`)
+      setMsg(res === 'shared' ? 'Görsel rapor paylaşıldı.' : 'Görsel rapor indirildi, diyetisyenine gönderebilirsin.')
+    } catch {
+      setMsg('Görsel rapor oluşturulamadı.')
     }
     setTimeout(() => setMsg(''), 4000)
   }
@@ -51,11 +66,17 @@ export default function History() {
         {/* Diyetisyene rapor gonder */}
         <section className="card p-3 space-y-2">
           <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Diyetisyene Gönder</h3>
-          <p className="text-xs text-slate-500">Seçtiğin günün öğünleri, ölçüleri ve sağlık verileri tek mesajda gönderilir.</p>
-          <div className="flex gap-2">
-            <input type="date" className="field-input" value={reportDate} onChange={(e) => setReportDate(e.target.value)} />
-            <button onClick={sendReport} className="btn-primary px-4 whitespace-nowrap">
-              Gönder
+          <p className="text-xs text-slate-500">
+            Seçtiğin günün öğünleri, ölçüleri, sağlık verileri ve diyet başarısı gönderilir. Görsel rapor; yemek
+            fotoğraflarını ve başarı grafiğini de içerir.
+          </p>
+          <input type="date" className="field-input" value={reportDate} onChange={(e) => setReportDate(e.target.value)} />
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={sendReport} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
+              ✍️ Yazılı Gönder
+            </button>
+            <button onClick={sendImage} className="btn-primary whitespace-nowrap">
+              📸 Resimli Gönder
             </button>
           </div>
           {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}

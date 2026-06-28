@@ -1,6 +1,7 @@
 // Gunluk rapor uretimi ve paylasimi (diyetisyene gondermek icin).
 // Token harcamaz — sadece kayitli verilerden duz metin olusturur.
 import { dietDb } from '../db'
+import { dayAdherence } from '../streak'
 
 const TR_DECISION: Record<string, string> = {
   resisted: 'vazgeçti ✅',
@@ -23,6 +24,9 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
   const lines: string[] = []
   lines.push(`🥗 DİYET RAPORU — ${dateStr}`)
   if (userName) lines.push(`Kişi: ${userName}`)
+  // Gunluk diyet basari yuzdesi
+  const adh = dayAdherence(entries, dateStr)
+  if (adh != null) lines.push(`📊 Günlük diyet başarısı: %${adh}`)
   lines.push('')
 
   // Ogunler
