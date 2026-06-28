@@ -2,7 +2,7 @@
 // Tarayicidan dogrudan cagrilir (kullanici kendi API anahtarini saglar).
 // NOT: SDK yalnizca cagri aninda (dinamik import) yuklenir; boylece sayfa
 // acilisinda SDK yuzunden bir hata olsa bile uygulama yine de acilir.
-import type { FoodAnalysis } from './types'
+import type { FoodAnalysis, MealAdvice } from './types'
 
 export const DEFAULT_MODEL = 'claude-opus-4-8'
 
@@ -186,6 +186,124 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
       // Gercek nedeni gormek icin yanitin basini hata mesajina ekle
       const snippet = cleaned.slice(0, 120)
       throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${snippet}…"`)
+    }
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// "Ne Yesem?" cikti semasi (gramajli ogun onerileri + makrolar)
+const MEAL_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    foodsFound: { type: 'boolean' },
+    foodsDetected: { type: 'array', items: { type: 'string' } },
+    suggestions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          title: { type: 'string' },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                name: { type: 'string' },
+                grams: { type: 'integer' }
+              },
+              required: ['name', 'grams']
+            }
+          },
+          calories: { type: 'integer' },
+          protein: { type: 'integer' },
+          carb: { type: 'integer' },
+          fat: { type: 'integer' },
+          reason: { type: 'string' }
+        },
+        required: ['title', 'items', 'calories', 'protein', 'carb', 'fat', 'reason']
+      }
+    },
+    tip: { type: 'string' }
+  },
+  required: ['foodsFound', 'foodsDetected', 'suggestions', 'tip']
+} as const
+
+const MEAL_SYSTEM = `Sen "Diyet Koçu" adında bir beslenme koçusun. Kullanıcı elindeki/mutfağındaki ürünlerin (besinlerin) fotoğrafını çekiyor. Senin görevin bu ürünlerden DİYETİNE UYGUN, gramajlı öğün önerileri sunmak.
+
+Kurallar:
+- Görseldeki yenilebilir ürünleri tanı ve foodsDetected dizisine yaz. Görselde tanınabilir besin yoksa foodsFound=false, suggestions=[] ve tip alanında net bir fotoğraf istemesini söyle.
+- 2-3 farklı öğün önerisi (suggestions) üret. Mümkün olduğunca SADECE görseldeki ürünleri kullan; gerekirse "yanına" çok temel bir şey (su, baharat) eklenebilir ama esas görseldekiler olsun.
+- Her öneri için items dizisinde "şu üründen şu kadar GRAM" şeklinde net porsiyonlar ver (her ürün için grams alanı).
+- Her öneri için SADECE kalori değil MAKRO besinleri de hesapla: protein, carb (karbonhidrat), fat (yağ) — hepsi GRAM cinsinden tam sayı. calories = toplam tahmini kalori.
+- reason alanında bu önerinin neden iyi olduğunu ve (varsa) diyet listesine/hedefe nasıl uyduğunu tek-iki kısa cümleyle açıkla.
+- Eğer kullanıcı bir DİYET LİSTESİ verdiyse, önerileri o listedeki öğünlere ve mantığa (porsiyon, içerik) mümkün olduğunca uydur.
+- Eğer bir HEDEF verdiyse (örn. kilo verme, kas), makroları ona göre dengele (örn. yüksek protein).
+
+Üslubun: Türkçe, sıcak, net, abartısız. Tahminlerin gerçekçi olsun; gramajlar ölçülebilir ve makul porsiyonlar olsun.`
+
+// Eldeki urunlerin fotografindan gramajli ogun onerileri + makrolar uretir
+export async function suggestMeal(opts: {
+  apiKey: string
+  photoDataUrl: string
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+}): Promise<MealAdvice> {
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  const img = splitDataUrl(photoDataUrl)
+  if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcının adı: ${userName}.`)
+  if (goal) ctx.push(`Diyet hedefi: ${goal}.`)
+  const ctxText = ctx.length ? `\n\nKullanıcı bağlamı: ${ctx.join(' ')}` : ''
+  const planText = dietPlan?.trim()
+    ? `\n\nDİYET LİSTEM (önerileri buna uydur):\n${dietPlan.trim()}`
+    : ''
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 2500,
+      system: MEAL_SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: img.mediaType as 'image/jpeg', data: img.base64 }
+            },
+            {
+              type: 'text',
+              text: `Elimde bunlar var. Bunlardan diyetime uygun ne yapıp ne kadar yiyebilirim? Gramaj ve makro (protein/karbonhidrat/yağ) ver.${ctxText}${planText}`
+            }
+          ]
+        }
+      ],
+      output_config: { format: { type: 'json_schema', schema: MEAL_SCHEMA } }
+    })
+
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi. Farklı bir fotoğraf deneyin.')
+    if (response.stop_reason === 'max_tokens') throw new Error('Yanıt çok uzun oldu ve yarıda kesildi. Daha az ürünle tekrar deneyin.')
+
+    const rawText = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!rawText) throw new Error('Modelden boş yanıt geldi. Lütfen tekrar deneyin.')
+    const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    try {
+      return JSON.parse(cleaned) as MealAdvice
+    } catch {
+      throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${cleaned.slice(0, 120)}…"`)
     }
   } catch (err) {
     throw friendlyError(err)

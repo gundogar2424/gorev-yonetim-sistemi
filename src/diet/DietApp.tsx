@@ -7,6 +7,7 @@ import Labs from './pages/Labs'
 import Shopping from './pages/Shopping'
 import Reminders from './pages/Reminders'
 import ExercisePage from './pages/Exercise'
+import Suggest from './pages/Suggest'
 import Weekly from './pages/Weekly'
 import DietSettings from './pages/DietSettings'
 
@@ -33,6 +34,7 @@ export default function DietApp() {
           <Route path="/alisveris" element={<Shopping />} />
           <Route path="/hatirlaticilar" element={<Reminders />} />
           <Route path="/egzersiz" element={<ExercisePage />} />
+          <Route path="/oneri" element={<Suggest />} />
           <Route path="/ozet" element={<Weekly />} />
           <Route path="/ayarlar" element={<DietSettings />} />
         </Routes>

@@ -92,6 +92,27 @@ export interface Exercise {
   minutes?: number // Suresi (dk, istege bagli)
 }
 
+// "Ne Yesem?" onerisi: eldeki urunlerden gramajli ogun + makrolar
+export interface MealItem {
+  name: string // Urun adi (orn. "yulaf")
+  grams: number // Onerilen miktar (gram)
+}
+export interface MealSuggestion {
+  title: string // Onerinin adi (orn. "Yuksek proteinli kahvalti")
+  items: MealItem[] // Sundan su kadar gram listesi
+  calories: number // Toplam tahmini kalori
+  protein: number // Protein (gram)
+  carb: number // Karbonhidrat (gram)
+  fat: number // Yag (gram)
+  reason: string // Neden bu / diyet listene uyumu
+}
+export interface MealAdvice {
+  foodsFound: boolean // Goruntude tanınabilir urun var mi
+  foodsDetected: string[] // Taninan urunler
+  suggestions: MealSuggestion[] // 2-3 oneri
+  tip: string // Genel kisa ipucu
+}
+
 // Gunluk su tuketimi (bir tarih icin bardak sayisi)
 export interface Water {
   id?: number
