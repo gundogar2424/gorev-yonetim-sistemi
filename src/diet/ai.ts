@@ -320,6 +320,86 @@ export async function chatAboutFood(opts: {
   }
 }
 
+// Diyet LISTESI hakkinda sohbet (sadece metin -> az token). "Öğlen ne var",
+// "sıradaki öğün ne" gibi sorulari listeye gore yanitlar.
+export async function chatAboutPlan(opts: {
+  apiKey: string
+  dietPlan: string
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+}): Promise<string> {
+  const { apiKey, dietPlan, history, model = DEFAULT_MODEL, userName, goal } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!dietPlan.trim()) throw new Error('Önce Ayarlar/Menü bölümünden diyet listeni ekle.')
+  if (!history.length) throw new Error('Bir soru yaz.')
+
+  const now = new Date().toLocaleString('tr-TR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  const system = `Sen "Diyet Koçu"sun. Kullanıcının diyet/öğün listesi aşağıda. Sorularını YALNIZCA bu listeye göre yanıtla (örn. "öğlen ne var", "sıradaki öğünde ne var"). Şu anki zaman: ${now}. Türkçe, KISA ve net cevap ver. ${ctx.join(
+    ' '
+  )}\n\nDİYET LİSTESİ:\n${dietPlan.trim()}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 600,
+      system,
+      messages: history.map((m) => ({ role: m.role, content: m.text }))
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!text) throw new Error('Cevap üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// Diyet listesini istenen degisiklige gore gunceller; SADECE yeni tam listeyi dondurur.
+export async function editPlan(opts: {
+  apiKey: string
+  dietPlan: string
+  instruction: string
+  model?: string
+}): Promise<string> {
+  const { apiKey, dietPlan, instruction, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!instruction.trim()) throw new Error('Ne değişsin, yaz.')
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1500,
+      system:
+        'Sen bir diyet listesi editörüsün. Kullanıcının mevcut öğün listesini, istediği değişikliğe göre güncelle. SADECE güncellenmiş TAM listeyi düz metin olarak döndür; açıklama, giriş cümlesi, kod bloğu ekleme. Öğün başlıklarını (Kahvaltı, Öğle vb.) ve düzeni koru.',
+      messages: [
+        {
+          role: 'user',
+          content: `MEVCUT LİSTE:\n${dietPlan.trim() || '(boş)'}\n\nİSTENEN DEĞİŞİKLİK: ${instruction.trim()}\n\nGüncellenmiş tam listeyi ver.`
+        }
+      ]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!text) throw new Error('Liste güncellenemedi.')
+    return text.replace(/^```(?:\w+)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // "Ne Yesem?" cikti semasi (gramajli ogun onerileri + makrolar)
 const MEAL_SCHEMA = {
   type: 'object',

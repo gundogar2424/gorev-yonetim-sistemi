@@ -9,6 +9,7 @@ import Reminders from './pages/Reminders'
 import ExercisePage from './pages/Exercise'
 import Suggest from './pages/Suggest'
 import Barcode from './pages/Barcode'
+import Menu from './pages/Menu'
 import Progress from './pages/Progress'
 import Weekly from './pages/Weekly'
 import DietSettings from './pages/DietSettings'
@@ -38,6 +39,7 @@ export default function DietApp() {
           <Route path="/egzersiz" element={<ExercisePage />} />
           <Route path="/oneri" element={<Suggest />} />
           <Route path="/barkod" element={<Barcode />} />
+          <Route path="/menu" element={<Menu />} />
           <Route path="/fotograf" element={<Progress />} />
           <Route path="/ozet" element={<Weekly />} />
           <Route path="/ayarlar" element={<DietSettings />} />
