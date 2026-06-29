@@ -1,0 +1,18 @@
+// Tum derlemelerde DEBUG imzasini repodaki sabit debug.keystore ile yapar.
+// Boylece her APK ayni anahtarla imzalanir; guncellemeler "ustune kur"
+// edilebilir (silmeye gerek kalmaz). Gradlew'e "-I signing.gradle" ile verilir.
+allprojects {
+  afterEvaluate { proj ->
+    if (proj.plugins.hasPlugin('com.android.application')) {
+      def ks = new File(proj.rootDir.parentFile, 'debug.keystore')
+      if (ks.exists()) {
+        proj.android.signingConfigs.debug {
+          storeFile ks
+          storePassword 'android'
+          keyAlias 'androiddebugkey'
+          keyPassword 'android'
+        }
+      }
+    }
+  }
+}

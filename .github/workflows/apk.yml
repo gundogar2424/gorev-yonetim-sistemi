@@ -66,11 +66,11 @@ jobs:
           mkdir -p ~/.android
           cp debug.keystore ~/.android/debug.keystore
 
-      - name: APK derle (debug)
+      - name: APK derle (debug, sabit imza)
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon -I ../signing.gradle
 
       - name: APK'yı yeniden adlandır
         run: cp android/app/build/outputs/apk/debug/app-debug.apk diyet-kocu.apk
