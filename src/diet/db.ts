@@ -12,7 +12,8 @@ import type {
   Water,
   Steps,
   Sleep,
-  ProgressPhoto
+  ProgressPhoto,
+  SavedProduct
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -27,6 +28,7 @@ export class DietCoachDB extends Dexie {
   steps!: Table<Steps, number>
   sleep!: Table<Sleep, number>
   progress!: Table<ProgressPhoto, number>
+  products!: Table<SavedProduct, number>
 
   constructor() {
     super('diet-coach')
@@ -97,6 +99,21 @@ export class DietCoachDB extends Dexie {
       steps: '++id, dateStr',
       sleep: '++id, dateStr',
       progress: '++id, dateStr, createdAt'
+    })
+    // Surum 8: elle girilen urun hafizasi (barkod -> besin)
+    this.version(8).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt',
+      products: '++id, barcode'
     })
   }
 }

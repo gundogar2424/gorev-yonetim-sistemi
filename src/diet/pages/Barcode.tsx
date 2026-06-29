@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DietHeader from '../DietHeader'
 import { dietDb } from '../db'
-import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, nativeScan, type ProductInfo, type ScannerControls } from '../lib/barcode'
+import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, nativeScan, getSavedProduct, saveProduct, type ProductInfo, type ScannerControls } from '../lib/barcode'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
 import { todayStr } from '../streak'
@@ -21,6 +21,8 @@ export default function Barcode() {
   const [scanning, setScanning] = useState(false)
   const [confirmed, setConfirmed] = useState(false) // urunu gorup onayladi mi
   const [saved, setSaved] = useState(false) // gunluge eklendi mi
+  const [notFound, setNotFound] = useState(false) // veritabaninda yok -> elle gir
+  const [man, setMan] = useState({ name: '', kcal: '', protein: '', carb: '', fat: '' }) // elle giris
   const videoRef = useRef<HTMLVideoElement>(null)
   const scannerRef = useRef<ScannerControls | null>(null)
 
@@ -111,19 +113,58 @@ export default function Barcode() {
     setProduct(null)
     setConfirmed(false)
     setSaved(false)
+    setNotFound(false)
     try {
+      // 1) Once hafiza (daha once elle girdiklerim)
+      const local = await getSavedProduct(c)
+      if (local) {
+        setProduct(local)
+        return
+      }
+      // 2) Open Food Facts
       const p = await lookupProduct(c)
       if (!p) {
-        setMsg('Bu barkod veritabanında bulunamadı. Numara doğru mu? (Ürün henüz eklenmemiş olabilir.)')
+        // 3) Bulunamadi -> elle gir
+        setCode(c)
+        setMan({ name: '', kcal: '', protein: '', carb: '', fat: '' })
+        setNotFound(true)
       } else {
         setProduct(p)
-        if (!p.per100.kcal) setMsg('Üründe kalori bilgisi yok; yine de adı bulundu.')
+        if (!p.per100.kcal) setMsg('Üründe kalori bilgisi yok; istersen elle düzeltebilirsin.')
       }
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'Sorgu başarısız.')
     } finally {
       setBusy(false)
     }
+  }
+
+  // Elle girilen urunu hafizaya kaydet ve kullan
+  async function useManual() {
+    const name = man.name.trim()
+    const kcal = Math.max(0, Number(man.kcal) || 0)
+    if (!name || !kcal) {
+      setMsg('En az ürün adı ve 100 g/ml kalorisi gerekli.')
+      return
+    }
+    const info: ProductInfo = {
+      barcode: code.trim() || `manuel-${Date.now()}`,
+      name,
+      per100: {
+        kcal,
+        protein: Math.max(0, Number(man.protein) || 0),
+        carb: Math.max(0, Number(man.carb) || 0),
+        fat: Math.max(0, Number(man.fat) || 0)
+      }
+    }
+    try {
+      await saveProduct(info)
+    } catch {
+      // hafizaya yazilamasa bile kullanmaya devam
+    }
+    setNotFound(false)
+    setProduct(info)
+    setMsg('')
   }
 
   async function addEntry() {
@@ -158,6 +199,7 @@ export default function Barcode() {
     setProduct(null)
     setConfirmed(false)
     setSaved(false)
+    setNotFound(false)
     setCode('')
     setGrams('100')
     setMsg('')
@@ -221,6 +263,46 @@ export default function Barcode() {
           {busy && <p className="text-sm text-emerald-700">İşleniyor…</p>}
           {msg && <p className="text-sm text-slate-600">{msg}</p>}
         </section>
+
+        {/* Bulunamadi -> elle gir (hafizaya alinir) */}
+        {notFound && !product && (
+          <section className="card p-4 space-y-3 border-amber-200">
+            <p className="text-sm text-amber-800 font-semibold">
+              Bu ürün veritabanında yok. Bilgilerini bir kez gir; bu barkodu hafızaya alayım, bir daha sormayayım.
+            </p>
+            <input
+              className="field-input"
+              placeholder="Ürün adı (örn. X marka bisküvi)"
+              value={man.name}
+              onChange={(e) => setMan({ ...man, name: e.target.value })}
+            />
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">100 g/ml için (paketin arkasından)</p>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-sm text-slate-600">
+                Kalori (kcal)
+                <input type="number" inputMode="numeric" className="field-input" value={man.kcal} onChange={(e) => setMan({ ...man, kcal: e.target.value })} />
+              </label>
+              <label className="text-sm text-slate-600">
+                Protein (g)
+                <input type="number" inputMode="numeric" className="field-input" value={man.protein} onChange={(e) => setMan({ ...man, protein: e.target.value })} />
+              </label>
+              <label className="text-sm text-slate-600">
+                Karbonhidrat (g)
+                <input type="number" inputMode="numeric" className="field-input" value={man.carb} onChange={(e) => setMan({ ...man, carb: e.target.value })} />
+              </label>
+              <label className="text-sm text-slate-600">
+                Yağ (g)
+                <input type="number" inputMode="numeric" className="field-input" value={man.fat} onChange={(e) => setMan({ ...man, fat: e.target.value })} />
+              </label>
+            </div>
+            <button onClick={useManual} className="btn-primary w-full">
+              Kaydet ve kullan
+            </button>
+            <button onClick={resetAll} className="w-full text-center text-sm text-slate-400 py-1">
+              Vazgeç
+            </button>
+          </section>
+        )}
 
         {/* Eklendi ekrani */}
         {saved && product && (

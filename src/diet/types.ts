@@ -122,6 +122,19 @@ export interface MealAdvice {
   tip: string // Genel kisa ipucu
 }
 
+// Elle girilip hafizaya alinan urun (barkod -> besin). Veritabaninda
+// bulunamayan urunler bir kez girilince burada saklanir.
+export interface SavedProduct {
+  id?: number
+  barcode: string
+  name: string
+  kcal: number // 100 g/ml icin
+  protein: number
+  carb: number
+  fat: number
+  createdAt: number
+}
+
 // Gunluk su tuketimi (bir tarih icin bardak sayisi)
 export interface Water {
   id?: number

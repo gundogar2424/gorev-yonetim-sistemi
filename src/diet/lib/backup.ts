@@ -1,7 +1,7 @@
 // Diyet Kocu verisinin yedeklenmesi / geri yuklenmesi ve yer acma islemleri.
 // Tum veri tek bir JSON dosyasina indirilir; istenince geri yuklenir.
 import { dietDb } from '../db'
-import type { DietEntry, Measurement, Vital, DietSettings, Exercise, Water, Steps, Sleep, ProgressPhoto } from '../types'
+import type { DietEntry, Measurement, Vital, DietSettings, Exercise, Water, Steps, Sleep, ProgressPhoto, SavedProduct } from '../types'
 
 interface DietBackup {
   app: 'diet-coach'
@@ -15,12 +15,13 @@ interface DietBackup {
   steps: Steps[]
   sleep: Sleep[]
   progress: ProgressPhoto[]
+  products: SavedProduct[]
   settings: DietSettings | null
 }
 
 // Tum diyet verisini topla (yedek nesnesi)
 export async function buildBackupData(): Promise<DietBackup> {
-  const [entries, measurements, vitals, exercises, water, steps, sleep, progress, settingsRow] = await Promise.all([
+  const [entries, measurements, vitals, exercises, water, steps, sleep, progress, products, settingsRow] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.toArray(),
     dietDb.vitals.toArray(),
@@ -29,6 +30,7 @@ export async function buildBackupData(): Promise<DietBackup> {
     dietDb.steps.toArray(),
     dietDb.sleep.toArray(),
     dietDb.progress.toArray(),
+    dietDb.products.toArray(),
     dietDb.settings.toCollection().first()
   ])
   // API anahtari da yedege dahil edilir ki yeniden kurulumda tekrar girmek
@@ -46,6 +48,7 @@ export async function buildBackupData(): Promise<DietBackup> {
     steps,
     sleep,
     progress,
+    products,
     settings
   }
 }
@@ -86,6 +89,7 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
     await dietDb.steps.clear()
     await dietDb.sleep.clear()
     await dietDb.progress.clear()
+    await dietDb.products.clear()
   }
   // id catismasini onlemek icin id'leri dusurerek ekle
   const strip = <T extends { id?: number }>(arr: T[]) => arr.map(({ id: _id, ...rest }) => rest)
@@ -97,6 +101,7 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
   if (b.steps?.length) await dietDb.steps.bulkAdd(strip(b.steps) as Steps[])
   if (b.sleep?.length) await dietDb.sleep.bulkAdd(strip(b.sleep) as Sleep[])
   if (b.progress?.length) await dietDb.progress.bulkAdd(strip(b.progress) as ProgressPhoto[])
+  if (b.products?.length) await dietDb.products.bulkAdd(strip(b.products) as SavedProduct[])
   // Ayarlar (apiKey haric) yedekte varsa, mevcut ayara isle
   if (b.settings) {
     const cur = await dietDb.settings.toCollection().first()

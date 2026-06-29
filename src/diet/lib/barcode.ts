@@ -3,10 +3,35 @@
 // API anahtari gerekmez. Token harcamaz.
 // NOT: ZXing kutuphanesi buyuk; yalnizca barkod okunurken (lazy) yuklenir.
 
+import { dietDb } from '../db'
+
 export interface ProductInfo {
   barcode: string
   name: string
   per100: { kcal: number; protein: number; carb: number; fat: number }
+}
+
+// Hafizadaki (elle girilmis) urunu getir
+export async function getSavedProduct(barcode: string): Promise<ProductInfo | null> {
+  const r = await dietDb.products.where('barcode').equals(barcode.trim()).first()
+  if (!r) return null
+  return { barcode: r.barcode, name: r.name, per100: { kcal: r.kcal, protein: r.protein, carb: r.carb, fat: r.fat } }
+}
+
+// Urunu hafizaya kaydet (ayni barkod varsa gunceller)
+export async function saveProduct(p: ProductInfo): Promise<void> {
+  const row = {
+    barcode: p.barcode.trim(),
+    name: p.name,
+    kcal: p.per100.kcal,
+    protein: p.per100.protein,
+    carb: p.per100.carb,
+    fat: p.per100.fat,
+    createdAt: Date.now()
+  }
+  const existing = await dietDb.products.where('barcode').equals(row.barcode).first()
+  if (existing?.id != null) await dietDb.products.update(existing.id, row)
+  else await dietDb.products.add(row)
 }
 
 // Bir fotograftan (data URL) barkod numarasini okur; bulamazsa null
