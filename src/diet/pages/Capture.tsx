@@ -466,7 +466,7 @@ export default function Capture() {
                 onClick={() => decide('ate')}
                 className="btn py-3 bg-slate-200 text-slate-700 hover:bg-slate-300"
               >
-                😋 Yine de yedim
+                😋 Yedim
               </button>
             </div>
             <button onClick={() => decide('none')} className="btn-ghost w-full py-2.5">
