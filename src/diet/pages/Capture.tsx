@@ -6,6 +6,7 @@ import { dietDb, readDietSettings, listExercises } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
+import MenuAsk from '../components/MenuAsk'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
 import type { Decision, DietEntry, FoodAnalysis, MealType } from '../types'
@@ -258,6 +259,9 @@ export default function Capture() {
 
         {/* Bugunku kalori takibi */}
         <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
+
+        {/* Menune sor (oglen ne var? siradaki ogun?) */}
+        <MenuAsk />
 
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
         <PendingCheckIn entries={entries ?? []} />
