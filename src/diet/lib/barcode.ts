@@ -32,6 +32,52 @@ export async function decodeBarcodeFromImage(dataUrl: string): Promise<string | 
   }
 }
 
+export interface ScannerControls {
+  stop: () => void
+}
+
+// Canli kamera ile barkod tarama. videoEl'e arka kamerayi baglar; barkod
+// okununca onResult cagrilir. Durdurmak icin donen stop() kullanilir.
+export async function startLiveScan(
+  videoEl: HTMLVideoElement,
+  onResult: (code: string) => void,
+  onError: (msg: string) => void
+): Promise<ScannerControls> {
+  try {
+    const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library')
+    const hints = new Map()
+    hints.set(DecodeHintType.TRY_HARDER, true)
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.CODE_128
+    ])
+    const reader = new BrowserMultiFormatReader(hints)
+    let done = false
+    const stop = () => {
+      done = true
+      try {
+        reader.reset()
+      } catch {
+        // yok say
+      }
+    }
+    await reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } } }, videoEl, (result) => {
+      if (result && !done) {
+        const text = result.getText()
+        stop()
+        onResult(text)
+      }
+    })
+    return { stop }
+  } catch {
+    onError('Kamera açılamadı. İzin vermen gerekebilir. Fotoğraf çekerek ya da numarayı yazarak da okutabilirsin.')
+    return { stop: () => {} }
+  }
+}
+
 function num(v: unknown): number {
   const n = typeof v === 'string' ? parseFloat(v) : (v as number)
   return Number.isFinite(n) ? Math.round((n as number) * 10) / 10 : 0

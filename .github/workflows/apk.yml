@@ -53,6 +53,12 @@ jobs:
       - name: Web varlıklarını senkronla
         run: npx cap sync android
 
+      - name: Kamera izni ekle (canlı barkod tarayıcı için)
+        run: |
+          f=android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.CAMERA' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' "$f"
+          echo "--- manifest izinleri ---"; grep -E "uses-permission|uses-feature" "$f" || true
+
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
         run: |
           cd android/app

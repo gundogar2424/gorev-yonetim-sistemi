@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DietHeader from '../DietHeader'
 import { dietDb } from '../db'
-import { decodeBarcodeFromImage, lookupProduct, forGrams, type ProductInfo } from '../lib/barcode'
+import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, type ProductInfo, type ScannerControls } from '../lib/barcode'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
 import { todayStr } from '../streak'
@@ -18,6 +18,38 @@ export default function Barcode() {
   const [mealType, setMealType] = useState<MealType>(guessMeal())
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
+  const [scanning, setScanning] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const scannerRef = useRef<ScannerControls | null>(null)
+
+  // Canli tarama: scanning acilinca kamerayi baslat, kapaninca/cikinca durdur
+  useEffect(() => {
+    if (!scanning) return
+    const el = videoRef.current
+    if (!el) return
+    let active = true
+    startLiveScan(
+      el,
+      (c) => {
+        setScanning(false)
+        setCode(c)
+        void search(c)
+      },
+      (m) => {
+        setMsg(m)
+        setScanning(false)
+      }
+    ).then((ctrl) => {
+      if (active) scannerRef.current = ctrl
+      else ctrl.stop()
+    })
+    return () => {
+      active = false
+      scannerRef.current?.stop()
+      scannerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanning])
 
   const g = Math.max(0, Number(grams) || 0)
   const vals = product ? forGrams(product, g) : null
@@ -100,9 +132,29 @@ export default function Barcode() {
       <div className="p-3 space-y-4">
         {/* Barkod gir / okut */}
         <section className="card p-4 space-y-3">
+          {/* Canli tarama (kamera acik) */}
+          {scanning && (
+            <div className="space-y-2">
+              <div className="relative rounded-xl overflow-hidden bg-black">
+                <video ref={videoRef} className="w-full max-h-72 object-cover" autoPlay muted playsInline />
+                <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-rose-500/80" />
+              </div>
+              <p className="text-center text-xs text-slate-500">Barkodu çerçeveye getir, kendi okur.</p>
+              <button onClick={() => setScanning(false)} className="btn bg-slate-200 text-slate-700 w-full">
+                Durdur
+              </button>
+            </div>
+          )}
+
+          {!scanning && (
+            <button onClick={() => { setMsg(''); setScanning(true) }} disabled={busy} className="btn-primary w-full">
+              📹 Canlı Tara (kamerayı aç)
+            </button>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => cameraRef.current?.click()} disabled={busy} className="btn-primary">
-              📷 Kamerayla Okut
+            <button onClick={() => cameraRef.current?.click()} disabled={busy} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300">
+              📷 Foto Çek
             </button>
             <button
               onClick={() => galleryRef.current?.click()}
