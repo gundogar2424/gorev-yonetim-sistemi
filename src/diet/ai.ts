@@ -207,6 +207,60 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
   }
 }
 
+// SADECE METINDEN degerlendirme (fotograf gondermez -> cok daha az token).
+// Kullanici yemegi yanlis tanindiginda "bu aslinda sudur" diye yazinca kullanilir.
+export async function analyzeFoodByText(opts: {
+  apiKey: string
+  note: string
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+}): Promise<FoodAnalysis> {
+  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!note.trim()) throw new Error('Yemeğin ne olduğunu yaz.')
+
+  const contextLines: string[] = []
+  if (userName) contextLines.push(`Kullanıcının adı: ${userName}.`)
+  if (goal) contextLines.push(`Diyet hedefi: ${goal}.`)
+  const contextText = contextLines.length ? `\n\nKullanıcı bağlamı: ${contextLines.join(' ')}` : ''
+  const planText = dietPlan?.trim()
+    ? `\n\nDİYET LİSTEM (buna göre değerlendir ve uyum yüzdesi ver):\n${dietPlan.trim()}`
+    : ''
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 2000,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `Bu yemeği yemek üzereyim (fotoğraf yok, sana ben tarif ediyorum): "${note.trim()}". foodName ve kalori/miktarı bu tarife göre belirle. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}`
+        }
+      ],
+      output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } }
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi. Farklı bir açıklama deneyin.')
+    if (response.stop_reason === 'max_tokens') throw new Error('Yanıt yarıda kesildi. Lütfen tekrar deneyin.')
+    const rawText = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!rawText) throw new Error('Modelden boş yanıt geldi. Lütfen tekrar deneyin.')
+    const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    try {
+      return JSON.parse(cleaned) as FoodAnalysis
+    } catch {
+      throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${cleaned.slice(0, 120)}…"`)
+    }
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // "Ne Yesem?" cikti semasi (gramajli ogun onerileri + makrolar)
 const MEAL_SCHEMA = {
   type: 'object',

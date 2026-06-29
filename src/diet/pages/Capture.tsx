@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
-import { analyzeFood } from '../ai'
+import { analyzeFood, analyzeFoodByText } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { fileToResizedDataUrl } from '../../lib/image'
@@ -110,11 +110,29 @@ export default function Capture() {
     }
   }
 
-  // Kullanici "yanlis tanidi" deyip aciklama yazinca ayni fotografi tekrar incele
+  // Kullanici "yanlis tanidi" deyip aciklama yazinca SADECE METINDEN incele
+  // (fotograf tekrar gonderilmez -> cok daha az token harcar)
   async function reanalyze() {
-    if (!photo || !note.trim()) return
+    if (!note.trim()) return
     setEditing(false)
-    await analyze(photo, note)
+    setError('')
+    setAnalysis(null)
+    setPhase('analyzing')
+    try {
+      const result = await analyzeFoodByText({
+        apiKey: settings!.apiKey!,
+        note,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan
+      })
+      setAnalysis(result)
+      setPhase('result')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setPhase('result')
+    }
   }
 
   async function decide(decision: Decision) {

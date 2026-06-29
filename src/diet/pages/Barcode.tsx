@@ -128,8 +128,8 @@ export default function Barcode() {
               <p className="text-emerald-50 text-xs mt-0.5">Barkod: {product.barcode}</p>
             </div>
             <div className="p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-semibold text-slate-600">Ne kadar yedin?</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-sm font-semibold text-slate-600">Ne kadar yedin/içtin?</label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -137,7 +137,8 @@ export default function Barcode() {
                   value={grams}
                   onChange={(e) => setGrams(e.target.value)}
                 />
-                <span className="text-sm text-slate-500">gram</span>
+                <span className="text-sm text-slate-500">g / ml</span>
+                <span className="basis-full text-[11px] text-slate-400">Katı için gram, içecek için ml gir.</span>
               </div>
 
               {vals && (
