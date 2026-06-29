@@ -68,6 +68,8 @@ export default function Capture() {
   const [mealType, setMealType] = useState<MealType>(guessMeal())
   const [note, setNote] = useState('') // kullanici duzeltmesi
   const [editing, setEditing] = useState(false) // duzeltme kutusu acik mi
+  const [textMode, setTextMode] = useState(false) // fotografsiz, yazarak ekleme
+  const [textNote, setTextNote] = useState('') // yazarak ekleme metni
 
   const hasKey = !!settings?.apiKey
 
@@ -102,6 +104,32 @@ export default function Capture() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         note: noteArg || undefined
+      })
+      setAnalysis(result)
+      setPhase('result')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setPhase('idle')
+    }
+  }
+
+  // Fotografsiz: kullanici yemegi yazar, sadece metinden degerlendirilir
+  async function analyzeText() {
+    if (!textNote.trim()) return
+    setPhoto('') // fotograf yok
+    setTextMode(false)
+    setMealType(guessMeal())
+    setError('')
+    setAnalysis(null)
+    setPhase('analyzing')
+    try {
+      const result = await analyzeFoodByText({
+        apiKey: settings!.apiKey!,
+        note: textNote,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan
       })
       setAnalysis(result)
       setPhase('result')
@@ -158,6 +186,8 @@ export default function Capture() {
     setError('')
     setNote('')
     setEditing(false)
+    setTextMode(false)
+    setTextNote('')
   }
 
   return (
@@ -240,7 +270,40 @@ export default function Capture() {
             <Link to="/barkod" className="btn-ghost w-full block">
               🏷️ Barkod ile Ekle
             </Link>
-            <p className="text-[11px] text-slate-400">Paketli ürünü barkodundan ekle (yapay zeka/token gerekmez).</p>
+
+            {/* Fotografsiz: yazarak ekle */}
+            {!textMode ? (
+              <button onClick={() => setTextMode(true)} disabled={!hasKey} className="btn-ghost w-full">
+                ✍️ Yazarak Ekle (fotoğrafsız)
+              </button>
+            ) : (
+              <div className="space-y-2 text-left">
+                <textarea
+                  className="field-input min-h-[64px]"
+                  autoFocus
+                  placeholder="Ne yedin/yiyeceksin? örn. 5 çorba kaşığı pilav + 1 köfte kadar tavuk + 1 su bardağı ayran"
+                  value={textNote}
+                  onChange={(e) => setTextNote(e.target.value)}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setTextMode(false)
+                      setTextNote('')
+                    }}
+                    className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2.5"
+                  >
+                    Vazgeç
+                  </button>
+                  <button onClick={analyzeText} disabled={!textNote.trim()} className="btn-primary py-2.5">
+                    İncele
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="text-[11px] text-slate-400">
+              Barkod: paketli ürün (token gerekmez). Yazarak ekle: fotoğraf çekmeden, yazdığına göre değerlendirir.
+            </p>
           </div>
         )}
 
@@ -481,6 +544,9 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
           <span className="text-3xl">{t.emoji}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2 mt-2">
+          {analysis.dietScore > 0 && (
+            <span className="text-xs font-bold bg-white/30 rounded-full px-2.5 py-1">⭐ Diyet puanı {analysis.dietScore}/10</span>
+          )}
           <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">🔥 ~{analysis.estimatedCalories} kcal</span>
           <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">{t.label}</span>
           <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">

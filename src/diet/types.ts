@@ -14,6 +14,7 @@ export interface FoodAnalysis {
   healthy: boolean // Diyet acisindan saglikli mi?
   riskLevel: RiskLevel // Diyeti bozma riski
   estimatedCalories: number // Tahmini kalori
+  dietScore: number // Diyete uygunluk puani 1-10 (10 = mukemmel, 1 = cok kotu); bilinmiyorsa 0
   harms: string[] // Yemegin zararlari / olumsuz yanlari
   motivations: string[] // Diyeti bozmamak icin motive edici sozler
   healthierAlternative: string // Daha saglikli alternatif oneri

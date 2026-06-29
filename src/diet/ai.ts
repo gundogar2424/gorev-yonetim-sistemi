@@ -24,6 +24,7 @@ const OUTPUT_SCHEMA = {
     healthy: { type: 'boolean' },
     riskLevel: { type: 'string', enum: ['düşük', 'orta', 'yüksek'] },
     estimatedCalories: { type: 'integer' },
+    dietScore: { type: 'integer' },
     harms: { type: 'array', items: { type: 'string' } },
     motivations: { type: 'array', items: { type: 'string' } },
     healthierAlternative: { type: 'string' },
@@ -39,6 +40,7 @@ const OUTPUT_SCHEMA = {
     'healthy',
     'riskLevel',
     'estimatedCalories',
+    'dietScore',
     'harms',
     'motivations',
     'healthierAlternative',
@@ -73,6 +75,8 @@ TÜRK DİYETİSYEN/EV ÖLÇÜLERİ: Kullanıcı miktarı şu ölçülerle verebi
 - 1 avuç ≈ 30 g, 1 dilim ekmek ≈ 25-30 g, 1 köfte kadar ≈ 30 g
 - "porsiyon", "adet", "kaşık" gibi ifadeleri makul gramaja çevir.
 Örn. "5 çorba kaşığı pilav" ≈ 100 g pişmiş pilav → ona göre kalori ver.
+
+DİYET PUANI: dietScore alanına bu yemeğe diyete uygunluk açısından 1-10 arası bir puan ver (10 = mükemmel/diyete tam uygun, 7-9 = iyi, 4-6 = idareli, 1-3 = kötü/diyeti bozar). Varsa diyet listesine uyumu ve sağlıklılığı birlikte değerlendir. Görselde yemek yoksa dietScore=0.
 
 Üslubun: Türkçe, sıcak, abartısız, suçlayıcı değil GÜÇLENDİRİCİ. Kısa ve vurucu cümleler kur. harms ve motivations için 2-4 madde yeterli. Kaloriyi gram göz kararı tahmin et (porsiyon başına).`
 

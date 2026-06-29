@@ -12,8 +12,19 @@ export interface ProductInfo {
 // Bir fotograftan (data URL) barkod numarasini okur; bulamazsa null
 export async function decodeBarcodeFromImage(dataUrl: string): Promise<string | null> {
   try {
-    const { BrowserMultiFormatReader } = await import('@zxing/library')
-    const reader = new BrowserMultiFormatReader()
+    const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library')
+    // Daha iyi okuma: "daha çok uğraş" + market barkodu formatları
+    const hints = new Map()
+    hints.set(DecodeHintType.TRY_HARDER, true)
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39
+    ])
+    const reader = new BrowserMultiFormatReader(hints)
     const result = await reader.decodeFromImageUrl(dataUrl)
     return result?.getText() ?? null
   } catch {
