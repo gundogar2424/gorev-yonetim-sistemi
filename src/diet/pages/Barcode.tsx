@@ -10,7 +10,8 @@ import type { MealType } from '../types'
 
 export default function Barcode() {
   const navigate = useNavigate()
-  const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
   const [code, setCode] = useState('')
   const [product, setProduct] = useState<ProductInfo | null>(null)
   const [grams, setGrams] = useState('100')
@@ -23,7 +24,7 @@ export default function Barcode() {
 
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (fileRef.current) fileRef.current.value = ''
+    e.target.value = ''
     if (!file) return
     setMsg('')
     setBusy(true)
@@ -98,10 +99,20 @@ export default function Barcode() {
       <div className="p-3 space-y-4">
         {/* Barkod gir / okut */}
         <section className="card p-4 space-y-3">
-          <button onClick={() => fileRef.current?.click()} disabled={busy} className="btn-primary w-full">
-            📷 Barkodun Fotoğrafını Çek / Seç
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} />
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => cameraRef.current?.click()} disabled={busy} className="btn-primary">
+              📷 Kamerayla Okut
+            </button>
+            <button
+              onClick={() => galleryRef.current?.click()}
+              disabled={busy}
+              className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+            >
+              🖼️ Galeriden Seç
+            </button>
+          </div>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPhoto} />
+          <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} />
 
           <div className="flex items-center gap-2">
             <input

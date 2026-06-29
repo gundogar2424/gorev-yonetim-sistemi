@@ -11,7 +11,8 @@ type Phase = 'idle' | 'thinking' | 'result'
 
 export default function Suggest() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
   const [phase, setPhase] = useState<Phase>('idle')
   const [photo, setPhoto] = useState('')
   const [advice, setAdvice] = useState<MealAdvice | null>(null)
@@ -21,7 +22,7 @@ export default function Suggest() {
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (fileRef.current) fileRef.current.value = ''
+    e.target.value = ''
     if (!file) return
     setError('')
     setAdvice(null)
@@ -77,10 +78,20 @@ export default function Suggest() {
               <span className="font-semibold">diyetine uygun</span>, gramajlı öğünler önersin — kalori{' '}
               <span className="font-semibold">ve makro</span> (protein/karbonhidrat/yağ) ile.
             </p>
-            <button onClick={() => fileRef.current?.click()} disabled={!hasKey} className="btn-primary w-full">
-              📷 Ürün Fotoğrafı (çek veya galeriden seç)
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => cameraRef.current?.click()} disabled={!hasKey} className="btn-primary">
+                📷 Fotoğraf Çek
+              </button>
+              <button
+                onClick={() => galleryRef.current?.click()}
+                disabled={!hasKey}
+                className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+              >
+                🖼️ Galeriden Seç
+              </button>
+            </div>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
+            <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
             {!settings?.dietPlan?.trim() && (
               <p className="text-[11px] text-slate-400">
                 İpucu: Ayarlar'a diyet listeni eklersen öneriler listene göre kişiselleşir.

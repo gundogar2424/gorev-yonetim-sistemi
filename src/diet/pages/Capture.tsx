@@ -58,7 +58,8 @@ export default function Capture() {
   const exercises = useLiveQuery(() => listExercises(), [], [])
   const stats = computeStats(entries ?? [], exercises ?? [])
 
-  const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
   const [phase, setPhase] = useState<Phase>('idle')
   const [photo, setPhoto] = useState<string>('')
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null)
@@ -72,7 +73,7 @@ export default function Capture() {
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (fileRef.current) fileRef.current.value = ''
+    e.target.value = ''
     if (!file) return
     setNote('')
     setEditing(false)
@@ -222,10 +223,20 @@ export default function Capture() {
               Yemeğini yemeden önce fotoğrafını çek. Yapay zeka onu tanıyıp diyetin için doğru kararı vermene
               yardım etsin.
             </p>
-            <button onClick={() => fileRef.current?.click()} disabled={!hasKey} className="btn-primary w-full">
-              📷 Fotoğraf Çek / Galeriden Seç
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => cameraRef.current?.click()} disabled={!hasKey} className="btn-primary">
+                📷 Fotoğraf Çek
+              </button>
+              <button
+                onClick={() => galleryRef.current?.click()}
+                disabled={!hasKey}
+                className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+              >
+                🖼️ Galeriden Seç
+              </button>
+            </div>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
+            <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
             <Link to="/barkod" className="btn-ghost w-full block">
               🏷️ Barkod ile Ekle
             </Link>

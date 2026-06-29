@@ -17,7 +17,8 @@ export default function DietSettings() {
   const [showKey, setShowKey] = useState(false)
   const [msg, setMsg] = useState('')
   const [planBusy, setPlanBusy] = useState(false)
-  const planFileRef = useRef<HTMLInputElement>(null)
+  const planCameraRef = useRef<HTMLInputElement>(null)
+  const planGalleryRef = useRef<HTMLInputElement>(null)
   const restoreFileRef = useRef<HTMLInputElement>(null)
 
   function flash(m: string) {
@@ -28,7 +29,7 @@ export default function DietSettings() {
   // Diyet listesinin fotografini cekip yapay zekayla metne cevir
   async function onPlanPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (planFileRef.current) planFileRef.current.value = ''
+    e.target.value = ''
     if (!file) return
     if (!settings?.apiKey) {
       flash('Önce API anahtarını gir.')
@@ -236,14 +237,24 @@ export default function DietSettings() {
             çekip okutabilirsin.
           </p>
 
-          <button
-            onClick={() => planFileRef.current?.click()}
-            disabled={planBusy || !settings?.apiKey}
-            className="btn-ghost w-full"
-          >
-            {planBusy ? 'Liste okunuyor…' : '📷 Liste Fotoğrafı (çek veya galeriden seç)'}
-          </button>
-          <input ref={planFileRef} type="file" accept="image/*" className="hidden" onChange={onPlanPhoto} />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => planCameraRef.current?.click()}
+              disabled={planBusy || !settings?.apiKey}
+              className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+            >
+              {planBusy ? 'Okunuyor…' : '📷 Fotoğraf Çek'}
+            </button>
+            <button
+              onClick={() => planGalleryRef.current?.click()}
+              disabled={planBusy || !settings?.apiKey}
+              className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+            >
+              🖼️ Galeriden Seç
+            </button>
+          </div>
+          <input ref={planCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPlanPhoto} />
+          <input ref={planGalleryRef} type="file" accept="image/*" className="hidden" onChange={onPlanPhoto} />
 
           <div>
             <label className="field-label">Liste (elle düzenleyebilirsin)</label>

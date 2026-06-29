@@ -7,7 +7,8 @@ import type { ProgressPhoto } from '../types'
 
 export default function Progress() {
   const photos = useLiveQuery(() => listProgress(), [], [])
-  const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -19,7 +20,7 @@ export default function Progress() {
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (fileRef.current) fileRef.current.value = ''
+    e.target.value = ''
     if (!file) return
     setBusy(true)
     try {
@@ -54,10 +55,20 @@ export default function Progress() {
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-          <button onClick={() => fileRef.current?.click()} disabled={busy} className="btn-primary w-full">
-            {busy ? 'Ekleniyor…' : '📷 Fotoğraf Çek / Ekle'}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => cameraRef.current?.click()} disabled={busy} className="btn-primary">
+              {busy ? '…' : '📷 Fotoğraf Çek'}
+            </button>
+            <button
+              onClick={() => galleryRef.current?.click()}
+              disabled={busy}
+              className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+            >
+              🖼️ Galeriden Seç
+            </button>
+          </div>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
+          <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
         </section>
 
         {/* Karsilastirma: ilk vs son */}
