@@ -150,25 +150,22 @@ export default function History() {
   )
 }
 
-// Ogun sonrasi geri bildirim: tokluk (doydun mu?) + nasil hissettin (1-10)
+// Ogun sonrasi tokluk puani (doydun mu?) 1-10
 function MealFeedback({ e }: { e: DietEntry }) {
   const [open, setOpen] = useState(false)
-  async function set(field: 'satiety' | 'feeling', v: number) {
-    const patch: Partial<DietEntry> = field === 'satiety' ? { satiety: v } : { feeling: v }
-    await dietDb.entries.update(e.id!, patch)
+  async function set(v: number) {
+    await dietDb.entries.update(e.id!, { satiety: v })
   }
-  const hasAny = e.satiety || e.feeling
   return (
     <div className="mt-1">
       {!open && (
         <button onClick={() => setOpen(true)} className="text-xs text-emerald-700 underline">
-          {hasAny ? `🍽️ Tokluk ${e.satiety ?? '–'}/10 · 😊 ${e.feeling ?? '–'}/10 ✏️` : '+ Doydun mu? Nasıl hissettin?'}
+          {e.satiety ? `🍽️ Tokluk ${e.satiety}/10 ✏️` : '+ Doydun mu? (tokluk)'}
         </button>
       )}
       {open && (
         <div className="space-y-1.5 mt-1 bg-slate-50 rounded-xl p-2">
-          <Scale label="🍽️ Doyurdu mu? (tokluk)" value={e.satiety} onPick={(v) => set('satiety', v)} />
-          <Scale label="😊 Nasıl hissediyorsun?" value={e.feeling} onPick={(v) => set('feeling', v)} />
+          <Scale label="🍽️ Doyurdu mu? (tokluk)" value={e.satiety} onPick={(v) => set(v)} />
           <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400">
             kapat
           </button>

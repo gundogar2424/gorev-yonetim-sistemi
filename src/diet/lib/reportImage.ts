@@ -195,7 +195,6 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
         const parts3: string[] = []
         if (e.compliancePercent >= 0) parts3.push(`Uyum %${e.compliancePercent}`)
         if (e.satiety) parts3.push(`Tokluk ${e.satiety}/10`)
-        if (e.feeling) parts3.push(`Keyif ${e.feeling}/10`)
         if (parts3.length) {
           ctx.fillStyle = '#475569'
           ctx.font = '18px sans-serif'

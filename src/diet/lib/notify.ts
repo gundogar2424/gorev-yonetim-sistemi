@@ -8,6 +8,7 @@ import type { Reminder, DietSettings } from '../types'
 const WATER_IDS_START = 201 // su hatirlaticilari 201..2xx
 const MOTIVATION_ID = 301 // gunluk motivasyon
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
+const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
 
 export function isNative(): boolean {
   return Capacitor.isNativePlatform()
@@ -128,6 +129,26 @@ function motivationNotification(time: string) {
     title: '🌟 Diyet Koçu',
     body: 'Bugün de sen kazan! Hedefine bir adım daha yaklaş. 💪',
     schedule: { on: { hour: h || 9, minute: m || 0 }, repeats: true, allowWhileIdle: true }
+  }
+}
+
+// Bir ogun yenince ~30 dk sonra "toklugunu puanla" bildirimi kurar (tek seferlik)
+export async function scheduleSatietyReminder(minutes = 30): Promise<void> {
+  if (!isNative()) return
+  try {
+    await ensureChannel()
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: SATIETY_ID,
+          title: '🍽️ Diyet Koçu',
+          body: 'Yarım saat oldu — son öğününde doydun mu? Tokluğunu puanla.',
+          schedule: { at: new Date(Date.now() + minutes * 60_000), allowWhileIdle: true }
+        }
+      ]
+    })
+  } catch {
+    // yok say
   }
 }
 
