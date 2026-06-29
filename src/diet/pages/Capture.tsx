@@ -208,6 +208,10 @@ export default function Capture() {
               📷 Fotoğraf Çek / Galeriden Seç
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+            <Link to="/barkod" className="btn-ghost w-full block">
+              🏷️ Barkod ile Ekle
+            </Link>
+            <p className="text-[11px] text-slate-400">Paketli ürünü barkodundan ekle (yapay zeka/token gerekmez).</p>
           </div>
         )}
 
