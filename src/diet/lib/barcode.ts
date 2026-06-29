@@ -32,6 +32,16 @@ export async function decodeBarcodeFromImage(dataUrl: string): Promise<string | 
   }
 }
 
+// APK'da Google'in native barkod tarayicisi (ML Kit). Web kamerasindan
+// cok daha guvenilir okur. Native degilse null doner (web tarayiciya dusulur).
+export async function nativeScan(): Promise<string | null> {
+  const { Capacitor } = await import('@capacitor/core')
+  if (!Capacitor.isNativePlatform()) return null
+  const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning')
+  const { barcodes } = await BarcodeScanner.scan()
+  return barcodes?.[0]?.rawValue ?? null
+}
+
 export interface ScannerControls {
   stop: () => void
 }

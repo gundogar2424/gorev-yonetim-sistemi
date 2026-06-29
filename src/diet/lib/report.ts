@@ -2,7 +2,7 @@
 // Token harcamaz — sadece kayitli verilerden duz metin olusturur.
 import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
-import { mealLabel } from './meals'
+import { mealLabel, MEAL_OPTIONS } from './meals'
 
 const TR_DECISION: Record<string, string> = {
   resisted: 'vazgeçti ✅',
@@ -30,17 +30,25 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
   if (adh != null) lines.push(`📊 Günlük diyet başarısı: %${adh}`)
   lines.push('')
 
-  // Ogunler
+  // Ogunler — ogune gore gruplanir (Kahvalti, Ogle, ... basliklari altinda)
   lines.push('🍽️ ÖĞÜNLER')
   if (entries.length === 0) {
     lines.push('  (kayıt yok)')
   } else {
-    for (const e of entries.sort((a, b) => a.createdAt - b.createdAt)) {
-      const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-      const comp = e.compliancePercent >= 0 ? ` · listeye uyum %${e.compliancePercent}` : ''
-      const meal = e.mealType ? `[${mealLabel(e.mealType)}] ` : ''
-      lines.push(`  • ${t} — ${meal}${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}`)
+    const sorted = [...entries].sort((a, b) => a.createdAt - b.createdAt)
+    const groups: (string | undefined)[] = [...MEAL_OPTIONS.map((o) => o.value), undefined]
+    for (const mt of groups) {
+      const items = sorted.filter((e) => (e.mealType ?? undefined) === mt)
+      if (!items.length) continue
+      lines.push('')
+      lines.push(`▸ ${mt ? mealLabel(mt as never) : 'Diğer'}`)
+      for (const e of items) {
+        const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        const comp = e.compliancePercent >= 0 ? ` · listeye uyum %${e.compliancePercent}` : ''
+        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}`)
+      }
     }
+    lines.push('')
     const ate = entries.filter((e) => e.decision === 'ate').length
     const resisted = entries.filter((e) => e.decision === 'resisted').length
     const kcal = entries.filter((e) => e.decision === 'ate').reduce((s, e) => s + (e.estimatedCalories || 0), 0)

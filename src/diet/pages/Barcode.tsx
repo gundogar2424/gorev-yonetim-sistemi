@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DietHeader from '../DietHeader'
 import { dietDb } from '../db'
-import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, type ProductInfo, type ScannerControls } from '../lib/barcode'
+import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, nativeScan, type ProductInfo, type ScannerControls } from '../lib/barcode'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
 import { todayStr } from '../streak'
@@ -76,6 +76,31 @@ export default function Barcode() {
     } finally {
       setBusy(false)
     }
+  }
+
+  // Canli tara: APK'da native (ML Kit) tarayici, web'de video tarayici
+  async function liveScan() {
+    setMsg('')
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+      if (Capacitor.isNativePlatform()) {
+        setBusy(true)
+        const c = await nativeScan()
+        setBusy(false)
+        if (c) {
+          setCode(c)
+          await search(c)
+        } else {
+          setMsg('Barkod okunamadı, tekrar dene.')
+        }
+        return
+      }
+    } catch (e) {
+      setBusy(false)
+      setMsg(e instanceof Error ? e.message : 'Tarayıcı açılamadı.')
+      return
+    }
+    setScanning(true) // web: kamera video tarayici
   }
 
   async function search(barcode?: string) {
@@ -160,7 +185,7 @@ export default function Barcode() {
           )}
 
           {!scanning && (
-            <button onClick={() => { setMsg(''); setScanning(true) }} disabled={busy} className="btn-primary w-full">
+            <button onClick={liveScan} disabled={busy} className="btn-primary w-full">
               📹 Canlı Tara (kamerayı aç)
             </button>
           )}

@@ -3,7 +3,7 @@
 // resim olarak gonderilebilir. Token harcamaz; her sey cihazda cizilir.
 import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
-import { mealLabel } from './meals'
+import { mealLabel, MEAL_OPTIONS } from './meals'
 
 const W = 820
 const PAD = 32
@@ -83,10 +83,19 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   entries.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
 
+  // Ogunleri ogun turune gore grupla (Kahvalti, Ogle, ... + Diger)
+  const HEAD = 34
+  const pairs = entries.map((e, i) => ({ e, img: photos[i] }))
+  const mealGroups = [...MEAL_OPTIONS.map((o) => o.value), undefined as undefined]
+    .map((mt) => ({ mt, list: pairs.filter((p) => (p.e.mealType ?? undefined) === mt) }))
+    .filter((g) => g.list.length > 0)
+
   // Yukseklik hesabi (cizimle ayni adimlar)
   let h = PAD + 56 + 44 // baslik + tarih
   h += 24 + 110 // basari blogu
-  h += 36 + (entries.length ? entries.length * (MEAL_H + 12) : 40) // ogunler
+  h += 36 // "Ogunler" basligi
+  if (entries.length === 0) h += 40
+  else for (const g of mealGroups) h += HEAD + g.list.length * (MEAL_H + 12)
   if (measurements.length) h += 44 + measurements.length * 30
   if (vitals.length) h += 44 + vitals.length * 30
   h += 50 // alt bilgi
@@ -155,37 +164,42 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     ctx.fillText('Bugün öğün kaydı yok.', PAD, y + 8)
     y += 40
   } else {
-    entries.forEach((e, i) => {
-      fillRound(ctx, PAD, y, W - 2 * PAD, MEAL_H, 14, '#ffffff')
-      const isz = MEAL_H - 24
-      const ix = PAD + 12
-      const iy = y + 12
-      const img = photos[i]
-      if (img) {
-        ctx.save()
-        roundRectPath(ctx, ix, iy, isz, isz, 10)
-        ctx.clip()
-        drawCover(ctx, img, ix, iy, isz)
-        ctx.restore()
-      } else {
-        fillRound(ctx, ix, iy, isz, isz, 10, '#e2e8f0')
+    for (const g of mealGroups) {
+      // Ogun basligi
+      ctx.fillStyle = '#0f766e'
+      ctx.font = 'bold 21px sans-serif'
+      ctx.fillText('▸ ' + (g.mt ? mealLabel(g.mt) : 'Diğer'), PAD, y + 16)
+      y += HEAD
+      for (const { e, img } of g.list) {
+        fillRound(ctx, PAD, y, W - 2 * PAD, MEAL_H, 14, '#ffffff')
+        const isz = MEAL_H - 24
+        const ix = PAD + 12
+        const iy = y + 12
+        if (img) {
+          ctx.save()
+          roundRectPath(ctx, ix, iy, isz, isz, 10)
+          ctx.clip()
+          drawCover(ctx, img, ix, iy, isz)
+          ctx.restore()
+        } else {
+          fillRound(ctx, ix, iy, isz, isz, 10, '#e2e8f0')
+        }
+        const tx = ix + isz + 18
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 24px sans-serif'
+        ctx.fillText(truncate(ctx, e.foodName, W - PAD - tx - 16), tx, y + 36)
+        ctx.fillStyle = '#64748b'
+        ctx.font = '19px sans-serif'
+        const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        ctx.fillText(`${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
+        if (e.compliancePercent >= 0) {
+          ctx.fillStyle = '#475569'
+          ctx.font = '18px sans-serif'
+          ctx.fillText(`Listeye uyum: %${e.compliancePercent}`, tx, y + 88)
+        }
+        y += MEAL_H + 12
       }
-      const tx = ix + isz + 18
-      ctx.fillStyle = '#0f172a'
-      ctx.font = 'bold 24px sans-serif'
-      ctx.fillText(truncate(ctx, e.foodName, W - PAD - tx - 16), tx, y + 36)
-      ctx.fillStyle = '#64748b'
-      ctx.font = '19px sans-serif'
-      const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-      const meal = e.mealType ? `${mealLabel(e.mealType)} · ` : ''
-      ctx.fillText(`${meal}${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
-      if (e.compliancePercent >= 0) {
-        ctx.fillStyle = '#475569'
-        ctx.font = '18px sans-serif'
-        ctx.fillText(`Listeye uyum: %${e.compliancePercent}`, tx, y + 88)
-      }
-      y += MEAL_H + 12
-    })
+    }
   }
 
   // Olculer

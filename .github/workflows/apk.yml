@@ -57,7 +57,8 @@ jobs:
         run: |
           f=android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.CAMERA' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' "$f"
-          echo "--- manifest izinleri ---"; grep -E "uses-permission|uses-feature" "$f" || true
+          grep -q 'mlkit.vision.DEPENDENCIES' "$f" || sed -i 's#</application>#    <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />\n</application>#' "$f"
+          echo "--- manifest ---"; grep -E "uses-permission|uses-feature|mlkit" "$f" || true
 
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
         run: |
