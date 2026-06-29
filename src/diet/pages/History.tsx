@@ -135,6 +135,7 @@ export default function History() {
                         </span>
                       )}
                     </div>
+                    {e.decision === 'ate' && <MealFeedback e={e} />}
                   </div>
                   <button onClick={() => remove(e.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1">
                     🗑️
@@ -143,6 +144,55 @@ export default function History() {
               )
             })}
           </section>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Ogun sonrasi geri bildirim: tokluk (doydun mu?) + nasil hissettin (1-10)
+function MealFeedback({ e }: { e: DietEntry }) {
+  const [open, setOpen] = useState(false)
+  async function set(field: 'satiety' | 'feeling', v: number) {
+    const patch: Partial<DietEntry> = field === 'satiety' ? { satiety: v } : { feeling: v }
+    await dietDb.entries.update(e.id!, patch)
+  }
+  const hasAny = e.satiety || e.feeling
+  return (
+    <div className="mt-1">
+      {!open && (
+        <button onClick={() => setOpen(true)} className="text-xs text-emerald-700 underline">
+          {hasAny ? `🍽️ Tokluk ${e.satiety ?? '–'}/10 · 😊 ${e.feeling ?? '–'}/10 ✏️` : '+ Doydun mu? Nasıl hissettin?'}
+        </button>
+      )}
+      {open && (
+        <div className="space-y-1.5 mt-1 bg-slate-50 rounded-xl p-2">
+          <Scale label="🍽️ Doyurdu mu? (tokluk)" value={e.satiety} onPick={(v) => set('satiety', v)} />
+          <Scale label="😊 Nasıl hissediyorsun?" value={e.feeling} onPick={(v) => set('feeling', v)} />
+          <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400">
+            kapat
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Scale({ label, value, onPick }: { label: string; value?: number; onPick: (v: number) => void }) {
+  return (
+    <div>
+      <p className="text-[11px] text-slate-500">{label}</p>
+      <div className="flex flex-wrap gap-1 mt-0.5">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            onClick={() => onPick(n)}
+            className={`w-6 h-6 rounded-full text-[11px] font-bold ${
+              value === n ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-600'
+            }`}
+          >
+            {n}
+          </button>
         ))}
       </div>
     </div>

@@ -45,8 +45,16 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
       for (const e of items) {
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         const comp = e.compliancePercent >= 0 ? ` · listeye uyum %${e.compliancePercent}` : ''
-        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}`)
+        const sat = e.satiety ? ` · tokluk ${e.satiety}/10` : ''
+        const feel = e.feeling ? ` · keyif ${e.feeling}/10` : ''
+        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}${sat}${feel}`)
       }
+    }
+    // Tokluk dusuk olan ogunler -> porsiyon uyarisi (diyetisyen icin)
+    const lowSat = entries.filter((e) => e.decision === 'ate' && e.satiety != null && e.satiety <= 4)
+    if (lowSat.length) {
+      lines.push('')
+      lines.push(`⚠️ ${lowSat.length} öğünde tokluk düşük (≤4/10) — porsiyon yetersiz olabilir.`)
     }
     lines.push('')
     const ate = entries.filter((e) => e.decision === 'ate').length

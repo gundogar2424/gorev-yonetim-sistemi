@@ -192,10 +192,14 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
         ctx.font = '19px sans-serif'
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         ctx.fillText(`${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
-        if (e.compliancePercent >= 0) {
+        const parts3: string[] = []
+        if (e.compliancePercent >= 0) parts3.push(`Uyum %${e.compliancePercent}`)
+        if (e.satiety) parts3.push(`Tokluk ${e.satiety}/10`)
+        if (e.feeling) parts3.push(`Keyif ${e.feeling}/10`)
+        if (parts3.length) {
           ctx.fillStyle = '#475569'
           ctx.font = '18px sans-serif'
-          ctx.fillText(`Listeye uyum: %${e.compliancePercent}`, tx, y + 88)
+          ctx.fillText(parts3.join(' · '), tx, y + 88)
         }
         y += MEAL_H + 12
       }
