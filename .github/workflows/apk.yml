@@ -1,3 +1,4 @@
+# Derleme yeniden tetikleme (Maven 403 geçici hatasından sonra)
 name: APK Derle (Diyet Koçu)
 
 on:
