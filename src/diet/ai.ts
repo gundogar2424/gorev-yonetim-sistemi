@@ -66,6 +66,14 @@ KONTROLLÜ KAÇAMAK (çok önemli):
 - cravingNote alanına, o miktarda durması için motive edici, suçlamayan KISA bir söz yaz (örn. "Tadına bak, keyfini çıkar ve orada dur — bu bir kaçamak, teslim olmak değil.").
 - Yemek SAĞLIKLI ise ya da görselde yemek yoksa: cravingPortion="" ve cravingNote="" (boş) bırak; sağlıklı yemekte kısıtlama önerme.
 
+TÜRK DİYETİSYEN/EV ÖLÇÜLERİ: Kullanıcı miktarı şu ölçülerle verebilir; bunları grama çevirip kaloriyi ona göre hesapla:
+- 1 çorba kaşığı ≈ 15 g (pilav/makarna/yoğurt gibi için ~20 g; zeytinyağı ~12 g)
+- 1 tatlı kaşığı ≈ 7 g, 1 çay kaşığı ≈ 5 g
+- 1 su bardağı ≈ 200 ml, 1 çay bardağı ≈ 100 ml, 1 kahve fincanı ≈ 60 ml
+- 1 avuç ≈ 30 g, 1 dilim ekmek ≈ 25-30 g, 1 köfte kadar ≈ 30 g
+- "porsiyon", "adet", "kaşık" gibi ifadeleri makul gramaja çevir.
+Örn. "5 çorba kaşığı pilav" ≈ 100 g pişmiş pilav → ona göre kalori ver.
+
 Üslubun: Türkçe, sıcak, abartısız, suçlayıcı değil GÜÇLENDİRİCİ. Kısa ve vurucu cümleler kur. harms ve motivations için 2-4 madde yeterli. Kaloriyi gram göz kararı tahmin et (porsiyon başına).`
 
 // Bir data URL'i media type + base64 parcalarina ayirir

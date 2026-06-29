@@ -260,15 +260,15 @@ export default function Capture() {
                 }}
                 className="w-full text-center text-sm text-slate-500 underline py-1"
               >
-                ✏️ Yanlış mı tanıdı? Ne olduğunu yaz, düzelteyim
+                ✏️ Yanlış mı tanıdı / miktarı belirteyim
               </button>
             ) : (
               <div className="card p-3 space-y-2 border-emerald-200">
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Bu yemek aslında ne? Ne kadar?</p>
+                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Bu yemek ne? Ne kadar?</p>
                 <textarea
                   className="field-input min-h-[64px]"
                   autoFocus
-                  placeholder="örn. Bamya yemeği, 1 porsiyon (~250 g), zeytinyağlı + 1 dilim esmer ekmek"
+                  placeholder="örn. 5 çorba kaşığı pilav + 1 köfte kadar tavuk + 1 su bardağı ayran"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
@@ -283,7 +283,9 @@ export default function Capture() {
                     🔁 Tekrar incele
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-400">Yazdığını esas alır; fotoğrafla çelişse bile seni dinler.</p>
+                <p className="text-[11px] text-slate-400">
+                  Çorba kaşığı, su bardağı, porsiyon, dilim, avuç gibi yazabilirsin — hesaplar. Fotoğraf kayıtta kalır.
+                </p>
               </div>
             )}
 
