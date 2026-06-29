@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
-import { analyzeFood, analyzeFoodByText } from '../ai'
+import { analyzeFood, analyzeFoodByText, chatAboutFood } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { fileToResizedDataUrl } from '../../lib/image'
@@ -70,6 +70,9 @@ export default function Capture() {
   const [editing, setEditing] = useState(false) // duzeltme kutusu acik mi
   const [textMode, setTextMode] = useState(false) // fotografsiz, yazarak ekleme
   const [textNote, setTextNote] = useState('') // yazarak ekleme metni
+  const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]) // ogun sohbeti
+  const [chatInput, setChatInput] = useState('')
+  const [chatBusy, setChatBusy] = useState(false)
 
   const hasKey = !!settings?.apiKey
 
@@ -188,6 +191,35 @@ export default function Capture() {
     setEditing(false)
     setTextMode(false)
     setTextNote('')
+    setChat([])
+    setChatInput('')
+  }
+
+  // Yemek hakkinda soru sor (sadece metin -> az token)
+  async function sendChat() {
+    const q = chatInput.trim()
+    if (!q || !analysis) return
+    const history = [...chat, { role: 'user' as const, text: q }]
+    setChat(history)
+    setChatInput('')
+    setChatBusy(true)
+    try {
+      const answer = await chatAboutFood({
+        apiKey: settings!.apiKey!,
+        foodName: analysis.foodName,
+        context: `${analysis.estimatedCalories} kcal, risk ${analysis.riskLevel}, diyet puanı ${analysis.dietScore}/10.`,
+        history,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan
+      })
+      setChat([...history, { role: 'assistant', text: answer }])
+    } catch (err) {
+      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+    } finally {
+      setChatBusy(false)
+    }
   }
 
   return (
@@ -378,6 +410,40 @@ export default function Capture() {
                     {m.emoji} {m.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Bu ogun hakkinda sohbet/soru (sadece metin -> az token) */}
+            <div className="card p-3 space-y-2">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">💬 Bu öğün hakkında sor</p>
+              {chat.length > 0 && (
+                <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                  {chat.map((m, i) => (
+                    <div
+                      key={i}
+                      className={`text-sm rounded-xl px-3 py-2 ${
+                        m.role === 'user'
+                          ? 'bg-emerald-600 text-white ml-8'
+                          : 'bg-slate-100 text-slate-800 mr-8'
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+                  ))}
+                  {chatBusy && <p className="text-xs text-slate-400 mr-8">yazıyor…</p>}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  className="field-input flex-1"
+                  placeholder="örn. Yarısını yesem? Yanında ne yiyebilirim?"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendChat()}
+                />
+                <button onClick={sendChat} disabled={chatBusy || !chatInput.trim()} className="btn-primary px-4">
+                  Sor
+                </button>
               </div>
             </div>
 

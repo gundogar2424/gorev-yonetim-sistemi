@@ -273,6 +273,53 @@ export async function analyzeFoodByText(opts: {
   }
 }
 
+// Yemek hakkinda SOHBET (sadece metin -> az token). Fotograf tekrar gonderilmez;
+// yemegin adi/baglami metin olarak verilir, kullanicinin sorularina kisa cevap.
+export async function chatAboutFood(opts: {
+  apiKey: string
+  foodName: string
+  context?: string
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+}): Promise<string> {
+  const { apiKey, foodName, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!history.length) throw new Error('Bir soru yaz.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcının adı: ${userName}.`)
+  if (goal) ctx.push(`Diyet hedefi: ${goal}.`)
+  if (dietPlan?.trim()) ctx.push(`Diyet listesi:\n${dietPlan.trim()}`)
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcı şu an "${foodName}" hakkında seninle konuşuyor.${
+    context ? ` Bilgi: ${context}` : ''
+  } Türkçe, KISA (1-3 cümle), net ve yardımcı cevap ver. Diyet/beslenme açısından pratik öneriler sun, abartma, suçlama. ${ctx.join(
+    ' '
+  )}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 600,
+      system,
+      messages: history.map((m) => ({ role: m.role, content: m.text }))
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!text) throw new Error('Cevap üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // "Ne Yesem?" cikti semasi (gramajli ogun onerileri + makrolar)
 const MEAL_SCHEMA = {
   type: 'object',
