@@ -29,7 +29,7 @@ export default function Shopping() {
   const list = items ?? []
   const pending = list.filter((i) => !i.done)
   const done = list.filter((i) => i.done)
-  const pendingGroups = groupByCategory(pending)
+  const allGroups = groupByCategory(list)
 
   return (
     <div>
@@ -67,57 +67,42 @@ export default function Shopping() {
           </div>
         )}
 
-        {/* Alinacaklar — kategoriye gore gruplanir */}
-        {pending.length > 0 && (
+        {/* Tum urunler — kategoriye gore gruplanir; tik atinca yerinde kalir,
+            istediginde tekrar dokununca tiki kalkar */}
+        {list.length > 0 && (
           <section className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">
-              Alınacaklar ({pending.length})
-            </h3>
-            {pendingGroups.map(([cat, group]) => (
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                Liste ({pending.length} kaldı{done.length ? ` · ${done.length} alındı` : ''})
+              </h3>
+              {done.length > 0 && (
+                <button onClick={clearDoneShopping} className="text-xs text-rose-500 underline">
+                  Alınanları temizle
+                </button>
+              )}
+            </div>
+            {allGroups.map(([cat, group]) => (
               <div key={cat} className="space-y-2">
-                {cat && (
-                  <p className="text-xs font-bold text-emerald-700 px-1">{cat}</p>
-                )}
+                {cat && <p className="text-xs font-bold text-emerald-700 px-1">{cat}</p>}
                 {group.map((i) => (
-                  <div key={i.id} className="card p-3 flex items-center gap-3">
+                  <div key={i.id} className={`card p-3 flex items-center gap-3 ${i.done ? 'opacity-60' : ''}`}>
                     <button
-                      onClick={() => toggleShopping(i.id!, true)}
-                      className="w-6 h-6 rounded-full border-2 border-emerald-500 flex-shrink-0"
-                      aria-label="Tamamla"
-                    />
-                    <span className="flex-1 text-slate-700">{i.text}</span>
+                      onClick={() => toggleShopping(i.id!, !i.done)}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        i.done ? 'bg-emerald-500 text-white' : 'border-2 border-emerald-500'
+                      }`}
+                      aria-label={i.done ? 'Tiki kaldır' : 'Tamamla'}
+                    >
+                      {i.done ? '✓' : ''}
+                    </button>
+                    <span className={`flex-1 ${i.done ? 'text-slate-500 line-through' : 'text-slate-700'}`}>
+                      {i.text}
+                    </span>
                     <button onClick={() => deleteShopping(i.id!)} className="text-slate-300 hover:text-rose-500">
                       🗑️
                     </button>
                   </div>
                 ))}
-              </div>
-            ))}
-          </section>
-        )}
-
-        {/* Alinanlar */}
-        {done.length > 0 && (
-          <section className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Alındı ({done.length})</h3>
-              <button onClick={clearDoneShopping} className="text-xs text-rose-500 underline">
-                Temizle
-              </button>
-            </div>
-            {done.map((i) => (
-              <div key={i.id} className="card p-3 flex items-center gap-3 opacity-60">
-                <button
-                  onClick={() => toggleShopping(i.id!, false)}
-                  className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0"
-                  aria-label="Geri al"
-                >
-                  ✓
-                </button>
-                <span className="flex-1 text-slate-500 line-through">{i.text}</span>
-                <button onClick={() => deleteShopping(i.id!)} className="text-slate-300 hover:text-rose-500">
-                  🗑️
-                </button>
               </div>
             ))}
           </section>
