@@ -58,10 +58,16 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
       lines.push(`⚠️ ${lowSat.length} öğünde tokluk düşük (≤4/10) — porsiyon yetersiz olabilir.`)
     }
     lines.push('')
-    const ate = entries.filter((e) => e.decision === 'ate').length
+    const eaten = entries.filter((e) => e.decision === 'ate')
+    const ate = eaten.length
     const resisted = entries.filter((e) => e.decision === 'resisted').length
-    const kcal = entries.filter((e) => e.decision === 'ate').reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+    const kcal = eaten.reduce((s, e) => s + (e.estimatedCalories || 0), 0)
     lines.push(`  Özet: ${resisted} vazgeçiş, ${ate} yenen öğün, ~${kcal} kcal alındı.`)
+    // Gunluk makro toplami (yenen ogunlerden)
+    const pT = eaten.reduce((s, e) => s + (e.protein || 0), 0)
+    const cT = eaten.reduce((s, e) => s + (e.carb || 0), 0)
+    const fT = eaten.reduce((s, e) => s + (e.fat || 0), 0)
+    if (pT + cT + fT > 0) lines.push(`  Makro toplam: ${pT}g protein · ${cT}g karbonhidrat · ${fT}g yağ.`)
   }
   lines.push('')
 
