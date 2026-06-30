@@ -499,7 +499,7 @@ export default function Capture() {
 
             {/* Bu ogun hakkinda sohbet/soru (sadece metin -> az token) */}
             <div className="card p-3 space-y-2">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">💬 Bu öğün hakkında sor</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">💬 Öğün hakkında</p>
               {chat.length > 0 && (
                 <div className="space-y-1.5 max-h-56 overflow-y-auto">
                   {chat.map((m, i) => (

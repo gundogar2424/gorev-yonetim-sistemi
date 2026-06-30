@@ -42,7 +42,7 @@ export default function MenuAsk() {
   return (
     <div className="card p-3 space-y-2 bg-emerald-50 border-emerald-100">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">🍽️ Bugün ne var?</p>
+        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">🍽️ Sıradaki menü</p>
         <Link to="/menu" className="text-xs text-emerald-700 underline">
           Menüm →
         </Link>
