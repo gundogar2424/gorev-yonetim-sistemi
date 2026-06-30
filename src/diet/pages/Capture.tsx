@@ -229,17 +229,32 @@ export default function Capture() {
     setChatInput('')
     setChatBusy(true)
     try {
-      const answer = await chatAboutFood({
+      const res = await chatAboutFood({
         apiKey: settings!.apiKey!,
         foodName: analysis.foodName,
-        context: `${analysis.estimatedCalories} kcal, risk ${analysis.riskLevel}, diyet puanı ${analysis.dietScore}/10.`,
+        dietScore: analysis.dietScore,
+        estimatedCalories: analysis.estimatedCalories,
+        context: `risk ${analysis.riskLevel}.`,
         history,
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan
       })
-      setChat([...history, { role: 'assistant', text: answer }])
+      // Kullanici sohbette yemegi/miktari duzelttiyse puani/kaloriyi guncelle
+      if (res.correction.changed) {
+        setAnalysis((prev) =>
+          prev
+            ? {
+                ...prev,
+                foodName: res.correction.foodName || prev.foodName,
+                dietScore: res.correction.dietScore,
+                estimatedCalories: res.correction.estimatedCalories
+              }
+            : prev
+        )
+      }
+      setChat([...history, { role: 'assistant', text: res.reply }])
     } catch (err) {
       setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
     } finally {

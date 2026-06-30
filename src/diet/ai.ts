@@ -273,19 +273,49 @@ export async function analyzeFoodByText(opts: {
   }
 }
 
+// Yemek sohbetinin yapilandirilmis ciktisi: cevap + (varsa) duzeltme.
+// Kullanici sohbette yemegi/miktari duzeltirse, puan/kalori burada guncellenir.
+const CHAT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    reply: { type: 'string' },
+    correction: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        changed: { type: 'boolean' },
+        foodName: { type: 'string' },
+        dietScore: { type: 'integer' },
+        estimatedCalories: { type: 'integer' }
+      },
+      required: ['changed', 'foodName', 'dietScore', 'estimatedCalories']
+    }
+  },
+  required: ['reply', 'correction']
+} as const
+
+export interface FoodChatResult {
+  reply: string
+  correction: { changed: boolean; foodName: string; dietScore: number; estimatedCalories: number }
+}
+
 // Yemek hakkinda SOHBET (sadece metin -> az token). Fotograf tekrar gonderilmez;
 // yemegin adi/baglami metin olarak verilir, kullanicinin sorularina kisa cevap.
+// Kullanici yemegi/miktari duzeltirse correction.changed=true ile yeni puan/kalori doner.
 export async function chatAboutFood(opts: {
   apiKey: string
   foodName: string
+  dietScore: number
+  estimatedCalories: number
   context?: string
   history: { role: 'user' | 'assistant'; text: string }[]
   model?: string
   userName?: string
   goal?: string
   dietPlan?: string
-}): Promise<string> {
-  const { apiKey, foodName, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+}): Promise<FoodChatResult> {
+  const { apiKey, foodName, dietScore, estimatedCalories, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Bir soru yaz.')
 
@@ -296,17 +326,28 @@ export async function chatAboutFood(opts: {
 
   const system = `Sen "Diyet Koçu"sun. Kullanıcı şu an "${foodName}" hakkında seninle konuşuyor.${
     context ? ` Bilgi: ${context}` : ''
-  } Türkçe, KISA (1-3 cümle), net ve yardımcı cevap ver. Diyet/beslenme açısından pratik öneriler sun, abartma, suçlama. ${ctx.join(
-    ' '
-  )}`
+  }
+Mevcut değerler: yemek adı "${foodName}", diyet puanı ${dietScore}/10, tahmini kalori ${estimatedCalories} kcal.
+
+reply alanına Türkçe, KISA (1-3 cümle), net ve yardımcı bir cevap yaz. Diyet/beslenme açısından pratik öneriler sun, abartma, suçlama.
+
+ÇOK ÖNEMLİ — DÜZELTME: Eğer kullanıcı bu sohbette yemeği veya miktarı DÜZELTİRSE (örn. "bu aslında bamya değil fasulye", "yarım porsiyon yedim", "aslında 2 dilim") ya da senden puanı/kaloriyi güncellemeni isterse:
+- correction.changed = true yap.
+- correction.foodName = düzeltilmiş yemek adı (değişmediyse mevcut adı yaz).
+- correction.dietScore = düzeltilmiş duruma göre 1-10 arası YENİ diyet puanı (10=mükemmel, 1=çok kötü). Varsa diyet listesine uyumu ve sağlıklılığı birlikte değerlendir.
+- correction.estimatedCalories = düzeltilmiş tahmini kalori.
+- reply alanında puanı/kaloriyi GÜNCELLEDİĞİNİ kısaca söyle (örn. "Düzelttim, yeni puanın 8/10.").
+Eğer ortada bir düzeltme YOKSA (sadece soru soruyorsa): correction.changed = false ve foodName/dietScore/estimatedCalories alanlarına MEVCUT değerleri aynen yaz.
+${ctx.join(' ')}`
 
   const client = await createClient(apiKey)
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 600,
+      max_tokens: 700,
       system,
-      messages: history.map((m) => ({ role: m.role, content: m.text }))
+      messages: history.map((m) => ({ role: m.role, content: m.text })),
+      output_config: { format: { type: 'json_schema', schema: CHAT_SCHEMA } }
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
     const text = response.content
@@ -314,7 +355,13 @@ export async function chatAboutFood(opts: {
       .join('')
       .trim()
     if (!text) throw new Error('Cevap üretilemedi. Lütfen tekrar deneyin.')
-    return text
+    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    try {
+      return JSON.parse(cleaned) as FoodChatResult
+    } catch {
+      // JSON cozulmezse en azindan metni cevap olarak goster, duzeltme yok say
+      return { reply: cleaned, correction: { changed: false, foodName, dietScore, estimatedCalories } }
+    }
   } catch (err) {
     throw friendlyError(err)
   }
