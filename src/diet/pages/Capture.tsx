@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -11,7 +11,7 @@ import MenuAsk from '../components/MenuAsk'
 import { scheduleSatietyReminder } from '../lib/notify'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
-import type { Decision, DietEntry, FoodAnalysis, MealType } from '../types'
+import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
@@ -65,6 +65,7 @@ export default function Capture() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
   const exercises = useLiveQuery(() => listExercises(), [], [])
+  const measurements = useLiveQuery(() => listMeasurements(), [], [])
   const stats = computeStats(entries ?? [], exercises ?? [])
 
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -329,6 +330,9 @@ export default function Capture() {
               : `${stats.streak} gündür diyetini bozmadın. Devam! 🔥`}
           </p>
         </div>
+
+        {/* Kilo hedefi & gidisat (motivasyon) */}
+        <WeightGoal measurements={measurements ?? []} target={settings?.targetWeight} start={settings?.startWeight} />
 
         {/* Bugunku diyet basari yuzdesi */}
         <DailyScore entries={entries ?? []} />
@@ -622,6 +626,89 @@ export default function Capture() {
             </Link>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// Kilo hedefi & gidisat karti: baslangic -> su an -> hedef, ne kadar verildi,
+// hedefe ne kaldi ve ilerleme cubugu. Hedef girilmemisse nazikce yonlendirir.
+function WeightGoal({ measurements, target, start }: { measurements: Measurement[]; target?: number; start?: number }) {
+  // Kilo girilmis olculeri kronolojik al
+  const weights = measurements
+    .filter((m) => typeof m.weight === 'number')
+    .sort((a, b) => a.createdAt - b.createdAt)
+  const current = weights.length ? (weights[weights.length - 1].weight as number) : undefined
+  const startW = start ?? (weights.length ? (weights[0].weight as number) : undefined)
+
+  // Hedef yoksa: olcu varsa kucuk bir yonlendirme goster, yoksa hic gosterme
+  if (!target) {
+    if (current == null) return null
+    return (
+      <Link to="/ayarlar" className="card p-3 flex items-center gap-3 bg-brand-50 border-brand-100">
+        <span className="text-2xl">🎯</span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-brand-800">Kilo hedefi koy</p>
+          <p className="text-xs text-brand-700/80">Ayarlar’dan hedef kiloyu gir, ilerlemeni burada göster.</p>
+        </div>
+        <span className="text-brand-700">→</span>
+      </Link>
+    )
+  }
+
+  if (current == null) {
+    // Hedef var ama hic tarti yok -> tartmaya yonlendir
+    return (
+      <Link to="/takip" className="card p-3 flex items-center gap-3 bg-brand-50 border-brand-100">
+        <span className="text-2xl">⚖️</span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-brand-800">Hedef: {target} kg</p>
+          <p className="text-xs text-brand-700/80">İlk tartını gir, gidişatını takip edelim.</p>
+        </div>
+        <span className="text-brand-700">→</span>
+      </Link>
+    )
+  }
+
+  const base = startW ?? current
+  const lost = Math.round((base - current) * 10) / 10 // + ise verilen kilo
+  const remaining = Math.round((current - target) * 10) / 10 // + ise verilecek kilo
+  const reached = current <= target + 0.05
+  // Ilerleme: baslangictan hedefe ne kadar yol alindi (0-100)
+  const span = base - target
+  const pct = span > 0 ? Math.max(0, Math.min(100, Math.round(((base - current) / span) * 100))) : reached ? 100 : 0
+
+  return (
+    <div className="card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="section-title">🎯 Kilo hedefin</span>
+        <span className="text-xs font-semibold text-slate-500">{base} → {target} kg</span>
+      </div>
+
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-3xl font-extrabold text-slate-800">{current}<span className="text-base font-bold text-slate-400"> kg</span></p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {lost > 0 ? `Başlangıçtan beri ${lost} kg verdin 🎉` : lost < 0 ? `Başlangıca göre ${Math.abs(lost)} kg arttı` : 'Henüz değişim yok'}
+          </p>
+        </div>
+        <div className="text-right">
+          {reached ? (
+            <span className="chip bg-brand-100 text-brand-800">Hedefe ulaştın! 🏆</span>
+          ) : (
+            <>
+              <p className="text-2xl font-extrabold text-brand-600">{remaining} kg</p>
+              <p className="text-xs text-slate-500">hedefe kaldı</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-[11px] text-slate-400 mt-1 text-right">%{pct} tamamlandı</p>
       </div>
     </div>
   )

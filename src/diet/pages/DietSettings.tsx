@@ -225,7 +225,39 @@ export default function DietSettings() {
                 }
               />
             </div>
+            <div>
+              <label className="field-label">🎯 Hedef kilo (kg)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                className="field-input"
+                placeholder="örn 75"
+                value={settings?.targetWeight ?? ''}
+                onChange={(e) =>
+                  saveDietSettings({ targetWeight: e.target.value ? Math.max(0, Number(e.target.value.replace(',', '.'))) : undefined })
+                }
+              />
+            </div>
+            <div>
+              <label className="field-label">⚖️ Başlangıç kilosu</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                className="field-input"
+                placeholder="boşsa ilk ölçü"
+                value={settings?.startWeight ?? ''}
+                onChange={(e) =>
+                  saveDietSettings({ startWeight: e.target.value ? Math.max(0, Number(e.target.value.replace(',', '.'))) : undefined })
+                }
+              />
+            </div>
           </div>
+          <p className="text-xs text-slate-500">
+            🎯 Hedef kiloyu girersen ana ekranda “ne kadar verdin / hedefe ne kaldı” gösterilir. Başlangıç boşsa ilk
+            tartı kaydın esas alınır.
+          </p>
         </section>
 
         {/* Diyet listesi */}

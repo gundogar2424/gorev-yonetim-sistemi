@@ -209,6 +209,8 @@ export interface DietSettings {
   // Gunluk/haftalik hedefler (istege bagli; bos birakilirsa varsayilan kullanilir)
   waterGoal?: number // Gunluk su hedefi (bardak)
   calorieGoal?: number // Gunluk kalori hedefi (kcal)
+  targetWeight?: number // Hedef kilo (kg) — ana ekran ilerleme karti icin
+  startWeight?: number // Baslangic kilosu (kg); bos ise ilk olcumden alinir
   weeklyExerciseGoal?: number // Haftalik egzersiz hedefi (adet)
   stepGoal?: number // Gunluk adim hedefi
   sleepGoal?: number // Gunluk uyku hedefi (saat)
