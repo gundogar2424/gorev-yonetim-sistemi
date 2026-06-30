@@ -802,6 +802,11 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
           <MacroBar label="Protein" grams={protein} pct={share(protein, 4)} color="bg-rose-500" />
           <MacroBar label="Karbonhidrat" grams={carb} pct={share(carb, 4)} color="bg-sky-500" />
           <MacroBar label="Yağ" grams={fat} pct={share(fat, 9)} color="bg-amber-500" />
+          {kcal > 0 && macroKcal < kcal * 0.5 && (
+            <p className="text-[11px] text-slate-400 leading-tight">
+              Bazı öğünler makro bilgisi olmadan eklenmiş; yeni eklediklerinde dolacak.
+            </p>
+          )}
         </div>
       </div>
     </div>
