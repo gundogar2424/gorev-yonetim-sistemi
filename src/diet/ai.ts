@@ -530,7 +530,18 @@ const SHOPPING_SCHEMA = {
         additionalProperties: false,
         properties: {
           name: { type: 'string' },
-          items: { type: 'array', items: { type: 'string' } }
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                name: { type: 'string' },
+                meals: { type: 'array', items: { type: 'string' } }
+              },
+              required: ['name', 'meals']
+            }
+          }
         },
         required: ['name', 'items']
       }
@@ -562,7 +573,8 @@ export async function suggestShopping(opts: {
 
 Kurallar:
 - Listeyi ÜRÜN TİPİNE/KATEGORİSİNE göre grupla. Tipik kategoriler: "Sebze & Meyve", "Et, Tavuk & Balık", "Süt Ürünleri & Yumurta", "Tahıl & Bakliyat", "Kuruyemiş & Tohum", "İçecek", "Diğer". Sadece gerçekten gereken kategorileri kullan.
-- Her kategoride, diyet listesinde geçen veya o öğünleri yapmak için gereken ürünleri yaz. Ürün adlarını KISA ve sade tut (örn. "yumurta", "tam buğday ekmeği", "yağsız yoğurt", "tavuk göğsü", "brokoli"). İstersen yaklaşık miktar ekleyebilirsin (örn. "yulaf (1 paket)").
+- Her kategoride, diyet listesinde geçen veya o öğünleri yapmak için gereken ürünleri yaz. Her ürün bir nesnedir: name (ürün adı) + meals (hangi öğünlerde geçtiği). Ürün adlarını KISA ve sade tut (örn. "yumurta", "tam buğday ekmeği", "yağsız yoğurt", "tavuk göğsü", "brokoli"). İstersen name içine yaklaşık miktar ekleyebilirsin (örn. "yulaf (1 paket)").
+- meals alanına, o ürünün diyet listesinde GEÇTİĞİ ÖĞÜNLERİN adlarını yaz (listedeki öğün başlıklarını kullan: örn. "Kahvaltı", "Ara öğün", "Öğle", "İkindi", "Akşam", "Gece"). Bir ürün birden çok öğünde geçiyorsa hepsini yaz (örn. ["Kahvaltı","Akşam"]). Hangi öğünde olduğu listeden net değilse en olası öğünü yaz; genel bir temel malzemeyse boş [] bırakabilirsin.
 - Yaklaşık ${days} günlük ihtiyaca göre düşün. Aşırıya kaçma; pratik ve gerçekçi bir liste olsun.
 - Diyet listesinde olmayan, sağlıksız (şekerli/işlenmiş) ürünler EKLEME.
 - note alanına TEK kısa cümlelik bir bilgi yaz (örn. "Listene göre ~${days} günlük temel alışveriş.").

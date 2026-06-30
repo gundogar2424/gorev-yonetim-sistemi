@@ -176,12 +176,17 @@ export interface ShoppingItem {
   text: string
   done: boolean
   category?: string // Urun tipi/kategorisi (orn. "Sebze & Meyve") — gruplamak icin
+  meals?: string[] // Bu urun diyet listesinde hangi ogun(ler)de geciyor (orn. ["Kahvaltı","Akşam"])
 }
 
 // Diyet listesine gore uretilen, kategorilere ayrilmis alisveris onerisi
+export interface ShoppingSuggestItem {
+  name: string // Urun adi
+  meals: string[] // Hangi ogun(ler)de geciyor (orn. ["Kahvaltı","Akşam"])
+}
 export interface ShoppingCategory {
   name: string // Kategori adi (orn. "Sebze & Meyve")
-  items: string[] // O kategorideki urunler
+  items: ShoppingSuggestItem[] // O kategorideki urunler (ogun bilgisiyle)
 }
 export interface ShoppingSuggestion {
   categories: ShoppingCategory[]

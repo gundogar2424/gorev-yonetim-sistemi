@@ -12,7 +12,7 @@ import {
   readDietSettings
 } from '../db'
 import { suggestShopping } from '../ai'
-import type { ShoppingItem, ShoppingSuggestion } from '../types'
+import type { ShoppingItem, ShoppingSuggestion, ShoppingSuggestItem } from '../types'
 
 export default function Shopping() {
   const items = useLiveQuery(() => listShopping(), [], [])
@@ -95,9 +95,21 @@ export default function Shopping() {
                     >
                       {i.done ? '✓' : ''}
                     </button>
-                    <span className={`flex-1 ${i.done ? 'text-slate-500 line-through' : 'text-slate-700'}`}>
-                      {i.text}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className={i.done ? 'text-slate-500 line-through' : 'text-slate-700'}>{i.text}</span>
+                      {i.meals && i.meals.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {i.meals.map((m) => (
+                            <span
+                              key={m}
+                              className="text-[10px] font-semibold bg-amber-100 text-amber-800 rounded-full px-1.5 py-0.5"
+                            >
+                              🍽️ {m}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button onClick={() => deleteShopping(i.id!)} className="text-slate-300 hover:text-rose-500">
                       🗑️
                     </button>
@@ -150,15 +162,16 @@ function SuggestFromPlan({
     }
   }
 
-  async function addOne(cat: string, item: string) {
-    await addShopping(item, cat)
-    setAdded((s) => new Set(s).add(cat + '|' + item))
+  async function addOne(cat: string, item: ShoppingSuggestItem) {
+    await addShopping(item.name, cat, item.meals)
+    setAdded((s) => new Set(s).add(cat + '|' + item.name))
   }
 
   async function addAll() {
     if (!result) return
-    const all: { text: string; category: string }[] = []
-    for (const c of result.categories) for (const it of c.items) all.push({ text: it, category: c.name })
+    const all: { text: string; category: string; meals: string[] }[] = []
+    for (const c of result.categories)
+      for (const it of c.items) all.push({ text: it.name, category: c.name, meals: it.meals })
     await addShoppingMany(all)
     setAdded(new Set(all.map((a) => a.category + '|' + a.text)))
   }
@@ -222,10 +235,10 @@ function SuggestFromPlan({
               <p className="text-xs font-bold text-slate-600">{c.name}</p>
               <div className="flex flex-wrap gap-1.5">
                 {c.items.map((it) => {
-                  const isAdded = added.has(c.name + '|' + it)
+                  const isAdded = added.has(c.name + '|' + it.name)
                   return (
                     <button
-                      key={it}
+                      key={it.name}
                       onClick={() => addOne(c.name, it)}
                       disabled={isAdded}
                       className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
@@ -233,7 +246,8 @@ function SuggestFromPlan({
                       }`}
                     >
                       {isAdded ? '✓ ' : '+ '}
-                      {it}
+                      {it.name}
+                      {it.meals.length > 0 && <span className="opacity-70"> · {it.meals.join(', ')}</span>}
                     </button>
                   )
                 })}

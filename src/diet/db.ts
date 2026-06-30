@@ -252,14 +252,14 @@ export async function deleteProgress(id: number) {
 export function listShopping(): Promise<ShoppingItem[]> {
   return dietDb.shopping.orderBy('createdAt').toArray()
 }
-export async function addShopping(text: string, category?: string) {
-  await dietDb.shopping.add({ text, done: false, createdAt: Date.now(), category })
+export async function addShopping(text: string, category?: string, meals?: string[]) {
+  await dietDb.shopping.add({ text, done: false, createdAt: Date.now(), category, meals })
 }
-// Kategori bilgisini koruyarak birden cok urunu tek seferde ekler
-export async function addShoppingMany(items: { text: string; category?: string }[]) {
+// Kategori ve ogun bilgisini koruyarak birden cok urunu tek seferde ekler
+export async function addShoppingMany(items: { text: string; category?: string; meals?: string[] }[]) {
   const now = Date.now()
   await dietDb.shopping.bulkAdd(
-    items.map((it, i) => ({ text: it.text, category: it.category, done: false, createdAt: now + i }))
+    items.map((it, i) => ({ text: it.text, category: it.category, meals: it.meals, done: false, createdAt: now + i }))
   )
 }
 export async function toggleShopping(id: number, done: boolean) {
