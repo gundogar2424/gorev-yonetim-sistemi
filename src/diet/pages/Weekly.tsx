@@ -1,13 +1,19 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, listExercises, listMeasurements } from '../db'
-import { computeWeekly } from '../streak'
+import { dietDb, listExercises, listMeasurements, readDietSettings } from '../db'
+import { computeWeekly, todayStr, dayAdherence, type WeeklySummary } from '../streak'
+import { mealLabel } from '../lib/meals'
+import { weeklyCoachSummary } from '../ai'
+import { shareTextSmart } from '../lib/share'
+import type { DietEntry } from '../types'
 
 export default function Weekly() {
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
   const exercises = useLiveQuery(() => listExercises(), [], [])
   const measurements = useLiveQuery(() => listMeasurements(), [], [])
+  const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const [days, setDays] = useState(7)
 
   const s = computeWeekly(entries ?? [], exercises ?? [], [], measurements ?? [], [], [], days)
@@ -31,6 +37,17 @@ export default function Weekly() {
             </button>
           ))}
         </div>
+
+        {/* Haftalik koc ozeti (yapay zeka) */}
+        <CoachSummary
+          entries={entries ?? []}
+          days={days}
+          s={s}
+          apiKey={settings?.apiKey}
+          model={settings?.model}
+          userName={settings?.userName}
+          goal={settings?.goal}
+        />
 
         {/* Puan vurgu */}
         <div className="card p-4 bg-gradient-to-br from-amber-400 to-orange-500 text-white border-0 text-center">
@@ -72,6 +89,121 @@ export default function Weekly() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Son N gunun verisini kompakt bir metne dokup yapay zekadan haftalik
+// degerlendirme ister. Sonucu gosterir; diyetisyene de gonderilebilir.
+function CoachSummary({
+  entries,
+  days,
+  s,
+  apiKey,
+  model,
+  userName,
+  goal
+}: {
+  entries: DietEntry[]
+  days: number
+  s: WeeklySummary
+  apiKey?: string
+  model?: string
+  userName?: string
+  goal?: string
+}) {
+  const [busy, setBusy] = useState(false)
+  const [text, setText] = useState('')
+  const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+
+  function buildData(): string {
+    const lines: string[] = []
+    lines.push(`Vazgeçiş: ${s.resisted}, yenen öğün: ${s.ate}, diyet bozma: ${s.broke}.`)
+    lines.push(`Toplam alınan kalori ~${s.kcalAte} kcal (günlük ort ~${Math.round(s.kcalAte / days)} kcal).`)
+    lines.push(`Egzersiz: ${s.exerciseCount} kez, ${s.exerciseMinutes} dk.`)
+    if (s.weightChange != null) lines.push(`Kilo değişimi: ${s.weightChange > 0 ? '+' : ''}${s.weightChange} kg.`)
+
+    // Gunluk basari (son N gun)
+    const adh: string[] = []
+    for (let i = days - 1; i >= 0; i--) {
+      const d = todayStr(new Date(Date.now() - i * 86_400_000))
+      const pct = dayAdherence(entries, d)
+      if (pct != null) adh.push(`${d.slice(5)}: %${pct}`)
+    }
+    if (adh.length) lines.push(`Günlük diyet başarısı: ${adh.join(', ')}.`)
+
+    // Toklugu dusuk ogunler (porsiyon yetersiz olabilir) -> ogun turune gore
+    const start = todayStr(new Date(Date.now() - (days - 1) * 86_400_000))
+    const low = entries.filter((e) => e.dateStr >= start && e.decision === 'ate' && e.satiety != null && e.satiety <= 4)
+    if (low.length) {
+      const byMeal = new Map<string, number>()
+      for (const e of low) {
+        const k = e.mealType ? mealLabel(e.mealType) : 'Diğer'
+        byMeal.set(k, (byMeal.get(k) ?? 0) + 1)
+      }
+      lines.push(
+        `Tokluğu düşük (≤4/10) öğünler: ${Array.from(byMeal.entries()).map(([k, n]) => `${k} x${n}`).join(', ')}.`
+      )
+    }
+    return lines.join('\n')
+  }
+
+  async function generate() {
+    if (!apiKey) return
+    setError('')
+    setText('')
+    setBusy(true)
+    try {
+      const res = await weeklyCoachSummary({ apiKey, data: buildData(), days, model, userName, goal })
+      setText(res)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Özet alınamadı.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function send() {
+    const res = await shareTextSmart(`🗓️ Haftalık değerlendirme (son ${days} gün)\n\n${text}`)
+    if (res === 'shared') setMsg('Paylaşım menüsü açıldı.')
+    else if (res === 'copied') setMsg('Panoya kopyalandı.')
+    else if (res !== 'cancelled') setMsg('Gönderilemedi.')
+    setTimeout(() => setMsg(''), 3500)
+  }
+
+  return (
+    <section className="card p-3 space-y-2 bg-brand-50 border-brand-100">
+      <h3 className="font-bold text-brand-800 text-sm uppercase tracking-wide">🤖 Haftalık Koç Değerlendirmesi</h3>
+      {!apiKey ? (
+        <p className="text-xs text-slate-500">
+          Yapay zeka değerlendirmesi için{' '}
+          <Link to="/ayarlar" className="underline font-semibold">
+            Ayarlar
+          </Link>
+          ’dan API anahtarı ekle.
+        </p>
+      ) : (
+        <>
+          <p className="text-xs text-slate-500">
+            Son {days} gününe bakıp neyi iyi yaptığını, nelere dikkat etmen gerektiğini ve birkaç öneriyi özetler.
+          </p>
+          <button onClick={generate} disabled={busy} className="btn-primary w-full">
+            {busy ? 'Değerlendiriyorum…' : '🪄 Haftamı değerlendir'}
+          </button>
+          <p className="text-[11px] text-slate-400">Bu özellik token kullanır (küçük, tek seferlik).</p>
+        </>
+      )}
+      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {text && (
+        <div className="space-y-2">
+          <p className="text-sm text-slate-800 bg-white rounded-xl p-3 leading-snug whitespace-pre-wrap">{text}</p>
+          <button onClick={send} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 w-full">
+            📤 Diyetisyene gönder
+          </button>
+          {msg && <p className="text-xs text-brand-700 font-semibold">{msg}</p>}
+        </div>
+      )}
+    </section>
   )
 }
 

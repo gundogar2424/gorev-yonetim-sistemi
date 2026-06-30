@@ -740,38 +740,85 @@ function DailyScore({ entries }: { entries: DietEntry[] }) {
   )
 }
 
-// Bugun YENEN ogunlerin toplam tahmini kalorisi; hedef girildiyse ona gore renk
+// Bugun YENEN ogunlerin kalori HALKASI + makro (protein/karb/yag) dagilimi.
 function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number }) {
   const today = todayStr()
-  const kcal = entries
-    .filter((e) => e.dateStr === today && e.decision === 'ate')
-    .reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+  const todays = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
+  const kcal = todays.reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+  const protein = todays.reduce((s, e) => s + (e.protein || 0), 0)
+  const carb = todays.reduce((s, e) => s + (e.carb || 0), 0)
+  const fat = todays.reduce((s, e) => s + (e.fat || 0), 0)
+
   const target = goal && goal > 0 ? goal : 0
-  const pct = target ? Math.min(100, Math.round((kcal / target) * 100)) : 0
+  const frac = target ? Math.min(1, kcal / target) : 0
   const over = target > 0 && kcal > target
-  const barColor = !target ? 'bg-slate-300' : over ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+  const ringColor = over ? '#e11d48' : frac >= 0.8 ? '#f59e0b' : '#059669'
+
+  // Halka (SVG)
+  const R = 50
+  const C = 2 * Math.PI * R
+  const dash = target ? C * frac : 0
+
+  // Makro kalori paylari (P/C 4 kcal, F 9 kcal) -> cubuk orani
+  const macroKcal = protein * 4 + carb * 4 + fat * 9
+  const share = (g: number, perG: number) => (macroKcal > 0 ? Math.round(((g * perG) / macroKcal) * 100) : 0)
 
   return (
-    <div className="card p-3 bg-orange-50 border-orange-100 flex flex-col">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">🔥 Kalori</span>
-        {target > 0 && <span className="text-xs text-orange-600">/{target}</span>}
-      </div>
-      <p className={`text-3xl font-extrabold mt-1 ${over ? 'text-rose-600' : 'text-orange-700'}`}>{kcal}</p>
-      {target > 0 ? (
-        <>
-          <div className="h-2 w-full bg-orange-100 rounded-full overflow-hidden mt-1">
-            <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+    <div className="card p-4">
+      <div className="flex items-center gap-4">
+        {/* Kalori halkasi */}
+        <div className="relative flex-shrink-0" style={{ width: 120, height: 120 }}>
+          <svg width="120" height="120" className="-rotate-90">
+            <circle cx="60" cy="60" r={R} fill="none" stroke="#f1f5f9" strokeWidth="12" />
+            {target > 0 && (
+              <circle
+                cx="60"
+                cy="60"
+                r={R}
+                fill="none"
+                stroke={ringColor}
+                strokeWidth="12"
+                strokeLinecap="round"
+                strokeDasharray={`${dash} ${C}`}
+              />
+            )}
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={`text-2xl font-extrabold ${over ? 'text-rose-600' : 'text-slate-800'}`}>{kcal}</span>
+            <span className="text-[11px] text-slate-400">{target > 0 ? `/ ${target} kcal` : 'kcal bugün'}</span>
           </div>
-          <p className={`text-xs font-semibold mt-2 ${over ? 'text-rose-600' : 'text-orange-700'}`}>
-            {over ? `Hedefi ${kcal - target} kcal aştın` : `${target - kcal} kcal kaldı`}
-          </p>
-        </>
-      ) : (
-        <p className="text-xs text-orange-600/80 mt-auto pt-2">
-          Bugün alınan kalori. Hedef için Ayarlar.
-        </p>
-      )}
+        </div>
+
+        {/* Makrolar */}
+        <div className="flex-1 min-w-0 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="section-title">🍽️ Bugün</span>
+            {target > 0 && (
+              <span className={`text-xs font-semibold ${over ? 'text-rose-600' : 'text-emerald-700'}`}>
+                {over ? `+${kcal - target} kcal` : `${target - kcal} kcal kaldı`}
+              </span>
+            )}
+          </div>
+          <MacroBar label="Protein" grams={protein} pct={share(protein, 4)} color="bg-rose-500" />
+          <MacroBar label="Karbonhidrat" grams={carb} pct={share(carb, 4)} color="bg-sky-500" />
+          <MacroBar label="Yağ" grams={fat} pct={share(fat, 9)} color="bg-amber-500" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Tek makro satiri: ad, gram ve kalori payi cubugu
+function MacroBar({ label, grams, pct, color }: { label: string; grams: number; pct: number; color: string }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-0.5">
+        <span className="text-slate-500">{label}</span>
+        <span className="font-bold text-slate-700">{grams} g</span>
+      </div>
+      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   )
 }

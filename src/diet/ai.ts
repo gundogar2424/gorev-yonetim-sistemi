@@ -692,6 +692,49 @@ Kurallar:
   }
 }
 
+// Haftalik koc ozeti: son N gunluk verilerden kisa, motive edici bir
+// degerlendirme yazar (kucuk, tek seferlik token). data = ozet metni.
+export async function weeklyCoachSummary(opts: {
+  apiKey: string
+  data: string
+  days: number
+  model?: string
+  userName?: string
+  goal?: string
+}): Promise<string> {
+  const { apiKey, data, days, model = DEFAULT_MODEL, userName, goal } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcının son ${days} günlük diyet verileri aşağıda verilecek. Bunlara bakarak KISA (4-6 cümle), sıcak ve motive edici bir haftalık değerlendirme yaz:
+- Neyi iyi yaptığını öv (somut sayılarla).
+- En çok zorlandığı/dikkat etmesi gereken noktayı nazikçe söyle.
+- 1-2 SOMUT, uygulanabilir öneri ver (örn. belirli bir öğün, porsiyon, egzersiz).
+Türkçe, abartısız, suçlayıcı değil güçlendirici ol. Başlık/madde işareti kullanma, düz paragraf yaz. ${ctx.join(' ')}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 600,
+      system,
+      messages: [{ role: 'user', content: `Son ${days} günün verileri:\n\n${data}\n\nBunları değerlendir.` }]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!text) throw new Error('Özet üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Diyet listesinin (kagit/PDF) fotografini okuyup duz metne cevirir.
 // Boylece kullanici listeyi elle yazmak yerine fotografini cekebilir.
 export async function extractDietPlan(opts: {
