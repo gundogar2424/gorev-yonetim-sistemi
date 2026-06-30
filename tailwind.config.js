@@ -4,14 +4,23 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Tek, tutarli marka rengi (emerald tonu) — tum uygulama bunu kullanir
         brand: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          500: '#14b8a6',
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59'
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          200: '#a7f3d0',
+          300: '#6ee7b7',
+          400: '#34d399',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
+          800: '#065f46',
+          900: '#064e3b'
         }
+      },
+      boxShadow: {
+        card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06)',
+        nav: '0 -2px 12px rgba(15, 23, 42, 0.06)'
       }
     }
   },

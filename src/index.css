@@ -15,8 +15,11 @@ body,
 body {
   margin: 0;
   -webkit-tap-highlight-color: transparent;
-  background: #f1f5f9;
+  background: #f6f8fa;
+  color: #0f172a;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   /* iOS guvenli alan (centik) destegi */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
     env(safe-area-inset-left);
@@ -34,13 +37,13 @@ textarea {
     @apply block text-sm font-medium text-slate-600 mb-1;
   }
   .field-input {
-    @apply w-full rounded-xl border border-slate-300 px-3 py-2.5 text-slate-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition;
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-800 outline-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100 transition;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition active:scale-95 disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply btn bg-brand-700 text-white hover:bg-brand-800;
+    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700;
   }
   .btn-ghost {
     @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
@@ -49,6 +52,14 @@ textarea {
     @apply btn bg-red-600 text-white hover:bg-red-700;
   }
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-slate-100;
+    @apply bg-white rounded-2xl shadow-card border border-slate-100/80;
+  }
+  /* Kucuk yuvarlak etiket (rozet/pill) */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+  /* Bolum basligi (kucuk, buyuk harf) */
+  .section-title {
+    @apply text-xs font-bold text-slate-400 uppercase tracking-wide;
   }
 }
