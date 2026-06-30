@@ -14,6 +14,12 @@ import type { Decision, DietEntry, FoodAnalysis, MealType } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
+// Bir Date'i yerel <input type="datetime-local"> degerine cevirir (YYYY-MM-DDTHH:mm)
+function toLocalInput(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 // Yemegin saglik durumuna gore renk temasi (yesil = saglikli, sari = orta, kirmizi = riskli)
 interface Theme {
   band: string
@@ -75,6 +81,8 @@ export default function Capture() {
   const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]) // ogun sohbeti
   const [chatInput, setChatInput] = useState('')
   const [chatBusy, setChatBusy] = useState(false)
+  const [customWhen, setCustomWhen] = useState(false) // gecmis tarih/saate kaydet
+  const [whenStr, setWhenStr] = useState('') // datetime-local degeri (gecmis ogun)
 
   const hasKey = !!settings?.apiKey
 
@@ -171,18 +179,29 @@ export default function Capture() {
 
   async function decide(decision: Decision) {
     if (!analysis) return
+    // Gecmis tarih/saat secildiyse onu kullan; yoksa su an
+    let createdAt = Date.now()
+    let dateStr = todayStr()
+    if (customWhen && whenStr) {
+      const d = new Date(whenStr)
+      if (!isNaN(d.getTime())) {
+        createdAt = d.getTime()
+        dateStr = todayStr(d)
+      }
+    }
     await dietDb.entries.add({
       ...analysis,
       photo,
       decision,
       mealType,
-      createdAt: Date.now(),
-      dateStr: todayStr()
+      createdAt,
+      dateStr
     })
     setSavedDecision(decision)
     setPhase('saved')
-    // Yedi ise ~30 dk sonra tokluk hatirlatmasi (APK'da bildirim)
-    if (decision === 'ate') void scheduleSatietyReminder(30)
+    // Yedi ise ~30 dk sonra tokluk hatirlatmasi (APK'da bildirim).
+    // Gecmise islenen ogunde hatirlatma anlamsiz — yalnizca "su an" kayitlarda.
+    if (decision === 'ate' && Date.now() - createdAt < 60_000) void scheduleSatietyReminder(30)
   }
 
   function reset() {
@@ -197,6 +216,8 @@ export default function Capture() {
     setTextNote('')
     setChat([])
     setChatInput('')
+    setCustomWhen(false)
+    setWhenStr('')
   }
 
   // Yemek hakkinda soru sor (sadece metin -> az token)
@@ -421,6 +442,44 @@ export default function Capture() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Ne zaman yedim? — varsayilan "şimdi"; gecmis ogunu de girebilirsin */}
+            <div className="card p-3 space-y-2">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">⏰ Ne zaman?</p>
+              {!customWhen ? (
+                <button
+                  onClick={() => {
+                    setWhenStr(toLocalInput(new Date()))
+                    setCustomWhen(true)
+                  }}
+                  className="text-sm text-emerald-700 underline"
+                >
+                  Şimdi · geçmiş bir öğünü mü giriyorsun? ✏️
+                </button>
+              ) : (
+                <div className="space-y-1.5">
+                  <input
+                    type="datetime-local"
+                    className="field-input"
+                    value={whenStr}
+                    max={toLocalInput(new Date())}
+                    onChange={(e) => setWhenStr(e.target.value)}
+                  />
+                  <button
+                    onClick={() => {
+                      setCustomWhen(false)
+                      setWhenStr('')
+                    }}
+                    className="text-[11px] text-slate-400"
+                  >
+                    şimdiye al
+                  </button>
+                  <p className="text-[11px] text-slate-400">
+                    Dün unuttuğun öğünü doğru tarih ve saate kaydedebilirsin.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Bu ogun hakkinda sohbet/soru (sadece metin -> az token) */}
