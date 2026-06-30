@@ -9,9 +9,13 @@ import {
   deleteMeasurement,
   listVitals,
   addVital,
-  deleteVital
+  deleteVital,
+  readDietSettings
 } from '../db'
 import { todayStr } from '../streak'
+import { buildMeasurementsReport } from '../lib/report'
+import { buildMeasurementsImage } from '../lib/reportImage'
+import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { Measurement } from '../types'
 
 type Tab = 'olcu' | 'saglik'
@@ -91,8 +95,75 @@ export default function Track() {
         </div>
 
         {tab === 'olcu' ? <MeasurePanel range={range} /> : <VitalPanel range={range} />}
+
+        {/* Diyetisyene ölçüm raporu gönder (kilo/ölçü + şeker/tansiyon) */}
+        <SendMeasurements />
       </div>
     </div>
+  )
+}
+
+// Ölçümleri (yemeklerden ayrı) diyetisyene rapor olarak gönderir
+function SendMeasurements() {
+  const [days, setDays] = useState(30)
+  const [msg, setMsg] = useState('')
+
+  async function sendText() {
+    const settings = await readDietSettings()
+    const text = await buildMeasurementsReport(days, settings.userName)
+    const res = await shareTextSmart(text)
+    if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+    else if (res === 'copied') setMsg('Rapor panoya kopyalandı, WhatsApp’a yapıştır.')
+    else if (res === 'cancelled') setMsg('')
+    else setMsg('Gönderilemedi.')
+    setTimeout(() => setMsg(''), 4000)
+  }
+
+  async function sendImage() {
+    setMsg('Görsel rapor hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildMeasurementsImage(days, settings.userName)
+      const res = await shareImageSmart(blob, `olcum-rapor-${days || 'tum'}gun.png`)
+      if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Görsel gönderilemedi.')
+    } catch {
+      setMsg('Görsel rapor oluşturulamadı.')
+    }
+    setTimeout(() => setMsg(''), 4000)
+  }
+
+  return (
+    <section className="card p-3 space-y-2">
+      <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Ölçümleri Diyetisyene Gönder</h3>
+      <p className="text-xs text-slate-500">
+        Kilo, ölçü, şeker ve tansiyon kayıtlarını (yemeklerden ayrı) seçtiğin dönem için gönderir.
+      </p>
+      <div className="flex gap-1.5">
+        {RANGES.map((r) => (
+          <button
+            key={r.days}
+            onClick={() => setDays(r.days)}
+            className={`flex-1 text-xs font-semibold rounded-lg py-1.5 ${
+              days === r.days ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={sendText} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
+          ✍️ Yazılı Gönder
+        </button>
+        <button onClick={sendImage} className="btn-primary whitespace-nowrap">
+          📸 Resimli Gönder
+        </button>
+      </div>
+      {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
+    </section>
   )
 }
 

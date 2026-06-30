@@ -125,6 +125,90 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
   return lines.join('\n')
 }
 
+// ---- Ölçüm raporu (kilo/ölçü + şeker/tansiyon) — yemeklerden ayrı ----
+// Diyetisyene zaman içindeki ölçümleri (kilo, bel, şeker, tansiyon vb.)
+// gönderir. Token harcamaz.
+const MEASURE_FIELDS: { key: 'weight' | 'waist' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string }[] = [
+  { key: 'weight', label: 'Kilo', unit: 'kg' },
+  { key: 'waist', label: 'Bel', unit: 'cm' },
+  { key: 'navel', label: 'Göbek', unit: 'cm' },
+  { key: 'fold', label: 'Kıvrım', unit: 'cm' },
+  { key: 'hip', label: 'Kalça', unit: 'cm' },
+  { key: 'chest', label: 'Göğüs', unit: 'cm' },
+  { key: 'arm', label: 'Kol', unit: 'cm' },
+  { key: 'leg', label: 'Bacak', unit: 'cm' }
+]
+
+// dateStr (YYYY-MM-DD) son `days` gün içinde mi? (days=0 -> tümü)
+function inLastDays(dateStr: string, days: number): boolean {
+  if (!days) return true
+  return new Date(dateStr + 'T00:00:00').getTime() >= Date.now() - days * 86_400_000
+}
+
+export async function buildMeasurementsReport(days: number, userName?: string): Promise<string> {
+  const [measAll, vitAll] = await Promise.all([
+    dietDb.measurements.orderBy('createdAt').toArray(),
+    dietDb.vitals.orderBy('createdAt').toArray()
+  ])
+  const meas = measAll.filter((m) => inLastDays(m.dateStr, days))
+  const vit = vitAll.filter((v) => inLastDays(v.dateStr, days))
+
+  const lines: string[] = []
+  lines.push(`📐 ÖLÇÜM RAPORU — ${days ? `son ${days} gün` : 'tüm zamanlar'}`)
+  if (userName) lines.push(`Kişi: ${userName}`)
+  lines.push('')
+
+  // Ölçü & kilo: her metrik için ilk -> son ve değişim
+  lines.push('📏 ÖLÇÜLER & KİLO')
+  if (!meas.length) {
+    lines.push('  (kayıt yok)')
+  } else {
+    for (const f of MEASURE_FIELDS) {
+      const withVal = meas.filter((m) => typeof m[f.key] === 'number')
+      if (!withVal.length) continue
+      const first = withVal[0][f.key] as number
+      const last = withVal[withVal.length - 1][f.key] as number
+      if (withVal.length >= 2) {
+        const diff = Math.round((last - first) * 10) / 10
+        const arrow = diff === 0 ? '→' : diff < 0 ? '↓' : '↑'
+        const sign = diff > 0 ? '+' : ''
+        lines.push(`  • ${f.label}: ${first}${f.unit} → ${last}${f.unit} (${arrow} ${sign}${diff}${f.unit})`)
+      } else {
+        lines.push(`  • ${f.label}: ${last}${f.unit}`)
+      }
+    }
+  }
+  lines.push('')
+
+  // Şeker / tansiyon: ortalamalar + son ölçümler
+  const sugars = vit.filter((v) => v.kind === 'seker' && typeof v.sugar === 'number')
+  const bps = vit.filter((v) => v.kind === 'tansiyon' && typeof v.systolic === 'number')
+  if (vit.length) {
+    lines.push('🩺 ŞEKER / TANSİYON')
+    if (sugars.length) {
+      const avg = Math.round(sugars.reduce((s, v) => s + (v.sugar || 0), 0) / sugars.length)
+      lines.push(`  Şeker ortalaması: ${avg} mg/dL (${sugars.length} ölçüm)`)
+    }
+    if (bps.length) {
+      const as = Math.round(bps.reduce((s, v) => s + (v.systolic || 0), 0) / bps.length)
+      const ad = Math.round(bps.reduce((s, v) => s + (v.diastolic || 0), 0) / bps.length)
+      lines.push(`  Tansiyon ortalaması: ${as}/${ad} (${bps.length} ölçüm)`)
+    }
+    const recent = [...vit].sort((a, b) => b.createdAt - a.createdAt).slice(0, 12).reverse()
+    for (const v of recent) {
+      if (v.kind === 'seker') {
+        lines.push(`  • ${v.dateStr} ${v.time} — Şeker ${v.sugar} mg/dL${v.sugarContext ? ` (${v.sugarContext})` : ''}`)
+      } else {
+        lines.push(`  • ${v.dateStr} ${v.time} — Tansiyon ${v.systolic}/${v.diastolic}${v.pulse ? `, nabız ${v.pulse}` : ''}`)
+      }
+    }
+    lines.push('')
+  }
+
+  lines.push('— Diyet Koçu uygulamasından gönderildi')
+  return lines.join('\n')
+}
+
 // Raporu paylas: once cihazin paylas menusu, olmazsa panoya kopyala
 export async function shareText(text: string): Promise<'shared' | 'copied' | 'failed'> {
   const nav = navigator as Navigator & { share?: (data: { text: string }) => Promise<void> }

@@ -175,6 +175,17 @@ export interface ShoppingItem {
   createdAt: number
   text: string
   done: boolean
+  category?: string // Urun tipi/kategorisi (orn. "Sebze & Meyve") — gruplamak icin
+}
+
+// Diyet listesine gore uretilen, kategorilere ayrilmis alisveris onerisi
+export interface ShoppingCategory {
+  name: string // Kategori adi (orn. "Sebze & Meyve")
+  items: string[] // O kategorideki urunler
+}
+export interface ShoppingSuggestion {
+  categories: ShoppingCategory[]
+  note: string // Kisa not (orn. kac gunluk / nasil uydugu)
 }
 
 // Uygulama ayarlari (API anahtari ve kullanici baglami)

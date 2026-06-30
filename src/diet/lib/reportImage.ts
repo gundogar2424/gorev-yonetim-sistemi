@@ -251,6 +251,222 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   })
 }
 
+// ---- Ölçüm GÖRSEL raporu (kilo grafiği + ölçü değişimi + şeker/tansiyon) ----
+const MEASURE_FIELDS_IMG: { key: 'weight' | 'waist' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string; color: string }[] = [
+  { key: 'weight', label: 'Kilo', unit: 'kg', color: '#059669' },
+  { key: 'waist', label: 'Bel', unit: 'cm', color: '#0ea5e9' },
+  { key: 'navel', label: 'Göbek', unit: 'cm', color: '#f59e0b' },
+  { key: 'fold', label: 'Kıvrım', unit: 'cm', color: '#ef4444' },
+  { key: 'hip', label: 'Kalça', unit: 'cm', color: '#8b5cf6' },
+  { key: 'chest', label: 'Göğüs', unit: 'cm', color: '#ec4899' },
+  { key: 'arm', label: 'Kol', unit: 'cm', color: '#14b8a6' },
+  { key: 'leg', label: 'Bacak', unit: 'cm', color: '#64748b' }
+]
+
+function imgInLastDays(dateStr: string, days: number): boolean {
+  if (!days) return true
+  return new Date(dateStr + 'T00:00:00').getTime() >= Date.now() - days * 86_400_000
+}
+
+// Basit cizgi grafigi (eksen etiketi yok; uclarda deger yazilir)
+function drawLine(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  vals: number[],
+  color: string
+) {
+  if (vals.length === 0) return
+  const min = Math.min(...vals)
+  const max = Math.max(...vals)
+  const pad = (max - min) * 0.2 || Math.max(1, Math.abs(max) * 0.05)
+  const lo = min - pad
+  const span = max + pad - lo || 1
+  const px = (i: number) => (vals.length === 1 ? x + w / 2 : x + (w * i) / (vals.length - 1))
+  const py = (v: number) => y + h - ((v - lo) / span) * h
+  // taban cizgisi
+  ctx.strokeStyle = '#e2e8f0'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(x, y + h)
+  ctx.lineTo(x + w, y + h)
+  ctx.stroke()
+  // cizgi
+  ctx.strokeStyle = color
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  vals.forEach((v, i) => (i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v))))
+  ctx.stroke()
+  // noktalar
+  ctx.fillStyle = color
+  vals.forEach((v, i) => {
+    ctx.beginPath()
+    ctx.arc(px(i), py(v), 4, 0, Math.PI * 2)
+    ctx.fill()
+  })
+}
+
+export async function buildMeasurementsImage(days: number, userName?: string): Promise<Blob> {
+  const [measAll, vitAll] = await Promise.all([
+    dietDb.measurements.orderBy('createdAt').toArray(),
+    dietDb.vitals.orderBy('createdAt').toArray()
+  ])
+  const meas = measAll.filter((m) => imgInLastDays(m.dateStr, days))
+  const vit = vitAll.filter((v) => imgInLastDays(v.dateStr, days))
+
+  const weightVals = meas.filter((m) => typeof m.weight === 'number').map((m) => m.weight as number)
+  const fieldsWithData = MEASURE_FIELDS_IMG.filter((f) => meas.some((m) => typeof m[f.key] === 'number'))
+  const sugars = vit.filter((v) => v.kind === 'seker' && typeof v.sugar === 'number')
+  const bps = vit.filter((v) => v.kind === 'tansiyon' && typeof v.systolic === 'number')
+  const recentVit = [...vit].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8).reverse()
+
+  const CHART_H = 180
+  const ROW = 38
+  // Yukseklik hesabi
+  let h = PAD + 36 + 40 + 28 + 16 // baslik + tarih
+  const showChart = weightVals.length >= 2
+  if (showChart) h += 50 + CHART_H + 28
+  if (fieldsWithData.length) h += 56 + fieldsWithData.length * ROW + 20
+  if (vit.length) {
+    const avgLines = (sugars.length ? 1 : 0) + (bps.length ? 1 : 0)
+    h += 56 + avgLines * 34 + recentVit.length * 30 + 20
+  }
+  if (!fieldsWithData.length && !vit.length) h += 60
+  h += 50
+
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = Math.max(h, 420)
+  const ctx = canvas.getContext('2d')!
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#f1f5f9'
+  ctx.fillRect(0, 0, W, canvas.height)
+
+  let y = PAD + 36
+  ctx.fillStyle = '#0f172a'
+  ctx.font = 'bold 38px sans-serif'
+  ctx.fillText('📐 Ölçüm Raporu', PAD, y)
+  y += 40
+  ctx.fillStyle = '#475569'
+  ctx.font = '22px sans-serif'
+  ctx.fillText(`${days ? `Son ${days} gün` : 'Tüm zamanlar'}${userName ? ` · ${userName}` : ''}`, PAD, y)
+  y += 28 + 16
+
+  const cardW = W - 2 * PAD
+
+  // Kilo grafigi
+  if (showChart) {
+    fillRound(ctx, PAD, y, cardW, 50 + CHART_H, 16, '#ffffff')
+    const first = weightVals[0]
+    const last = weightVals[weightVals.length - 1]
+    const diff = Math.round((last - first) * 10) / 10
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 22px sans-serif'
+    ctx.fillText('⚖️ Kilo değişimi', PAD + 24, y + 36)
+    ctx.textAlign = 'right'
+    ctx.fillStyle = diff <= 0 ? '#059669' : '#e11d48'
+    ctx.font = 'bold 24px sans-serif'
+    ctx.fillText(`${first}kg → ${last}kg (${diff > 0 ? '+' : ''}${diff}kg)`, W - PAD - 24, y + 36)
+    ctx.textAlign = 'left'
+    drawLine(ctx, PAD + 24, y + 56, cardW - 48, CHART_H - 28, weightVals, '#059669')
+    y += 50 + CHART_H + 28
+  }
+
+  // Olcu degisim tablosu
+  if (fieldsWithData.length) {
+    const cardH = 56 + fieldsWithData.length * ROW
+    fillRound(ctx, PAD, y, cardW, cardH, 16, '#ffffff')
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 22px sans-serif'
+    ctx.fillText('📏 Ölçüler & Kilo', PAD + 24, y + 38)
+    let ry = y + 56
+    for (const f of fieldsWithData) {
+      const withVal = meas.filter((m) => typeof m[f.key] === 'number')
+      const first = withVal[0][f.key] as number
+      const last = withVal[withVal.length - 1][f.key] as number
+      ctx.fillStyle = f.color
+      ctx.font = 'bold 20px sans-serif'
+      ctx.fillText('● ', PAD + 24, ry + 22)
+      ctx.fillStyle = '#334155'
+      ctx.font = '20px sans-serif'
+      ctx.fillText(f.label, PAD + 48, ry + 22)
+      ctx.textAlign = 'right'
+      if (withVal.length >= 2) {
+        const diff = Math.round((last - first) * 10) / 10
+        const arrow = diff === 0 ? '→' : diff < 0 ? '↓' : '↑'
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 20px sans-serif'
+        ctx.fillText(
+          `${first}${f.unit} → ${last}${f.unit}   ${arrow} ${diff > 0 ? '+' : ''}${diff}${f.unit}`,
+          W - PAD - 24,
+          ry + 22
+        )
+      } else {
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 20px sans-serif'
+        ctx.fillText(`${last}${f.unit}`, W - PAD - 24, ry + 22)
+      }
+      ctx.textAlign = 'left'
+      ry += ROW
+    }
+    y += cardH + 20
+  }
+
+  // Şeker / tansiyon
+  if (vit.length) {
+    const avgLines = (sugars.length ? 1 : 0) + (bps.length ? 1 : 0)
+    const cardH = 56 + avgLines * 34 + recentVit.length * 30
+    fillRound(ctx, PAD, y, cardW, cardH, 16, '#ffffff')
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 22px sans-serif'
+    ctx.fillText('🩺 Şeker / Tansiyon', PAD + 24, y + 38)
+    let ry = y + 56
+    if (sugars.length) {
+      const avg = Math.round(sugars.reduce((s, v) => s + (v.sugar || 0), 0) / sugars.length)
+      ctx.fillStyle = '#e11d48'
+      ctx.font = 'bold 20px sans-serif'
+      ctx.fillText(`Şeker ort. ${avg} mg/dL (${sugars.length} ölçüm)`, PAD + 24, ry + 22)
+      ry += 34
+    }
+    if (bps.length) {
+      const as = Math.round(bps.reduce((s, v) => s + (v.systolic || 0), 0) / bps.length)
+      const ad = Math.round(bps.reduce((s, v) => s + (v.diastolic || 0), 0) / bps.length)
+      ctx.fillStyle = '#0ea5e9'
+      ctx.font = 'bold 20px sans-serif'
+      ctx.fillText(`Tansiyon ort. ${as}/${ad} (${bps.length} ölçüm)`, PAD + 24, ry + 22)
+      ry += 34
+    }
+    ctx.fillStyle = '#475569'
+    ctx.font = '18px sans-serif'
+    for (const v of recentVit) {
+      const line =
+        v.kind === 'seker'
+          ? `${v.dateStr} ${v.time} — Şeker ${v.sugar} mg/dL${v.sugarContext ? ` (${v.sugarContext})` : ''}`
+          : `${v.dateStr} ${v.time} — Tansiyon ${v.systolic}/${v.diastolic}${v.pulse ? `, nabız ${v.pulse}` : ''}`
+      ctx.fillText(truncate(ctx, '• ' + line, cardW - 48), PAD + 24, ry + 20)
+      ry += 30
+    }
+    y += cardH + 20
+  }
+
+  if (!fieldsWithData.length && !vit.length) {
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '20px sans-serif'
+    ctx.fillText('Bu aralıkta ölçüm kaydı yok.', PAD, y + 8)
+  }
+
+  ctx.fillStyle = '#94a3b8'
+  ctx.font = '18px sans-serif'
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 22)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
+  })
+}
+
 // Gorseli paylas: once cihazin paylas menusu (dosya), olmazsa indir
 export async function shareImage(blob: Blob, filename: string): Promise<'shared' | 'downloaded'> {
   const file = new File([blob], filename, { type: 'image/png' })

@@ -2,7 +2,7 @@
 // Tarayicidan dogrudan cagrilir (kullanici kendi API anahtarini saglar).
 // NOT: SDK yalnizca cagri aninda (dinamik import) yuklenir; boylece sayfa
 // acilisinda SDK yuzunden bir hata olsa bile uygulama yine de acilir.
-import type { FoodAnalysis, MealAdvice } from './types'
+import type { FoodAnalysis, MealAdvice, ShoppingSuggestion } from './types'
 
 export const DEFAULT_MODEL = 'claude-opus-4-8'
 
@@ -510,6 +510,89 @@ export async function suggestMeal(opts: {
     const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
     try {
       return JSON.parse(cleaned) as MealAdvice
+    } catch {
+      throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${cleaned.slice(0, 120)}…"`)
+    }
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// Alisveris listesi cikti semasi (kategorilere ayrilmis urunler)
+const SHOPPING_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    categories: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          name: { type: 'string' },
+          items: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['name', 'items']
+      }
+    },
+    note: { type: 'string' }
+  },
+  required: ['categories', 'note']
+} as const
+
+// Diyet listesine gore, kategorilere ayrilmis bir alisveris listesi uretir.
+// Token harcar ama tek seferlik ve kucuk (sadece metin).
+export async function suggestShopping(opts: {
+  apiKey: string
+  dietPlan: string
+  days?: number // Kac gunluk alisveris (varsayilan 7)
+  model?: string
+  userName?: string
+  goal?: string
+}): Promise<ShoppingSuggestion> {
+  const { apiKey, dietPlan, days = 7, model = DEFAULT_MODEL, userName, goal } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!dietPlan.trim()) throw new Error('Önce Ayarlar/Menü bölümünden diyet listeni ekle.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+
+  const system = `Sen "Diyet Koçu" adında bir beslenme asistanısın. Kullanıcının DİYET LİSTESİNE bakarak, o listedeki öğünleri yapabilmesi için gereken ALIŞVERİŞ LİSTESİNİ çıkar.
+
+Kurallar:
+- Listeyi ÜRÜN TİPİNE/KATEGORİSİNE göre grupla. Tipik kategoriler: "Sebze & Meyve", "Et, Tavuk & Balık", "Süt Ürünleri & Yumurta", "Tahıl & Bakliyat", "Kuruyemiş & Tohum", "İçecek", "Diğer". Sadece gerçekten gereken kategorileri kullan.
+- Her kategoride, diyet listesinde geçen veya o öğünleri yapmak için gereken ürünleri yaz. Ürün adlarını KISA ve sade tut (örn. "yumurta", "tam buğday ekmeği", "yağsız yoğurt", "tavuk göğsü", "brokoli"). İstersen yaklaşık miktar ekleyebilirsin (örn. "yulaf (1 paket)").
+- Yaklaşık ${days} günlük ihtiyaca göre düşün. Aşırıya kaçma; pratik ve gerçekçi bir liste olsun.
+- Diyet listesinde olmayan, sağlıksız (şekerli/işlenmiş) ürünler EKLEME.
+- note alanına TEK kısa cümlelik bir bilgi yaz (örn. "Listene göre ~${days} günlük temel alışveriş.").
+
+Üslubun: Türkçe, sade, abartısız. ${ctx.join(' ')}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1500,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: `İşte diyet listem. Bunu yapabilmem için kategorilere ayrılmış bir alışveriş listesi çıkar:\n\n${dietPlan.trim()}`
+        }
+      ],
+      output_config: { format: { type: 'json_schema', schema: SHOPPING_SCHEMA } }
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    if (response.stop_reason === 'max_tokens') throw new Error('Yanıt yarıda kesildi. Lütfen tekrar deneyin.')
+    const rawText = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    if (!rawText) throw new Error('Modelden boş yanıt geldi. Lütfen tekrar deneyin.')
+    const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    try {
+      return JSON.parse(cleaned) as ShoppingSuggestion
     } catch {
       throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${cleaned.slice(0, 120)}…"`)
     }
