@@ -24,7 +24,11 @@ const OUTPUT_SCHEMA = {
     healthy: { type: 'boolean' },
     riskLevel: { type: 'string', enum: ['düşük', 'orta', 'yüksek'] },
     estimatedCalories: { type: 'integer' },
+    protein: { type: 'integer' },
+    carb: { type: 'integer' },
+    fat: { type: 'integer' },
     dietScore: { type: 'integer' },
+    scoreReason: { type: 'string' },
     harms: { type: 'array', items: { type: 'string' } },
     motivations: { type: 'array', items: { type: 'string' } },
     healthierAlternative: { type: 'string' },
@@ -40,7 +44,11 @@ const OUTPUT_SCHEMA = {
     'healthy',
     'riskLevel',
     'estimatedCalories',
+    'protein',
+    'carb',
+    'fat',
     'dietScore',
+    'scoreReason',
     'harms',
     'motivations',
     'healthierAlternative',
@@ -76,7 +84,11 @@ TÜRK DİYETİSYEN/EV ÖLÇÜLERİ: Kullanıcı miktarı şu ölçülerle verebi
 - "porsiyon", "adet", "kaşık" gibi ifadeleri makul gramaja çevir.
 Örn. "5 çorba kaşığı pilav" ≈ 100 g pişmiş pilav → ona göre kalori ver.
 
+MAKROLAR: Sadece kaloriyi değil, tahmini MAKRO besinleri de ver — protein, carb (karbonhidrat), fat (yağ); hepsi GRAM cinsinden tam sayı. Porsiyon büyüklüğüne göre gerçekçi tahmin et. Görselde yemek yoksa hepsi 0.
+
 DİYET PUANI: dietScore alanına bu yemeğe diyete uygunluk açısından 1-10 arası bir puan ver (10 = mükemmel/diyete tam uygun, 7-9 = iyi, 4-6 = idareli, 1-3 = kötü/diyeti bozar). Varsa diyet listesine uyumu ve sağlıklılığı birlikte değerlendir. Görselde yemek yoksa dietScore=0.
+
+PUANI NEREDEN KIRDIĞIN (çok önemli): scoreReason alanına puanı NEDEN tam vermediğini, yani puanı NEREDEN KIRDIĞINI kısa ve net yaz; böylece kullanıcı bir dahakine nelere dikkat edeceğini bilsin (örn. "Porsiyon biraz fazla ve kızartma olduğu için -2; yağ yüksek." veya "Listende beyaz ekmek yerine tam buğday var, o yüzden -1."). Madde madde değil, 1-2 kısa cümle. Puan 10 ise (mükemmelse) scoreReason="" (boş) bırak.
 
 Üslubun: Türkçe, sıcak, abartısız, suçlayıcı değil GÜÇLENDİRİCİ. Kısa ve vurucu cümleler kur. harms ve motivations için 2-4 madde yeterli. Kaloriyi gram göz kararı tahmin et (porsiyon başına).`
 
@@ -287,9 +299,13 @@ const CHAT_SCHEMA = {
         changed: { type: 'boolean' },
         foodName: { type: 'string' },
         dietScore: { type: 'integer' },
-        estimatedCalories: { type: 'integer' }
+        scoreReason: { type: 'string' },
+        estimatedCalories: { type: 'integer' },
+        protein: { type: 'integer' },
+        carb: { type: 'integer' },
+        fat: { type: 'integer' }
       },
-      required: ['changed', 'foodName', 'dietScore', 'estimatedCalories']
+      required: ['changed', 'foodName', 'dietScore', 'scoreReason', 'estimatedCalories', 'protein', 'carb', 'fat']
     }
   },
   required: ['reply', 'correction']
@@ -297,7 +313,16 @@ const CHAT_SCHEMA = {
 
 export interface FoodChatResult {
   reply: string
-  correction: { changed: boolean; foodName: string; dietScore: number; estimatedCalories: number }
+  correction: {
+    changed: boolean
+    foodName: string
+    dietScore: number
+    scoreReason: string
+    estimatedCalories: number
+    protein: number
+    carb: number
+    fat: number
+  }
 }
 
 // Yemek hakkinda SOHBET (sadece metin -> az token). Fotograf tekrar gonderilmez;
@@ -308,6 +333,9 @@ export async function chatAboutFood(opts: {
   foodName: string
   dietScore: number
   estimatedCalories: number
+  protein: number
+  carb: number
+  fat: number
   context?: string
   history: { role: 'user' | 'assistant'; text: string }[]
   model?: string
@@ -315,7 +343,7 @@ export async function chatAboutFood(opts: {
   goal?: string
   dietPlan?: string
 }): Promise<FoodChatResult> {
-  const { apiKey, foodName, dietScore, estimatedCalories, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  const { apiKey, foodName, dietScore, estimatedCalories, protein, carb, fat, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Bir soru yaz.')
 
@@ -327,7 +355,7 @@ export async function chatAboutFood(opts: {
   const system = `Sen "Diyet Koçu"sun. Kullanıcı şu an "${foodName}" hakkında seninle konuşuyor.${
     context ? ` Bilgi: ${context}` : ''
   }
-Mevcut değerler: yemek adı "${foodName}", diyet puanı ${dietScore}/10, tahmini kalori ${estimatedCalories} kcal.
+Mevcut değerler: yemek adı "${foodName}", diyet puanı ${dietScore}/10, tahmini kalori ${estimatedCalories} kcal, makro: ${protein}g protein / ${carb}g karbonhidrat / ${fat}g yağ.
 
 reply alanına Türkçe, KISA (1-3 cümle), net ve yardımcı bir cevap yaz. Diyet/beslenme açısından pratik öneriler sun, abartma, suçlama.
 
@@ -335,9 +363,10 @@ reply alanına Türkçe, KISA (1-3 cümle), net ve yardımcı bir cevap yaz. Diy
 - correction.changed = true yap.
 - correction.foodName = düzeltilmiş yemek adı (değişmediyse mevcut adı yaz).
 - correction.dietScore = düzeltilmiş duruma göre 1-10 arası YENİ diyet puanı (10=mükemmel, 1=çok kötü). Varsa diyet listesine uyumu ve sağlıklılığı birlikte değerlendir.
-- correction.estimatedCalories = düzeltilmiş tahmini kalori.
+- correction.scoreReason = puanı neden tam vermediğini (nereden kırdığını) 1-2 kısa cümleyle yaz; puan 10 ise boş bırak.
+- correction.estimatedCalories = düzeltilmiş tahmini kalori. correction.protein/carb/fat = düzeltilmiş makrolar (gram, tam sayı).
 - reply alanında puanı/kaloriyi GÜNCELLEDİĞİNİ kısaca söyle (örn. "Düzelttim, yeni puanın 8/10.").
-Eğer ortada bir düzeltme YOKSA (sadece soru soruyorsa): correction.changed = false ve foodName/dietScore/estimatedCalories alanlarına MEVCUT değerleri aynen yaz.
+Eğer ortada bir düzeltme YOKSA (sadece soru soruyorsa): correction.changed = false ve tüm alanlara MEVCUT değerleri aynen yaz (scoreReason'a mevcut kırılma sebebini yazabilirsin).
 ${ctx.join(' ')}`
 
   const client = await createClient(apiKey)
@@ -360,7 +389,10 @@ ${ctx.join(' ')}`
       return JSON.parse(cleaned) as FoodChatResult
     } catch {
       // JSON cozulmezse en azindan metni cevap olarak goster, duzeltme yok say
-      return { reply: cleaned, correction: { changed: false, foodName, dietScore, estimatedCalories } }
+      return {
+        reply: cleaned,
+        correction: { changed: false, foodName, dietScore, scoreReason: '', estimatedCalories, protein, carb, fat }
+      }
     }
   } catch (err) {
     throw friendlyError(err)

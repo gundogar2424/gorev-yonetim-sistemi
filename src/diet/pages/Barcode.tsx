@@ -176,7 +176,11 @@ export default function Barcode() {
       healthy: true, // barkod kaydi notr; basari puanini bozmasin
       riskLevel: 'orta',
       estimatedCalories: vals.kcal,
+      protein: vals.protein,
+      carb: vals.carb,
+      fat: vals.fat,
       dietScore: 0, // barkod kaydinda diyet puani hesaplanmaz
+      scoreReason: '',
       harms: [],
       motivations: [],
       healthierAlternative: '',

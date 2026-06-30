@@ -234,6 +234,9 @@ export default function Capture() {
         foodName: analysis.foodName,
         dietScore: analysis.dietScore,
         estimatedCalories: analysis.estimatedCalories,
+        protein: analysis.protein ?? 0,
+        carb: analysis.carb ?? 0,
+        fat: analysis.fat ?? 0,
         context: `risk ${analysis.riskLevel}.`,
         history,
         model: settings?.model,
@@ -241,15 +244,20 @@ export default function Capture() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan
       })
-      // Kullanici sohbette yemegi/miktari duzelttiyse puani/kaloriyi guncelle
+      // Kullanici sohbette yemegi/miktari duzelttiyse puani/kaloriyi/makroyu guncelle
       if (res.correction.changed) {
+        const c = res.correction
         setAnalysis((prev) =>
           prev
             ? {
                 ...prev,
-                foodName: res.correction.foodName || prev.foodName,
-                dietScore: res.correction.dietScore,
-                estimatedCalories: res.correction.estimatedCalories
+                foodName: c.foodName || prev.foodName,
+                dietScore: c.dietScore,
+                scoreReason: c.scoreReason,
+                estimatedCalories: c.estimatedCalories,
+                protein: c.protein,
+                carb: c.carb,
+                fat: c.fat
               }
             : prev
         )
@@ -743,6 +751,11 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
             <span className="text-xs font-bold bg-white/30 rounded-full px-2.5 py-1">⭐ Diyet puanı {analysis.dietScore}/10</span>
           )}
           <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">🔥 ~{analysis.estimatedCalories} kcal</span>
+          {(analysis.protein ?? 0) + (analysis.carb ?? 0) + (analysis.fat ?? 0) > 0 && (
+            <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">
+              P {analysis.protein}g · K {analysis.carb}g · Y {analysis.fat}g
+            </span>
+          )}
           <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">{t.label}</span>
           <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">
             {analysis.riskLevel.toUpperCase()} RİSK
@@ -753,6 +766,16 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
       <div className="p-4 space-y-3">
         {/* Diyet listesine uyum (yalnizca liste yuklendiyse, yani >= 0) */}
         {analysis.compliancePercent >= 0 && <ComplianceBar analysis={analysis} />}
+
+        {/* Puani neden tam vermedi — nereden kirdi */}
+        {analysis.dietScore > 0 && analysis.dietScore < 10 && analysis.scoreReason?.trim() && (
+          <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">
+              📉 Puanı neden {analysis.dietScore}/10 verdim
+            </p>
+            <p className="text-sm text-amber-900 leading-snug">{analysis.scoreReason}</p>
+          </div>
+        )}
 
         {/* Ozet karar */}
         <p className={`text-base font-semibold ${t.text} ${t.soft} rounded-xl p-3 leading-snug`}>“{analysis.verdict}”</p>

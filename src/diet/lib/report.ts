@@ -46,7 +46,9 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         const comp = e.compliancePercent >= 0 ? ` · listeye uyum %${e.compliancePercent}` : ''
         const sat = e.satiety ? ` · tokluk ${e.satiety}/10` : ''
-        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}${sat}`)
+        const mTotal = (e.protein ?? 0) + (e.carb ?? 0) + (e.fat ?? 0)
+        const macro = mTotal > 0 ? ` · P${e.protein}/K${e.carb}/Y${e.fat}g` : ''
+        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal${macro}) — ${TR_DECISION[e.decision] ?? ''}${comp}${sat}`)
       }
     }
     // Tokluk dusuk olan ogunler -> porsiyon uyarisi (diyetisyen icin)
