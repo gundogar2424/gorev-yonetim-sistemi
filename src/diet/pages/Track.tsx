@@ -23,12 +23,11 @@ type Tab = 'olcu' | 'saglik'
 // Olcu metrikleri (grafik secimi icin)
 const METRICS: { key: keyof Measurement; label: string; unit: string; color: string }[] = [
   { key: 'weight', label: 'Kilo', unit: 'kg', color: '#059669' },
-  { key: 'waist', label: 'Bel', unit: 'cm', color: '#0ea5e9' },
-  { key: 'navel', label: 'Göbek', unit: 'cm', color: '#f59e0b' },
-  { key: 'fold', label: 'Kıvrım', unit: 'cm', color: '#ef4444' },
-  { key: 'hip', label: 'Kalça', unit: 'cm', color: '#8b5cf6' },
-  { key: 'chest', label: 'Göğüs', unit: 'cm', color: '#ec4899' },
   { key: 'arm', label: 'Kol', unit: 'cm', color: '#14b8a6' },
+  { key: 'chest', label: 'Göğüs', unit: 'cm', color: '#ec4899' },
+  { key: 'fold', label: 'Bel kıvrımı', unit: 'cm', color: '#ef4444' },
+  { key: 'navel', label: 'Göbek deliği', unit: 'cm', color: '#f59e0b' },
+  { key: 'hip', label: 'Kalça', unit: 'cm', color: '#8b5cf6' },
   { key: 'leg', label: 'Bacak', unit: 'cm', color: '#64748b' }
 ]
 

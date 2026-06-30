@@ -63,12 +63,11 @@ function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
 function measureLines(m: { weight?: number; waist?: number; navel?: number; fold?: number; hip?: number; chest?: number; arm?: number; leg?: number }): string {
   const p: string[] = []
   if (m.weight != null) p.push(`Kilo ${m.weight}kg`)
-  if (m.waist != null) p.push(`Bel ${m.waist}cm`)
-  if (m.navel != null) p.push(`Göbek ${m.navel}cm`)
-  if (m.fold != null) p.push(`Kıvrım ${m.fold}cm`)
-  if (m.hip != null) p.push(`Kalça ${m.hip}cm`)
-  if (m.chest != null) p.push(`Göğüs ${m.chest}cm`)
   if (m.arm != null) p.push(`Kol ${m.arm}cm`)
+  if (m.chest != null) p.push(`Göğüs ${m.chest}cm`)
+  if (m.fold != null) p.push(`Bel kıvrımı ${m.fold}cm`)
+  if (m.navel != null) p.push(`Göbek deliği ${m.navel}cm`)
+  if (m.hip != null) p.push(`Kalça ${m.hip}cm`)
   if (m.leg != null) p.push(`Bacak ${m.leg}cm`)
   return p.join(' · ')
 }
@@ -252,14 +251,13 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
 }
 
 // ---- Ölçüm GÖRSEL raporu (kilo grafiği + ölçü değişimi + şeker/tansiyon) ----
-const MEASURE_FIELDS_IMG: { key: 'weight' | 'waist' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string; color: string }[] = [
+const MEASURE_FIELDS_IMG: { key: 'weight' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string; color: string }[] = [
   { key: 'weight', label: 'Kilo', unit: 'kg', color: '#059669' },
-  { key: 'waist', label: 'Bel', unit: 'cm', color: '#0ea5e9' },
-  { key: 'navel', label: 'Göbek', unit: 'cm', color: '#f59e0b' },
-  { key: 'fold', label: 'Kıvrım', unit: 'cm', color: '#ef4444' },
-  { key: 'hip', label: 'Kalça', unit: 'cm', color: '#8b5cf6' },
-  { key: 'chest', label: 'Göğüs', unit: 'cm', color: '#ec4899' },
   { key: 'arm', label: 'Kol', unit: 'cm', color: '#14b8a6' },
+  { key: 'chest', label: 'Göğüs', unit: 'cm', color: '#ec4899' },
+  { key: 'fold', label: 'Bel kıvrımı', unit: 'cm', color: '#ef4444' },
+  { key: 'navel', label: 'Göbek deliği', unit: 'cm', color: '#f59e0b' },
+  { key: 'hip', label: 'Kalça', unit: 'cm', color: '#8b5cf6' },
   { key: 'leg', label: 'Bacak', unit: 'cm', color: '#64748b' }
 ]
 
@@ -316,24 +314,25 @@ export async function buildMeasurementsImage(days: number, userName?: string): P
   const meas = measAll.filter((m) => imgInLastDays(m.dateStr, days))
   const vit = vitAll.filter((v) => imgInLastDays(v.dateStr, days))
 
-  const weightVals = meas.filter((m) => typeof m.weight === 'number').map((m) => m.weight as number)
-  const fieldsWithData = MEASURE_FIELDS_IMG.filter((f) => meas.some((m) => typeof m[f.key] === 'number'))
+  // Her metrik icin zaman serisi (kronolojik) hazirla
+  const metricRows = MEASURE_FIELDS_IMG.map((f) => ({
+    f,
+    vals: meas.filter((m) => typeof m[f.key] === 'number').map((m) => m[f.key] as number)
+  })).filter((r) => r.vals.length > 0)
   const sugars = vit.filter((v) => v.kind === 'seker' && typeof v.sugar === 'number')
   const bps = vit.filter((v) => v.kind === 'tansiyon' && typeof v.systolic === 'number')
   const recentVit = [...vit].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8).reverse()
 
-  const CHART_H = 180
-  const ROW = 38
+  const ROW_H = 138 // her olcu icin kart yuksekligi (yaninda grafikle)
+  const ROW_GAP = 14
   // Yukseklik hesabi
   let h = PAD + 36 + 40 + 28 + 16 // baslik + tarih
-  const showChart = weightVals.length >= 2
-  if (showChart) h += 50 + CHART_H + 28
-  if (fieldsWithData.length) h += 56 + fieldsWithData.length * ROW + 20
+  if (metricRows.length) h += 44 + metricRows.length * (ROW_H + ROW_GAP)
   if (vit.length) {
     const avgLines = (sugars.length ? 1 : 0) + (bps.length ? 1 : 0)
     h += 56 + avgLines * 34 + recentVit.length * 30 + 20
   }
-  if (!fieldsWithData.length && !vit.length) h += 60
+  if (!metricRows.length && !vit.length) h += 60
   h += 50
 
   const canvas = document.createElement('canvas')
@@ -357,62 +356,51 @@ export async function buildMeasurementsImage(days: number, userName?: string): P
 
   const cardW = W - 2 * PAD
 
-  // Kilo grafigi
-  if (showChart) {
-    fillRound(ctx, PAD, y, cardW, 50 + CHART_H, 16, '#ffffff')
-    const first = weightVals[0]
-    const last = weightVals[weightVals.length - 1]
-    const diff = Math.round((last - first) * 10) / 10
+  // Ölçüler & Kilo — her ölçü kendi kartinda, yaninda grafigiyle
+  if (metricRows.length) {
     ctx.fillStyle = '#0f172a'
-    ctx.font = 'bold 22px sans-serif'
-    ctx.fillText('⚖️ Kilo değişimi', PAD + 24, y + 36)
-    ctx.textAlign = 'right'
-    ctx.fillStyle = diff <= 0 ? '#059669' : '#e11d48'
     ctx.font = 'bold 24px sans-serif'
-    ctx.fillText(`${first}kg → ${last}kg (${diff > 0 ? '+' : ''}${diff}kg)`, W - PAD - 24, y + 36)
-    ctx.textAlign = 'left'
-    drawLine(ctx, PAD + 24, y + 56, cardW - 48, CHART_H - 28, weightVals, '#059669')
-    y += 50 + CHART_H + 28
-  }
+    ctx.fillText('📏 Ölçüler & Kilo', PAD, y + 24)
+    y += 44
 
-  // Olcu degisim tablosu
-  if (fieldsWithData.length) {
-    const cardH = 56 + fieldsWithData.length * ROW
-    fillRound(ctx, PAD, y, cardW, cardH, 16, '#ffffff')
-    ctx.fillStyle = '#0f172a'
-    ctx.font = 'bold 22px sans-serif'
-    ctx.fillText('📏 Ölçüler & Kilo', PAD + 24, y + 38)
-    let ry = y + 56
-    for (const f of fieldsWithData) {
-      const withVal = meas.filter((m) => typeof m[f.key] === 'number')
-      const first = withVal[0][f.key] as number
-      const last = withVal[withVal.length - 1][f.key] as number
+    const LEFT_W = 290 // sol bilgi sutunu genisligi
+    for (const { f, vals } of metricRows) {
+      fillRound(ctx, PAD, y, cardW, ROW_H, 16, '#ffffff')
+      const first = vals[0]
+      const last = vals[vals.length - 1]
+      // Sol: ad + son deger + degisim
+      ctx.textAlign = 'left'
       ctx.fillStyle = f.color
-      ctx.font = 'bold 20px sans-serif'
-      ctx.fillText('● ', PAD + 24, ry + 22)
-      ctx.fillStyle = '#334155'
-      ctx.font = '20px sans-serif'
-      ctx.fillText(f.label, PAD + 48, ry + 22)
-      ctx.textAlign = 'right'
-      if (withVal.length >= 2) {
+      ctx.font = 'bold 23px sans-serif'
+      ctx.fillText(f.label, PAD + 24, y + 42)
+      ctx.fillStyle = '#0f172a'
+      ctx.font = 'bold 34px sans-serif'
+      ctx.fillText(`${last}${f.unit}`, PAD + 24, y + 86)
+      if (vals.length >= 2) {
         const diff = Math.round((last - first) * 10) / 10
         const arrow = diff === 0 ? '→' : diff < 0 ? '↓' : '↑'
-        ctx.fillStyle = '#0f172a'
-        ctx.font = 'bold 20px sans-serif'
-        ctx.fillText(
-          `${first}${f.unit} → ${last}${f.unit}   ${arrow} ${diff > 0 ? '+' : ''}${diff}${f.unit}`,
-          W - PAD - 24,
-          ry + 22
-        )
+        ctx.fillStyle = diff <= 0 ? '#059669' : '#e11d48'
+        ctx.font = 'bold 18px sans-serif'
+        ctx.fillText(`${first} ${arrow} ${last}  (${diff > 0 ? '+' : ''}${diff}${f.unit})`, PAD + 24, y + 116)
       } else {
-        ctx.fillStyle = '#0f172a'
-        ctx.font = 'bold 20px sans-serif'
-        ctx.fillText(`${last}${f.unit}`, W - PAD - 24, ry + 22)
+        ctx.fillStyle = '#94a3b8'
+        ctx.font = '17px sans-serif'
+        ctx.fillText('tek ölçüm', PAD + 24, y + 116)
       }
+      // Sag: o ölçünün zaman içindeki grafigi
+      const chartX = PAD + LEFT_W
+      const chartW = cardW - LEFT_W - 28
+      drawLine(ctx, chartX, y + 26, chartW, ROW_H - 52, vals, f.color)
+      // grafik baslangic/bitis degerleri (kucuk)
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '14px sans-serif'
       ctx.textAlign = 'left'
-      ry += ROW
+      ctx.fillText(`${first}`, chartX, y + ROW_H - 12)
+      ctx.textAlign = 'right'
+      ctx.fillText(`${last}`, chartX + chartW, y + ROW_H - 12)
+      ctx.textAlign = 'left'
+      y += ROW_H + ROW_GAP
     }
-    y += cardH + 20
   }
 
   // Şeker / tansiyon
@@ -452,7 +440,7 @@ export async function buildMeasurementsImage(days: number, userName?: string): P
     y += cardH + 20
   }
 
-  if (!fieldsWithData.length && !vit.length) {
+  if (!metricRows.length && !vit.length) {
     ctx.fillStyle = '#94a3b8'
     ctx.font = '20px sans-serif'
     ctx.fillText('Bu aralıkta ölçüm kaydı yok.', PAD, y + 8)

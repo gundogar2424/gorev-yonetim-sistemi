@@ -69,12 +69,11 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     for (const m of measurements) {
       const parts: string[] = []
       if (m.weight != null) parts.push(`Kilo ${m.weight}kg`)
-      if (m.waist != null) parts.push(`Bel ${m.waist}cm`)
-      if (m.navel != null) parts.push(`Göbek ${m.navel}cm`)
-      if (m.fold != null) parts.push(`Kıvrım ${m.fold}cm`)
-      if (m.hip != null) parts.push(`Kalça ${m.hip}cm`)
-      if (m.chest != null) parts.push(`Göğüs ${m.chest}cm`)
       if (m.arm != null) parts.push(`Kol ${m.arm}cm`)
+      if (m.chest != null) parts.push(`Göğüs ${m.chest}cm`)
+      if (m.fold != null) parts.push(`Bel kıvrımı ${m.fold}cm`)
+      if (m.navel != null) parts.push(`Göbek deliği ${m.navel}cm`)
+      if (m.hip != null) parts.push(`Kalça ${m.hip}cm`)
       if (m.leg != null) parts.push(`Bacak ${m.leg}cm`)
       lines.push('  • ' + parts.join(', '))
     }
@@ -128,14 +127,13 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
 // ---- Ölçüm raporu (kilo/ölçü + şeker/tansiyon) — yemeklerden ayrı ----
 // Diyetisyene zaman içindeki ölçümleri (kilo, bel, şeker, tansiyon vb.)
 // gönderir. Token harcamaz.
-const MEASURE_FIELDS: { key: 'weight' | 'waist' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string }[] = [
+const MEASURE_FIELDS: { key: 'weight' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string }[] = [
   { key: 'weight', label: 'Kilo', unit: 'kg' },
-  { key: 'waist', label: 'Bel', unit: 'cm' },
-  { key: 'navel', label: 'Göbek', unit: 'cm' },
-  { key: 'fold', label: 'Kıvrım', unit: 'cm' },
-  { key: 'hip', label: 'Kalça', unit: 'cm' },
-  { key: 'chest', label: 'Göğüs', unit: 'cm' },
   { key: 'arm', label: 'Kol', unit: 'cm' },
+  { key: 'chest', label: 'Göğüs', unit: 'cm' },
+  { key: 'fold', label: 'Bel kıvrımı', unit: 'cm' },
+  { key: 'navel', label: 'Göbek deliği', unit: 'cm' },
+  { key: 'hip', label: 'Kalça', unit: 'cm' },
   { key: 'leg', label: 'Bacak', unit: 'cm' }
 ]
 
