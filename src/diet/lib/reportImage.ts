@@ -7,7 +7,7 @@ import { mealLabel, MEAL_OPTIONS } from './meals'
 
 const W = 820
 const PAD = 32
-const MEAL_H = 210 // ogun karti yuksekligi (buyuk fotograf icin)
+const MEAL_H = 100
 
 const TR_DECISION: Record<string, string> = {
   resisted: 'Vazgeçti ✅',
@@ -171,36 +171,34 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
       ctx.fillText('▸ ' + (g.mt ? mealLabel(g.mt) : 'Diğer'), PAD, y + 16)
       y += HEAD
       for (const { e, img } of g.list) {
-        fillRound(ctx, PAD, y, W - 2 * PAD, MEAL_H, 16, '#ffffff')
-        const isz = MEAL_H - 28 // buyuk kare fotograf
-        const ix = PAD + 14
-        const iy = y + 14
+        fillRound(ctx, PAD, y, W - 2 * PAD, MEAL_H, 14, '#ffffff')
+        const isz = MEAL_H - 24
+        const ix = PAD + 12
+        const iy = y + 12
         if (img) {
           ctx.save()
-          roundRectPath(ctx, ix, iy, isz, isz, 12)
+          roundRectPath(ctx, ix, iy, isz, isz, 10)
           ctx.clip()
           drawCover(ctx, img, ix, iy, isz)
           ctx.restore()
         } else {
-          fillRound(ctx, ix, iy, isz, isz, 12, '#e2e8f0')
+          fillRound(ctx, ix, iy, isz, isz, 10, '#e2e8f0')
         }
-        const tx = ix + isz + 22
-        const maxTextW = W - PAD - tx - 16
+        const tx = ix + isz + 18
         ctx.fillStyle = '#0f172a'
-        ctx.font = 'bold 27px sans-serif'
-        ctx.fillText(truncate(ctx, e.foodName, maxTextW), tx, y + 62)
+        ctx.font = 'bold 24px sans-serif'
+        ctx.fillText(truncate(ctx, e.foodName, W - PAD - tx - 16), tx, y + 36)
         ctx.fillStyle = '#64748b'
-        ctx.font = '20px sans-serif'
+        ctx.font = '19px sans-serif'
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-        ctx.fillText(truncate(ctx, `${t} · ~${e.estimatedCalories} kcal`, maxTextW), tx, y + 102)
-        ctx.fillText(truncate(ctx, TR_DECISION[e.decision] ?? '', maxTextW), tx, y + 134)
+        ctx.fillText(`${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
         const parts3: string[] = []
         if (e.compliancePercent >= 0) parts3.push(`Uyum %${e.compliancePercent}`)
         if (e.satiety) parts3.push(`Tokluk ${e.satiety}/10`)
         if (parts3.length) {
           ctx.fillStyle = '#475569'
-          ctx.font = '19px sans-serif'
-          ctx.fillText(truncate(ctx, parts3.join(' · '), maxTextW), tx, y + 166)
+          ctx.font = '18px sans-serif'
+          ctx.fillText(parts3.join(' · '), tx, y + 88)
         }
         y += MEAL_H + 12
       }
