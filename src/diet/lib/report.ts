@@ -46,9 +46,7 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         const comp = e.compliancePercent >= 0 ? ` · listeye uyum %${e.compliancePercent}` : ''
         const sat = e.satiety ? ` · tokluk ${e.satiety}/10` : ''
-        const mTotal = (e.protein ?? 0) + (e.carb ?? 0) + (e.fat ?? 0)
-        const macro = mTotal > 0 ? ` · P${e.protein}/K${e.carb}/Y${e.fat}g` : ''
-        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal${macro}) — ${TR_DECISION[e.decision] ?? ''}${comp}${sat}`)
+        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}${sat}`)
       }
     }
     // Tokluk dusuk olan ogunler -> porsiyon uyarisi (diyetisyen icin)
@@ -63,11 +61,6 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     const resisted = entries.filter((e) => e.decision === 'resisted').length
     const kcal = eaten.reduce((s, e) => s + (e.estimatedCalories || 0), 0)
     lines.push(`  Özet: ${resisted} vazgeçiş, ${ate} yenen öğün, ~${kcal} kcal alındı.`)
-    // Gunluk makro toplami (yenen ogunlerden)
-    const pT = eaten.reduce((s, e) => s + (e.protein || 0), 0)
-    const cT = eaten.reduce((s, e) => s + (e.carb || 0), 0)
-    const fT = eaten.reduce((s, e) => s + (e.fat || 0), 0)
-    if (pT + cT + fT > 0) lines.push(`  Makro toplam: ${pT}g protein · ${cT}g karbonhidrat · ${fT}g yağ.`)
   }
   lines.push('')
 

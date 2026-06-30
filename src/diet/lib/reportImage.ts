@@ -192,7 +192,6 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         ctx.fillText(`${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
         const parts3: string[] = []
-        if ((e.protein ?? 0) + (e.carb ?? 0) + (e.fat ?? 0) > 0) parts3.push(`P${e.protein}/K${e.carb}/Y${e.fat}g`)
         if (e.compliancePercent >= 0) parts3.push(`Uyum %${e.compliancePercent}`)
         if (e.satiety) parts3.push(`Tokluk ${e.satiety}/10`)
         if (parts3.length) {
