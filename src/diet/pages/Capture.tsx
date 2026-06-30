@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
@@ -85,6 +86,39 @@ export default function Capture() {
   const [whenStr, setWhenStr] = useState('') // datetime-local degeri (gecmis ogun)
 
   const hasKey = !!settings?.apiKey
+
+  // Fotograf sec: APK'da native Camera (galeri HEIC/buyuk fotograflari da JPEG'e
+  // cevirir), web'de gizli <input type=file> kullanilir.
+  async function pickPhoto(source: 'camera' | 'gallery') {
+    if (!hasKey) return
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+        const photo = await Camera.getPhoto({
+          quality: 80,
+          width: 1024,
+          correctOrientation: true,
+          resultType: CameraResultType.DataUrl,
+          source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos
+        })
+        if (!photo.dataUrl) return
+        setNote('')
+        setEditing(false)
+        setMealType(guessMeal())
+        setPhoto(photo.dataUrl)
+        await analyze(photo.dataUrl, '')
+      } catch (err) {
+        // Kullanici secimi iptal ettiyse hata gosterme
+        const msg = err instanceof Error ? err.message.toLowerCase() : ''
+        if (msg.includes('cancel') || msg.includes('denied') || msg.includes('no image')) return
+        setError('Fotoğraf alınamadı. Lütfen tekrar deneyin.')
+        setPhase('idle')
+      }
+      return
+    }
+    // Web: gizli input'u ac
+    ;(source === 'camera' ? cameraRef : galleryRef).current?.click()
+  }
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -340,11 +374,11 @@ export default function Capture() {
               yardım etsin.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => cameraRef.current?.click()} disabled={!hasKey} className="btn-primary">
+              <button onClick={() => pickPhoto('camera')} disabled={!hasKey} className="btn-primary">
                 📷 Fotoğraf Çek
               </button>
               <button
-                onClick={() => galleryRef.current?.click()}
+                onClick={() => pickPhoto('gallery')}
                 disabled={!hasKey}
                 className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
               >

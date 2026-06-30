@@ -57,6 +57,7 @@ jobs:
         run: |
           f=android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.CAMERA' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' "$f"
+          grep -q 'READ_MEDIA_IMAGES' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n</manifest>#' "$f"
           grep -q 'mlkit.vision.DEPENDENCIES' "$f" || sed -i 's#</application>#    <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />\n</application>#' "$f"
           echo "--- manifest ---"; grep -E "uses-permission|uses-feature|mlkit" "$f" || true
 
