@@ -11,7 +11,7 @@ import MenuAsk from '../components/MenuAsk'
 import { scheduleSatietyReminder } from '../lib/notify'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
-import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement } from '../types'
+import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
@@ -344,6 +344,9 @@ export default function Capture() {
 
         {/* Bugunku kalori takibi */}
         <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
+
+        {/* Bugun yapilan spor + yaklasik yakilan kalori */}
+        <ExerciseToday exercises={exercises ?? []} measurements={measurements ?? []} />
 
         {/* Menune sor (oglen ne var? siradaki ogun?) */}
         <MenuAsk />
@@ -808,6 +811,46 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
             </p>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Bugun yapilan egzersizler + kiloya gore YAKLASIK yakilan kalori (token yok).
+// Tahmin: kcal ≈ MET(5, orta tempo) × kilo(kg) × süre(saat).
+function ExerciseToday({ exercises, measurements }: { exercises: Exercise[]; measurements: Measurement[] }) {
+  const today = todayStr()
+  const todays = exercises.filter((e) => e.dateStr === today)
+  if (todays.length === 0) return null
+
+  const weights = measurements.filter((m) => typeof m.weight === 'number').sort((a, b) => a.createdAt - b.createdAt)
+  const weight = weights.length ? (weights[weights.length - 1].weight as number) : 75
+  const MET = 5
+  const totalMin = todays.reduce((s, e) => s + (e.minutes ?? 0), 0)
+  const kcal = Math.round(todays.reduce((s, e) => s + (e.minutes ? MET * weight * (e.minutes / 60) : 0), 0))
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between">
+        <span className="section-title">🏃 Bugün spor</span>
+        {kcal > 0 && <span className="chip bg-indigo-100 text-indigo-800">≈ {kcal} kcal yaktın</span>}
+      </div>
+      <div className="mt-2.5 space-y-1.5">
+        {todays.map((e) => (
+          <div key={e.id} className="flex items-center gap-2 text-sm">
+            <span className="text-lg flex-shrink-0">💪</span>
+            <span className="flex-1 min-w-0 text-slate-700 break-words">{e.text}</span>
+            {e.minutes ? <span className="text-xs text-slate-400 flex-shrink-0">{e.minutes} dk</span> : null}
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between mt-2.5">
+        <p className="text-[11px] text-slate-400">
+          {totalMin > 0 ? `Toplam ${totalMin} dk · ` : ''}yakılan kalori yaklaşıktır (kilona göre).
+        </p>
+        <Link to="/egzersiz" className="text-xs text-brand-700 underline flex-shrink-0">
+          Egzersiz →
+        </Link>
       </div>
     </div>
   )
