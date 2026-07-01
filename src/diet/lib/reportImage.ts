@@ -4,16 +4,10 @@
 import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
 import { mealLabel, MEAL_OPTIONS } from './meals'
+import type { DietEntry } from '../types'
 
 const W = 820
 const PAD = 32
-const MEAL_H = 100
-
-const TR_DECISION: Record<string, string> = {
-  resisted: 'Vazgeçti ✅',
-  ate: 'Yedi ⚠️',
-  none: 'Karar yok ⏳'
-}
 
 function scoreColor(pct: number): string {
   return pct >= 80 ? '#059669' : pct >= 50 ? '#d97706' : '#e11d48'
@@ -58,6 +52,23 @@ function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   let t = text
   while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1)
   return t + '…'
+}
+
+// Kucuk renkli pill/chip cizer, genisligini dondurur
+function drawChip(ctx: CanvasRenderingContext2D, x: number, yTop: number, text: string, bg: string, fg: string): number {
+  ctx.font = 'bold 15px sans-serif'
+  const w = ctx.measureText(text).width + 22
+  fillRound(ctx, x, yTop, w, 26, 13, bg)
+  ctx.fillStyle = fg
+  ctx.fillText(text, x + 11, yTop + 18)
+  return w
+}
+
+// Karar rozeti renkleri/etiketleri
+const DEC_STYLE: Record<string, { t: string; bg: string; fg: string }> = {
+  resisted: { t: '💪 Vazgeçti', bg: '#d1fae5', fg: '#065f46' },
+  ate: { t: '😋 Yedi', bg: '#fef3c7', fg: '#92400e' },
+  none: { t: '⏳ Karar yok', bg: '#f1f5f9', fg: '#64748b' }
 }
 
 // Metni verilen genislige gore satirlara boler (kelime bazli sarma)
@@ -114,125 +125,159 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     ? 18 + exBlocks.reduce((s, b) => s + b.lines.length * EX_LINE + (b.meta ? 24 : 0) + 14, 0)
     : 0
 
-  // Ogunleri ogun turune gore grupla (Kahvalti, Ogle, ... + Diger)
-  const HEAD = 34
+  // Ogun kartlarini onceden hazirla: buyuk foto + adin satirlara bolunmesi
+  const PHOTO = 122 // yemek fotografi (daha buyuk)
+  const NAME_LH = 33 // yemek adi satir yuksekligi
+  const nameMaxW = W - 2 * PAD - 56 - PHOTO
   const pairs = entries.map((e, i) => ({ e, img: photos[i] }))
+  function buildMealCard(p: { e: DietEntry; img: HTMLImageElement | null }) {
+    mctx.font = 'bold 26px sans-serif'
+    let lines = wrapText(mctx, p.e.foodName, nameMaxW)
+    if (lines.length > 2) lines = [lines[0], truncate(mctx, lines.slice(1).join(' '), nameMaxW)]
+    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.satiety
+    const textH = lines.length * NAME_LH + 34 + (hasParts3 ? 26 : 0)
+    const cardH = 28 + Math.max(PHOTO, textH)
+    return { ...p, lines, hasParts3, cardH }
+  }
+  const HEAD = 40
   const mealGroups = [...MEAL_OPTIONS.map((o) => o.value), undefined as undefined]
-    .map((mt) => ({ mt, list: pairs.filter((p) => (p.e.mealType ?? undefined) === mt) }))
+    .map((mt) => ({ mt, list: pairs.filter((p) => (p.e.mealType ?? undefined) === mt).map(buildMealCard) }))
     .filter((g) => g.list.length > 0)
 
   // Yukseklik hesabi (cizimle ayni adimlar)
-  let h = PAD + 56 + 44 // baslik + tarih
-  h += 24 + 110 // basari blogu
-  h += 36 // "Ogunler" basligi
-  if (entries.length === 0) h += 40
-  else for (const g of mealGroups) h += HEAD + g.list.length * (MEAL_H + 12)
-  if (exercises.length) h += 40 + exCardH
-  if (measurements.length) h += 44 + measurements.length * 30
-  if (vitals.length) h += 44 + vitals.length * 30
+  const BANNER = 96
+  let h = PAD + BANNER + 22 // baslik banneri
+  h += 116 + 24 // basari blogu
+  h += 40 // "Ogunler" basligi
+  if (entries.length === 0) h += 44
+  else for (const g of mealGroups) h += HEAD + g.list.reduce((s, c) => s + c.cardH + 14, 0)
+  if (exercises.length) h += 44 + exCardH
+  if (measurements.length) h += 48 + measurements.length * 30
+  if (vitals.length) h += 48 + vitals.length * 30
   h += 50 // alt bilgi
 
   const canvas = document.createElement('canvas')
   canvas.width = W
-  canvas.height = Math.max(h, 420)
+  canvas.height = Math.max(h, 480)
   const ctx = canvas.getContext('2d')!
   ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
 
   // Arka plan
-  ctx.fillStyle = '#f1f5f9'
+  ctx.fillStyle = '#f6f8fa'
   ctx.fillRect(0, 0, W, canvas.height)
 
-  let y = PAD + 36
-
-  // Baslik
-  ctx.fillStyle = '#0f172a'
-  ctx.font = 'bold 38px sans-serif'
-  ctx.fillText('🥗 Diyet Raporu', PAD, y)
-  y += 40
-  ctx.fillStyle = '#475569'
-  ctx.font = '22px sans-serif'
+  // Baslik banneri (yesil degrade)
+  let y = PAD
+  const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
+  grad.addColorStop(0, '#059669')
+  grad.addColorStop(1, '#34d399')
+  roundRectPath(ctx, PAD, y, W - 2 * PAD, BANNER, 22)
+  ctx.fillStyle = grad
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 32px sans-serif'
+  ctx.fillText('🥗 Diyet Raporu', PAD + 26, y + 46)
   const dateNice = new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   })
-  ctx.fillText(dateNice + (userName ? ` · ${userName}` : ''), PAD, y)
-  y += 28
+  ctx.font = '19px sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.fillText(dateNice + (userName ? ` · ${userName}` : ''), PAD + 26, y + 76)
+  y += BANNER + 22
 
   // Basari blogu
   const pct = dayAdherence(entries, dateStr)
-  fillRound(ctx, PAD, y, W - 2 * PAD, 110, 16, '#ffffff')
+  fillRound(ctx, PAD, y, W - 2 * PAD, 116, 18, '#ffffff')
   ctx.fillStyle = '#64748b'
   ctx.font = 'bold 20px sans-serif'
-  ctx.fillText('GÜNLÜK DİYET BAŞARISI', PAD + 24, y + 36)
+  ctx.fillText('GÜNLÜK DİYET BAŞARISI', PAD + 26, y + 38)
   if (pct != null) {
     ctx.fillStyle = scoreColor(pct)
-    ctx.font = 'bold 40px sans-serif'
+    ctx.font = 'bold 42px sans-serif'
     ctx.textAlign = 'right'
-    ctx.fillText(`%${pct}`, W - PAD - 24, y + 44)
+    ctx.fillText(`%${pct}`, W - PAD - 26, y + 46)
     ctx.textAlign = 'left'
-    const bx = PAD + 24
-    const by = y + 64
-    const bw = W - 2 * PAD - 48
-    fillRound(ctx, bx, by, bw, 18, 9, '#e2e8f0')
-    fillRound(ctx, bx, by, (bw * pct) / 100, 18, 9, scoreColor(pct))
+    const bx = PAD + 26
+    const by = y + 68
+    const bw = W - 2 * PAD - 52
+    fillRound(ctx, bx, by, bw, 20, 10, '#e2e8f0')
+    fillRound(ctx, bx, by, (bw * pct) / 100, 20, 10, scoreColor(pct))
   } else {
     ctx.fillStyle = '#94a3b8'
     ctx.font = '22px sans-serif'
-    ctx.fillText('Bu güne ait karar verilmiş öğün yok.', PAD + 24, y + 70)
+    ctx.fillText('Bu güne ait karar verilmiş öğün yok.', PAD + 26, y + 74)
   }
-  y += 110 + 24
+  y += 116 + 24
 
   // Ogunler
   ctx.fillStyle = '#0f172a'
-  ctx.font = 'bold 24px sans-serif'
-  ctx.fillText('🍽️ Öğünler', PAD, y)
-  y += 24
+  ctx.font = 'bold 26px sans-serif'
+  ctx.fillText('🍽️ Öğünler', PAD, y + 6)
+  y += 40
 
   if (entries.length === 0) {
     ctx.fillStyle = '#94a3b8'
     ctx.font = '20px sans-serif'
     ctx.fillText('Bugün öğün kaydı yok.', PAD, y + 8)
-    y += 40
+    y += 44
   } else {
     for (const g of mealGroups) {
       // Ogun basligi
       ctx.fillStyle = '#0f766e'
-      ctx.font = 'bold 21px sans-serif'
-      ctx.fillText('▸ ' + (g.mt ? mealLabel(g.mt) : 'Diğer'), PAD, y + 16)
+      ctx.font = 'bold 22px sans-serif'
+      ctx.fillText('▸ ' + (g.mt ? mealLabel(g.mt) : 'Diğer'), PAD + 2, y + 22)
       y += HEAD
-      for (const { e, img } of g.list) {
-        fillRound(ctx, PAD, y, W - 2 * PAD, MEAL_H, 14, '#ffffff')
-        const isz = MEAL_H - 24
-        const ix = PAD + 12
-        const iy = y + 12
+      for (const card of g.list) {
+        const { e, img, lines, hasParts3, cardH } = card
+        fillRound(ctx, PAD, y, W - 2 * PAD, cardH, 18, '#ffffff')
+        const ix = PAD + 16
+        const iy = y + 16
         if (img) {
           ctx.save()
-          roundRectPath(ctx, ix, iy, isz, isz, 10)
+          roundRectPath(ctx, ix, iy, PHOTO, PHOTO, 14)
           ctx.clip()
-          drawCover(ctx, img, ix, iy, isz)
+          drawCover(ctx, img, ix, iy, PHOTO)
           ctx.restore()
         } else {
-          fillRound(ctx, ix, iy, isz, isz, 10, '#e2e8f0')
+          fillRound(ctx, ix, iy, PHOTO, PHOTO, 14, '#eef2f6')
+          ctx.fillStyle = '#cbd5e1'
+          ctx.font = '46px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.fillText('🍽️', ix + PHOTO / 2, iy + PHOTO / 2 + 16)
+          ctx.textAlign = 'left'
         }
-        const tx = ix + isz + 18
+        const tx = ix + PHOTO + 20
+        // Yemek adi (1-2 satir, kesilmez)
         ctx.fillStyle = '#0f172a'
-        ctx.font = 'bold 24px sans-serif'
-        ctx.fillText(truncate(ctx, e.foodName, W - PAD - tx - 16), tx, y + 36)
+        ctx.font = 'bold 26px sans-serif'
+        let ty = y + 42
+        for (const ln of lines) {
+          ctx.fillText(ln, tx, ty)
+          ty += NAME_LH
+        }
+        // Saat · kalori + karar rozeti
         ctx.fillStyle = '#64748b'
         ctx.font = '19px sans-serif'
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-        ctx.fillText(`${t} · ~${e.estimatedCalories} kcal · ${TR_DECISION[e.decision] ?? ''}`, tx, y + 64)
-        const parts3: string[] = []
-        if (e.compliancePercent >= 0) parts3.push(`Uyum %${e.compliancePercent}`)
-        if (e.satiety) parts3.push(`Tokluk ${e.satiety}/10`)
-        if (parts3.length) {
+        const meta = `${t}  ·  ~${e.estimatedCalories} kcal`
+        ctx.fillText(meta, tx, ty + 4)
+        const d = DEC_STYLE[e.decision] ?? DEC_STYLE.none
+        drawChip(ctx, tx + ctx.measureText(meta).width + 14, ty - 14, d.t, d.bg, d.fg)
+        ty += 32
+        // Uyum / tokluk
+        if (hasParts3) {
+          const parts3: string[] = []
+          if (e.compliancePercent >= 0) parts3.push(`✓ Uyum %${e.compliancePercent}`)
+          if (e.satiety) parts3.push(`🍽️ Tokluk ${e.satiety}/10`)
           ctx.fillStyle = '#475569'
           ctx.font = '18px sans-serif'
-          ctx.fillText(parts3.join(' · '), tx, y + 88)
+          ctx.fillText(parts3.join('   ·   '), tx, ty + 2)
         }
-        y += MEAL_H + 12
+        y += cardH + 14
       }
     }
   }
