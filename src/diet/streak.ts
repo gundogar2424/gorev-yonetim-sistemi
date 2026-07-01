@@ -12,13 +12,6 @@ export function todayStr(d: Date = new Date()): string {
   return d.toLocaleDateString('en-CA')
 }
 
-// Iki YYYY-MM-DD tarihi arasindaki tam gun farki
-function daysBetween(aStr: string, bStr: string): number {
-  const a = new Date(aStr + 'T00:00:00')
-  const b = new Date(bStr + 'T00:00:00')
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000)
-}
-
 // "Diyet bozuldu" sayilan kayit: saglıksiz bir yemegi yine de yemek
 export function isBreak(e: DietEntry): boolean {
   return e.decision === 'ate' && !e.healthy
@@ -43,11 +36,9 @@ export function computeStats(entries: DietEntry[], exercises: Exercise[] = []): 
   let totalResisted = 0
   let totalAte = 0
   let brokeCount = 0
-  let firstDate: string | null = null
 
   let points = 0
   for (const e of entries) {
-    if (!firstDate || e.dateStr < firstDate) firstDate = e.dateStr
     if (e.decision === 'resisted') {
       totalResisted++
       points += 10 // vazgecmek en degerli
@@ -62,14 +53,9 @@ export function computeStats(entries: DietEntry[], exercises: Exercise[] = []): 
     }
   }
 
-  // Seri: son bozulmadan bu yana gecen tam gun (bozulma gunu sifir sayilir).
-  // Hic bozulma yoksa ilk kayittan bugune kadarki gun sayisi.
-  let streak = 0
-  if (lastBreakDate) {
-    streak = Math.max(0, daysBetween(lastBreakDate, today))
-  } else if (firstDate) {
-    streak = Math.max(0, daysBetween(firstDate, today)) + 1
-  }
+  // Seri: ust uste "temiz" gun sayisi. Tek kucuk kacamak sifirlamaz; ancak
+  // KOTU gecen bir GUN (o gunun basari yuzdesi esigin altinda) seriyi sifirlar.
+  const streak = cleanDayStreak(entries, today)
 
   // Egzersiz puanlari ve toplamlari
   let exerciseMinutes = 0
@@ -216,6 +202,30 @@ export function dayAdherence(entries: DietEntry[], dateStr: string): number | nu
     .filter((s): s is number => s !== null)
   if (scores.length === 0) return null
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+}
+
+// Bir gun "kotu" sayilir: o gunun diyet basari yuzdesi bu esigin altindaysa.
+export const BAD_DAY_THRESHOLD = 50
+
+// Ust uste "temiz" gun serisi: bugunden geriye dogru, KOTU gecen ilk gune
+// kadar sayar. Karar verilmemis/bos gunler seriyi bozmaz (temiz sayilir),
+// ama basarisi <%50 olan bir gun seriyi sifirlar. Tek kacamak (gun geneli
+// yine >=%50 kaliyorsa) seriyi bozmaz.
+export function cleanDayStreak(entries: DietEntry[], today: string = todayStr()): number {
+  if (!entries.length) return 0
+  let firstDate = entries[0].dateStr
+  for (const e of entries) if (e.dateStr < firstDate) firstDate = e.dateStr
+
+  const base = new Date(today + 'T00:00:00').getTime()
+  let streak = 0
+  for (let i = 0; i < 3650; i++) {
+    const d = todayStr(new Date(base - i * 86_400_000))
+    if (d < firstDate) break // ilk kayittan oncesine gitme
+    const pct = dayAdherence(entries, d)
+    if (pct != null && pct < BAD_DAY_THRESHOLD) break // kotu gun -> seri biter
+    streak++
+  }
+  return streak
 }
 
 export interface Badge {
