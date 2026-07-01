@@ -60,6 +60,24 @@ function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   return t + '…'
 }
 
+// Metni verilen genislige gore satirlara boler (kelime bazli sarma)
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let line = ''
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w
+    if (line && ctx.measureText(test).width > maxW) {
+      lines.push(line)
+      line = w
+    } else {
+      line = test
+    }
+  }
+  if (line) lines.push(line)
+  return lines.length ? lines : ['']
+}
+
 function measureLines(m: { weight?: number; waist?: number; navel?: number; fold?: number; hip?: number; chest?: number; arm?: number; leg?: number }): string {
   const p: string[] = []
   if (m.weight != null) p.push(`Kilo ${m.weight}kg`)
@@ -84,6 +102,18 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   entries.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
 
+  // Egzersiz metinlerini onceden satirlara bol (kesilmesin) + kart yuksekligi
+  const EX_LINE = 27
+  const mctx = document.createElement('canvas').getContext('2d')!
+  mctx.font = '21px sans-serif'
+  const exBlocks = exercises.map((ex) => {
+    const meta = [ex.minutes ? `${ex.minutes} dk` : '', ex.kcal ? `~${ex.kcal} kcal` : ''].filter(Boolean).join(' · ')
+    return { lines: wrapText(mctx, ex.text, W - 2 * PAD - 40), meta }
+  })
+  const exCardH = exBlocks.length
+    ? 18 + exBlocks.reduce((s, b) => s + b.lines.length * EX_LINE + (b.meta ? 24 : 0) + 14, 0)
+    : 0
+
   // Ogunleri ogun turune gore grupla (Kahvalti, Ogle, ... + Diger)
   const HEAD = 34
   const pairs = entries.map((e, i) => ({ e, img: photos[i] }))
@@ -97,7 +127,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   h += 36 // "Ogunler" basligi
   if (entries.length === 0) h += 40
   else for (const g of mealGroups) h += HEAD + g.list.length * (MEAL_H + 12)
-  if (exercises.length) h += 44 + exercises.length * 30
+  if (exercises.length) h += 40 + exCardH
   if (measurements.length) h += 44 + measurements.length * 30
   if (vitals.length) h += 44 + vitals.length * 30
   h += 50 // alt bilgi
@@ -207,22 +237,31 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     }
   }
 
-  // Egzersiz
+  // Egzersiz (beyaz kartta, uzun metin satirlara bolunur)
   if (exercises.length) {
     y += 8
     ctx.fillStyle = '#0f172a'
     ctx.font = 'bold 24px sans-serif'
     ctx.fillText('🏃 Egzersiz', PAD, y)
-    y += 8
-    ctx.fillStyle = '#334155'
-    ctx.font = '20px sans-serif'
-    for (const ex of exercises) {
-      y += 30
-      const extra = [ex.minutes ? `${ex.minutes} dk` : '', ex.kcal ? `~${ex.kcal} kcal` : ''].filter(Boolean).join(' · ')
-      const line = '• ' + ex.text + (extra ? ` (${extra})` : '')
-      ctx.fillText(truncate(ctx, line, W - 2 * PAD), PAD + 6, y)
+    y += 16
+    fillRound(ctx, PAD, y, W - 2 * PAD, exCardH, 16, '#ffffff')
+    let ry = y + 18
+    for (const b of exBlocks) {
+      ctx.fillStyle = '#334155'
+      ctx.font = '21px sans-serif'
+      for (const ln of b.lines) {
+        ctx.fillText(ln, PAD + 20, ry + 20)
+        ry += EX_LINE
+      }
+      if (b.meta) {
+        ctx.fillStyle = '#0f766e'
+        ctx.font = 'bold 17px sans-serif'
+        ctx.fillText('⏱ ' + b.meta, PAD + 20, ry + 18)
+        ry += 24
+      }
+      ry += 14
     }
-    y += 6
+    y += exCardH + 8
   }
 
   // Olculer
