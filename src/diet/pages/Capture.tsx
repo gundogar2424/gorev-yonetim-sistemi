@@ -61,6 +61,24 @@ function healthTheme(a: FoodAnalysis): Theme {
   }
 }
 
+// Kisi fizigi baglami (boy/yas/cinsiyet/kilo) — yapay zekaya porsiyon-kalori icin verilir
+function bodyContext(s?: DietSettings, measurements?: Measurement[]): string | undefined {
+  if (!s) return undefined
+  const parts: string[] = []
+  if (s.gender) parts.push(s.gender)
+  if (s.age) parts.push(`${s.age} yaşında`)
+  if (s.heightCm) parts.push(`boy ${s.heightCm} cm`)
+  const w = (measurements ?? [])
+    .filter((m) => typeof m.weight === 'number')
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((m) => m.weight as number)
+    .pop()
+  if (w) parts.push(`kilo ${w} kg`)
+  return parts.length
+    ? `Kişinin fiziği: ${parts.join(', ')}. Porsiyon ve kalori değerlendirmelerini buna göre yap.`
+    : undefined
+}
+
 export default function Capture() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
@@ -151,7 +169,8 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        note: noteArg || undefined
+        note: noteArg || undefined,
+        body: bodyContext(settings, measurements)
       })
       setAnalysis(result)
       setPhase('result')
@@ -177,7 +196,8 @@ export default function Capture() {
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
-        dietPlan: settings?.dietPlan
+        dietPlan: settings?.dietPlan,
+        body: bodyContext(settings, measurements)
       })
       setAnalysis(result)
       setPhase('result')
@@ -202,7 +222,8 @@ export default function Capture() {
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
-        dietPlan: settings?.dietPlan
+        dietPlan: settings?.dietPlan,
+        body: bodyContext(settings, measurements)
       })
       setAnalysis(result)
       setPhase('result')
@@ -332,7 +353,7 @@ export default function Capture() {
         </div>
 
         {/* Kilo hedefi & gidisat (motivasyon) */}
-        <WeightGoal measurements={measurements ?? []} target={settings?.targetWeight} start={settings?.startWeight} />
+        <WeightGoal measurements={measurements ?? []} target={settings?.targetWeight} start={settings?.startWeight} height={settings?.heightCm} />
 
         {/* Bugunku diyet basari yuzdesi */}
         <DailyScore entries={entries ?? []} />
@@ -639,7 +660,7 @@ export default function Capture() {
 
 // Kilo hedefi & gidisat karti: baslangic -> su an -> hedef, ne kadar verildi,
 // hedefe ne kaldi ve ilerleme cubugu. Hedef girilmemisse nazikce yonlendirir.
-function WeightGoal({ measurements, target, start }: { measurements: Measurement[]; target?: number; start?: number }) {
+function WeightGoal({ measurements, target, start, height }: { measurements: Measurement[]; target?: number; start?: number; height?: number }) {
   // Kilo girilmis olculeri kronolojik al
   const weights = measurements
     .filter((m) => typeof m.weight === 'number')
@@ -684,11 +705,19 @@ function WeightGoal({ measurements, target, start }: { measurements: Measurement
   const span = base - target
   const pct = span > 0 ? Math.max(0, Math.min(100, Math.round(((base - current) / span) * 100))) : reached ? 100 : 0
 
+  // BMI (boy girildiyse)
+  const bmi = height && height > 0 ? Math.round((current / Math.pow(height / 100, 2)) * 10) / 10 : null
+  const bmiCat = bmi == null ? '' : bmi < 18.5 ? 'zayıf' : bmi < 25 ? 'normal' : bmi < 30 ? 'fazla kilolu' : 'obez'
+  const bmiCls = bmi == null ? '' : bmi < 18.5 || bmi >= 30 ? 'bg-rose-100 text-rose-700' : bmi < 25 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="section-title">🎯 Kilo hedefin</span>
-        <span className="text-xs font-semibold text-slate-500">{base} → {target} kg</span>
+        <div className="flex items-center gap-2">
+          {bmi != null && <span className={`chip ${bmiCls}`}>BMI {bmi} · {bmiCat}</span>}
+          <span className="text-xs font-semibold text-slate-500">{base} → {target} kg</span>
+        </div>
       </div>
 
       <div className="flex items-end justify-between">

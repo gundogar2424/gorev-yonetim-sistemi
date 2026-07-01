@@ -90,6 +90,44 @@ export async function shareImageSmart(blob: Blob, filename: string): Promise<Sha
   return 'copied' // "indirildi" anlaminda
 }
 
+// ---- Birden cok gorseli birlikte paylas (WhatsApp'a 3-4 foto) ----
+export async function shareImagesSmart(items: { blob: Blob; filename: string }[]): Promise<ShareResult> {
+  if (!items.length) return 'failed'
+  if (isNative()) {
+    try {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem')
+      const { Share } = await import('@capacitor/share')
+      const uris: string[] = []
+      for (const it of items) {
+        const base64 = await blobToBase64(it.blob)
+        await Filesystem.writeFile({ path: it.filename, data: base64, directory: Directory.Cache })
+        const { uri } = await Filesystem.getUri({ path: it.filename, directory: Directory.Cache })
+        uris.push(uri)
+      }
+      await Share.share({ title: 'Diyet Raporu', text: 'Diyet raporum', files: uris, dialogTitle: 'Diyetisyene gönder' })
+      return 'shared'
+    } catch (err) {
+      return isCancel(err) ? 'cancelled' : 'failed'
+    }
+  }
+  // Web: dosya dizisi paylasimi destekleniyorsa paylas, yoksa tek tek indir
+  const files = items.map((it) => new File([it.blob], it.filename, { type: 'image/png' }))
+  const nav = navigator as Navigator & {
+    canShare?: (d: { files: File[] }) => boolean
+    share?: (d: { files: File[]; title?: string }) => Promise<void>
+  }
+  if (typeof nav.share === 'function' && nav.canShare?.({ files })) {
+    try {
+      await nav.share({ files, title: 'Diyet Raporu' })
+      return 'shared'
+    } catch (err) {
+      if (isCancel(err)) return 'cancelled'
+    }
+  }
+  for (const it of items) downloadBlob(it.blob, it.filename)
+  return 'copied'
+}
+
 // ---- Yedek (JSON) kaydet/paylas ----
 export async function saveJsonSmart(json: string, filename: string): Promise<ShareResult> {
   if (isNative()) {

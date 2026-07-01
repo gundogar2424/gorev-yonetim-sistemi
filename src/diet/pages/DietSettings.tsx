@@ -180,6 +180,42 @@ export default function DietSettings() {
               onChange={(e) => saveDietSettings({ userName: e.target.value })}
             />
           </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="field-label">Boy (cm)</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                className="field-input"
+                placeholder="örn. 175"
+                value={settings?.heightCm ?? ''}
+                onChange={(e) => saveDietSettings({ heightCm: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
+              />
+            </div>
+            <div>
+              <label className="field-label">Yaş</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                className="field-input"
+                placeholder="örn. 30"
+                value={settings?.age ?? ''}
+                onChange={(e) => saveDietSettings({ age: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })}
+              />
+            </div>
+            <div>
+              <label className="field-label">Cinsiyet</label>
+              <select
+                className="field-input"
+                value={settings?.gender ?? ''}
+                onChange={(e) => saveDietSettings({ gender: (e.target.value || undefined) as 'kadın' | 'erkek' | undefined })}
+              >
+                <option value="">—</option>
+                <option value="kadın">Kadın</option>
+                <option value="erkek">Erkek</option>
+              </select>
+            </div>
+          </div>
           <div>
             <label className="field-label">Diyet hedefin</label>
             <textarea

@@ -5,8 +5,8 @@ import { dietDb, readDietSettings, listExercises } from '../db'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { mealEmoji, mealLabel } from '../lib/meals'
 import { buildDailyReport, whatsappLink } from '../lib/report'
-import { buildDailyImage } from '../lib/reportImage'
-import { shareTextSmart, shareImageSmart } from '../lib/share'
+import { buildDailyImage, buildDailyImageSet } from '../lib/reportImage'
+import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
 import type { DietEntry } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
@@ -60,6 +60,28 @@ export default function History() {
     setTimeout(() => setMsg(''), 4000)
   }
 
+  // Secilen gunu AYRI AYRI gorsellerle gonder (her ogun + spor/saglik ayri foto)
+  async function sendImageSet() {
+    setMsg('Görseller hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const imgs = await buildDailyImageSet(reportDate, settings.userName)
+      if (!imgs.length) {
+        setMsg('Bu güne ait kayıt yok.')
+        setTimeout(() => setMsg(''), 4000)
+        return
+      }
+      const res = await shareImagesSmart(imgs)
+      if (res === 'shared') setMsg(`${imgs.length} görsel — paylaşım menüsü açıldı.`)
+      else if (res === 'copied') setMsg(`${imgs.length} görsel indirildi, diyetisyenine gönderebilirsin.`)
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Görseller gönderilemedi.')
+    } catch {
+      setMsg('Görseller oluşturulamadı.')
+    }
+    setTimeout(() => setMsg(''), 5000)
+  }
+
   // Tarihe gore grupla
   const groups = groupByDate(entries ?? [])
 
@@ -81,9 +103,15 @@ export default function History() {
               ✍️ Yazılı Gönder
             </button>
             <button onClick={sendImage} className="btn-primary whitespace-nowrap">
-              📸 Resimli Gönder
+              📸 Tek Görsel
             </button>
           </div>
+          <button onClick={sendImageSet} className="btn bg-brand-600 text-white w-full whitespace-nowrap">
+            🖼️ Ayrı Ayrı Gönder (her öğün + spor/sağlık)
+          </button>
+          <p className="text-[11px] text-slate-400">
+            “Ayrı ayrı”: her öğün ve spor/sağlık için ayrı, büyük fotoğraflı görseller olarak gönderir (WhatsApp’ta 3-4 foto).
+          </p>
           {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
         </section>
 

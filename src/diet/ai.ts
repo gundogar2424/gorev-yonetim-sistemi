@@ -145,19 +145,21 @@ interface AnalyzeOptions {
   goal?: string
   dietPlan?: string
   note?: string // Kullanicinin duzeltmesi/aciklamasi (yemek adi, miktar vb.)
+  body?: string // Kisi bilgisi: boy/yas/cinsiyet/kilo (porsiyon-kalori icin baglam)
 }
 
 // Fotografi inceler ve yapilandirilmis sonucu dondurur
 export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note } = opts
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body } = opts
 
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const img = splitDataUrl(photoDataUrl)
   if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
 
-  // Kullanici baglamini (isim/hedef) ek bir not olarak ilet
+  // Kullanici baglamini (isim/hedef/vucut) ek bir not olarak ilet
   const contextLines: string[] = []
   if (userName) contextLines.push(`Kullanıcının adı: ${userName}.`)
+  if (body) contextLines.push(body)
   if (goal) contextLines.push(`Diyet hedefi: ${goal}.`)
   const contextText = contextLines.length
     ? `\n\nKullanıcı bağlamı: ${contextLines.join(' ')} Sözlerini bu hedefe göre kişiselleştir.`
@@ -240,13 +242,15 @@ export async function analyzeFoodByText(opts: {
   userName?: string
   goal?: string
   dietPlan?: string
+  body?: string
 }): Promise<FoodAnalysis> {
-  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan, body } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!note.trim()) throw new Error('Yemeğin ne olduğunu yaz.')
 
   const contextLines: string[] = []
   if (userName) contextLines.push(`Kullanıcının adı: ${userName}.`)
+  if (body) contextLines.push(body)
   if (goal) contextLines.push(`Diyet hedefi: ${goal}.`)
   const contextText = contextLines.length ? `\n\nKullanıcı bağlamı: ${contextLines.join(' ')}` : ''
   const planText = dietPlan?.trim()
