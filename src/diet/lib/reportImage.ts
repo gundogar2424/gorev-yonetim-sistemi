@@ -74,11 +74,13 @@ function measureLines(m: { weight?: number; waist?: number; navel?: number; fold
 
 // Bir gunun gorsel raporunu PNG Blob olarak uretir
 export async function buildDailyImage(dateStr: string, userName?: string): Promise<Blob> {
-  const [entries, measurements, vitals] = await Promise.all([
+  const [entries, measurements, vitals, exercises] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
-    dietDb.vitals.where('dateStr').equals(dateStr).toArray()
+    dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
+    dietDb.exercises.where('dateStr').equals(dateStr).toArray()
   ])
+  exercises.sort((a, b) => a.createdAt - b.createdAt)
   entries.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
 
@@ -95,6 +97,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   h += 36 // "Ogunler" basligi
   if (entries.length === 0) h += 40
   else for (const g of mealGroups) h += HEAD + g.list.length * (MEAL_H + 12)
+  if (exercises.length) h += 44 + exercises.length * 30
   if (measurements.length) h += 44 + measurements.length * 30
   if (vitals.length) h += 44 + vitals.length * 30
   h += 50 // alt bilgi
@@ -202,6 +205,24 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
         y += MEAL_H + 12
       }
     }
+  }
+
+  // Egzersiz
+  if (exercises.length) {
+    y += 8
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 24px sans-serif'
+    ctx.fillText('🏃 Egzersiz', PAD, y)
+    y += 8
+    ctx.fillStyle = '#334155'
+    ctx.font = '20px sans-serif'
+    for (const ex of exercises) {
+      y += 30
+      const extra = [ex.minutes ? `${ex.minutes} dk` : '', ex.kcal ? `~${ex.kcal} kcal` : ''].filter(Boolean).join(' · ')
+      const line = '• ' + ex.text + (extra ? ` (${extra})` : '')
+      ctx.fillText(truncate(ctx, line, W - 2 * PAD), PAD + 6, y)
+    }
+    y += 6
   }
 
   // Olculer

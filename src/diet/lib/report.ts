@@ -85,7 +85,8 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
   if (exercises.length) {
     lines.push('🏃 EGZERSİZ')
     for (const ex of exercises.sort((a, b) => a.createdAt - b.createdAt)) {
-      lines.push(`  • ${ex.text}${ex.minutes ? ` (${ex.minutes} dk)` : ''}`)
+      const extra = [ex.minutes ? `${ex.minutes} dk` : '', ex.kcal ? `~${ex.kcal} kcal` : ''].filter(Boolean).join(', ')
+      lines.push(`  • ${ex.text}${extra ? ` (${extra})` : ''}`)
     }
     lines.push('')
   }
