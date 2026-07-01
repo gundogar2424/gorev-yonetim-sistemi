@@ -83,6 +83,9 @@ jobs:
       - name: APK'yı yeniden adlandır
         run: cp android/app/build/outputs/apk/debug/app-debug.apk diyet-kocu.apk
 
+      - name: APK'yı ziple (Chrome APK indirme takılmasını atlatmak için)
+        run: zip -j diyet-kocu-apk.zip diyet-kocu.apk
+
       - name: APK'yı artifact olarak yükle
         uses: actions/upload-artifact@v4
         with:
@@ -97,5 +100,10 @@ jobs:
           body: |
             En güncel Diyet Koçu Android uygulaması.
             İndir, telefonda aç, "bilinmeyen kaynaklara izin ver" diyip kur.
-          files: diyet-kocu.apk
+
+            Chrome APK indirmede %100'de takılıyorsa diyet-kocu-apk.zip'i indir,
+            Dosyalarım'da çıkart, içindeki .apk'yı kur.
+          files: |
+            diyet-kocu.apk
+            diyet-kocu-apk.zip
           make_latest: true
