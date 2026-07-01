@@ -4,14 +4,14 @@ import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises, listMeasurements } from '../db'
-import { analyzeFood, analyzeFoodByText, chatAboutFood } from '../ai'
+import { analyzeFood, analyzeFoodByText, chatAboutFood, chatAboutDay } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import MenuAsk from '../components/MenuAsk'
 import { scheduleSatietyReminder } from '../lib/notify'
 import { fileToResizedDataUrl } from '../../lib/image'
-import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
-import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise } from '../types'
+import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
+import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
@@ -356,6 +356,9 @@ export default function Capture() {
 
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
         <PendingCheckIn entries={entries ?? []} />
+
+        {/* Gun sonu degerlendirme sohbeti (Z raporu) */}
+        <DayReview entries={entries ?? []} exercises={exercises ?? []} measurements={measurements ?? []} settings={settings} />
 
         {!hasKey && (
           <div className="card p-4 bg-amber-50 border-amber-200 text-amber-800 text-sm">
@@ -827,7 +830,10 @@ function ExerciseToday({ exercises, measurements }: { exercises: Exercise[]; mea
   const weight = weights.length ? (weights[weights.length - 1].weight as number) : 75
   const MET = 5
   const totalMin = todays.reduce((s, e) => s + (e.minutes ?? 0), 0)
-  const kcal = Math.round(todays.reduce((s, e) => s + (e.minutes ? MET * weight * (e.minutes / 60) : 0), 0))
+  // Once yapay zeka tahmini (e.kcal), yoksa kabaca MET x kilo x sure
+  const kcal = Math.round(
+    todays.reduce((s, e) => s + (e.kcal != null ? e.kcal : e.minutes ? MET * weight * (e.minutes / 60) : 0), 0)
+  )
 
   return (
     <div className="card p-4">
@@ -852,6 +858,144 @@ function ExerciseToday({ exercises, measurements }: { exercises: Exercise[]; mea
           Egzersiz →
         </Link>
       </div>
+    </div>
+  )
+}
+
+// Bugunun kompakt ozetini (yemekler, kararlar, spor) metne dokup sohbete baglam verir
+function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: string): string {
+  const meals = entries.filter((e) => e.dateStr === today).sort((a, b) => a.createdAt - b.createdAt)
+  const exs = exercises.filter((e) => e.dateStr === today)
+  const lines: string[] = []
+  const adh = dayAdherence(entries, today)
+  if (adh != null) lines.push(`Diyet başarısı: %${adh}.`)
+  const ate = meals.filter((e) => e.decision === 'ate')
+  const resisted = meals.filter((e) => e.decision === 'resisted').length
+  const kcalIn = ate.reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+  lines.push(`${resisted} vazgeçiş, ${ate.length} yenen öğün, ~${kcalIn} kcal alındı.`)
+  const TR: Record<string, string> = { resisted: 'vazgeçti', ate: 'yedi', none: 'karar yok' }
+  for (const e of meals) {
+    const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    const mt = e.mealType ? mealLabel(e.mealType) + ' ' : ''
+    lines.push(`- ${t} ${mt}${e.foodName} (~${e.estimatedCalories} kcal) — ${TR[e.decision] ?? ''}`)
+  }
+  if (exs.length) {
+    const burn = exs.reduce((s, e) => s + (e.kcal || 0), 0)
+    lines.push(`Spor: ${exs.map((e) => e.text + (e.minutes ? ` (${e.minutes} dk)` : '')).join(', ')}${burn ? ` — ~${burn} kcal yakıldı` : ''}.`)
+  }
+  return lines.join('\n')
+}
+
+// Gun sonu "Z raporu" + sohbet: bugun nasil gecti, niye boyle oldu diye konusulur
+function DayReview({
+  entries,
+  exercises,
+  measurements,
+  settings
+}: {
+  entries: DietEntry[]
+  exercises: Exercise[]
+  measurements: Measurement[]
+  settings?: DietSettings
+}) {
+  const today = todayStr()
+  const hasActivity =
+    entries.some((e) => e.dateStr === today) || exercises.some((e) => e.dateStr === today)
+  const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  if (!hasActivity) return null // bugun hic kayit yoksa gosterme
+  void measurements // (ileride kullanilabilir)
+
+  const hasKey = !!settings?.apiKey
+
+  async function ask(question?: string) {
+    const q = (question ?? input).trim()
+    if (!q || !hasKey) return
+    const history = [...chat, { role: 'user' as const, text: q }]
+    setChat(history)
+    setInput('')
+    setBusy(true)
+    try {
+      const answer = await chatAboutDay({
+        apiKey: settings!.apiKey!,
+        daySummary: buildDaySummary(entries, exercises, today),
+        history,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan
+      })
+      setChat([...history, { role: 'assistant', text: answer }])
+    } catch (err) {
+      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card p-3 space-y-2 bg-indigo-50 border-indigo-100">
+      <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">🌙 Günü değerlendir</p>
+      {!hasKey ? (
+        <p className="text-xs text-slate-500">
+          Sohbet için{' '}
+          <Link to="/ayarlar" className="underline font-semibold">
+            Ayarlar
+          </Link>
+          ’dan API anahtarı ekle.
+        </p>
+      ) : (
+        <>
+          {chat.length > 0 && (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {chat.map((m, i) => (
+                <div
+                  key={i}
+                  className={`text-sm rounded-xl px-3 py-2 ${
+                    m.role === 'user' ? 'bg-indigo-600 text-white ml-8' : 'bg-white text-slate-800 mr-8'
+                  }`}
+                >
+                  {m.text}
+                </div>
+              ))}
+              {busy && <p className="text-xs text-slate-400 mr-8">yazıyor…</p>}
+            </div>
+          )}
+          {chat.length === 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => ask('Bugün nasıl geçti? Kısaca değerlendir.')}
+                disabled={busy}
+                className="text-xs font-semibold rounded-full px-3 py-1.5 bg-indigo-600 text-white"
+              >
+                Bugün nasıl geçti?
+              </button>
+              <button
+                onClick={() => ask('Yarın için bana somut bir öneri ver.')}
+                disabled={busy}
+                className="text-xs font-semibold rounded-full px-3 py-1.5 bg-white text-indigo-700 border border-indigo-200"
+              >
+                Yarın ne yapayım?
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              className="field-input flex-1"
+              placeholder="örn. Bugün niye çok acıktım?"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && ask()}
+            />
+            <button onClick={() => ask()} disabled={busy || !input.trim()} className="btn bg-indigo-600 text-white px-4">
+              Sor
+            </button>
+          </div>
+          <p className="text-[11px] text-indigo-700/70">Bugünkü öğün ve sporlarına bakarak konuşur (küçük token).</p>
+        </>
+      )}
     </div>
   )
 }

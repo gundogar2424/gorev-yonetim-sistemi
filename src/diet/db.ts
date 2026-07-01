@@ -160,10 +160,11 @@ export async function deleteLab(id: number) {
 export function listExercises(): Promise<Exercise[]> {
   return dietDb.exercises.orderBy('createdAt').reverse().toArray()
 }
-export async function addExercise(text: string, minutes?: number) {
+export async function addExercise(text: string, minutes?: number, kcal?: number) {
   await dietDb.exercises.add({
     text,
     minutes,
+    kcal,
     createdAt: Date.now(),
     dateStr: new Date().toLocaleDateString('en-CA')
   })

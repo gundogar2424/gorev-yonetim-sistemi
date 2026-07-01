@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { listExercises, addExercise, deleteExercise, readDietSettings } from '../db'
+import { listExercises, addExercise, deleteExercise, readDietSettings, listMeasurements } from '../db'
+import { estimateExerciseKcal } from '../ai'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
 import type { Exercise } from '../types'
 
 export default function ExercisePage() {
   const exercises = useLiveQuery(() => listExercises(), [], [])
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
+  const measurements = useLiveQuery(() => listMeasurements(), [], [])
   const [text, setText] = useState('')
   const [minutes, setMinutes] = useState('')
   const [flash, setFlash] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const list = exercises ?? []
   const totalPoints = list.reduce((sum, e) => sum + exercisePoints(e), 0)
@@ -27,13 +30,32 @@ export default function ExercisePage() {
     const t = text.trim()
     if (!t) return
     const m = minutes.trim() ? Math.max(0, Math.round(Number(minutes))) : undefined
-    await addExercise(t, Number.isFinite(m as number) ? m : undefined)
-    // Kazandirilan puani kullaniciya goster
-    const gained = exercisePoints({ text: t, minutes: m, createdAt: 0, dateStr: '' } as Exercise)
+    const mins = Number.isFinite(m as number) ? m : undefined
+
+    // Yapay zeka ile yaklasik yakilan kaloriyi tahmin et (anahtar varsa)
+    let kcal: number | undefined
+    if (settings?.apiKey) {
+      setBusy(true)
+      try {
+        const weights = (measurements ?? [])
+          .filter((x) => typeof x.weight === 'number')
+          .sort((a, b) => a.createdAt - b.createdAt)
+        const weightKg = weights.length ? (weights[weights.length - 1].weight as number) : undefined
+        const res = await estimateExerciseKcal({ apiKey: settings.apiKey, text: t, minutes: mins, weightKg, model: settings?.model })
+        kcal = res.kcal
+      } catch {
+        // tahmin basarisiz olsa da egzersizi yine de kaydet
+      } finally {
+        setBusy(false)
+      }
+    }
+
+    await addExercise(t, mins, kcal)
+    const gained = exercisePoints({ text: t, minutes: mins, createdAt: 0, dateStr: '' } as Exercise)
     setText('')
     setMinutes('')
-    setFlash(`Kaydedildi! +${gained} puan 💪`)
-    setTimeout(() => setFlash(''), 3000)
+    setFlash(`Kaydedildi! +${gained} puan${kcal ? ` · ~${kcal} kcal yakıldı 🔥` : ''} 💪`)
+    setTimeout(() => setFlash(''), 4000)
   }
 
   async function remove(id: number) {
@@ -104,13 +126,14 @@ export default function ExercisePage() {
               onChange={(e) => setMinutes(e.target.value)}
             />
             <span className="text-sm text-slate-400 flex-1">Süre (dakika, isteğe bağlı)</span>
-            <button onClick={save} disabled={!text.trim()} className="btn-primary px-5">
-              Ekle
+            <button onClick={save} disabled={!text.trim() || busy} className="btn-primary px-5">
+              {busy ? 'Hesaplanıyor…' : 'Ekle'}
             </button>
           </div>
           {flash && <p className="text-sm font-semibold text-emerald-700">{flash}</p>}
           <p className="text-xs text-slate-400">
             Her egzersiz +8 puan, süre uzadıkça +12'ye kadar bonus puan kazandırır.
+            {settings?.apiKey ? ' Yakılan kaloriyi yapay zeka tahmin eder (küçük token).' : ''}
           </p>
         </section>
 
@@ -160,7 +183,8 @@ export default function ExercisePage() {
                 <p className="font-semibold text-slate-800 break-words">{ex.text}</p>
                 <p className="text-xs text-slate-500">
                   {formatDate(ex.dateStr)}
-                  {ex.minutes ? ` · ${ex.minutes} dk` : ''} · +{exercisePoints(ex)} puan
+                  {ex.minutes ? ` · ${ex.minutes} dk` : ''}
+                  {ex.kcal ? ` · ~${ex.kcal} kcal` : ''} · +{exercisePoints(ex)} puan
                 </p>
               </div>
               <button onClick={() => remove(ex.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1">

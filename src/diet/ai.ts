@@ -692,6 +692,91 @@ Kurallar:
   }
 }
 
+// Egzersizden YAKILAN KALORIYI yapay zeka ile tahmin eder (kucuk, metin).
+const BURN_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { kcal: { type: 'integer' }, note: { type: 'string' } },
+  required: ['kcal', 'note']
+} as const
+
+export async function estimateExerciseKcal(opts: {
+  apiKey: string
+  text: string
+  minutes?: number
+  weightKg?: number
+  model?: string
+}): Promise<{ kcal: number; note: string }> {
+  const { apiKey, text, minutes, weightKg, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!text.trim()) throw new Error('Egzersizi yaz.')
+
+  const parts: string[] = [`Egzersiz: "${text.trim()}".`]
+  if (minutes) parts.push(`Süre: ${minutes} dakika.`)
+  if (weightKg) parts.push(`Kişinin kilosu: ${weightKg} kg.`)
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 300,
+      system:
+        'Sen bir spor/beslenme asistanısın. Verilen egzersizi (tür, süre, kilo) değerlendirip YAKLAŞIK YAKILAN KALORİYİ tahmin et. kcal alanına tam sayı yaz. Süre verilmemişse egzersiz türünden makul bir süre varsay. note alanına çok kısa (tek cümle) bir açıklama yaz (örn. "30 dk tempolu yürüyüş ~150 kcal"). Türkçe.',
+      messages: [{ role: 'user', content: parts.join(' ') + ' Yaklaşık kaç kalori yakılmıştır?' }],
+      output_config: { format: { type: 'json_schema', schema: BURN_SCHEMA } }
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const raw = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    const obj = JSON.parse(cleaned) as { kcal: number; note: string }
+    return { kcal: Math.max(0, Math.round(obj.kcal || 0)), note: obj.note || '' }
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// Gunu degerlendirme sohbeti ("Z raporu"): bugunku ozet baglam olarak
+// verilir, kullanici "bugun niye boyle" gibi konusur. Sadece metin -> az token.
+export async function chatAboutDay(opts: {
+  apiKey: string
+  daySummary: string
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+}): Promise<string> {
+  const { apiKey, daySummary, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!history.length) throw new Error('Bir şey yaz.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (dietPlan?.trim()) ctx.push(`Diyet listesi:\n${dietPlan.trim()}`)
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcının BUGÜNKÜ özeti aşağıda. Kullanıcı günü seninle değerlendiriyor ("bugün nasıl geçti", "niye böyle oldu", "yarın ne yapayım" gibi). Türkçe, KISA (1-4 cümle), sıcak, somut ve motive edici cevap ver; suçlama yok. Gerektiğinde bugünkü verilere atıfta bulun. ${ctx.join(' ')}
+
+BUGÜNÜN ÖZETİ:
+${daySummary}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 600,
+      system,
+      messages: history.map((m) => ({ role: m.role, content: m.text }))
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Cevap üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Haftalik koc ozeti: son N gunluk verilerden kisa, motive edici bir
 // degerlendirme yazar (kucuk, tek seferlik token). data = ozet metni.
 export async function weeklyCoachSummary(opts: {

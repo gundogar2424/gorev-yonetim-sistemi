@@ -104,6 +104,7 @@ export interface Exercise {
   dateStr: string // YYYY-MM-DD
   text: string // Ne yaptin? (orn. "30 dk yürüyüş")
   minutes?: number // Suresi (dk, istege bagli)
+  kcal?: number // Yakilan kalori (yapay zeka tahmini); yoksa kabaca hesaplanir
 }
 
 // "Ne Yesem?" onerisi: eldeki urunlerden gramajli ogun + makrolar
