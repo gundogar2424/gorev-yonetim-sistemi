@@ -141,11 +141,13 @@ export interface SavedProduct {
   createdAt: number
 }
 
-// Gunluk su tuketimi (bir tarih icin bardak sayisi)
+// Gunluk su tuketimi (bir tarih icin). Artik ml esas alinir; eski kayitlarda
+// yalnizca bardak (glasses) olabilir (1 bardak ~ 200 ml).
 export interface Water {
   id?: number
   dateStr: string // YYYY-MM-DD
-  glasses: number // Icilen bardak sayisi (1 bardak ~ 200 ml)
+  glasses: number // Eski alan (bardak); geriye donuk uyum icin tutulur
+  ml?: number // Icilen su (mililitre) — esas deger
   createdAt: number
 }
 

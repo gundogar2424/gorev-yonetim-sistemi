@@ -358,12 +358,14 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
 // Tek uzun gorsel yerine, WhatsApp'a AYRI AYRI gonderilecek gorsel SETI uretir:
 // her ogun turu icin bir gorsel (buyuk foto + buyuk yazi) + spor/saglik icin bir gorsel.
 export async function buildDailyImageSet(dateStr: string, userName?: string): Promise<{ filename: string; blob: Blob }[]> {
-  const [entries, measurements, vitals, exercises] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
-    dietDb.exercises.where('dateStr').equals(dateStr).toArray()
+    dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
+    dietDb.water.where('dateStr').equals(dateStr).first()
   ])
+  const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
   entries.sort((a, b) => a.createdAt - b.createdAt)
   exercises.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
@@ -491,7 +493,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
   }
 
   // Spor & Saglik: tek bir gorsel
-  if (exercises.length || vitals.length || measurements.length) {
+  if (exercises.length || vitals.length || measurements.length || waterMl > 0) {
     const HLINE = 30
     mctx.font = '22px sans-serif'
     const exB = exercises.map((ex) => {
@@ -501,7 +503,8 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     const exH = exB.length ? 44 + 16 + exB.reduce((s, b) => s + b.lines.length * HLINE + (b.meta ? 26 : 0) + 14, 0) : 0
     const vitH = vitals.length ? 44 + vitals.length * 32 : 0
     const meaH = measurements.length ? 44 + measurements.length * 32 : 0
-    const contentH = exH + vitH + meaH + 8
+    const watH = waterMl > 0 ? 44 : 0
+    const contentH = exH + vitH + meaH + watH + 8
 
     const { ctx, canvas, y: y0 } = makeCanvas('🏃 Spor & 🩺 Sağlık', contentH)
     let y = y0
@@ -558,6 +561,17 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
         y += 32
         ctx.fillText(truncate(ctx, '• ' + (measureLines(m) || '—'), W - 2 * PAD), PAD + 6, y)
       }
+      y += 12
+    }
+    if (waterMl > 0) {
+      ctx.fillStyle = '#0f172a'
+      ctx.font = 'bold 24px sans-serif'
+      ctx.fillText('💧 Su', PAD, y + 8)
+      y += 8
+      ctx.fillStyle = '#0284c7'
+      ctx.font = 'bold 22px sans-serif'
+      y += 32
+      ctx.fillText(`${waterMl} ml`, PAD + 6, y)
     }
     ctx.fillStyle = '#94a3b8'
     ctx.font = '16px sans-serif'

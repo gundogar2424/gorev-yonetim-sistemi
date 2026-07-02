@@ -91,9 +91,10 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     lines.push('')
   }
 
-  // Su
-  if (waterRow?.glasses) {
-    lines.push(`💧 SU: ${waterRow.glasses} bardak (~${waterRow.glasses * 200} ml)`)
+  // Su (ml esasli; eski kayitta bardak * 200)
+  const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
+  if (waterMl > 0) {
+    lines.push(`💧 SU: ${waterMl} ml`)
     lines.push('')
   }
 

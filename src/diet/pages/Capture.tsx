@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, chatAboutDay } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -368,6 +368,9 @@ export default function Capture() {
 
         {/* Bugun yapilan spor + yaklasik yakilan kalori */}
         <ExerciseToday exercises={exercises ?? []} measurements={measurements ?? []} />
+
+        {/* Su takibi (ml) */}
+        <WaterCard goalMl={settings?.waterGoal ? settings.waterGoal * 200 : 2500} />
 
         {/* Menune sor (oglen ne var? siradaki ogun?) */}
         <MenuAsk />
@@ -848,6 +851,53 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
   )
 }
 
+// Gunluk su takibi (ml). Pratik +ml butonlari; hedef cubugu.
+function WaterCard({ goalMl }: { goalMl: number }) {
+  const today = todayStr()
+  const ml = useLiveQuery(() => getWaterMlDay(today), [today], 0) ?? 0
+  const pct = goalMl > 0 ? Math.min(100, Math.round((ml / goalMl) * 100)) : 0
+  const reached = ml >= goalMl
+  const add = (d: number) => void addWaterMl(today, d)
+
+  return (
+    <div className="card p-4 bg-sky-50 border-sky-100">
+      <div className="flex items-end justify-between">
+        <div>
+          <span className="section-title text-sky-700">💧 Su</span>
+          <p className="text-3xl font-extrabold text-sky-700 mt-0.5">
+            {ml}
+            <span className="text-base font-bold text-sky-400"> ml</span>
+            <span className="text-sm font-semibold text-slate-400"> / {goalMl}</span>
+          </p>
+        </div>
+        {ml > 0 && (
+          <button onClick={() => add(-200)} className="text-xs text-slate-400 underline pb-1">
+            geri al
+          </button>
+        )}
+      </div>
+      <div className="h-2.5 w-full bg-sky-100 rounded-full overflow-hidden mt-2">
+        <div className={`h-full rounded-full transition-all ${reached ? 'bg-emerald-500' : 'bg-sky-500'}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <button onClick={() => add(200)} className="btn bg-white text-sky-700 border border-sky-200 py-2.5 flex-col gap-0 leading-tight">
+          <span className="text-base">🥛 +200</span>
+          <span className="text-[10px] text-slate-400">bardak</span>
+        </button>
+        <button onClick={() => add(330)} className="btn bg-white text-sky-700 border border-sky-200 py-2.5 flex-col gap-0 leading-tight">
+          <span className="text-base">🧴 +330</span>
+          <span className="text-[10px] text-slate-400">şişe</span>
+        </button>
+        <button onClick={() => add(500)} className="btn bg-white text-sky-700 border border-sky-200 py-2.5 flex-col gap-0 leading-tight">
+          <span className="text-base">🍶 +500</span>
+          <span className="text-[10px] text-slate-400">büyük</span>
+        </button>
+      </div>
+      {reached && <p className="text-xs font-semibold text-emerald-700 mt-2">Günlük su hedefine ulaştın! 💧🎉</p>}
+    </div>
+  )
+}
+
 // Bugun yapilan egzersizler + kiloya gore YAKLASIK yakilan kalori (token yok).
 // Tahmin: kcal ≈ MET(5, orta tempo) × kilo(kg) × süre(saat).
 function ExerciseToday({ exercises, measurements }: { exercises: Exercise[]; measurements: Measurement[] }) {
@@ -892,7 +942,7 @@ function ExerciseToday({ exercises, measurements }: { exercises: Exercise[]; mea
 }
 
 // Bugunun kompakt ozetini (yemekler, kararlar, spor) metne dokup sohbete baglam verir
-function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: string): string {
+function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: string, waterMl = 0): string {
   const meals = entries.filter((e) => e.dateStr === today).sort((a, b) => a.createdAt - b.createdAt)
   const exs = exercises.filter((e) => e.dateStr === today)
   const lines: string[] = []
@@ -912,6 +962,7 @@ function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: str
     const burn = exs.reduce((s, e) => s + (e.kcal || 0), 0)
     lines.push(`Spor: ${exs.map((e) => e.text + (e.minutes ? ` (${e.minutes} dk)` : '')).join(', ')}${burn ? ` — ~${burn} kcal yakıldı` : ''}.`)
   }
+  if (waterMl > 0) lines.push(`Su: ${waterMl} ml içildi.`)
   return lines.join('\n')
 }
 
@@ -933,6 +984,7 @@ function DayReview({
   const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const waterMl = useLiveQuery(() => getWaterMlDay(today), [today], 0) ?? 0
 
   if (!hasActivity) return null // bugun hic kayit yoksa gosterme
   void measurements // (ileride kullanilabilir)
@@ -949,7 +1001,7 @@ function DayReview({
     try {
       const answer = await chatAboutDay({
         apiKey: settings!.apiKey!,
-        daySummary: buildDaySummary(entries, exercises, today),
+        daySummary: buildDaySummary(entries, exercises, today, waterMl),
         history,
         model: settings?.model,
         userName: settings?.userName,

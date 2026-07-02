@@ -194,6 +194,26 @@ export async function setWaterDay(dateStr: string, glasses: number) {
   }
 }
 
+// ---- Su (ml esasli) ----
+// Bir gunun toplam suyunu ml olarak dondurur (eski bardak kaydi 200 ml sayilir)
+export async function getWaterMlDay(dateStr: string): Promise<number> {
+  const row = await dietDb.water.where('dateStr').equals(dateStr).first()
+  if (!row) return 0
+  return row.ml != null ? row.ml : (row.glasses || 0) * 200
+}
+// Bir gune ml ekler/cikarir (negatif olabilir); 0'in altina inmez, 0'da kaydi siler
+export async function addWaterMl(dateStr: string, deltaMl: number) {
+  const row = await dietDb.water.where('dateStr').equals(dateStr).first()
+  const current = row ? (row.ml != null ? row.ml : (row.glasses || 0) * 200) : 0
+  const next = Math.max(0, Math.round(current + deltaMl))
+  if (row?.id != null) {
+    if (next === 0) await dietDb.water.delete(row.id)
+    else await dietDb.water.update(row.id, { ml: next, glasses: Math.round(next / 200) })
+  } else if (next > 0) {
+    await dietDb.water.add({ dateStr, ml: next, glasses: Math.round(next / 200), createdAt: Date.now() })
+  }
+}
+
 // ---- Gunluk adim takibi (elle girilir) ----
 export async function getStepsDay(dateStr: string): Promise<number> {
   const row = await dietDb.steps.where('dateStr').equals(dateStr).first()
