@@ -47,6 +47,7 @@ export default function Weekly() {
           model={settings?.model}
           userName={settings?.userName}
           goal={settings?.goal}
+          dietitianNotes={settings?.dietitianNotes}
         />
 
         {/* Puan vurgu */}
@@ -101,7 +102,8 @@ function CoachSummary({
   apiKey,
   model,
   userName,
-  goal
+  goal,
+  dietitianNotes
 }: {
   entries: DietEntry[]
   days: number
@@ -110,6 +112,7 @@ function CoachSummary({
   model?: string
   userName?: string
   goal?: string
+  dietitianNotes?: string
 }) {
   const [busy, setBusy] = useState(false)
   const [text, setText] = useState('')
@@ -154,7 +157,7 @@ function CoachSummary({
     setText('')
     setBusy(true)
     try {
-      const res = await weeklyCoachSummary({ apiKey, data: buildData(), days, model, userName, goal })
+      const res = await weeklyCoachSummary({ apiKey, data: buildData(), days, model, userName, goal, dietitianNotes })
       setText(res)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Özet alınamadı.')

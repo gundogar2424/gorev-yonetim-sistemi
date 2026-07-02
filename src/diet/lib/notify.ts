@@ -8,6 +8,8 @@ import type { Reminder, DietSettings } from '../types'
 const WATER_IDS_START = 201 // su hatirlaticilari 201..2xx
 const MOTIVATION_ID = 301 // gunluk motivasyon
 const CHECKIN_ID = 302 // gun ici "nasilsin?" check-in
+const PLAN_ID = 303 // aksam "yarini planla"
+const REPORT_ID = 304 // aksam "raporu gonder" hatirlatmasi
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
 
@@ -145,6 +147,30 @@ function checkinNotification(time: string) {
   }
 }
 
+// Aksam "yarini planla" bildirimi (belirtilen saatte)
+function planNotification(time: string) {
+  const [h, m] = (time || '21:00').split(':').map(Number)
+  return {
+    id: PLAN_ID,
+    channelId: CHANNEL_ID,
+    title: '📅 Diyet Koçu',
+    body: 'Yarının menüsüne bakalım mı? Öğünlerini ve eksik malzemeni akşamdan planla.',
+    schedule: { on: { hour: h || 21, minute: m || 0 }, repeats: true, allowWhileIdle: true }
+  }
+}
+
+// Aksam "raporu gonder" hatirlatmasi (belirtilen saatte)
+function reportNotification(time: string) {
+  const [h, m] = (time || '20:30').split(':').map(Number)
+  return {
+    id: REPORT_ID,
+    channelId: CHANNEL_ID,
+    title: '📤 Diyet Koçu',
+    body: 'Bugünün raporunu diyetisyenine göndermeyi unutma!',
+    schedule: { on: { hour: h || 20, minute: m ?? 30 }, repeats: true, allowWhileIdle: true }
+  }
+}
+
 // Bir ogun yenince ~30 dk sonra "toklugunu puanla" bildirimi kurar (tek seferlik)
 export async function scheduleSatietyReminder(minutes = 30): Promise<void> {
   if (!isNative()) return
@@ -190,6 +216,12 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   }
   if (settings.checkinReminderEnabled) {
     notifications.push(checkinNotification(settings.checkinReminderTime || '15:00'))
+  }
+  if (settings.planReminderEnabled) {
+    notifications.push(planNotification(settings.planReminderTime || '21:00'))
+  }
+  if (settings.reportReminderEnabled) {
+    notifications.push(reportNotification(settings.reportReminderTime || '20:30'))
   }
 
   if (notifications.length === 0) return

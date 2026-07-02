@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, getCheckinDay, saveCheckinDay } from '../db'
-import { analyzeFood, analyzeFoodByText, chatAboutFood, chatAboutDay } from '../ai'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, getCheckinDay, saveCheckinDay, addCraving } from '../db'
+import { analyzeFood, analyzeFoodByText, chatAboutFood, chatAboutDay, cravingHelp } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import MenuAsk from '../components/MenuAsk'
@@ -169,6 +169,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
         note: noteArg || undefined,
         body: bodyContext(settings, measurements)
       })
@@ -197,6 +198,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements)
       })
       setAnalysis(result)
@@ -223,6 +225,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements)
       })
       setAnalysis(result)
@@ -298,7 +301,8 @@ export default function Capture() {
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
-        dietPlan: settings?.dietPlan
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes
       })
       // Kullanici sohbette yemegi/miktari duzelttiyse puani/kaloriyi/makroyu guncelle
       if (res.correction.changed) {
@@ -357,6 +361,9 @@ export default function Capture() {
 
         {/* Bugunku diyet basari yuzdesi */}
         <DailyScore entries={entries ?? []} />
+
+        {/* Kriz ani: canim cekiyor! */}
+        <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
 
         {/* Gunluk motivasyon sozu */}
         <div className="card p-3 bg-amber-50 border-amber-100 text-amber-900 text-sm font-medium text-center">
@@ -854,6 +861,157 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
   )
 }
 
+// KRIZ ANI: "Canim cekiyor!" — koc aninda devreye girer; sonuc kaydedilir.
+function CrisisSOS({ entries, exercises, settings }: { entries: DietEntry[]; exercises: Exercise[]; settings?: DietSettings }) {
+  const today = todayStr()
+  const [open, setOpen] = useState(false)
+  const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState<'' | 'resisted' | 'ate'>('')
+  const waterMl = useLiveQuery(() => getWaterMlDay(today), [today], 0) ?? 0
+  const checkin = useLiveQuery(() => getCheckinDay(today), [today], undefined)
+
+  const hasKey = !!settings?.apiKey
+
+  async function ask(question?: string) {
+    const q = (question ?? input).trim()
+    if (!q || !hasKey) return
+    const history = [...chat, { role: 'user' as const, text: q }]
+    setChat(history)
+    setInput('')
+    setBusy(true)
+    try {
+      const answer = await cravingHelp({
+        apiKey: settings!.apiKey!,
+        context: buildDaySummary(entries, exercises, today, waterMl, checkin?.mood, checkin?.note),
+        history,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes
+      })
+      setChat([...history, { role: 'assistant', text: answer }])
+    } catch (err) {
+      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function finish(outcome: 'resisted' | 'ate') {
+    const what = chat.find((m) => m.role === 'user')?.text
+    await addCraving(outcome, what)
+    setDone(outcome)
+    setTimeout(() => {
+      setOpen(false)
+      setChat([])
+      setDone('')
+    }, 2600)
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 text-white font-extrabold text-lg py-3.5 shadow-md active:scale-[0.98] transition"
+      >
+        🆘 Canım çekiyor!
+      </button>
+    )
+  }
+
+  return (
+    <div className="card p-4 space-y-2.5 bg-rose-50 border-rose-200">
+      <div className="flex items-center justify-between">
+        <p className="font-extrabold text-rose-700">🆘 Kriz anı — buradayım!</p>
+        <button
+          onClick={() => {
+            setOpen(false)
+            setChat([])
+          }}
+          className="text-xs text-slate-400"
+        >
+          kapat ✕
+        </button>
+      </div>
+
+      {done ? (
+        <p className="text-sm font-bold text-center py-3 text-rose-800">
+          {done === 'resisted' ? '🎉 Direndin! Bu bir zaferdi, kaydettim. +10 moral' : '🤝 Olsun, kaydettim. Bir sonrakinde sen kazanacaksın.'}
+        </p>
+      ) : (
+        <>
+          {!hasKey ? (
+            <p className="text-xs text-slate-500">
+              Koçun devreye girmesi için{' '}
+              <Link to="/ayarlar" className="underline font-semibold">
+                Ayarlar
+              </Link>
+              ’dan API anahtarı ekle.
+            </p>
+          ) : (
+            <>
+              {chat.length === 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {['🍫 Tatlı çekiyor', '🍟 Tuzlu/çıtır çekiyor', '🍞 Çok acıktım', '😤 Canım sıkkın, yemek istiyorum'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => ask(t)}
+                      disabled={busy}
+                      className="text-xs font-semibold rounded-full px-3 py-1.5 bg-white text-rose-700 border border-rose-200"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {chat.length > 0 && (
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {chat.map((m, i) => (
+                    <div
+                      key={i}
+                      className={`text-sm rounded-xl px-3 py-2 ${
+                        m.role === 'user' ? 'bg-rose-600 text-white ml-8' : 'bg-white text-slate-800 mr-8'
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+                  ))}
+                  {busy && <p className="text-xs text-slate-400 mr-8">koç yazıyor…</p>}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  className="field-input flex-1"
+                  placeholder="Ne çekiyor? örn. baklava…"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && ask()}
+                />
+                <button onClick={() => ask()} disabled={busy || !input.trim()} className="btn bg-rose-600 text-white px-4">
+                  Yaz
+                </button>
+              </div>
+            </>
+          )}
+          {chat.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button onClick={() => finish('resisted')} className="btn bg-emerald-600 text-white py-2.5">
+                💪 Direndim!
+              </button>
+              <button onClick={() => finish('ate')} className="btn bg-slate-200 text-slate-700 py-2.5">
+                😋 Yine de yedim
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 // Gun ici "nasilsin?" — genel moral/his 1-10 + kisa not (gunluk). AI dikkate alir.
 function MoodCheckIn() {
   const today = todayStr()
@@ -1086,7 +1244,8 @@ function DayReview({
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
-        dietPlan: settings?.dietPlan
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes
       })
       setChat([...history, { role: 'assistant', text: answer }])
     } catch (err) {

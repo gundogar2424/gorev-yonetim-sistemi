@@ -146,10 +146,15 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     .map((mt) => ({ mt, list: pairs.filter((p) => (p.e.mealType ?? undefined) === mt).map(buildMealCard) }))
     .filter((g) => g.list.length > 0)
 
+  // Ozet seridi degerleri (kalori / su / spor)
+  const kcalDay = entries.filter((e) => e.decision === 'ate').reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+  const exMin = exercises.reduce((s, e) => s + (e.minutes ?? 0), 0)
+
   // Yukseklik hesabi (cizimle ayni adimlar)
   const BANNER = 96
   let h = PAD + BANNER + 22 // baslik banneri
   h += 116 + 24 // basari blogu
+  h += 78 + 18 // ozet seridi (kcal/su/spor)
   h += 40 // "Ogunler" basligi
   if (entries.length === 0) h += 44
   else for (const g of mealGroups) h += HEAD + g.list.reduce((s, c) => s + c.cardH + 14, 0)
@@ -215,6 +220,34 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     ctx.fillText('Bu güne ait karar verilmiş öğün yok.', PAD + 26, y + 74)
   }
   y += 116 + 24
+
+  // Ozet seridi: 3 kucuk istatistik kutusu (kalori / su / spor)
+  {
+    const tiles = [
+      { label: 'ALINAN KALORİ', value: `${kcalDay}`, unit: 'kcal', color: '#ea580c' },
+      { label: 'SU', value: waterMl > 0 ? `${waterMl}` : '—', unit: waterMl > 0 ? 'ml' : '', color: '#0284c7' },
+      { label: 'SPOR', value: exercises.length ? (exMin > 0 ? `${exMin}` : `${exercises.length}`) : '—', unit: exercises.length ? (exMin > 0 ? 'dk' : 'adet') : '', color: '#7c3aed' }
+    ]
+    const gap = 14
+    const tw = (W - 2 * PAD - gap * 2) / 3
+    tiles.forEach((tl, i) => {
+      const tx = PAD + i * (tw + gap)
+      fillRound(ctx, tx, y, tw, 78, 16, '#ffffff')
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = 'bold 13px sans-serif'
+      ctx.fillText(tl.label, tx + 16, y + 26)
+      ctx.fillStyle = tl.color
+      ctx.font = 'bold 30px sans-serif'
+      const vw = ctx.measureText(tl.value).width
+      ctx.fillText(tl.value, tx + 16, y + 60)
+      if (tl.unit) {
+        ctx.font = 'bold 15px sans-serif'
+        ctx.fillStyle = '#94a3b8'
+        ctx.fillText(tl.unit, tx + 16 + vw + 6, y + 60)
+      }
+    })
+    y += 78 + 18
+  }
 
   // Ogunler
   ctx.fillStyle = '#0f172a'

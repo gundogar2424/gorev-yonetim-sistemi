@@ -14,7 +14,8 @@ import type {
   Sleep,
   ProgressPhoto,
   SavedProduct,
-  CheckIn
+  CheckIn,
+  Craving
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -31,6 +32,7 @@ export class DietCoachDB extends Dexie {
   progress!: Table<ProgressPhoto, number>
   products!: Table<SavedProduct, number>
   checkins!: Table<CheckIn, number>
+  cravings!: Table<Craving, number>
 
   constructor() {
     super('diet-coach')
@@ -133,6 +135,23 @@ export class DietCoachDB extends Dexie {
       products: '++id, barcode',
       checkins: '++id, dateStr, createdAt'
     })
+    // Surum 10: kriz ani ("canim cekiyor") kayitlari
+    this.version(10).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt',
+      products: '++id, barcode',
+      checkins: '++id, dateStr, createdAt',
+      cravings: '++id, dateStr, createdAt'
+    })
   }
 }
 
@@ -210,6 +229,15 @@ export async function setWaterDay(dateStr: string, glasses: number) {
   } else if (g > 0) {
     await dietDb.water.add({ dateStr, glasses: g, createdAt: Date.now() })
   }
+}
+
+// ---- Kriz ani ("canim cekiyor") ----
+export async function addCraving(outcome: 'resisted' | 'ate', note?: string) {
+  const now = new Date()
+  await dietDb.cravings.add({ dateStr: now.toLocaleDateString('en-CA'), createdAt: Date.now(), outcome, note })
+}
+export function listCravings(): Promise<Craving[]> {
+  return dietDb.cravings.orderBy('createdAt').toArray()
 }
 
 // ---- Gun ici "nasilsin?" check-in ----

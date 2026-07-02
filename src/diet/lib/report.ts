@@ -10,24 +10,44 @@ const TR_DECISION: Record<string, string> = {
   none: 'karar bekliyor ⏳'
 }
 
+const SEP = '━━━━━━━━━━━━━━━━'
+
 // Belirli bir gunun (YYYY-MM-DD) raporunu duz metin olarak uretir
 export async function buildDailyReport(dateStr: string, userName?: string): Promise<string> {
-  const [entries, measurements, vitals, exercises, waterRow, stepsRow, sleepRow] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, stepsRow, sleepRow, cravings] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
     dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
     dietDb.water.where('dateStr').equals(dateStr).first(),
     dietDb.steps.where('dateStr').equals(dateStr).first(),
-    dietDb.sleep.where('dateStr').equals(dateStr).first()
+    dietDb.sleep.where('dateStr').equals(dateStr).first(),
+    dietDb.cravings.where('dateStr').equals(dateStr).toArray()
   ])
 
+  const dateNice = new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+
   const lines: string[] = []
-  lines.push(`🥗 DİYET RAPORU — ${dateStr}`)
-  if (userName) lines.push(`Kişi: ${userName}`)
-  // Gunluk diyet basari yuzdesi
+  lines.push('🥗 GÜNLÜK DİYET RAPORU')
+  lines.push(`📅 ${dateNice}${userName ? ` · ${userName}` : ''}`)
+  lines.push(SEP)
+  // Ozet seridi: basari + kalori + su + spor
   const adh = dayAdherence(entries, dateStr)
-  if (adh != null) lines.push(`📊 Günlük diyet başarısı: %${adh}`)
+  const kcalDay = entries.filter((e) => e.decision === 'ate').reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+  const waterMlTop = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
+  const exMin = exercises.reduce((s, e) => s + (e.minutes ?? 0), 0)
+  const strip: string[] = []
+  if (adh != null) strip.push(`📊 Başarı %${adh}`)
+  strip.push(`🔥 ~${kcalDay} kcal`)
+  if (waterMlTop > 0) strip.push(`💧 ${waterMlTop} ml`)
+  if (exercises.length) strip.push(`🏃 ${exMin > 0 ? `${exMin} dk` : `${exercises.length} egzersiz`}`)
+  lines.push(strip.join('  ·  '))
+  lines.push(SEP)
   lines.push('')
 
   // Ogunler — ogune gore gruplanir (Kahvalti, Ogle, ... basliklari altinda)
@@ -91,10 +111,13 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     lines.push('')
   }
 
-  // Su (ml esasli; eski kayitta bardak * 200)
-  const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
-  if (waterMl > 0) {
-    lines.push(`💧 SU: ${waterMl} ml`)
+  // Kriz anlari ("canim cekti" kayitlari) — diyetisyen icin degerli sinyal
+  if (cravings.length) {
+    lines.push('🆘 KRİZ ANLARI')
+    for (const c of cravings.sort((a, b) => a.createdAt - b.createdAt)) {
+      const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      lines.push(`  • ${t}${c.note ? ` — ${c.note}` : ''} → ${c.outcome === 'resisted' ? 'direndi 💪' : 'yedi'}`)
+    }
     lines.push('')
   }
 
@@ -123,7 +146,8 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     lines.push('')
   }
 
-  lines.push('— Diyet Koçu uygulamasından gönderildi')
+  lines.push(SEP)
+  lines.push('Diyet Koçu uygulamasından gönderildi')
   return lines.join('\n')
 }
 

@@ -146,11 +146,19 @@ interface AnalyzeOptions {
   dietPlan?: string
   note?: string // Kullanicinin duzeltmesi/aciklamasi (yemek adi, miktar vb.)
   body?: string // Kisi bilgisi: boy/yas/cinsiyet/kilo (porsiyon-kalori icin baglam)
+  dietitianNotes?: string // Diyetisyenin talimatlari — degerlendirmede mutlaka dikkate alinir
+}
+
+// Diyetisyen talimatlarini baglam metnine cevirir (varsa)
+function dietitianText(notes?: string): string {
+  return notes?.trim()
+    ? `\n\nDİYETİSYENİN TALİMATLARI (bunlara MUTLAKA uy; değerlendirme, puan ve önerilerinde dikkate al): ${notes.trim()}`
+    : ''
 }
 
 // Fotografi inceler ve yapilandirilmis sonucu dondurur
 export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body } = opts
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body, dietitianNotes } = opts
 
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const img = splitDataUrl(photoDataUrl)
@@ -192,7 +200,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
             },
             {
               type: 'text',
-              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${noteText}`
+              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${noteText}`
             }
           ]
         }
@@ -243,8 +251,9 @@ export async function analyzeFoodByText(opts: {
   goal?: string
   dietPlan?: string
   body?: string
+  dietitianNotes?: string
 }): Promise<FoodAnalysis> {
-  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan, body } = opts
+  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan, body, dietitianNotes } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!note.trim()) throw new Error('Yemeğin ne olduğunu yaz.')
 
@@ -266,7 +275,7 @@ export async function analyzeFoodByText(opts: {
       messages: [
         {
           role: 'user',
-          content: `Bu yemeği yemek üzereyim (fotoğraf yok, sana ben tarif ediyorum): "${note.trim()}". foodName ve kalori/miktarı bu tarife göre belirle. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}`
+          content: `Bu yemeği yemek üzereyim (fotoğraf yok, sana ben tarif ediyorum): "${note.trim()}". foodName ve kalori/miktarı bu tarife göre belirle. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}`
         }
       ],
       output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } }
@@ -346,14 +355,16 @@ export async function chatAboutFood(opts: {
   userName?: string
   goal?: string
   dietPlan?: string
+  dietitianNotes?: string
 }): Promise<FoodChatResult> {
-  const { apiKey, foodName, dietScore, estimatedCalories, protein, carb, fat, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  const { apiKey, foodName, dietScore, estimatedCalories, protein, carb, fat, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Bir soru yaz.')
 
   const ctx: string[] = []
   if (userName) ctx.push(`Kullanıcının adı: ${userName}.`)
   if (goal) ctx.push(`Diyet hedefi: ${goal}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları (mutlaka dikkate al): ${dietitianNotes.trim()}.`)
   if (dietPlan?.trim()) ctx.push(`Diyet listesi:\n${dietPlan.trim()}`)
 
   const system = `Sen "Diyet Koçu"sun. Kullanıcı şu an "${foodName}" hakkında seninle konuşuyor.${
@@ -749,14 +760,16 @@ export async function chatAboutDay(opts: {
   userName?: string
   goal?: string
   dietPlan?: string
+  dietitianNotes?: string
 }): Promise<string> {
-  const { apiKey, daySummary, history, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  const { apiKey, daySummary, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Bir şey yaz.')
 
   const ctx: string[] = []
   if (userName) ctx.push(`Kullanıcı: ${userName}.`)
   if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları (dikkate al): ${dietitianNotes.trim()}.`)
   if (dietPlan?.trim()) ctx.push(`Diyet listesi:\n${dietPlan.trim()}`)
 
   const system = `Sen "Diyet Koçu"sun. Kullanıcının BUGÜNKÜ özeti aşağıda. Kullanıcı günü seninle değerlendiriyor ("bugün nasıl geçti", "niye böyle oldu", "yarın ne yapayım" gibi). Türkçe, KISA (1-4 cümle), sıcak, somut ve motive edici cevap ver; suçlama yok. Gerektiğinde bugünkü verilere atıfta bulun. ${ctx.join(' ')}
@@ -781,6 +794,105 @@ ${daySummary}`
   }
 }
 
+// KRIZ ANI sohbeti: kullanici SU AN bir yeme krizi yasiyor. Kisa, guclu,
+// aninda uygulanabilir mudahale — kontrollu kacamak + oyalama taktigi.
+export async function cravingHelp(opts: {
+  apiKey: string
+  context: string // bugunun ozeti + moral
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+  dietitianNotes?: string
+}): Promise<string> {
+  const { apiKey, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!history.length) throw new Error('Ne çektiğini yaz.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları: ${dietitianNotes.trim()}.`)
+  if (dietPlan?.trim()) ctx.push(`Diyet listesi:\n${dietPlan.trim()}`)
+
+  const system = `Sen "Diyet Koçu"sun ve kullanıcı ŞU AN bir YEME KRİZİ yaşıyor — canı bir şey çekiyor ve yemek üzere. Bu bir acil müdahale anı. Görevin onu bu 10 dakikayı atlatması için desteklemek:
+1. Önce kısaca anlayışla karşıla (1 cümle, suçlama YOK).
+2. Hemen SOMUT bir taktik ver: büyük bir bardak su + 10 dakika bekleme, kısa yürüyüş, diş fırçalama, dikkat dağıtma gibi — duruma en uygun TEK taktiği seç.
+3. Eğer dayanamayacaksa KONTROLLÜ KAÇAMAK öner: diyeti bozmayacak ölçülü net bir miktar (örn. "2 kare bitter çikolata ~20 g, orada dur").
+4. Bugünkü verilerine ve hedefine atıfta bulunarak kısa, güçlü bir motivasyon cümlesiyle bitir.
+KISA yaz (2-4 cümle), samimi ve kararlı ol. Türkçe. ${ctx.join(' ')}
+
+BUGÜNÜN DURUMU:
+${context}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 500,
+      system,
+      messages: history.map((m) => ({ role: m.role, content: m.text }))
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Cevap üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// Yemek–şeker bağlantı analizi: ogunler ile sonrasindaki tok seker olcumlerini
+// eslestirip kisisel oruntuler cikarir ("X yediginde sekerin yukseliyor").
+export async function analyzeMealSugar(opts: {
+  apiKey: string
+  pairsText: string // eslesmis olcum-ogun satirlari
+  model?: string
+  userName?: string
+  goal?: string
+  medications?: string
+  dietitianNotes?: string
+}): Promise<string> {
+  const { apiKey, pairsText, model = DEFAULT_MODEL, userName, goal, medications, dietitianNotes } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!pairsText.trim()) throw new Error('Analiz için yeterli veri yok.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (medications?.trim()) ctx.push(`Kullandığı ilaçlar: ${medications.trim()}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları: ${dietitianNotes.trim()}.`)
+
+  const system = `Sen bir sağlık asistanısın. Kullanıcının KAN ŞEKERİ ölçümleri ile öncesinde yediği ÖĞÜNLER eşleştirilmiş olarak verilecek. Görevin bu KİŞİYE ÖZEL örüntüleri bulmak:
+- Hangi yemeklerden/öğün tiplerinden sonra şekeri belirgin yükseliyor, hangilerinden sonra iyi seyrediyor — SOMUT örneklerle yaz (örn. "Pilavlı öğünler sonrası ort. ~160, tavuk-salata sonrası ~120").
+- Açlık ölçümlerinin genel seyrini değerlendir.
+- Bu örüntülere göre 2-3 pratik beslenme önerisi ver (neyi azalt, neyle değiştir, öğün sırası gibi).
+- Veri azsa dürüstçe "henüz az veri var, eğilim şu yönde" de; kesin konuşma.
+Kısa başlıklar + kısa maddeler kullan, okunaklı yaz. ÇOK ÖNEMLİ: Bu tıbbi teşhis değildir; ilaç/doz önerme; kesin değerlendirme için doktora danışmasını mutlaka belirt. ${ctx.join(' ')}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1200,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: `İşte şeker ölçümlerim ve öncesinde yediklerim (kronolojik). Örüntüleri bul, bana özel değerlendir:\n\n${pairsText}`
+        }
+      ]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Analiz üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Haftalik koc ozeti: son N gunluk verilerden kisa, motive edici bir
 // degerlendirme yazar (kucuk, tek seferlik token). data = ozet metni.
 export async function weeklyCoachSummary(opts: {
@@ -790,13 +902,15 @@ export async function weeklyCoachSummary(opts: {
   model?: string
   userName?: string
   goal?: string
+  dietitianNotes?: string
 }): Promise<string> {
-  const { apiKey, data, days, model = DEFAULT_MODEL, userName, goal } = opts
+  const { apiKey, data, days, model = DEFAULT_MODEL, userName, goal, dietitianNotes } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
 
   const ctx: string[] = []
   if (userName) ctx.push(`Kullanıcı: ${userName}.`)
   if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları (değerlendirmede dikkate al): ${dietitianNotes.trim()}.`)
 
   const system = `Sen "Diyet Koçu"sun. Kullanıcının son ${days} günlük diyet verileri aşağıda verilecek. Bunlara bakarak KISA (4-6 cümle), sıcak ve motive edici bir haftalık değerlendirme yaz:
 - Neyi iyi yaptığını öv (somut sayılarla).

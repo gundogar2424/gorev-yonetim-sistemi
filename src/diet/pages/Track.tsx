@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import MiniChart from '../components/MiniChart'
 import {
+  dietDb,
   listMeasurements,
   addMeasurement,
   deleteMeasurement,
@@ -12,6 +13,7 @@ import {
   deleteVital,
   readDietSettings
 } from '../db'
+import { analyzeMealSugar } from '../ai'
 import { todayStr } from '../streak'
 import { buildMeasurementsReport } from '../lib/report'
 import { buildMeasurementsImage } from '../lib/reportImage'
@@ -95,10 +97,109 @@ export default function Track() {
 
         {tab === 'olcu' ? <MeasurePanel range={range} /> : <VitalPanel range={range} />}
 
+        {/* Yemek–seker baglanti analizi (yalnizca saglik sekmesinde) */}
+        {tab === 'saglik' && <SugarMealInsight />}
+
         {/* Diyetisyene ölçüm raporu gönder (kilo/ölçü + şeker/tansiyon) */}
         <SendMeasurements />
       </div>
     </div>
+  )
+}
+
+// Yemek–seker baglantisi: ogunler ile sonrasindaki olcumleri eslestirip
+// yapay zekadan kisisel oruntu analizi ister; diyetisyene gonderilebilir.
+function SugarMealInsight() {
+  const settings = useLiveQuery(() => readDietSettings(), [], undefined)
+  const [busy, setBusy] = useState(false)
+  const [text, setText] = useState('')
+  const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const hasKey = !!settings?.apiKey
+
+  async function analyze() {
+    if (!hasKey) return
+    setBusy(true)
+    setError('')
+    setText('')
+    try {
+      const [vitals, entries] = await Promise.all([listVitals(), dietDb.entries.toArray()])
+      const sugars = vitals.filter((v) => v.kind === 'seker' && typeof v.sugar === 'number')
+      if (sugars.length < 3) {
+        setError('Analiz için en az 3 şeker ölçümü gerekli. Ölçtükçe buradan analiz alabilirsin.')
+        setBusy(false)
+        return
+      }
+      // Her olcumu, ayni gun 10 dk - 3.5 saat oncesindeki yenen ogunlerle eslestir
+      const lines: string[] = []
+      for (const v of [...sugars].sort((a, b) => a.createdAt - b.createdAt)) {
+        const t = new Date(v.dateStr + 'T' + (v.time || '12:00') + ':00').getTime()
+        const meals = entries.filter(
+          (e) =>
+            e.decision === 'ate' &&
+            e.dateStr === v.dateStr &&
+            t - e.createdAt > 10 * 60_000 &&
+            t - e.createdAt < 3.5 * 3_600_000
+        )
+        const before = meals.map((m) => `${m.foodName} (~${m.estimatedCalories} kcal)`).join(' + ')
+        lines.push(
+          `${v.dateStr} ${v.time} — Şeker ${v.sugar} mg/dL${v.sugarContext ? ` (${v.sugarContext})` : ''}${
+            before ? ` ← öncesinde: ${before}` : ' (öncesinde kayıtlı öğün yok)'
+          }`
+        )
+      }
+      const result = await analyzeMealSugar({
+        apiKey: settings!.apiKey!,
+        pairsText: lines.join('\n'),
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        medications: settings?.medications,
+        dietitianNotes: settings?.dietitianNotes
+      })
+      setText(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analiz başarısız.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function send() {
+    const res = await shareTextSmart(`🩸 Yemek–Şeker Bağlantı Analizi\n\n${text}\n\n— Diyet Koçu uygulamasından gönderildi`)
+    if (res === 'shared') setMsg('Paylaşım menüsü açıldı.')
+    else if (res === 'copied') setMsg('Panoya kopyalandı.')
+    else if (res !== 'cancelled') setMsg('Gönderilemedi.')
+    setTimeout(() => setMsg(''), 3500)
+  }
+
+  return (
+    <section className="card p-3 space-y-2 bg-rose-50 border-rose-100">
+      <h3 className="font-bold text-rose-800 text-sm uppercase tracking-wide">🩸 Yemek–Şeker Bağlantısı</h3>
+      <p className="text-xs text-slate-500">
+        Şeker ölçümlerini, öncesinde yediğin öğünlerle eşleştirip <b>senin vücuduna özel</b> örüntüleri bulur: hangi
+        yemekler şekerini yükseltiyor, hangileri iyi geliyor.
+      </p>
+      {!hasKey ? (
+        <p className="text-xs text-slate-500">Bu analiz için Ayarlar’dan API anahtarı ekle.</p>
+      ) : (
+        <button onClick={analyze} disabled={busy} className="btn bg-rose-600 text-white w-full">
+          {busy ? 'Analiz ediliyor…' : '🧠 Bağlantıyı Analiz Et'}
+        </button>
+      )}
+      <p className="text-[11px] text-slate-400">Yapay zeka kullanır (tek seferlik). Tıbbi teşhis değildir.</p>
+      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {text && (
+        <div className="space-y-2">
+          <p className="text-sm text-slate-800 bg-white rounded-xl p-3 leading-snug whitespace-pre-wrap">{text}</p>
+          <button onClick={send} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 w-full">
+            📤 Diyetisyene gönder
+          </button>
+          {msg && <p className="text-xs text-rose-700 font-semibold">{msg}</p>}
+        </div>
+      )}
+    </section>
   )
 }
 

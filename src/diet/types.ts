@@ -176,6 +176,16 @@ export interface ProgressPhoto {
   createdAt: number
 }
 
+// Kriz ani kaydi ("canim cekiyor" butonu): saat + sonuc.
+// Zamanla kriz saatleri ogrenilir ve diyetisyen raporuna girer.
+export interface Craving {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  createdAt: number
+  outcome: 'resisted' | 'ate' // Direndi mi, yine de yedi mi
+  note?: string // Ne cekti (orn. "tatli")
+}
+
 // Gun ici "nasilsin?" check-in kaydi (gunluk; his/enerji + kisa not)
 export interface CheckIn {
   id?: number
@@ -238,4 +248,9 @@ export interface DietSettings {
   motivationReminderTime?: string // Motivasyon bildirimi saati (SS:DD)
   checkinReminderEnabled?: boolean // Gun ici "nasilsin?" bildirimi
   checkinReminderTime?: string // Check-in bildirimi saati (SS:DD)
+  planReminderEnabled?: boolean // Aksam "yarini planla" bildirimi
+  planReminderTime?: string // Yarin plani bildirimi saati (SS:DD)
+  reportReminderEnabled?: boolean // Aksam "raporu gonder" hatirlatmasi
+  reportReminderTime?: string // Rapor hatirlatma saati (SS:DD)
+  dietitianNotes?: string // Diyetisyenin talimatlari — yapay zeka HER degerlendirmede dikkate alir
 }

@@ -71,6 +71,15 @@ export default function Reminders() {
     await persist({ checkinReminderTime: time })
   }
 
+  // Genel amacli bildirim ac/kapa + saat (yarin plani, rapor hatirlatma)
+  async function toggleFlag(patch: Partial<DietSettings>, enabled: boolean) {
+    if (enabled && native && !(await ensurePermission())) {
+      flash('Bildirim izni verilmedi.')
+      return
+    }
+    await persist(patch)
+  }
+
   async function testNotify() {
     if (!native) {
       flash('Bildirim testi yalnızca APK (uygulama) sürümünde çalışır.')
@@ -183,6 +192,62 @@ export default function Reminders() {
                   className="field-input w-28"
                   value={settings?.checkinReminderTime ?? '15:00'}
                   onChange={(e) => setCheckinTime(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Aksam "yarini planla" bildirimi */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">📅 Yarını planla</h3>
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">Akşam menü hatırlatması</p>
+                <p className="text-xs text-slate-500">Akşam “yarının menüsüne bakalım mı?” diye hatırlatır; ana ekrandan yarını planlarsın.</p>
+              </div>
+              <Switch
+                on={!!settings?.planReminderEnabled}
+                onClick={() => toggleFlag({ planReminderEnabled: !settings?.planReminderEnabled }, !settings?.planReminderEnabled)}
+              />
+            </div>
+            {settings?.planReminderEnabled && (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>🕘 Saat:</span>
+                <input
+                  type="time"
+                  className="field-input w-28"
+                  value={settings?.planReminderTime ?? '21:00'}
+                  onChange={(e) => persist({ planReminderTime: e.target.value })}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Aksam "raporu gonder" hatirlatmasi */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">📤 Rapor hatırlatması</h3>
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">Günlük raporu gönder</p>
+                <p className="text-xs text-slate-500">Akşam “bugünün raporunu diyetisyenine göndermeyi unutma” der.</p>
+              </div>
+              <Switch
+                on={!!settings?.reportReminderEnabled}
+                onClick={() => toggleFlag({ reportReminderEnabled: !settings?.reportReminderEnabled }, !settings?.reportReminderEnabled)}
+              />
+            </div>
+            {settings?.reportReminderEnabled && (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>🕗 Saat:</span>
+                <input
+                  type="time"
+                  className="field-input w-28"
+                  value={settings?.reportReminderTime ?? '20:30'}
+                  onChange={(e) => persist({ reportReminderTime: e.target.value })}
                 />
               </div>
             )}

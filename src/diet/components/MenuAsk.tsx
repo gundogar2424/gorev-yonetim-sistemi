@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { readDietSettings } from '../db'
+import { readDietSettings, listShopping } from '../db'
 import { chatAboutPlan } from '../ai'
 
 // Ana ekranda kompakt "menüne sor" alani (oglen ne var? siradaki ogun?)
@@ -47,7 +47,7 @@ export default function MenuAsk() {
           Menüm →
         </Link>
       </div>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => ask('Şu an sıradaki öğün hangisi ve listemde ne var? Kısaca söyle.')}
           disabled={!hasKey || busy}
@@ -55,6 +55,25 @@ export default function MenuAsk() {
         >
           Sıradaki öğün
         </button>
+        <button
+          onClick={async () => {
+            const items = await listShopping()
+            const pending = items.filter((i) => !i.done).map((i) => i.text).join(', ')
+            ask(
+              `Yarının öğünlerini listeme göre kısaca çıkar (kahvaltıdan akşama).${
+                pending
+                  ? ` Alınacaklar listemde şunlar duruyor (henüz alınmadı): ${pending}. Yarının öğünleri için eksik malzeme riski varsa tek cümleyle uyar.`
+                  : ''
+              }`
+            )
+          }}
+          disabled={!hasKey || busy}
+          className="btn bg-white text-emerald-700 border border-emerald-200 px-3 py-2 text-sm whitespace-nowrap"
+        >
+          📅 Yarını planla
+        </button>
+      </div>
+      <div className="flex gap-2">
         <input
           className="field-input flex-1"
           placeholder="örn. Öğlen ne var?"

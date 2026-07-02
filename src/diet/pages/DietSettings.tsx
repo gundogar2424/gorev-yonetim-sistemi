@@ -249,6 +249,20 @@ export default function DietSettings() {
           <p className="text-xs text-slate-500">
             İlaç ve rahatsızlıklar, Tahliller bölümündeki sağlık değerlendirmesinde birlikte dikkate alınır.
           </p>
+          <div>
+            <label className="field-label">📋 Diyetisyenin talimatları</label>
+            <textarea
+              className="field-input"
+              rows={3}
+              placeholder="örn. Porsiyonları küçült, akşam 20:00'den sonra karbonhidrat yok, günde 2.5 lt su"
+              value={settings?.dietitianNotes ?? ''}
+              onChange={(e) => saveDietSettings({ dietitianNotes: e.target.value })}
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Diyetisyeninin sana söylediklerini buraya yaz; koç <b>her yemek değerlendirmesinde ve sohbette</b> bu
+              talimatlara göre konuşur.
+            </p>
+          </div>
         </section>
 
         {/* Hedefler */}
