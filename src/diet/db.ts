@@ -13,7 +13,8 @@ import type {
   Steps,
   Sleep,
   ProgressPhoto,
-  SavedProduct
+  SavedProduct,
+  CheckIn
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -29,6 +30,7 @@ export class DietCoachDB extends Dexie {
   sleep!: Table<Sleep, number>
   progress!: Table<ProgressPhoto, number>
   products!: Table<SavedProduct, number>
+  checkins!: Table<CheckIn, number>
 
   constructor() {
     super('diet-coach')
@@ -115,6 +117,22 @@ export class DietCoachDB extends Dexie {
       progress: '++id, dateStr, createdAt',
       products: '++id, barcode'
     })
+    // Surum 9: gun ici "nasilsin?" check-in kayitlari
+    this.version(9).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt',
+      products: '++id, barcode',
+      checkins: '++id, dateStr, createdAt'
+    })
   }
 }
 
@@ -192,6 +210,20 @@ export async function setWaterDay(dateStr: string, glasses: number) {
   } else if (g > 0) {
     await dietDb.water.add({ dateStr, glasses: g, createdAt: Date.now() })
   }
+}
+
+// ---- Gun ici "nasilsin?" check-in ----
+export async function getCheckinDay(dateStr: string): Promise<CheckIn | undefined> {
+  return dietDb.checkins.where('dateStr').equals(dateStr).first()
+}
+export function listCheckins(): Promise<CheckIn[]> {
+  return dietDb.checkins.orderBy('createdAt').toArray()
+}
+// Bir gunun check-in'ini kaydeder/gunceller (gun basina tek kayit)
+export async function saveCheckinDay(dateStr: string, patch: { mood?: number; energy?: number; note?: string }) {
+  const row = await dietDb.checkins.where('dateStr').equals(dateStr).first()
+  if (row?.id != null) await dietDb.checkins.update(row.id, patch)
+  else await dietDb.checkins.add({ dateStr, createdAt: Date.now(), ...patch })
 }
 
 // ---- Su (ml esasli) ----

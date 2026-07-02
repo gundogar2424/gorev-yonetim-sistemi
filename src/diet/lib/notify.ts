@@ -7,6 +7,7 @@ import type { Reminder, DietSettings } from '../types'
 // Bildirim kimlik araliklari (catismayi onlemek icin sabit)
 const WATER_IDS_START = 201 // su hatirlaticilari 201..2xx
 const MOTIVATION_ID = 301 // gunluk motivasyon
+const CHECKIN_ID = 302 // gun ici "nasilsin?" check-in
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
 
@@ -132,6 +133,18 @@ function motivationNotification(time: string) {
   }
 }
 
+// Gun ici "nasilsin?" check-in bildirimi (belirtilen saatte)
+function checkinNotification(time: string) {
+  const [h, m] = (time || '15:00').split(':').map(Number)
+  return {
+    id: CHECKIN_ID,
+    channelId: CHANNEL_ID,
+    title: '💬 Diyet Koçu',
+    body: 'Nasıl gidiyor? Kendini nasıl hissediyorsun? Uygulamaya bir dokun, işaretle.',
+    schedule: { on: { hour: h || 15, minute: m || 0 }, repeats: true, allowWhileIdle: true }
+  }
+}
+
 // Bir ogun yenince ~30 dk sonra "toklugunu puanla" bildirimi kurar (tek seferlik)
 export async function scheduleSatietyReminder(minutes = 30): Promise<void> {
   if (!isNative()) return
@@ -174,6 +187,9 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   if (settings.waterReminderEnabled) notifications.push(...waterNotifications())
   if (settings.motivationReminderEnabled) {
     notifications.push(motivationNotification(settings.motivationReminderTime || '09:00'))
+  }
+  if (settings.checkinReminderEnabled) {
+    notifications.push(checkinNotification(settings.checkinReminderTime || '15:00'))
   }
 
   if (notifications.length === 0) return

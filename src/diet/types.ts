@@ -176,6 +176,16 @@ export interface ProgressPhoto {
   createdAt: number
 }
 
+// Gun ici "nasilsin?" check-in kaydi (gunluk; his/enerji + kisa not)
+export interface CheckIn {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  createdAt: number
+  mood?: number // Genel moral/his 1-10
+  energy?: number // Enerji 1-10 (istege bagli)
+  note?: string // Kisa not: bugun nasil hissediyorsun
+}
+
 // Alisveris listesi ogesi
 export interface ShoppingItem {
   id?: number
@@ -226,4 +236,6 @@ export interface DietSettings {
   waterReminderEnabled?: boolean // Gun icinde su icme hatirlatmasi
   motivationReminderEnabled?: boolean // Gunluk motivasyon bildirimi
   motivationReminderTime?: string // Motivasyon bildirimi saati (SS:DD)
+  checkinReminderEnabled?: boolean // Gun ici "nasilsin?" bildirimi
+  checkinReminderTime?: string // Check-in bildirimi saati (SS:DD)
 }

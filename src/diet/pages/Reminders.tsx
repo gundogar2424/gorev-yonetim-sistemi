@@ -59,6 +59,18 @@ export default function Reminders() {
     await persist({ motivationReminderTime: time })
   }
 
+  async function toggleCheckin(enabled: boolean) {
+    if (enabled && native && !(await ensurePermission())) {
+      flash('Bildirim izni verilmedi.')
+      return
+    }
+    await persist({ checkinReminderEnabled: enabled })
+  }
+
+  async function setCheckinTime(time: string) {
+    await persist({ checkinReminderTime: time })
+  }
+
   async function testNotify() {
     if (!native) {
       flash('Bildirim testi yalnızca APK (uygulama) sürümünde çalışır.')
@@ -143,6 +155,34 @@ export default function Reminders() {
                   className="field-input w-28"
                   value={settings?.motivationReminderTime ?? '09:00'}
                   onChange={(e) => setMotivationTime(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Gun ici "nasilsin?" check-in bildirimi */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">💬 Gün içi “nasılsın?”</h3>
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">Nasıl hissediyorsun?</p>
+                <p className="text-xs text-slate-500">Gün içinde “nasıl gidiyor, kendini nasıl hissediyorsun?” diye sorar; koç bunu değerlendirmede dikkate alır.</p>
+              </div>
+              <Switch
+                on={!!settings?.checkinReminderEnabled}
+                onClick={() => toggleCheckin(!settings?.checkinReminderEnabled)}
+              />
+            </div>
+            {settings?.checkinReminderEnabled && (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>🕒 Saat:</span>
+                <input
+                  type="time"
+                  className="field-input w-28"
+                  value={settings?.checkinReminderTime ?? '15:00'}
+                  onChange={(e) => setCheckinTime(e.target.value)}
                 />
               </div>
             )}
