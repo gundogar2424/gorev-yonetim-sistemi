@@ -94,20 +94,42 @@ export async function shareImageSmart(blob: Blob, filename: string): Promise<Sha
 export async function shareImagesSmart(items: { blob: Blob; filename: string }[]): Promise<ShareResult> {
   if (!items.length) return 'failed'
   if (isNative()) {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+    const { Share } = await import('@capacitor/share')
+    const uris: string[] = []
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem')
-      const { Share } = await import('@capacitor/share')
-      const uris: string[] = []
       for (const it of items) {
         const base64 = await blobToBase64(it.blob)
         await Filesystem.writeFile({ path: it.filename, data: base64, directory: Directory.Cache })
         const { uri } = await Filesystem.getUri({ path: it.filename, directory: Directory.Cache })
         uris.push(uri)
       }
-      await Share.share({ title: 'Diyet Raporu', text: 'Diyet raporum', files: uris, dialogTitle: 'Diyetisyene gönder' })
+    } catch {
+      return 'failed'
+    }
+    // NOT: coklu dosya paylasiminda title/text GONDERILMEZ — bazi cihazlarda
+    // (ozellikle WhatsApp hedefinde) metinle birlikte coklu gorsel tek gorsele
+    // dusuyor ya da hic gitmiyor. Sadece files + dialogTitle en uyumlusu.
+    try {
+      await Share.share({ files: uris, dialogTitle: 'Diyetisyene gönder' })
       return 'shared'
     } catch (err) {
-      return isCancel(err) ? 'cancelled' : 'failed'
+      if (isCancel(err)) return 'cancelled'
+      // Yedek plan: coklu paylasim desteklenmiyorsa gorselleri TEK TEK paylas
+      // (her biri icin paylasim menusu acilir; kullanici sirayla gonderir).
+      try {
+        for (const uri of uris) {
+          try {
+            await Share.share({ url: uri, dialogTitle: 'Diyetisyene gönder' })
+          } catch (e2) {
+            if (isCancel(e2)) return 'cancelled'
+            throw e2
+          }
+        }
+        return 'shared'
+      } catch {
+        return 'failed'
+      }
     }
   }
   // Web: dosya dizisi paylasimi destekleniyorsa paylas, yoksa tek tek indir
