@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, getCheckinDay, saveCheckinDay, addCraving } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listCheckinsDay, addCheckin, deleteCheckin, addCraving } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, chatAboutDay, cravingHelp } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -11,7 +11,7 @@ import MenuAsk from '../components/MenuAsk'
 import { scheduleSatietyReminder } from '../lib/notify'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
-import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings } from '../types'
+import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
@@ -870,7 +870,7 @@ function CrisisSOS({ entries, exercises, settings }: { entries: DietEntry[]; exe
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<'' | 'resisted' | 'ate'>('')
   const waterMl = useLiveQuery(() => getWaterMlDay(today), [today], 0) ?? 0
-  const checkin = useLiveQuery(() => getCheckinDay(today), [today], undefined)
+  const checkins = useLiveQuery(() => listCheckinsDay(today), [today], [])
 
   const hasKey = !!settings?.apiKey
 
@@ -884,7 +884,7 @@ function CrisisSOS({ entries, exercises, settings }: { entries: DietEntry[]; exe
     try {
       const answer = await cravingHelp({
         apiKey: settings!.apiKey!,
-        context: buildDaySummary(entries, exercises, today, waterMl, checkin?.mood, checkin?.note),
+        context: buildDaySummary(entries, exercises, today, waterMl, checkins ?? []),
         history,
         model: settings?.model,
         userName: settings?.userName,
@@ -1012,27 +1012,56 @@ function CrisisSOS({ entries, exercises, settings }: { entries: DietEntry[]; exe
   )
 }
 
-// Gun ici "nasilsin?" — genel moral/his 1-10 + kisa not (gunluk). AI dikkate alir.
+// His emojisi (1-10 moral puanina gore)
+function moodEmoji(m?: number): string {
+  return m == null ? '💬' : m >= 8 ? '😄' : m >= 6 ? '🙂' : m >= 4 ? '😐' : '😔'
+}
+
+// Gun ici "nasilsin?" — GUNDE ISTEDIGIN KADAR kayit (saatli). Yemek oncesi/
+// sonrasi fark etmez; koc saatlere bakarak ogunlerle bag kurar.
 function MoodCheckIn() {
   const today = todayStr()
-  const c = useLiveQuery(() => getCheckinDay(today), [today], undefined)
-  const [noteOpen, setNoteOpen] = useState(false)
+  const list = useLiveQuery(() => listCheckinsDay(today), [today], []) ?? []
+  const [mood, setMood] = useState<number | null>(null)
   const [note, setNote] = useState('')
+  const [flash, setFlash] = useState('')
 
-  const mood = c?.mood
-  const emoji = mood == null ? '💬' : mood >= 8 ? '😄' : mood >= 6 ? '🙂' : mood >= 4 ? '😐' : '😔'
+  async function save() {
+    if (mood == null) return
+    await addCheckin(mood, note.trim() || undefined)
+    setMood(null)
+    setNote('')
+    setFlash('Kaydedildi 👍 Gün içinde istediğin kadar ekleyebilirsin.')
+    setTimeout(() => setFlash(''), 3000)
+  }
 
   return (
     <div className="card p-4 space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="section-title">{emoji} Bugün nasılsın?</span>
-        {mood != null && <span className="text-xs font-semibold text-slate-500">moral {mood}/10</span>}
+        <span className="section-title">{moodEmoji(list[list.length - 1]?.mood)} Şu an nasılsın?</span>
+        {list.length > 0 && <span className="text-xs font-semibold text-slate-500">{list.length} kayıt bugün</span>}
       </div>
+
+      {/* Bugunun his zaman cizelgesi */}
+      {list.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {list.map((c) => (
+            <span key={c.id} className="chip bg-violet-50 text-violet-800 border border-violet-100">
+              {new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}{' '}
+              {moodEmoji(c.mood)} {c.mood ?? ''}
+              <button onClick={() => void deleteCheckin(c.id!)} className="ml-0.5 text-violet-300">
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-1">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
           <button
             key={n}
-            onClick={() => void saveCheckinDay(today, { mood: n })}
+            onClick={() => setMood(n)}
             className={`w-7 h-7 rounded-full text-xs font-bold ${
               mood === n ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'
             }`}
@@ -1041,46 +1070,22 @@ function MoodCheckIn() {
           </button>
         ))}
       </div>
-      <p className="text-[11px] text-slate-400">1: kötü hissediyorum · 10: harika</p>
+      <p className="text-[11px] text-slate-400">1: kötü · 10: harika — yemekten önce/sonra, ne zaman istersen işaretle.</p>
 
-      {c?.note && !noteOpen && (
-        <p className="text-sm text-slate-700 bg-slate-50 rounded-xl p-2.5">“{c.note}”</p>
-      )}
-      {!noteOpen ? (
-        <button
-          onClick={() => {
-            setNote(c?.note ?? '')
-            setNoteOpen(true)
-          }}
-          className="text-xs text-violet-700 underline"
-        >
-          {c?.note ? '✏️ Notu düzenle' : '+ Nasıl hissettiğini yaz (isteğe bağlı)'}
-        </button>
-      ) : (
+      {mood != null && (
         <div className="space-y-1.5">
           <textarea
-            className="field-input min-h-[56px]"
-            autoFocus
-            placeholder="örn. Enerjim iyi ama akşama doğru tatlı krizi geldi"
+            className="field-input min-h-[48px]"
+            placeholder="İstersen bir not ekle: örn. öğle yemeğinden sonra enerjim yerinde"
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setNoteOpen(false)} className="btn bg-slate-200 text-slate-700 py-2">
-              Vazgeç
-            </button>
-            <button
-              onClick={async () => {
-                await saveCheckinDay(today, { note: note.trim() })
-                setNoteOpen(false)
-              }}
-              className="btn-primary py-2"
-            >
-              Kaydet
-            </button>
-          </div>
+          <button onClick={save} className="btn-primary w-full py-2">
+            {moodEmoji(mood)} {mood}/10 olarak kaydet
+          </button>
         </div>
       )}
+      {flash && <p className="text-xs font-semibold text-violet-700">{flash}</p>}
     </div>
   )
 }
@@ -1176,7 +1181,7 @@ function ExerciseToday({ exercises, measurements }: { exercises: Exercise[]; mea
 }
 
 // Bugunun kompakt ozetini (yemekler, kararlar, spor) metne dokup sohbete baglam verir
-function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: string, waterMl = 0, mood?: number, moodNote?: string): string {
+function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: string, waterMl = 0, checkins: CheckIn[] = []): string {
   const meals = entries.filter((e) => e.dateStr === today).sort((a, b) => a.createdAt - b.createdAt)
   const exs = exercises.filter((e) => e.dateStr === today)
   const lines: string[] = []
@@ -1197,8 +1202,12 @@ function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: str
     lines.push(`Spor: ${exs.map((e) => e.text + (e.minutes ? ` (${e.minutes} dk)` : '')).join(', ')}${burn ? ` — ~${burn} kcal yakıldı` : ''}.`)
   }
   if (waterMl > 0) lines.push(`Su: ${waterMl} ml içildi.`)
-  if (mood != null || moodNote) {
-    lines.push(`Kişinin bugünkü hâli: ${mood != null ? `moral ${mood}/10` : ''}${moodNote ? `${mood != null ? ' — ' : ''}"${moodNote}"` : ''}.`)
+  if (checkins.length) {
+    const parts = checkins.map((c) => {
+      const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      return `${t}${c.mood != null ? ` moral ${c.mood}/10` : ''}${c.note ? ` ("${c.note}")` : ''}`
+    })
+    lines.push(`Gün içi hisler (saatli): ${parts.join(' · ')} — öğün/spor saatleriyle karşılaştırıp bağ kurabilirsin.`)
   }
   return lines.join('\n')
 }
@@ -1222,7 +1231,7 @@ function DayReview({
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const waterMl = useLiveQuery(() => getWaterMlDay(today), [today], 0) ?? 0
-  const checkin = useLiveQuery(() => getCheckinDay(today), [today], undefined)
+  const checkins = useLiveQuery(() => listCheckinsDay(today), [today], [])
 
   if (!hasActivity) return null // bugun hic kayit yoksa gosterme
   void measurements // (ileride kullanilabilir)
@@ -1239,7 +1248,7 @@ function DayReview({
     try {
       const answer = await chatAboutDay({
         apiKey: settings!.apiKey!,
-        daySummary: buildDaySummary(entries, exercises, today, waterMl, checkin?.mood, checkin?.note),
+        daySummary: buildDaySummary(entries, exercises, today, waterMl, checkins ?? []),
         history,
         model: settings?.model,
         userName: settings?.userName,

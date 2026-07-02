@@ -240,9 +240,21 @@ export function listCravings(): Promise<Craving[]> {
   return dietDb.cravings.orderBy('createdAt').toArray()
 }
 
-// ---- Gun ici "nasilsin?" check-in ----
+// ---- Gun ici "nasilsin?" check-in (gunde ISTEDIGI KADAR, saatli) ----
 export async function getCheckinDay(dateStr: string): Promise<CheckIn | undefined> {
   return dietDb.checkins.where('dateStr').equals(dateStr).first()
+}
+// Gunun tum check-in'leri (kronolojik) — yemek oncesi/sonrasi bag kurmak icin
+export function listCheckinsDay(dateStr: string): Promise<CheckIn[]> {
+  return dietDb.checkins.where('dateStr').equals(dateStr).sortBy('createdAt')
+}
+// Yeni bir his kaydi ekler (her cagrida AYRI kayit; saat damgasiyla)
+export async function addCheckin(mood?: number, note?: string) {
+  const now = new Date()
+  await dietDb.checkins.add({ dateStr: now.toLocaleDateString('en-CA'), createdAt: Date.now(), mood, note })
+}
+export async function deleteCheckin(id: number) {
+  await dietDb.checkins.delete(id)
 }
 export function listCheckins(): Promise<CheckIn[]> {
   return dietDb.checkins.orderBy('createdAt').toArray()
