@@ -1257,7 +1257,7 @@ function DayReview({
 
   return (
     <div className="card p-3 space-y-2 bg-indigo-50 border-indigo-100">
-      <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">🌙 Günü değerlendir</p>
+      <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">🧾 Günün Z Raporu</p>
       {!hasKey ? (
         <p className="text-xs text-slate-500">
           Sohbet için{' '}
@@ -1286,11 +1286,11 @@ function DayReview({
           {chat.length === 0 && (
             <div className="flex flex-wrap gap-1.5">
               <button
-                onClick={() => ask('Bugün nasıl geçti? Kısaca değerlendir.')}
+                onClick={() => ask('Günün Z raporunu kes bakalım! 🧾')}
                 disabled={busy}
                 className="text-xs font-semibold rounded-full px-3 py-1.5 bg-indigo-600 text-white"
               >
-                Bugün nasıl geçti?
+                🧾 Z raporunu kes
               </button>
               <button
                 onClick={() => ask('Yarın için bana somut bir öneri ver.')}
@@ -1313,7 +1313,7 @@ function DayReview({
               Sor
             </button>
           </div>
-          <p className="text-[11px] text-indigo-700/70">Bugünkü öğün ve sporlarına bakarak konuşur (küçük token).</p>
+          <p className="text-[11px] text-indigo-700/70">Kasadaki gün sonu raporu gibi — ama diyetin için, esprili. Bugünün verileriyle konuşur (küçük token).</p>
         </>
       )}
     </div>
