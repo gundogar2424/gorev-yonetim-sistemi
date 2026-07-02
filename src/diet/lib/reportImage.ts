@@ -103,12 +103,14 @@ function measureLines(m: { weight?: number; waist?: number; navel?: number; fold
 
 // Bir gunun gorsel raporunu PNG Blob olarak uretir
 export async function buildDailyImage(dateStr: string, userName?: string): Promise<Blob> {
-  const [entries, measurements, vitals, exercises] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
-    dietDb.exercises.where('dateStr').equals(dateStr).toArray()
+    dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
+    dietDb.water.where('dateStr').equals(dateStr).first()
   ])
+  const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
   exercises.sort((a, b) => a.createdAt - b.createdAt)
   entries.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
@@ -154,6 +156,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   if (exercises.length) h += 44 + exCardH
   if (measurements.length) h += 48 + measurements.length * 30
   if (vitals.length) h += 48 + vitals.length * 30
+  if (waterMl > 0) h += 44
   h += 50 // alt bilgi
 
   const canvas = document.createElement('canvas')
@@ -342,6 +345,20 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
           : `• ${v.time} — Tansiyon ${v.systolic}/${v.diastolic}${v.pulse ? `, nabız ${v.pulse}` : ''}`
       ctx.fillText(line, PAD + 6, y)
     }
+    y += 6
+  }
+
+  // Su
+  if (waterMl > 0) {
+    y += 8
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 24px sans-serif'
+    ctx.fillText('💧 Su', PAD, y)
+    y += 8
+    ctx.fillStyle = '#0284c7'
+    ctx.font = 'bold 20px sans-serif'
+    y += 30
+    ctx.fillText(`${waterMl} ml`, PAD + 6, y)
     y += 6
   }
 
