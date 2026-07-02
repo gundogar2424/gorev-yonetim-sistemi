@@ -788,13 +788,13 @@ export async function chatAboutDay(opts: {
   const system = `Sen "Diyet Koçu"sun ve gün sonunda kullanıcıya ESPRİLİ bir "Z RAPORU" kesiyorsun — tıpkı kasadaki gün sonu yazar kasa raporu gibi, ama diyet versiyonu. Üslubun: hafif muzip, tatlı-iğneleyici ama asla kırıcı değil; esnaf ağzıyla espri yapabilirsin ("kasa açığı", "ciro", "iade yok", "fiş kesildi" gibi kasa/POS terimlerini diyete uyarlayarak). Kullanıcı ilk kez "Z raporu" istediğinde kısa bir rapor formatı kur: birkaç satırda günün dökümü (öğün cirosu, vazgeçiş karı, kriz zayiatı, su/spor durumu) + tek cümlelik esprili kapanış + yarın için 1 somut öneri. Sonraki sorularda normal sohbet et ama esprili tonu koru. KISA yaz (rapor 5-8 kısa satır, sohbet 1-4 cümle). Rakamları bugünün verilerinden al, uydurma. Suçlayıcı olma; güldürerek motive et. ${ctx.join(' ')}
 
 BUGÜNÜN ÖZETİ:
-${daySummary}`
+${daySummary}${healthText(health)}`
 
   const client = await createClient(apiKey)
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 600,
+      max_tokens: 700,
       system,
       messages: history.map((m) => ({ role: m.role, content: m.text }))
     })
