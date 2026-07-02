@@ -1,4 +1,6 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { initNotificationNavigation } from './lib/notify'
 import Capture from './pages/Capture'
 import History from './pages/History'
 import Track from './pages/Track'
@@ -79,6 +81,14 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
 ]
 
 export default function DietApp() {
+  const navigate = useNavigate()
+
+  // Bildirime tiklaninca ilgili sayfaya git (tokluk -> ana ekran, rapor -> gecmis vb.)
+  useEffect(() => {
+    void initNotificationNavigation((route) => navigate(route))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="min-h-full flex flex-col max-w-xl mx-auto bg-[#f6f8fa]">
       {/* Alt menu + sistem tuslari icin guvenli alan kadar bosluk birak */}

@@ -103,7 +103,8 @@ function mealNotification(r: Reminder) {
     channelId: CHANNEL_ID,
     title: '🥗 Diyet Koçu',
     body,
-    schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true }
+    schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true },
+    extra: { route: '/' }
   }
 }
 
@@ -117,7 +118,8 @@ function waterNotifications() {
       channelId: CHANNEL_ID,
       title: '💧 Su zamanı',
       body: 'Bir bardak su iç ve uygulamaya işaretle. Su, tokluk ve metabolizma için şart!',
-      schedule: { on: { hour, minute: 0 }, repeats: true, allowWhileIdle: true }
+      schedule: { on: { hour, minute: 0 }, repeats: true, allowWhileIdle: true },
+      extra: { route: '/' }
     })
   }
   return list
@@ -131,7 +133,8 @@ function motivationNotification(time: string) {
     channelId: CHANNEL_ID,
     title: '🌟 Diyet Koçu',
     body: 'Bugün de sen kazan! Hedefine bir adım daha yaklaş. 💪',
-    schedule: { on: { hour: h || 9, minute: m || 0 }, repeats: true, allowWhileIdle: true }
+    schedule: { on: { hour: h || 9, minute: m || 0 }, repeats: true, allowWhileIdle: true },
+    extra: { route: '/' }
   }
 }
 
@@ -143,7 +146,8 @@ function checkinNotification(time: string) {
     channelId: CHANNEL_ID,
     title: '💬 Diyet Koçu',
     body: 'Nasıl gidiyor? Kendini nasıl hissediyorsun? Uygulamaya bir dokun, işaretle.',
-    schedule: { on: { hour: h || 15, minute: m || 0 }, repeats: true, allowWhileIdle: true }
+    schedule: { on: { hour: h || 15, minute: m || 0 }, repeats: true, allowWhileIdle: true },
+    extra: { route: '/' }
   }
 }
 
@@ -155,7 +159,8 @@ function planNotification(time: string) {
     channelId: CHANNEL_ID,
     title: '📅 Diyet Koçu',
     body: 'Yarının menüsüne bakalım mı? Öğünlerini ve eksik malzemeni akşamdan planla.',
-    schedule: { on: { hour: h || 21, minute: m || 0 }, repeats: true, allowWhileIdle: true }
+    schedule: { on: { hour: h || 21, minute: m || 0 }, repeats: true, allowWhileIdle: true },
+    extra: { route: '/' }
   }
 }
 
@@ -167,7 +172,22 @@ function reportNotification(time: string) {
     channelId: CHANNEL_ID,
     title: '📤 Diyet Koçu',
     body: 'Bugünün raporunu diyetisyenine göndermeyi unutma!',
-    schedule: { on: { hour: h || 20, minute: m ?? 30 }, repeats: true, allowWhileIdle: true }
+    schedule: { on: { hour: h || 20, minute: m ?? 30 }, repeats: true, allowWhileIdle: true },
+    extra: { route: '/gecmis' }
+  }
+}
+
+// Bildirime TIKLANINCA ilgili sayfaya git. Uygulama acilisinda bir kez
+// kaydedilir; bildirim uygulamayi soguk baslatsa bile olay teslim edilir.
+export async function initNotificationNavigation(go: (route: string) => void): Promise<void> {
+  if (!isNative()) return
+  try {
+    await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+      const route = (event.notification?.extra as { route?: string } | undefined)?.route ?? '/'
+      go(route)
+    })
+  } catch {
+    // dinleyici kurulamazsa sessiz gec
   }
 }
 
@@ -182,7 +202,8 @@ export async function scheduleSatietyReminder(minutes = 30): Promise<void> {
           id: SATIETY_ID,
           title: '🍽️ Diyet Koçu',
           body: 'Yarım saat oldu — son öğününde doydun mu? Tokluğunu puanla.',
-          schedule: { at: new Date(Date.now() + minutes * 60_000), allowWhileIdle: true }
+          schedule: { at: new Date(Date.now() + minutes * 60_000), allowWhileIdle: true },
+          extra: { route: '/' }
         }
       ]
     })
