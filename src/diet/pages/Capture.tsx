@@ -11,6 +11,7 @@ import MenuAsk from '../components/MenuAsk'
 import { scheduleSatietyReminder } from '../lib/notify'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
+import { buildHealthContext } from '../lib/context'
 import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
@@ -171,7 +172,8 @@ export default function Capture() {
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
         note: noteArg || undefined,
-        body: bodyContext(settings, measurements)
+        body: bodyContext(settings, measurements),
+        health: await buildHealthContext(settings)
       })
       setAnalysis(result)
       setPhase('result')
@@ -199,7 +201,8 @@ export default function Capture() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        body: bodyContext(settings, measurements)
+        body: bodyContext(settings, measurements),
+        health: await buildHealthContext(settings)
       })
       setAnalysis(result)
       setPhase('result')
@@ -226,7 +229,8 @@ export default function Capture() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        body: bodyContext(settings, measurements)
+        body: bodyContext(settings, measurements),
+        health: await buildHealthContext(settings)
       })
       setAnalysis(result)
       setPhase('result')
@@ -302,7 +306,8 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        dietitianNotes: settings?.dietitianNotes
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
       })
       // Kullanici sohbette yemegi/miktari duzelttiyse puani/kaloriyi/makroyu guncelle
       if (res.correction.changed) {
@@ -890,7 +895,8 @@ function CrisisSOS({ entries, exercises, settings }: { entries: DietEntry[]; exe
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        dietitianNotes: settings?.dietitianNotes
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
       })
       setChat([...history, { role: 'assistant', text: answer }])
     } catch (err) {
@@ -1254,7 +1260,8 @@ function DayReview({
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        dietitianNotes: settings?.dietitianNotes
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
       })
       setChat([...history, { role: 'assistant', text: answer }])
     } catch (err) {

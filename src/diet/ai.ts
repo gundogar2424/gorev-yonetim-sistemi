@@ -147,6 +147,7 @@ interface AnalyzeOptions {
   note?: string // Kullanicinin duzeltmesi/aciklamasi (yemek adi, miktar vb.)
   body?: string // Kisi bilgisi: boy/yas/cinsiyet/kilo (porsiyon-kalori icin baglam)
   dietitianNotes?: string // Diyetisyenin talimatlari — degerlendirmede mutlaka dikkate alinir
+  health?: string // Ortak saglik akli baglami (tum veritabanindan ozet)
 }
 
 // Diyetisyen talimatlarini baglam metnine cevirir (varsa)
@@ -156,9 +157,18 @@ function dietitianText(notes?: string): string {
     : ''
 }
 
+// Ortak saglik akli baglamini metne cevirir (varsa). Tum modullere gider;
+// model alakali olanlara deginir (orn. kilo sabit ama bel incelmisse
+// "yagdan gitmis olabilir", sekeri yuksekse ona gore konusur).
+function healthText(h?: string): string {
+  return h?.trim()
+    ? `\n\nKULLANICININ GÜNCEL SAĞLIK/İLERLEME VERİLERİ (uygulamanın veritabanından; değerlendirmende bunları da göz önünde tut, alakalı olanlara kısaca değin. Örn. kilo sabitken bel inceliyorsa "kaybın yağdan, kas korunuyor" gibi bütünsel yorum yap; şekeri/tansiyonu yüksekse önerini ona göre şekillendir):\n${h.trim()}`
+    : ''
+}
+
 // Fotografi inceler ve yapilandirilmis sonucu dondurur
 export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body, dietitianNotes } = opts
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body, dietitianNotes, health } = opts
 
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const img = splitDataUrl(photoDataUrl)
@@ -200,7 +210,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
             },
             {
               type: 'text',
-              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${noteText}`
+              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}${noteText}`
             }
           ]
         }
@@ -252,8 +262,9 @@ export async function analyzeFoodByText(opts: {
   dietPlan?: string
   body?: string
   dietitianNotes?: string
+  health?: string
 }): Promise<FoodAnalysis> {
-  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan, body, dietitianNotes } = opts
+  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan, body, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!note.trim()) throw new Error('Yemeğin ne olduğunu yaz.')
 
@@ -275,7 +286,7 @@ export async function analyzeFoodByText(opts: {
       messages: [
         {
           role: 'user',
-          content: `Bu yemeği yemek üzereyim (fotoğraf yok, sana ben tarif ediyorum): "${note.trim()}". foodName ve kalori/miktarı bu tarife göre belirle. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}`
+          content: `Bu yemeği yemek üzereyim (fotoğraf yok, sana ben tarif ediyorum): "${note.trim()}". foodName ve kalori/miktarı bu tarife göre belirle. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}`
         }
       ],
       output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } }
@@ -356,8 +367,9 @@ export async function chatAboutFood(opts: {
   goal?: string
   dietPlan?: string
   dietitianNotes?: string
+  health?: string
 }): Promise<FoodChatResult> {
-  const { apiKey, foodName, dietScore, estimatedCalories, protein, carb, fat, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes } = opts
+  const { apiKey, foodName, dietScore, estimatedCalories, protein, carb, fat, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Bir soru yaz.')
 
@@ -382,7 +394,7 @@ reply alanına Türkçe, KISA (1-3 cümle), net ve yardımcı bir cevap yaz. Diy
 - correction.estimatedCalories = düzeltilmiş tahmini kalori. correction.protein/carb/fat = düzeltilmiş makrolar (gram, tam sayı).
 - reply alanında puanı/kaloriyi GÜNCELLEDİĞİNİ kısaca söyle (örn. "Düzelttim, yeni puanın 8/10.").
 Eğer ortada bir düzeltme YOKSA (sadece soru soruyorsa): correction.changed = false ve tüm alanlara MEVCUT değerleri aynen yaz (scoreReason'a mevcut kırılma sebebini yazabilirsin).
-${ctx.join(' ')}`
+${ctx.join(' ')}${healthText(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -761,8 +773,9 @@ export async function chatAboutDay(opts: {
   goal?: string
   dietPlan?: string
   dietitianNotes?: string
+  health?: string
 }): Promise<string> {
-  const { apiKey, daySummary, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes } = opts
+  const { apiKey, daySummary, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Bir şey yaz.')
 
@@ -805,8 +818,9 @@ export async function cravingHelp(opts: {
   goal?: string
   dietPlan?: string
   dietitianNotes?: string
+  health?: string
 }): Promise<string> {
-  const { apiKey, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes } = opts
+  const { apiKey, context, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Ne çektiğini yaz.')
 
@@ -824,7 +838,7 @@ export async function cravingHelp(opts: {
 KISA yaz (2-4 cümle), samimi ve kararlı ol. Türkçe. ${ctx.join(' ')}
 
 BUGÜNÜN DURUMU:
-${context}`
+${context}${healthText(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -903,8 +917,9 @@ export async function weeklyCoachSummary(opts: {
   userName?: string
   goal?: string
   dietitianNotes?: string
+  health?: string
 }): Promise<string> {
-  const { apiKey, data, days, model = DEFAULT_MODEL, userName, goal, dietitianNotes } = opts
+  const { apiKey, data, days, model = DEFAULT_MODEL, userName, goal, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
 
   const ctx: string[] = []
@@ -924,7 +939,7 @@ Türkçe, abartısız, suçlayıcı değil güçlendirici ol. Başlık/madde iş
       model,
       max_tokens: 600,
       system,
-      messages: [{ role: 'user', content: `Son ${days} günün verileri:\n\n${data}\n\nBunları değerlendir.` }]
+      messages: [{ role: 'user', content: `Son ${days} günün verileri:\n\n${data}${healthText(health)}\n\nBunları değerlendir.` }]
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
     const text = response.content

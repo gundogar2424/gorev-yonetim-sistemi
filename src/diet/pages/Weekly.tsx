@@ -6,6 +6,7 @@ import { dietDb, listExercises, listMeasurements, readDietSettings } from '../db
 import { computeWeekly, todayStr, dayAdherence, type WeeklySummary } from '../streak'
 import { mealLabel } from '../lib/meals'
 import { weeklyCoachSummary } from '../ai'
+import { buildHealthContext } from '../lib/context'
 import { shareTextSmart } from '../lib/share'
 import type { DietEntry } from '../types'
 
@@ -157,7 +158,8 @@ function CoachSummary({
     setText('')
     setBusy(true)
     try {
-      const res = await weeklyCoachSummary({ apiKey, data: buildData(), days, model, userName, goal, dietitianNotes })
+      const health = await buildHealthContext(await readDietSettings())
+      const res = await weeklyCoachSummary({ apiKey, data: buildData(), days, model, userName, goal, dietitianNotes, health })
       setText(res)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Özet alınamadı.')
