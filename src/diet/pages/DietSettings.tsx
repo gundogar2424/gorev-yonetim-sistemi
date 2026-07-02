@@ -226,6 +226,29 @@ export default function DietSettings() {
               onChange={(e) => saveDietSettings({ goal: e.target.value })}
             />
           </div>
+          <div>
+            <label className="field-label">💊 Kullandığın ilaçlar</label>
+            <textarea
+              className="field-input"
+              rows={2}
+              placeholder="örn. Metformin 1000 mg (sabah-akşam), tansiyon ilacı"
+              value={settings?.medications ?? ''}
+              onChange={(e) => saveDietSettings({ medications: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="field-label">🩺 Kronik rahatsızlıkların (isteğe bağlı)</label>
+            <textarea
+              className="field-input"
+              rows={2}
+              placeholder="örn. Tip 2 diyabet, hipertansiyon"
+              value={settings?.conditions ?? ''}
+              onChange={(e) => saveDietSettings({ conditions: e.target.value })}
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            İlaç ve rahatsızlıklar, Tahliller bölümündeki sağlık değerlendirmesinde birlikte dikkate alınır.
+          </p>
         </section>
 
         {/* Hedefler */}

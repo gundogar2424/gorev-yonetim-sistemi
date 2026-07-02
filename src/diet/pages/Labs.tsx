@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { listLabs, addLab, updateLab, deleteLab, readDietSettings } from '../db'
+import { listLabs, addLab, updateLab, deleteLab, readDietSettings, listVitals, listMeasurements } from '../db'
 import { extractLabText, analyzeLabs } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { todayStr } from '../streak'
@@ -70,12 +70,44 @@ export default function Labs() {
         .reverse()
         .map((l) => `### ${l.dateStr} — ${l.title}\n${l.text}`)
         .join('\n\n')
+
+      // Son seker/tansiyon ozeti (en yeni ~12)
+      const vitalsRows = await listVitals()
+      const vitals = [...vitalsRows]
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 12)
+        .reverse()
+        .map((v) =>
+          v.kind === 'seker'
+            ? `${v.dateStr} ${v.time} — Şeker ${v.sugar} mg/dL${v.sugarContext ? ` (${v.sugarContext})` : ''}`
+            : `${v.dateStr} ${v.time} — Tansiyon ${v.systolic}/${v.diastolic}${v.pulse ? `, nabız ${v.pulse}` : ''}`
+        )
+        .join('\n')
+
+      // Kisi fizigi (boy/yas/cinsiyet + son kilo)
+      const measRows = await listMeasurements()
+      const w = [...measRows]
+        .filter((m) => typeof m.weight === 'number')
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .map((m) => m.weight as number)
+        .pop()
+      const bodyParts: string[] = []
+      if (settings?.gender) bodyParts.push(settings.gender)
+      if (settings?.age) bodyParts.push(`${settings.age} yaşında`)
+      if (settings?.heightCm) bodyParts.push(`boy ${settings.heightCm} cm`)
+      if (w) bodyParts.push(`kilo ${w} kg`)
+      const body = bodyParts.length ? `Kişinin fiziği: ${bodyParts.join(', ')}.` : undefined
+
       const result = await analyzeLabs({
         apiKey: settings!.apiKey!,
         labsText,
         model: settings?.model,
         userName: settings?.userName,
-        goal: settings?.goal
+        goal: settings?.goal,
+        body,
+        medications: settings?.medications,
+        conditions: settings?.conditions,
+        vitals
       })
       setAnalysis(result)
     } catch (err) {
@@ -100,7 +132,8 @@ export default function Labs() {
         <section className="card p-4 space-y-2">
           <p className="text-xs text-slate-500">
             Tahlilinin fotoğrafını veya PDF’ini yükle; yapay zeka metne çevirip <b>hafızasında tutar</b>. Sonra
-            “Yorumla” ile geçmiş tahlillerini birlikte değerlendirir. <i>(Yapay zeka kullanır — token harcar.)</i>
+            “Sağlığımı Değerlendir” ile <b>tahlil + şeker/tansiyon + ilaçların + rahatsızlıkların</b> birlikte
+            değerlendirilip uyarılar verilir. <i>(Yapay zeka kullanır — token harcar.)</i>
           </p>
           <button onClick={() => fileRef.current?.click()} disabled={!!busy || !hasKey} className="btn-primary w-full">
             {busy === 'Tahlil okunuyor…' ? 'Okunuyor…' : '📄 Tahlil Yükle (Foto / PDF)'}
@@ -113,7 +146,7 @@ export default function Labs() {
             onChange={onFile}
           />
           <button onClick={doAnalyze} disabled={!!busy || (labs?.length ?? 0) === 0} className="btn-ghost w-full">
-            {busy === 'Tahliller yorumlanıyor…' ? 'Yorumlanıyor…' : '🧠 Tahlillerimi Yorumla'}
+            {busy === 'Tahliller yorumlanıyor…' ? 'Değerlendiriliyor…' : '🧠 Sağlığımı Değerlendir (tahlil + ilaç + şeker/tansiyon)'}
           </button>
         </section>
 

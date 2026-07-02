@@ -209,6 +209,8 @@ export interface DietSettings {
   heightCm?: number // Boy (cm) — kalori/BMI icin
   age?: number // Yas
   gender?: 'kadın' | 'erkek' // Cinsiyet (kalori ihtiyaci icin)
+  medications?: string // Kullanilan ilaclar (serbest metin) — saglik degerlendirmesine baglam
+  conditions?: string // Kronik rahatsizliklar (serbest metin; istege bagli)
   goal?: string // Diyet hedefi (yapay zekaya baglam olarak verilir)
   dietPlan?: string // Kullanicinin diyet listesi (ogunler) — uyum karsilastirmasi icin
   reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)

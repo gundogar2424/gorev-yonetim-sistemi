@@ -920,24 +920,39 @@ export async function analyzeLabs(opts: {
   model?: string
   userName?: string
   goal?: string
+  body?: string // boy/yas/cinsiyet/kilo
+  medications?: string // kullanilan ilaclar
+  conditions?: string // kronik rahatsizliklar
+  vitals?: string // son seker/tansiyon ozeti
 }): Promise<string> {
-  const { apiKey, labsText, model = DEFAULT_MODEL, userName, goal } = opts
+  const { apiKey, labsText, model = DEFAULT_MODEL, userName, goal, body, medications, conditions, vitals } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
 
   const ctx: string[] = []
   if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (body) ctx.push(body)
+  if (conditions?.trim()) ctx.push(`Kronik rahatsızlıklar: ${conditions.trim()}.`)
+  if (medications?.trim()) ctx.push(`Kullandığı ilaçlar: ${medications.trim()}.`)
   if (goal) ctx.push(`Diyet hedefi: ${goal}.`)
+
+  const extra: string[] = []
+  if (vitals?.trim()) extra.push(`\n\nSON ŞEKER/TANSİYON ÖLÇÜMLERİ:\n${vitals.trim()}`)
 
   const client = await createClient(apiKey)
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 2000,
-      system: `Sen bir sağlık asistanısın. Kullanıcının geçmiş tahlil sonuçlarını sade, anlaşılır Türkçe ile yorumla: hangi değerler normal/yüksek/düşük görünüyor, zamanla nasıl değişmiş, diyet/beslenme açısından nelere dikkat edebilir. ÇOK ÖNEMLİ: Bu tıbbi teşhis veya tedavi değildir; kesin değerlendirme için doktora danışması gerektiğini mutlaka belirt. ${ctx.join(' ')}`,
+      max_tokens: 2200,
+      system: `Sen bir sağlık asistanısın. Kullanıcının TÜM sağlık verilerini BİRLİKTE değerlendir: tahlil sonuçları, şeker/tansiyon ölçümleri, kullandığı ilaçlar, kronik rahatsızlıkları ve diyet hedefi. Sade, anlaşılır Türkçe ile:
+- Hangi değerler normal/yüksek/düşük, zamanla nasıl değişmiş.
+- İlaçları ve rahatsızlıklarıyla BAĞLANTILI dikkat noktaları ve UYARILAR ver (örn. "şekerin yüksek ve X ilacı kullanıyorsun, şu belirtilere dikkat et / şu besinlerden kaçın"). İlaç-besin etkileşimi olası ise nazikçe belirt.
+- Diyet/beslenme açısından somut öneriler sun (bu verilerin ışığında).
+- Acil/riskli bir değer varsa vurgula ve doktora başvurmasını öner.
+ÇOK ÖNEMLİ: Bu tıbbi teşhis veya tedavi değildir; ilaç değişikliği önerme; kesin değerlendirme için doktora/eczacıya danışması gerektiğini MUTLAKA belirt. ${ctx.join(' ')}`,
       messages: [
         {
           role: 'user',
-          content: `İşte tahlillerim (tarih sırasıyla). Bunları yorumla ve diyetim için önerilerde bulun:\n\n${labsText}`
+          content: `İşte sağlık verilerim. Tahlillerimi, ölçümlerimi ve ilaçlarımı birlikte değerlendir; uyarılarda bulun ve diyetim için öneri ver:\n\nTAHLİLLER (tarih sırasıyla):\n${labsText}${extra.join('')}`
         }
       ]
     })
