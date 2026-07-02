@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listCheckinsDay, addCheckin, deleteCheckin, addCraving } from '../db'
-import { analyzeFood, analyzeFoodByText, chatAboutFood, chatAboutDay, cravingHelp } from '../ai'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping } from '../db'
+import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
-import MenuAsk from '../components/MenuAsk'
 import { scheduleSatietyReminder } from '../lib/notify'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
@@ -387,17 +386,14 @@ export default function Capture() {
         {/* Bugun nasilsin? (moral/his) */}
         <MoodCheckIn />
 
-        {/* Menune sor (oglen ne var? siradaki ogun?) */}
-        <MenuAsk />
+        {/* TEK yapay zeka sohbeti: menu, yarin plani, Z raporu, gun analizi */}
+        <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
 
         {/* Yarim saat gecmis, henuz tokluk puani verilmemis ogunler */}
         <SatietyPrompt entries={entries ?? []} />
 
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
         <PendingCheckIn entries={entries ?? []} />
-
-        {/* Gun sonu degerlendirme sohbeti (Z raporu) */}
-        <DayReview entries={entries ?? []} exercises={exercises ?? []} measurements={measurements ?? []} settings={settings} />
 
         {!hasKey && (
           <div className="card p-4 bg-amber-50 border-amber-200 text-amber-800 text-sm">
@@ -1218,43 +1214,42 @@ function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: str
   return lines.join('\n')
 }
 
-// Gun sonu "Z raporu" + sohbet: bugun nasil gecti, niye boyle oldu diye konusulur
-function DayReview({
+// TEK KOC SOHBETI: menu ("oglen ne var"), yarin plani, Z raporu, gun analizi,
+// beslenme sorulari — hepsi bu tek kutudan. Buton yok, yazip sorarsin.
+function CoachChat({
   entries,
   exercises,
-  measurements,
   settings
 }: {
   entries: DietEntry[]
   exercises: Exercise[]
-  measurements: Measurement[]
   settings?: DietSettings
 }) {
   const today = todayStr()
-  const hasActivity =
-    entries.some((e) => e.dateStr === today) || exercises.some((e) => e.dateStr === today)
   const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const waterMl = useLiveQuery(() => getWaterMlDay(today), [today], 0) ?? 0
   const checkins = useLiveQuery(() => listCheckinsDay(today), [today], [])
 
-  if (!hasActivity) return null // bugun hic kayit yoksa gosterme
-  void measurements // (ileride kullanilabilir)
-
   const hasKey = !!settings?.apiKey
 
-  async function ask(question?: string) {
-    const q = (question ?? input).trim()
+  async function ask() {
+    const q = input.trim()
     if (!q || !hasKey) return
     const history = [...chat, { role: 'user' as const, text: q }]
     setChat(history)
     setInput('')
     setBusy(true)
     try {
-      const answer = await chatAboutDay({
+      const pendingShopping = (await listShopping())
+        .filter((i) => !i.done)
+        .map((i) => i.text)
+        .join(', ')
+      const answer = await coachChat({
         apiKey: settings!.apiKey!,
         daySummary: buildDaySummary(entries, exercises, today, waterMl, checkins ?? []),
+        shoppingList: pendingShopping || undefined,
         history,
         model: settings?.model,
         userName: settings?.userName,
@@ -1272,8 +1267,13 @@ function DayReview({
   }
 
   return (
-    <div className="card p-3 space-y-2 bg-indigo-50 border-indigo-100">
-      <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">🧾 Günün Z Raporu</p>
+    <div className="card p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="section-title">💬 Koçuna Sor</p>
+        <Link to="/menu" className="text-xs text-brand-700 underline">
+          Menüm →
+        </Link>
+      </div>
       {!hasKey ? (
         <p className="text-xs text-slate-500">
           Sohbet için{' '}
@@ -1285,51 +1285,37 @@ function DayReview({
       ) : (
         <>
           {chat.length > 0 && (
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            <div className="space-y-1.5 max-h-72 overflow-y-auto">
               {chat.map((m, i) => (
                 <div
                   key={i}
-                  className={`text-sm rounded-xl px-3 py-2 ${
-                    m.role === 'user' ? 'bg-indigo-600 text-white ml-8' : 'bg-white text-slate-800 mr-8'
+                  className={`text-sm rounded-xl px-3 py-2 whitespace-pre-wrap ${
+                    m.role === 'user' ? 'bg-brand-600 text-white ml-8' : 'bg-slate-50 text-slate-800 mr-8'
                   }`}
                 >
                   {m.text}
                 </div>
               ))}
-              {busy && <p className="text-xs text-slate-400 mr-8">yazıyor…</p>}
-            </div>
-          )}
-          {chat.length === 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => ask('Günün Z raporunu kes bakalım! 🧾')}
-                disabled={busy}
-                className="text-xs font-semibold rounded-full px-3 py-1.5 bg-indigo-600 text-white"
-              >
-                🧾 Z raporunu kes
-              </button>
-              <button
-                onClick={() => ask('Yarın için bana somut bir öneri ver.')}
-                disabled={busy}
-                className="text-xs font-semibold rounded-full px-3 py-1.5 bg-white text-indigo-700 border border-indigo-200"
-              >
-                Yarın ne yapayım?
-              </button>
+              {busy && <p className="text-xs text-slate-400 mr-8">koç yazıyor…</p>}
             </div>
           )}
           <div className="flex gap-2">
             <input
               className="field-input flex-1"
-              placeholder="örn. Bugün niye çok acıktım?"
+              placeholder="örn. Öğlen ne var? · Z raporu kes · Yarını planla"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && ask()}
             />
-            <button onClick={() => ask()} disabled={busy || !input.trim()} className="btn bg-indigo-600 text-white px-4">
+            <button onClick={() => ask()} disabled={busy || !input.trim()} className="btn-primary px-4">
               Sor
             </button>
           </div>
-          <p className="text-[11px] text-indigo-700/70">Kasadaki gün sonu raporu gibi — ama diyetin için, esprili. Bugünün verileriyle konuşur (küçük token).</p>
+          {chat.length === 0 && (
+            <p className="text-[11px] text-slate-400">
+              Menünü, yarının planını, Z raporunu, günün analizini — ne istersen yaz. Koç tüm verilerini bilerek cevaplar.
+            </p>
+          )}
         </>
       )}
     </div>

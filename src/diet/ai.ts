@@ -807,6 +807,60 @@ ${daySummary}${healthText(health)}`
   }
 }
 
+// TEK KOC SOHBETI: ana ekrandaki tek sohbet kutusu. Menu sorulari, yarin
+// plani, Z raporu, gun degerlendirmesi, beslenme sorulari — hepsi burada.
+export async function coachChat(opts: {
+  apiKey: string
+  daySummary: string
+  shoppingList?: string // alinacaklar (yarin plani icin)
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+  dietitianNotes?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, daySummary, shoppingList, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!history.length) throw new Error('Bir şey yaz.')
+
+  const now = new Date().toLocaleString('tr-TR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları (mutlaka dikkate al): ${dietitianNotes.trim()}.`)
+
+  const system = `Sen "Diyet Koçu"sun — kullanıcının HER konuda başvurduğu tek asistan. Şu anki zaman: ${now}. Kullanıcı sana serbestçe yazar; ne istediğini anla ve yap:
+- MENÜ soruları ("öğlen ne var", "sıradaki öğün ne", "akşama ne yiyeyim"): aşağıdaki DİYET LİSTESİ'nden, saate göre cevapla.
+- "YARINI PLANLA" tarzı istekler: yarının öğünlerini listeden kısaca çıkar; ALINACAKLAR listesi verilmişse karşılaştır, eksik malzeme riskini tek cümleyle söyle.
+- "Z RAPORU" isterse: günü yazar kasa Z raporu gibi ESPRİLİ kes (öğün cirosu, vazgeçiş kârı, kriz zayiatı, su/spor durumu; kasa/POS terimlerini diyete uyarla) + tek cümlelik muzip kapanış + yarına 1 somut öneri. Rakamları BUGÜNÜN ÖZETİ'nden al, uydurma.
+- Gün değerlendirmesi, "niye böyle oldu", beslenme/diyet soruları: kısa, somut, motive edici cevap ver.
+Türkçe ve KISA yaz (Z raporu 5-8 satır, diğerleri 1-4 cümle). Suçlama yok; samimi ve gerektiğinde esprili ol. ${ctx.join(' ')}
+
+DİYET LİSTESİ:
+${dietPlan?.trim() || '(liste girilmemiş — menü sorularında bunu belirt ve Ayarlar/Menü sayfasına yönlendir)'}
+
+${shoppingList?.trim() ? `ALINACAKLAR LİSTESİ (henüz alınmadı): ${shoppingList.trim()}\n\n` : ''}BUGÜNÜN ÖZETİ:
+${daySummary}${healthText(health)}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 700,
+      system,
+      messages: history.map((m) => ({ role: m.role, content: m.text }))
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Cevap üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // KRIZ ANI sohbeti: kullanici SU AN bir yeme krizi yasiyor. Kisa, guclu,
 // aninda uygulanabilir mudahale — kontrollu kacamak + oyalama taktigi.
 export async function cravingHelp(opts: {
