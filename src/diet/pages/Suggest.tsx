@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { readDietSettings } from '../db'
+import { buildHealthContext } from '../lib/context'
 import { suggestMeal } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
 import type { MealAdvice, MealSuggestion } from '../types'
@@ -36,7 +37,9 @@ export default function Suggest() {
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
-        dietPlan: settings?.dietPlan
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
       })
       setAdvice(res)
       setPhase('result')

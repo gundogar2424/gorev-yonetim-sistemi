@@ -593,8 +593,10 @@ export async function suggestMeal(opts: {
   userName?: string
   goal?: string
   dietPlan?: string
+  dietitianNotes?: string
+  health?: string
 }): Promise<MealAdvice> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan } = opts
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const img = splitDataUrl(photoDataUrl)
   if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
@@ -623,7 +625,7 @@ export async function suggestMeal(opts: {
             },
             {
               type: 'text',
-              text: `Elimde bunlar var. Bunlardan diyetime uygun ne yapıp ne kadar yiyebilirim? Gramaj ve makro (protein/karbonhidrat/yağ) ver.${ctxText}${planText}`
+              text: `Elimde bunlar var. Bunlardan diyetime uygun ne yapıp ne kadar yiyebilirim? Gramaj ve makro (protein/karbonhidrat/yağ) ver.${ctxText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}`
             }
           ]
         }
@@ -760,8 +762,9 @@ export async function estimateExerciseKcal(opts: {
   minutes?: number
   weightKg?: number
   model?: string
+  health?: string
 }): Promise<{ kcal: number; note: string }> {
-  const { apiKey, text, minutes, weightKg, model = DEFAULT_MODEL } = opts
+  const { apiKey, text, minutes, weightKg, model = DEFAULT_MODEL, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!text.trim()) throw new Error('Egzersizi yaz.')
 
@@ -773,10 +776,10 @@ export async function estimateExerciseKcal(opts: {
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 300,
+      max_tokens: 400,
       system:
-        'Sen bir spor/beslenme asistanısın. Verilen egzersizi (tür, süre, kilo) değerlendirip YAKLAŞIK YAKILAN KALORİYİ tahmin et. kcal alanına tam sayı yaz. Süre verilmemişse egzersiz türünden makul bir süre varsay. note alanına çok kısa (tek cümle) bir açıklama yaz (örn. "30 dk tempolu yürüyüş ~150 kcal"). Türkçe.',
-      messages: [{ role: 'user', content: parts.join(' ') + ' Yaklaşık kaç kalori yakılmıştır?' }],
+        'Sen bir spor/beslenme asistanısın. Verilen egzersizi (tür, süre, kilo) değerlendirip YAKLAŞIK YAKILAN KALORİYİ tahmin et. kcal alanına tam sayı yaz. Süre verilmemişse egzersiz türünden makul bir süre varsay. note alanına çok kısa (tek cümle) bir açıklama yaz (örn. "30 dk tempolu yürüyüş ~150 kcal"); kişinin sağlık durumu (şeker/tansiyon/rahatsızlık) verildiyse ve alakalıysa çok kısa bir uyarı/öneri ekleyebilirsin. Türkçe.',
+      messages: [{ role: 'user', content: parts.join(' ') + ` Yaklaşık kaç kalori yakılmıştır?${healthText(health)}` }],
       output_config: { format: { type: 'json_schema', schema: BURN_SCHEMA } }
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')

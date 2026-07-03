@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { listExercises, addExercise, deleteExercise, readDietSettings, listMeasurements } from '../db'
+import { buildHealthContext } from '../lib/context'
 import { estimateExerciseKcal } from '../ai'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
 import type { Exercise } from '../types'
@@ -41,7 +42,7 @@ export default function ExercisePage() {
           .filter((x) => typeof x.weight === 'number')
           .sort((a, b) => a.createdAt - b.createdAt)
         const weightKg = weights.length ? (weights[weights.length - 1].weight as number) : undefined
-        const res = await estimateExerciseKcal({ apiKey: settings.apiKey, text: t, minutes: mins, weightKg, model: settings?.model })
+        const res = await estimateExerciseKcal({ apiKey: settings.apiKey, text: t, minutes: mins, weightKg, model: settings?.model, health: await buildHealthContext(settings) })
         kcal = res.kcal
       } catch {
         // tahmin basarisiz olsa da egzersizi yine de kaydet
