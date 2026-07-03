@@ -4,11 +4,11 @@ import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping } from '../db'
-import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp } from '../ai'
+import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { scheduleSatietyReminder } from '../lib/notify'
-import { fileToResizedDataUrl } from '../../lib/image'
+import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
 import { buildHealthContext } from '../lib/context'
 import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
@@ -388,6 +388,9 @@ export default function Capture() {
 
         {/* TEK yapay zeka sohbeti: menu, yarin plani, Z raporu, gun analizi */}
         <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
+
+        {/* Disarida/restoranda: menu fotograflarini yukle, uygununu bul */}
+        <RestaurantMenu settings={settings} />
 
         {/* Yarim saat gecmis, henuz tokluk puani verilmemis ogunler */}
         <SatietyPrompt entries={entries ?? []} />
@@ -1314,6 +1317,200 @@ function CoachChat({
           {chat.length === 0 && (
             <p className="text-[11px] text-slate-400">
               Menünü, yarının planını, Z raporunu, günün analizini — ne istersen yaz. Koç tüm verilerini bilerek cevaplar.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// DISARIDA/RESTORAN: menu fotograf(lar)ini yukle, yapay zeka diyetine en
+// uygun secenekleri cikarsin; menu olmadan da sohbet edilebilir.
+function RestaurantMenu({ settings }: { settings?: DietSettings }) {
+  const [open, setOpen] = useState(false)
+  const [imgs, setImgs] = useState<string[]>([]) // eklenen menu fotograflari (data URL)
+  const [sent, setSent] = useState(false) // gorseller bir kez gonderildi mi (token tasarrufu)
+  const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const hasKey = !!settings?.apiKey
+
+  // Menu fotografi ekle: APK'da native cok-secim, web'de <input multiple>
+  async function addImages() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Camera } = await import('@capacitor/camera')
+        const res = await Camera.pickImages({ quality: 80, limit: 8 })
+        const urls = await Promise.all(
+          res.photos.map((p) => urlToResizedDataUrl(p.webPath || (p as { path?: string }).path || '', 1400, 0.8))
+        )
+        const ok = urls.filter((u): u is string => !!u)
+        if (ok.length) setImgs((prev) => [...prev, ...ok].slice(0, 8))
+      } catch {
+        /* iptal/izin — sessiz gec */
+      }
+      return
+    }
+    fileRef.current?.click()
+  }
+
+  async function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (!files.length) return
+    const urls = await Promise.all(files.map((f) => fileToResizedDataUrl(f, 1400, 0.8).catch(() => null)))
+    const ok = urls.filter((u): u is string => !!u)
+    if (ok.length) setImgs((prev) => [...prev, ...ok].slice(0, 8))
+  }
+
+  function removeImg(i: number) {
+    setImgs((prev) => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function send(preset?: string) {
+    if (!hasKey || busy) return
+    const q = (preset ?? input).trim()
+    // Ilk turda gorsel varsa soru bos olsa bile analiz iste
+    const firstWithImgs = !sent && imgs.length > 0
+    if (!q && !firstWithImgs) return
+    const userText = q || 'Bu menüden diyetime en uygun ne var? Öncelik sırasıyla öner.'
+    const history = [...chat, { role: 'user' as const, text: userText }]
+    setChat(history)
+    setInput('')
+    setBusy(true)
+    try {
+      const answer = await menuChat({
+        apiKey: settings!.apiKey!,
+        images: firstWithImgs ? imgs : undefined, // gorseller yalnizca ilk turda
+        history,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
+      })
+      setChat([...history, { role: 'assistant', text: answer }])
+      if (firstWithImgs) setSent(true) // menu artik "goruldu", tekrar gonderme
+    } catch (err) {
+      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function reset() {
+    setImgs([])
+    setSent(false)
+    setChat([])
+    setInput('')
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="card p-3 w-full flex items-center gap-3 text-left hover:bg-slate-50 transition"
+      >
+        <span className="text-2xl">🍽️</span>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-slate-800">Dışarıda mısın? Menüyü yükle</p>
+          <p className="text-xs text-slate-500">Restoran menüsünün fotoğrafını çek, diyetine uygununu birlikte seçelim.</p>
+        </div>
+        <span className="text-slate-400">→</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="card p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="section-title">🍽️ Dışarıda / Restoran</p>
+        <button onClick={() => setOpen(false)} className="text-xs text-slate-400">kapat</button>
+      </div>
+
+      {!hasKey ? (
+        <p className="text-xs text-slate-500">
+          Bunun için{' '}
+          <Link to="/ayarlar" className="underline font-semibold">Ayarlar</Link>’dan API anahtarı ekle.
+        </p>
+      ) : (
+        <>
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickFiles} />
+
+          {/* Eklenen menu fotograflari */}
+          {imgs.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {imgs.map((src, i) => (
+                <div key={i} className="relative">
+                  <img src={src} alt={`menü ${i + 1}`} className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                  {!sent && (
+                    <button
+                      onClick={() => removeImg(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-500 text-white text-xs leading-none"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Sohbet akisi */}
+          {chat.length > 0 && (
+            <div className="space-y-1.5 max-h-72 overflow-y-auto">
+              {chat.map((m, i) => (
+                <div
+                  key={i}
+                  className={`text-sm rounded-xl px-3 py-2 whitespace-pre-wrap ${
+                    m.role === 'user' ? 'bg-brand-600 text-white ml-8' : 'bg-slate-50 text-slate-800 mr-8'
+                  }`}
+                >
+                  {m.text}
+                </div>
+              ))}
+              {busy && <p className="text-xs text-slate-400 mr-8">koç bakıyor…</p>}
+            </div>
+          )}
+
+          {/* Aksiyonlar */}
+          {!sent && (
+            <button onClick={addImages} disabled={busy} className="btn bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
+              📷 {imgs.length ? 'Fotoğraf ekle' : 'Menü fotoğrafı ekle'}
+            </button>
+          )}
+
+          {imgs.length > 0 && !sent && (
+            <button onClick={() => send()} disabled={busy} className="btn-primary w-full">
+              🍽️ Diyetime uygun ne var?
+            </button>
+          )}
+
+          {/* Yazili soru / takip */}
+          <div className="flex gap-2">
+            <input
+              className="field-input flex-1"
+              placeholder={imgs.length ? 'İstersen bir not ekle (örn. tatlı da var mı?)' : 'Nerede olduğunu yaz, öneri isteyeyim…'}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && send()}
+            />
+            <button onClick={() => send()} disabled={busy || (!input.trim() && !(imgs.length && !sent))} className="btn-primary px-4">
+              Sor
+            </button>
+          </div>
+
+          {chat.length > 0 && (
+            <button onClick={reset} className="w-full text-center text-xs text-slate-400 py-1">
+              Yeni menü / baştan
+            </button>
+          )}
+          {chat.length === 0 && (
+            <p className="text-[11px] text-slate-400">
+              Birden fazla menü sayfası ekleyebilirsin. Koç, diyet listeni ve sağlık verilerini bilerek en uygun seçeneği önerir.
             </p>
           )}
         </>

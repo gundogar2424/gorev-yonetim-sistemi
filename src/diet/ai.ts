@@ -874,6 +874,67 @@ ${daySummary}${healthText(health)}`
   }
 }
 
+// RESTORAN/MENU yardimcisi: kullanici disarida menu fotograf(lar)ini yukler,
+// yapay zeka diyetine EN UYGUN secenekleri oncelik sirasiyla cikarir; menu
+// yoksa sohbet eder. Gorseller yalnizca ilk turda gonderilir (token tasarrufu).
+export async function menuChat(opts: {
+  apiKey: string
+  images?: string[] // menu fotograf data URL'leri (yalnizca ilk mesajda)
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+  dietitianNotes?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, images = [], history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!history.length) throw new Error('Bir şey yaz veya menü fotoğrafı ekle.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+
+  const system = `Sen "Diyet Koçu"sun — deneyimli bir KLİNİK DİYETİSYEN. Kullanıcı ŞU AN DIŞARIDA/RESTORANDA ve ne yiyeceğine karar vermek istiyor. Sana restoran MENÜSÜNÜN fotoğraf(lar)ını yükleyebilir (birden fazla olabilir) ya da sadece seninle yazışabilir.
+
+Görevin:
+- Menü fotoğrafı varsa: menüdeki yemekleri oku. Kullanıcının DİYET LİSTESİ ve hedefiyle en UYUMLU 2-3 seçeneği ÖNCELİK SIRASIYLA öner; her biri için tek satır gerekçe (neden uygun) ve varsa pratik uyarı ver (örn. "sosu ayrı iste", "kızartma yerine ızgara seç", "porsiyonu yarı bırak").
+- KAÇINILMASI gereken 1-2 seçeneği de kısaca belirt (neden bozar).
+- Menüde net diyet-uyumlu bir şey yoksa: en az zararlı seçeneği söyle ve onu nasıl "diyet dostu" hale getireceğini (porsiyon, pişirme, yan seçim) anlat.
+- Menü fotoğrafı yoksa/okunamıyorsa: nasıl bir yer olduğunu sor veya genel bir öneri verip sohbet et.
+- Sağlık verilerini dikkate al (örn. kan şekeri yüksekse şekerli/nişastalı ağırlıklı seçeneklerden uzak tut).
+Türkçe, KISA ve net yaz; net bir "ben olsam şunu söylerdim" tavsiyesiyle bitir. Profesyonel, güven veren üslup; abartı ve şaka yok. ${ctx.join(' ')}
+
+DİYET LİSTESİ:
+${dietPlan?.trim() || '(liste girilmemiş — genel sağlıklı beslenme ilkelerine göre öner)'}${dietitianText(dietitianNotes)}${healthText(health)}`
+
+  // Gorselleri SON kullanici mesajina ekle (yalnizca bu turda gonderilir)
+  const imgBlocks = images
+    .map((d) => splitDataUrl(d))
+    .filter((x): x is { mediaType: string; base64: string } => !!x)
+    .map((im) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: im.mediaType as 'image/jpeg', data: im.base64 } }))
+
+  const lastIdx = history.length - 1
+  const msgs = history.map((m, i) => {
+    if (i === lastIdx && m.role === 'user' && imgBlocks.length) {
+      return { role: 'user' as const, content: [...imgBlocks, { type: 'text' as const, text: m.text }] }
+    }
+    return { role: m.role, content: m.text }
+  })
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({ model, max_tokens: 900, system, messages: msgs as never })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Cevap üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // KRIZ ANI sohbeti: kullanici SU AN bir yeme krizi yasiyor. Kisa, guclu,
 // aninda uygulanabilir mudahale — kontrollu kacamak + oyalama taktigi.
 export async function cravingHelp(opts: {
