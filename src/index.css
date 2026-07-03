@@ -43,7 +43,7 @@ textarea {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700;
+    @apply btn bg-brand-600 text-white shadow-[0_6px_16px_-6px_rgba(5,150,105,0.55)] hover:bg-brand-700;
   }
   .btn-ghost {
     @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
@@ -52,7 +52,7 @@ textarea {
     @apply btn bg-red-600 text-white hover:bg-red-700;
   }
   .card {
-    @apply bg-white rounded-2xl shadow-card border border-slate-100/80;
+    @apply bg-white rounded-[20px] shadow-card border border-slate-100/80;
   }
   /* Kucuk yuvarlak etiket (rozet/pill) */
   .chip {

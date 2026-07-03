@@ -827,7 +827,7 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
         {/* Kalori halkasi */}
         <div className="relative flex-shrink-0" style={{ width: 120, height: 120 }}>
           <svg width="120" height="120" className="-rotate-90">
-            <circle cx="60" cy="60" r={R} fill="none" stroke="#f1f5f9" strokeWidth="12" />
+            <circle cx="60" cy="60" r={R} fill="none" strokeWidth="12" className="stroke-slate-100 dark:stroke-[#273248]" />
             {target > 0 && (
               <circle
                 cx="60"
@@ -842,8 +842,8 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
             )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-2xl font-extrabold ${over ? 'text-rose-600' : 'text-slate-800'}`}>{kcal}</span>
-            <span className="text-[11px] text-slate-400">{target > 0 ? `/ ${target} kcal` : 'kcal bugün'}</span>
+            <span className={`text-[28px] leading-none font-extrabold ${over ? 'text-rose-600' : 'text-slate-800'}`}>{kcal}</span>
+            <span className="text-[11px] text-slate-400 mt-1">{target > 0 ? `/ ${target} kcal` : 'kcal bugün'}</span>
           </div>
         </div>
 

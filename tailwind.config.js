@@ -20,8 +20,8 @@ export default {
         }
       },
       boxShadow: {
-        card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06)',
-        nav: '0 -2px 12px rgba(15, 23, 42, 0.06)'
+        card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 26px -12px rgba(15, 23, 42, 0.16)',
+        nav: '0 -4px 20px rgba(15, 23, 42, 0.08)'
       }
     }
   },
