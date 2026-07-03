@@ -130,8 +130,16 @@ function friendlyError(err: unknown): Error {
     )
   }
   if (status === 400) return new Error(`Geçersiz istek (400): ${detail}`)
-  if (e?.name === 'APIConnectionError' || e?.name === 'APIConnectionTimeoutError') {
-    return new Error('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.')
+  // Baglanti hatalari: SDK sinif adi minified derlemede degisebildigi icin
+  // mesaj metnine de bakilir ("Connection error." Ingilizce sizmasin).
+  if (
+    e?.name === 'APIConnectionError' ||
+    e?.name === 'APIConnectionTimeoutError' ||
+    detail.toLowerCase().includes('connection') ||
+    detail.toLowerCase().includes('network') ||
+    detail.toLowerCase().includes('fetch failed')
+  ) {
+    return new Error('İnternet bağlantısı kurulamadı. Bağlantını kontrol edip tekrar dene. 📶')
   }
   if (status) return new Error(`İnceleme başarısız (${status}): ${detail}`)
   return new Error(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.')
