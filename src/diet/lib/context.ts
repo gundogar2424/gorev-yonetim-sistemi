@@ -68,6 +68,31 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     )
   }
 
+  // TUM ZAMAN yolculugu: ilk kayittan bugune degisim (uzun vadeli seyir).
+  // 30 gunluk pencere tum kilo verme surecini gostermeyebilir; bu onu tamamlar.
+  const journey = (key: keyof Measurement, label: string, unit: string): string | null => {
+    const withVal = measurements.filter((m) => typeof m[key] === 'number')
+    if (withVal.length < 2) return null
+    const a = withVal[0][key] as number
+    const b = withVal[withVal.length - 1][key] as number
+    const d = fmt(b - a)
+    if (d === 0) return null
+    const firstDate = withVal[0].dateStr
+    return `${label} ${a}→${b}${unit} (${d > 0 ? '+' : ''}${d}, ${firstDate}’ten beri)`
+  }
+  const journeys = [
+    journey('weight', 'kilo', 'kg'),
+    journey('fold', 'bel kıvrımı', 'cm'),
+    journey('navel', 'göbek', 'cm'),
+    journey('hip', 'kalça', 'cm'),
+    journey('chest', 'göğüs', 'cm'),
+    journey('arm', 'kol', 'cm'),
+    journey('leg', 'bacak', 'cm')
+  ].filter(Boolean)
+  if (journeys.length) {
+    L.push(`Başlangıçtan bugüne toplam değişim: ${journeys.join(' · ')}. (Kilo düşerken bel/kalça/bacak da inceliyorsa süreç sağlıklı ilerliyor demektir; bunu bütünsel yorumla.)`)
+  }
+
   // Seker: son 5 olcum + ortalama; tansiyon: son deger
   const sugars = vitals.filter((v) => v.kind === 'seker' && typeof v.sugar === 'number')
   if (sugars.length) {
