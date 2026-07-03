@@ -12,6 +12,7 @@ import {
   readDietSettings
 } from '../db'
 import { suggestShopping } from '../ai'
+import { buildHealthContext } from '../lib/context'
 import type { ShoppingItem, ShoppingSuggestion, ShoppingSuggestItem } from '../types'
 
 export default function Shopping() {
@@ -153,7 +154,8 @@ function SuggestFromPlan({
     setAdded(new Set())
     setBusy(true)
     try {
-      const res = await suggestShopping({ apiKey: apiKey!, dietPlan: dietPlan ?? '', days, model, userName, goal })
+      const health = await buildHealthContext(await readDietSettings())
+      const res = await suggestShopping({ apiKey: apiKey!, dietPlan: dietPlan ?? '', days, model, userName, goal, health })
       setResult(res)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Öneri alınamadı.')

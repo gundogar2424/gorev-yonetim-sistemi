@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { listLabs, addLab, updateLab, deleteLab, readDietSettings, listVitals, listMeasurements } from '../db'
 import { extractLabText, analyzeLabs } from '../ai'
+import { buildHealthContext } from '../lib/context'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { todayStr } from '../streak'
 
@@ -107,7 +108,8 @@ export default function Labs() {
         body,
         medications: settings?.medications,
         conditions: settings?.conditions,
-        vitals
+        vitals,
+        health: await buildHealthContext(settings)
       })
       setAnalysis(result)
     } catch (err) {

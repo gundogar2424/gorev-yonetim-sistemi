@@ -674,8 +674,9 @@ export async function suggestShopping(opts: {
   model?: string
   userName?: string
   goal?: string
+  health?: string
 }): Promise<ShoppingSuggestion> {
-  const { apiKey, dietPlan, days = 7, model = DEFAULT_MODEL, userName, goal } = opts
+  const { apiKey, dietPlan, days = 7, model = DEFAULT_MODEL, userName, goal, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!dietPlan.trim()) throw new Error('Önce Ayarlar/Menü bölümünden diyet listeni ekle.')
 
@@ -693,7 +694,7 @@ Kurallar:
 - Diyet listesinde olmayan, sağlıksız (şekerli/işlenmiş) ürünler EKLEME.
 - note alanına TEK kısa cümlelik bir bilgi yaz (örn. "Listene göre ~${days} günlük temel alışveriş.").
 
-Üslubun: Türkçe, sade, abartısız. ${ctx.join(' ')}`
+Üslubun: Türkçe, sade, abartısız. ${ctx.join(' ')}${healthText(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -933,8 +934,9 @@ export async function analyzeMealSugar(opts: {
   goal?: string
   medications?: string
   dietitianNotes?: string
+  health?: string
 }): Promise<string> {
-  const { apiKey, pairsText, model = DEFAULT_MODEL, userName, goal, medications, dietitianNotes } = opts
+  const { apiKey, pairsText, model = DEFAULT_MODEL, userName, goal, medications, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!pairsText.trim()) throw new Error('Analiz için yeterli veri yok.')
 
@@ -949,7 +951,7 @@ export async function analyzeMealSugar(opts: {
 - Açlık ölçümlerinin genel seyrini değerlendir.
 - Bu örüntülere göre 2-3 pratik beslenme önerisi ver (neyi azalt, neyle değiştir, öğün sırası gibi).
 - Veri azsa dürüstçe "henüz az veri var, eğilim şu yönde" de; kesin konuşma.
-Kısa başlıklar + kısa maddeler kullan, okunaklı yaz. ÇOK ÖNEMLİ: Bu tıbbi teşhis değildir; ilaç/doz önerme; kesin değerlendirme için doktora danışmasını mutlaka belirt. ${ctx.join(' ')}`
+Kısa başlıklar + kısa maddeler kullan, okunaklı yaz. ÇOK ÖNEMLİ: Bu tıbbi teşhis değildir; ilaç/doz önerme; kesin değerlendirme için doktora danışmasını mutlaka belirt. ${ctx.join(' ')}${healthText(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -1119,8 +1121,9 @@ export async function analyzeLabs(opts: {
   medications?: string // kullanilan ilaclar
   conditions?: string // kronik rahatsizliklar
   vitals?: string // son seker/tansiyon ozeti
+  health?: string // ortak saglik baglami (olcu egilimleri, uyum vb.)
 }): Promise<string> {
-  const { apiKey, labsText, model = DEFAULT_MODEL, userName, goal, body, medications, conditions, vitals } = opts
+  const { apiKey, labsText, model = DEFAULT_MODEL, userName, goal, body, medications, conditions, vitals, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
 
   const ctx: string[] = []
@@ -1143,7 +1146,7 @@ export async function analyzeLabs(opts: {
 - İlaçları ve rahatsızlıklarıyla BAĞLANTILI dikkat noktaları ve UYARILAR ver (örn. "şekerin yüksek ve X ilacı kullanıyorsun, şu belirtilere dikkat et / şu besinlerden kaçın"). İlaç-besin etkileşimi olası ise nazikçe belirt.
 - Diyet/beslenme açısından somut öneriler sun (bu verilerin ışığında).
 - Acil/riskli bir değer varsa vurgula ve doktora başvurmasını öner.
-ÇOK ÖNEMLİ: Bu tıbbi teşhis veya tedavi değildir; ilaç değişikliği önerme; kesin değerlendirme için doktora/eczacıya danışması gerektiğini MUTLAKA belirt. ${ctx.join(' ')}`,
+ÇOK ÖNEMLİ: Bu tıbbi teşhis veya tedavi değildir; ilaç değişikliği önerme; kesin değerlendirme için doktora/eczacıya danışması gerektiğini MUTLAKA belirt. ${ctx.join(' ')}${healthText(health)}`,
       messages: [
         {
           role: 'user',

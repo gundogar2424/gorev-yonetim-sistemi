@@ -14,6 +14,7 @@ import {
   readDietSettings
 } from '../db'
 import { analyzeMealSugar } from '../ai'
+import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
 import { buildMeasurementsReport } from '../lib/report'
 import { buildMeasurementsImage } from '../lib/reportImage'
@@ -156,7 +157,8 @@ function SugarMealInsight() {
         userName: settings?.userName,
         goal: settings?.goal,
         medications: settings?.medications,
-        dietitianNotes: settings?.dietitianNotes
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
       })
       setText(result)
     } catch (err) {
