@@ -542,87 +542,112 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     out.push({ filename: `diyet-${dateStr}-${idx++}-ogun.png`, blob: await toBlob(canvas) })
   }
 
-  // Spor & Saglik: tek bir gorsel
+  // Spor & Saglik: tek bir gorsel — her bolum kendi beyaz kartinda, ferah ve
+  // buyuk yazili; seker olcumlerinde aclik/tok net renkli rozetle.
   if (exercises.length || vitals.length || measurements.length || waterMl > 0) {
-    const HLINE = 30
-    mctx.font = '22px sans-serif'
+    const EXLINE = 34 // egzersiz satir yuksekligi
+    const ROW = 50 // vital/olcu satir yuksekligi (ferah)
+    const CPAD = 22 // kart ic bosluğu
+    const TITLE_H = 48 // bolum basligi + bosluk
+    mctx.font = '24px sans-serif'
     const exB = exercises.map((ex) => {
       const meta = [ex.minutes ? `${ex.minutes} dk` : '', ex.kcal ? `~${ex.kcal} kcal` : ''].filter(Boolean).join(' · ')
-      return { lines: wrapText(mctx, ex.text, W - 2 * PAD - 40), meta }
+      return { lines: wrapText(mctx, ex.text, W - 2 * PAD - 2 * CPAD), meta }
     })
-    const exH = exB.length ? 44 + 16 + exB.reduce((s, b) => s + b.lines.length * HLINE + (b.meta ? 26 : 0) + 14, 0) : 0
-    const vitH = vitals.length ? 44 + vitals.length * 32 : 0
-    const meaH = measurements.length ? 44 + measurements.length * 32 : 0
-    const watH = waterMl > 0 ? 44 : 0
-    const contentH = exH + vitH + meaH + watH + 8
+    const exCardH = exB.length ? CPAD * 2 + exB.reduce((s, b) => s + b.lines.length * EXLINE + (b.meta ? 34 : 0) + 16, 0) : 0
+    const exH = exB.length ? TITLE_H + exCardH + 22 : 0
+    const vitH = vitals.length ? TITLE_H + CPAD * 2 + vitals.length * ROW + 22 : 0
+    const meaH = measurements.length ? TITLE_H + CPAD * 2 + measurements.length * ROW + 22 : 0
+    const watH = waterMl > 0 ? TITLE_H + 86 + 22 : 0
+    const contentH = exH + vitH + meaH + watH + 10
 
     const { ctx, canvas, y: y0 } = makeCanvas('🏃 Spor & 🩺 Sağlık', contentH)
     let y = y0
-    if (exB.length) {
+
+    const drawTitle = (t: string) => {
       ctx.fillStyle = '#0f172a'
-      ctx.font = 'bold 24px sans-serif'
-      ctx.fillText('🏃 Egzersiz', PAD, y + 8)
-      y += 24
-      const cardH = 16 + exB.reduce((s, b) => s + b.lines.length * HLINE + (b.meta ? 26 : 0) + 14, 0)
-      fillRound(ctx, PAD, y, W - 2 * PAD, cardH, 16, '#ffffff')
-      let ry = y + 18
+      ctx.font = 'bold 27px sans-serif'
+      ctx.fillText(t, PAD, y + 28)
+      y += TITLE_H
+    }
+
+    if (exB.length) {
+      drawTitle('🏃 Egzersiz')
+      fillRound(ctx, PAD, y, W - 2 * PAD, exCardH, 18, '#ffffff')
+      let ry = y + CPAD
       for (const b of exB) {
         ctx.fillStyle = '#334155'
-        ctx.font = '22px sans-serif'
+        ctx.font = '24px sans-serif'
         for (const ln of b.lines) {
-          ctx.fillText(ln, PAD + 20, ry + 22)
-          ry += HLINE
+          ctx.fillText(ln, PAD + CPAD, ry + 26)
+          ry += EXLINE
         }
         if (b.meta) {
           ctx.fillStyle = '#0f766e'
-          ctx.font = 'bold 18px sans-serif'
-          ctx.fillText('⏱ ' + b.meta, PAD + 20, ry + 18)
-          ry += 26
+          ctx.font = 'bold 20px sans-serif'
+          ctx.fillText('⏱ ' + b.meta, PAD + CPAD, ry + 24)
+          ry += 34
         }
-        ry += 14
+        ry += 16
       }
-      y += cardH + 16
+      y += exCardH + 22
     }
+
     if (vitals.length) {
-      ctx.fillStyle = '#0f172a'
-      ctx.font = 'bold 24px sans-serif'
-      ctx.fillText('🩺 Şeker / Tansiyon', PAD, y + 8)
-      y += 8
-      ctx.fillStyle = '#334155'
-      ctx.font = '21px sans-serif'
+      drawTitle('🩺 Şeker / Tansiyon')
+      const cardH = CPAD * 2 + vitals.length * ROW
+      fillRound(ctx, PAD, y, W - 2 * PAD, cardH, 18, '#ffffff')
+      let ry = y + CPAD
       for (const v of vitals) {
-        y += 32
-        const line =
-          v.kind === 'seker'
-            ? `• ${v.time} — Şeker ${v.sugar} mg/dL${v.sugarContext ? ` (${v.sugarContext})` : ''}`
-            : `• ${v.time} — Tansiyon ${v.systolic}/${v.diastolic}${v.pulse ? `, nabız ${v.pulse}` : ''}`
-        ctx.fillText(line, PAD + 6, y)
+        const baseY = ry + 33
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 25px sans-serif'
+        if (v.kind === 'seker') {
+          const txt = `${v.time}  ·  Şeker ${v.sugar} mg/dL`
+          ctx.fillText(txt, PAD + CPAD, baseY)
+          if (v.sugarContext) {
+            const isTok = v.sugarContext.toLowerCase().startsWith('tok')
+            const cw = ctx.measureText(txt).width
+            drawChip(
+              ctx,
+              PAD + CPAD + cw + 16,
+              baseY - 21,
+              isTok ? '🍽️ Tok' : '🕐 Açlık',
+              isTok ? '#e0f2fe' : '#fef3c7',
+              isTok ? '#075985' : '#92400e'
+            )
+          }
+        } else {
+          ctx.fillText(`${v.time}  ·  Tansiyon ${v.systolic}/${v.diastolic}${v.pulse ? `  · nabız ${v.pulse}` : ''}`, PAD + CPAD, baseY)
+        }
+        ry += ROW
       }
-      y += 12
+      y += cardH + 22
     }
+
     if (measurements.length) {
-      ctx.fillStyle = '#0f172a'
-      ctx.font = 'bold 24px sans-serif'
-      ctx.fillText('📏 Ölçüler & Kilo', PAD, y + 8)
-      y += 8
-      ctx.fillStyle = '#334155'
-      ctx.font = '21px sans-serif'
+      drawTitle('📏 Ölçüler & Kilo')
+      const cardH = CPAD * 2 + measurements.length * ROW
+      fillRound(ctx, PAD, y, W - 2 * PAD, cardH, 18, '#ffffff')
+      let ry = y + CPAD
       for (const m of measurements) {
-        y += 32
-        ctx.fillText(truncate(ctx, '• ' + (measureLines(m) || '—'), W - 2 * PAD), PAD + 6, y)
+        ctx.fillStyle = '#334155'
+        ctx.font = '24px sans-serif'
+        ctx.fillText(truncate(ctx, measureLines(m) || '—', W - 2 * PAD - 2 * CPAD), PAD + CPAD, ry + 33)
+        ry += ROW
       }
-      y += 12
+      y += cardH + 22
     }
+
     if (waterMl > 0) {
-      ctx.fillStyle = '#0f172a'
-      ctx.font = 'bold 24px sans-serif'
-      ctx.fillText('💧 Su', PAD, y + 8)
-      y += 8
+      drawTitle('💧 Su')
+      fillRound(ctx, PAD, y, W - 2 * PAD, 86, 18, '#ffffff')
       ctx.fillStyle = '#0284c7'
-      ctx.font = 'bold 22px sans-serif'
-      y += 32
-      ctx.fillText(`${waterMl} ml`, PAD + 6, y)
+      ctx.font = 'bold 40px sans-serif'
+      ctx.fillText(`${waterMl} ml`, PAD + CPAD, y + 56)
+      y += 86 + 22
     }
+
     ctx.fillStyle = '#94a3b8'
     ctx.font = '16px sans-serif'
     ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 20)
