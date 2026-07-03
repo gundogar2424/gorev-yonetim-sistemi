@@ -8,6 +8,7 @@ import { fileToResizedDataUrl } from '../../lib/image'
 import { buildBackupData, parseDietBackup, restoreDietBackup, clearOldPhotos } from '../lib/backup'
 import { saveJsonSmart } from '../lib/share'
 import { getUsage, resetUsage, todayUsage, bucketTokens, estimateCostUsd } from '../lib/usage'
+import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 
 export default function DietSettings() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -104,6 +105,9 @@ export default function DietSettings() {
 
       <div className="p-3 space-y-4">
         {msg && <p className="card p-3 bg-emerald-50 text-emerald-800 text-sm border-emerald-100">{msg}</p>}
+
+        {/* Gorunum: tema secici */}
+        <ThemeSelector />
 
         {/* Rozetler */}
         <section className="card p-4 space-y-3">
@@ -423,6 +427,44 @@ export default function DietSettings() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Gorunum temasi: Otomatik (telefon ayarina uyar) / Açık / Koyu
+function ThemeSelector() {
+  const [pref, setPref] = useState<ThemePref>(getThemePref())
+  const opts: { v: ThemePref; label: string; emoji: string }[] = [
+    { v: 'auto', label: 'Otomatik', emoji: '🌗' },
+    { v: 'light', label: 'Açık', emoji: '☀️' },
+    { v: 'dark', label: 'Koyu', emoji: '🌙' }
+  ]
+  function pick(v: ThemePref) {
+    setPref(v)
+    setThemePref(v)
+  }
+  return (
+    <section className="card p-4 space-y-3">
+      <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Görünüm</h2>
+      <p className="text-xs text-slate-500">
+        Otomatik: telefonun karanlık/aydınlık ayarına uyar. Dilersen sabitleyebilirsin.
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {opts.map((o) => (
+          <button
+            key={o.v}
+            onClick={() => pick(o.v)}
+            className={`rounded-xl py-2.5 text-sm font-bold border transition ${
+              pref === o.v
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-slate-50 text-slate-600 border-slate-200'
+            }`}
+          >
+            <span className="block text-lg leading-none mb-0.5">{o.emoji}</span>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
 

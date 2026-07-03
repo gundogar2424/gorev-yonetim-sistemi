@@ -2,8 +2,12 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import DietApp from './DietApp'
+import { initTheme } from './lib/theme'
 // Tailwind/temel stiller CRM ile ayni dosyadan gelir (CRM'i degistirmez)
 import '../index.css'
+
+// Temayi (Otomatik/Açık/Koyu) uygula ve sistem degisimini dinle
+initTheme()
 
 // Diyet Kocu: CRM'den TAMAMEN AYRI, kendi giris noktasi olan bagimsiz program.
 // Beyaz ekrana karsi: render bir hata verirse kullaniciya mesaj goster.

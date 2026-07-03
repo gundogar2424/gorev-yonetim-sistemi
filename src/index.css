@@ -63,3 +63,166 @@ textarea {
     @apply text-xs font-bold text-slate-400 uppercase tracking-wide;
   }
 }
+
+/* =========================================================================
+   KOYU TEMA (.dark) — <html>.dark eklendiginde devreye girer.
+   Ekranlari tek tek boyamak yerine, sik kullanilan Tailwind utility
+   siniflarini koyu zeminde merkezi olarak yeniden tanimlar. Yesil degrade
+   basliklar/butonlar (brand) dokunulmadan kalir. Rapor GORSELLERI canvas
+   ile cizildiginden bundan etkilenmez (acik kalir).
+   ========================================================================= */
+.dark body {
+  background: #0b1220;
+  color: #e5e9f0;
+}
+.dark .card {
+  background-color: #161f31;
+  border-color: #26324a;
+}
+
+/* Yuzeyler */
+.dark .bg-white {
+  background-color: #161f31;
+}
+.dark .bg-slate-50 {
+  background-color: #1b2740;
+}
+.dark .bg-slate-100 {
+  background-color: #1f2c47;
+}
+.dark .bg-slate-200 {
+  background-color: #26344f;
+}
+
+/* Tonlu bilgi kartlari (-50) -> hafif tonlu koyu zemin */
+.dark .bg-emerald-50,
+.dark .bg-brand-50,
+.dark .bg-teal-50,
+.dark .bg-green-50 {
+  background-color: #10261e;
+}
+.dark .bg-rose-50,
+.dark .bg-red-50 {
+  background-color: #2a1620;
+}
+.dark .bg-amber-50,
+.dark .bg-orange-50,
+.dark .bg-yellow-50 {
+  background-color: #2a2113;
+}
+.dark .bg-sky-50,
+.dark .bg-blue-50,
+.dark .bg-indigo-50 {
+  background-color: #14203a;
+}
+.dark .bg-violet-50,
+.dark .bg-purple-50 {
+  background-color: #201a33;
+}
+
+/* Notr metin */
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #e5e9f0;
+}
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #aab4c5;
+}
+.dark .text-slate-400,
+.dark .text-slate-300 {
+  color: #8792a6;
+}
+
+/* Tonlu koyu metinleri koyu zeminde acmak (kontrast icin) */
+.dark .text-emerald-800,
+.dark .text-emerald-700,
+.dark .text-brand-800,
+.dark .text-brand-700,
+.dark .text-green-800,
+.dark .text-teal-700 {
+  color: #6ee7b7;
+}
+/* Orta yesil vurgular (link/aktif ikon) koyu zeminde okunakli kalsin */
+.dark .text-brand-600,
+.dark .text-brand-500,
+.dark .text-emerald-600,
+.dark .text-emerald-500 {
+  color: #34d399;
+}
+.dark .text-rose-800,
+.dark .text-rose-700,
+.dark .text-rose-600,
+.dark .text-red-800,
+.dark .text-red-700,
+.dark .text-red-600 {
+  color: #fda4af;
+}
+.dark .text-amber-800,
+.dark .text-amber-700,
+.dark .text-orange-800,
+.dark .text-orange-700,
+.dark .text-yellow-800 {
+  color: #fcd34d;
+}
+.dark .text-sky-900,
+.dark .text-sky-700,
+.dark .text-sky-600,
+.dark .text-blue-800,
+.dark .text-indigo-700,
+.dark .text-indigo-600 {
+  color: #7dd3fc;
+}
+
+/* Kenarliklar */
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-slate-100\/80 {
+  border-color: #26324a;
+}
+.dark .border-emerald-100,
+.dark .border-brand-100,
+.dark .border-teal-100 {
+  border-color: #1e3a2e;
+}
+.dark .border-rose-100,
+.dark .border-red-200 {
+  border-color: #3a2029;
+}
+.dark .border-amber-100,
+.dark .border-amber-200 {
+  border-color: #3a2f14;
+}
+.dark .border-sky-100,
+.dark .border-blue-100,
+.dark .border-indigo-100 {
+  border-color: #1d2f4d;
+}
+
+/* Form alanlari */
+.dark .field-input {
+  background-color: #1b2740;
+  border-color: #2b3a57;
+  color: #e5e9f0;
+}
+.dark .field-input:focus {
+  background-color: #161f31;
+}
+.dark .field-label {
+  color: #aab4c5;
+}
+.dark .btn-ghost {
+  background-color: #1f2c47;
+  color: #dbe2ec;
+}
+.dark input,
+.dark select,
+.dark textarea {
+  color-scheme: dark;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
