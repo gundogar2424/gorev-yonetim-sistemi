@@ -10,8 +10,10 @@ const MOTIVATION_ID = 301 // gunluk motivasyon
 const CHECKIN_ID = 302 // gun ici "nasilsin?" check-in
 const PLAN_ID = 303 // aksam "yarini planla"
 const REPORT_ID = 304 // aksam "raporu gonder" hatirlatmasi
+const SUGAR_FASTING_ID = 305 // sabah aclik sekeri olcum hatirlatmasi
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
+const SUGAR_POSTMEAL_ID = 402 // ogunden 2 saat sonra tok seker olcum hatirlatmasi (tek)
 
 export function isNative(): boolean {
   return Capacitor.isNativePlatform()
@@ -177,6 +179,42 @@ function reportNotification(time: string) {
   }
 }
 
+// Sabah aclik sekeri olcum hatirlatmasi (belirtilen saatte, her gun)
+function sugarFastingNotification(time: string) {
+  const [h, m] = (time || '07:00').split(':').map(Number)
+  return {
+    id: SUGAR_FASTING_ID,
+    channelId: CHANNEL_ID,
+    title: '🩸 Açlık şekeri',
+    body: 'Günaydın! Kahvaltıdan önce açlık kan şekerini ölç ve uygulamaya gir.',
+    schedule: { on: { hour: h || 7, minute: m || 0 }, repeats: true, allowWhileIdle: true },
+    extra: { route: '/takip?tab=saglik' }
+  }
+}
+
+// Bir ogun yenince ~2 saat sonra "tok sekerini olc" bildirimi (tek seferlik).
+// Her yeni ogunde yeniden kurulur (ayni ID en son ogune gore guncellenir).
+export async function scheduleSugarReminder(minutes = 120): Promise<void> {
+  if (!isNative()) return
+  try {
+    await ensureChannel()
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: SUGAR_POSTMEAL_ID,
+          channelId: CHANNEL_ID,
+          title: '🩸 Tok şekeri',
+          body: 'Öğününün üzerinden ~2 saat geçti — tok kan şekerini ölçüp girmek ister misin?',
+          schedule: { at: new Date(Date.now() + minutes * 60_000), allowWhileIdle: true },
+          extra: { route: '/takip?tab=saglik' }
+        }
+      ]
+    })
+  } catch {
+    // yok say
+  }
+}
+
 // Bildirime TIKLANINCA ilgili sayfaya git. Uygulama acilisinda bir kez
 // kaydedilir; bildirim uygulamayi soguk baslatsa bile olay teslim edilir.
 export async function initNotificationNavigation(go: (route: string) => void): Promise<void> {
@@ -243,6 +281,9 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   }
   if (settings.reportReminderEnabled) {
     notifications.push(reportNotification(settings.reportReminderTime || '20:30'))
+  }
+  if (settings.sugarFastingReminderEnabled) {
+    notifications.push(sugarFastingNotification(settings.sugarFastingReminderTime || '07:00'))
   }
 
   if (notifications.length === 0) return

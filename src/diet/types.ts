@@ -252,5 +252,8 @@ export interface DietSettings {
   planReminderTime?: string // Yarin plani bildirimi saati (SS:DD)
   reportReminderEnabled?: boolean // Aksam "raporu gonder" hatirlatmasi
   reportReminderTime?: string // Rapor hatirlatma saati (SS:DD)
+  sugarFastingReminderEnabled?: boolean // Sabah aclik sekeri olcum hatirlatmasi
+  sugarFastingReminderTime?: string // Sabah aclik olcum saati (SS:DD, varsayilan 07:00)
+  sugarPostMealReminderEnabled?: boolean // Ogunden 2 saat sonra tok seker olcum hatirlatmasi
   dietitianNotes?: string // Diyetisyenin talimatlari — yapay zeka HER degerlendirmede dikkate alir
 }

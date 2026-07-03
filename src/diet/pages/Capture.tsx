@@ -7,7 +7,7 @@ import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDa
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
-import { scheduleSatietyReminder } from '../lib/notify'
+import { scheduleSatietyReminder, scheduleSugarReminder } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
 import { buildHealthContext } from '../lib/context'
@@ -265,7 +265,11 @@ export default function Capture() {
     setPhase('saved')
     // Yedi ise ~30 dk sonra tokluk hatirlatmasi (APK'da bildirim).
     // Gecmise islenen ogunde hatirlatma anlamsiz — yalnizca "su an" kayitlarda.
-    if (decision === 'ate' && Date.now() - createdAt < 60_000) void scheduleSatietyReminder(30)
+    if (decision === 'ate' && Date.now() - createdAt < 60_000) {
+      void scheduleSatietyReminder(30)
+      // Ogunden 2 saat sonra tok seker olcum hatirlatmasi (acikse)
+      if (settings?.sugarPostMealReminderEnabled) void scheduleSugarReminder(120)
+    }
   }
 
   function reset() {

@@ -198,6 +198,52 @@ export default function Reminders() {
           </div>
         </section>
 
+        {/* Seker olcum hatirlatmalari */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🩸 Şeker ölçüm hatırlatması</h3>
+
+          {/* Sabah aclik */}
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">Sabah açlık şekeri</p>
+                <p className="text-xs text-slate-500">Kalkınca, kahvaltıdan önce açlık şekerini ölçmen için hatırlatır.</p>
+              </div>
+              <Switch
+                on={!!settings?.sugarFastingReminderEnabled}
+                onClick={() => toggleFlag({ sugarFastingReminderEnabled: !settings?.sugarFastingReminderEnabled }, !settings?.sugarFastingReminderEnabled)}
+              />
+            </div>
+            {settings?.sugarFastingReminderEnabled && (
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span>🕖 Saat:</span>
+                <input
+                  type="time"
+                  className="field-input w-28"
+                  value={settings?.sugarFastingReminderTime ?? '07:00'}
+                  onChange={(e) => persist({ sugarFastingReminderTime: e.target.value })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Ogunden 2 saat sonra tok */}
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">Öğünden 2 saat sonra (tok)</p>
+                <p className="text-xs text-slate-500">
+                  Her öğün kaydından ~2 saat sonra tok şekerini ölçmen için hatırlatır. (Yediğini işaretlediğinde otomatik kurulur.)
+                </p>
+              </div>
+              <Switch
+                on={!!settings?.sugarPostMealReminderEnabled}
+                onClick={() => toggleFlag({ sugarPostMealReminderEnabled: !settings?.sugarPostMealReminderEnabled }, !settings?.sugarPostMealReminderEnabled)}
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Aksam "yarini planla" bildirimi */}
         <section className="space-y-2">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">📅 Yarını planla</h3>
