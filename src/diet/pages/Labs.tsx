@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { listLabs, addLab, updateLab, deleteLab, readDietSettings, listVitals, listMeasurements } from '../db'
@@ -124,6 +125,17 @@ export default function Labs() {
       <DietHeader title="Tahliller" subtitle="Foto/PDF yükle, hafızada tutsun" />
 
       <div className="p-3 space-y-4">
+        <Link
+          to="/checkup"
+          className="card p-3 flex items-center gap-3 bg-gradient-to-br from-teal-50 to-emerald-50 border-emerald-100 active:scale-[0.99] transition"
+        >
+          <span className="text-2xl">🩺</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-slate-800">Sağlık Check-up</p>
+            <p className="text-xs text-slate-500">Tahlillerini şeker/tansiyon ve kilonla birlikte hekim gibi yorumlat, soru sor.</p>
+          </div>
+          <span className="text-emerald-600 text-xl">›</span>
+        </Link>
         {msg && <p className="card p-3 bg-emerald-50 text-emerald-800 text-sm border-emerald-100">{msg}</p>}
         {!hasKey && (
           <div className="card p-3 bg-amber-50 border-amber-200 text-amber-800 text-sm">

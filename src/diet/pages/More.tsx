@@ -11,6 +11,7 @@ const links = [
   { to: '/egzersiz', icon: '🏃', title: 'Egzersiz', desc: 'Yaptığın egzersizi yaz, puan ve rozet kazan' },
   { to: '/hatirlaticilar', icon: '🔔', title: 'Hatırlatıcılar', desc: 'Öğün saatlerinde bildirim (APK)' },
   { to: '/tahliller', icon: '📄', title: 'Tahliller', desc: 'Foto/PDF yükle, hafızada tut, yorumlat' },
+  { to: '/checkup', icon: '🩺', title: 'Sağlık Check-up', desc: 'Tüm verilerini hekim gibi yorumlar, sağlık sorularını yanıtlar' },
   { to: '/alisveris', icon: '🛒', title: 'Alışveriş Listesi', desc: 'Sağlıklı alışveriş listeni oluştur' }
 ]
 

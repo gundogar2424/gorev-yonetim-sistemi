@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import MiniChart from '../components/MiniChart'
@@ -409,6 +409,18 @@ function VitalPanel({ range }: { range: number }) {
 
   return (
     <div className="space-y-4">
+      <Link
+        to="/checkup"
+        className="card p-3 flex items-center gap-3 bg-gradient-to-br from-teal-50 to-emerald-50 border-emerald-100 active:scale-[0.99] transition"
+      >
+        <span className="text-2xl">🩺</span>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-slate-800">Sağlık Check-up</p>
+          <p className="text-xs text-slate-500">Şeker, tansiyon, tahlil ve kilonu bir arada hekim gibi yorumlasın; sağlık sorularını sor.</p>
+        </div>
+        <span className="text-emerald-600 text-xl">›</span>
+      </Link>
+
       <section className="card p-3 space-y-2">
         <h3 className="text-xs font-bold text-amber-600 uppercase tracking-wide">🩸 Açlık Şekeri (mg/dL)</h3>
         {sugarAcPoints.length ? (

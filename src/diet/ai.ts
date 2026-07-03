@@ -1109,6 +1109,68 @@ Kişinin sağlık verisi verildiyse (ilaç/rahatsızlık/eğilim) onu da dikkate
   }
 }
 
+// SAGLIK CHECK-UP sohbeti: kullanicinin TUM saglik verilerini (tahliller,
+// seker/tansiyon, kilo/olcu egilimi, ilac, rahatsizlik) bir arada, bir hekim
+// check-up yapiyormus gibi degerlendirir; kullanici serbestce soru sorabilir.
+export async function healthChat(opts: {
+  apiKey: string
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  medications?: string
+  conditions?: string
+  body?: string // boy/yas/cinsiyet/kilo
+  labsText?: string // tahlillerin tam metni (baslik+tarih+deger/yorum)
+  vitalsText?: string // son seker/tansiyon dokumu
+  health?: string // ortak saglik baglami (egilimler + ozet)
+  dietitianNotes?: string
+}): Promise<string> {
+  const { apiKey, history, model = DEFAULT_MODEL, userName, goal, medications, conditions, body, labsText, vitalsText, health, dietitianNotes } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!history.length) throw new Error('Bir şey yaz.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (body) ctx.push(body)
+  if (goal) ctx.push(`Diyet hedefi: ${goal}.`)
+  if (conditions?.trim()) ctx.push(`Kronik rahatsızlıklar: ${conditions.trim()}.`)
+  if (medications?.trim()) ctx.push(`Kullandığı ilaçlar: ${medications.trim()}.`)
+
+  const system = `Sen deneyimli bir HEKİM/KLİNİK UZMAN gibi konuşan bir sağlık asistanısın. Kullanıcının ELİNDEKİ TÜM sağlık verilerini (tahliller, kan şekeri, tansiyon, kilo/ölçü eğilimi, ilaçlar, rahatsızlıklar, diyet uyumu) BİR ARADA, sanki ona bir CHECK-UP yapıyormuşsun gibi bütünsel değerlendir.
+
+Nasıl konuşursun:
+- Değerleri TEK TEK değil, BİRBİRİYLE İLİŞKİLİ oku. Bağlantı kur: örn. "CRP'n yüksek + kan şekerin yüksek + kilo fazlan var → bunlar düşük dereceli iltihap/insülin direnci tablosuna işaret edebilir."
+- Neyin iyi, neyin sınırda, neyin dikkat gerektirdiğini SADE dille söyle; zamanla nasıl değiştiğine (eğilim) değin.
+- İlaç-besin/etkileşim ve rahatsızlıklarla bağlantılı uyarılar ver.
+- Somut, uygulanabilir öneriler sun (beslenme, yaşam tarzı).
+- Kullanıcı serbestçe soru sorarsa (örn. "CRP'm neden yüksek?") o soruya odaklı, net cevap ver.
+- Emin olmadığında dürüst ol; eldeki veri azsa "şunu da ölçtürürsen daha net konuşurum" de.
+ÇOK ÖNEMLİ: Sen TEŞHİS KOYMAZSIN ve tedavi/ilaç değiştirmezsin. "Şu bulgular şuna işaret EDEBİLİR, kesin değerlendirme için doktoruna/eczacına danış" çerçevesinde konuş. Riskli/acil bir değer varsa açıkça vurgula ve doktora başvurmasını söyle. Türkçe, güven veren, anlaşılır ve gereksiz uzun olmayan cevaplar ver. ${ctx.join(' ')}${dietitianText(dietitianNotes)}
+
+TAHLİLLER:
+${labsText?.trim() || '(kayıtlı tahlil yok — kullanıcı Tahliller bölümünden ekleyebilir)'}
+
+SON ŞEKER / TANSİYON:
+${vitalsText?.trim() || '(kayıt yok)'}${healthText(health)}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1200,
+      system,
+      messages: history.map((m) => ({ role: m.role, content: m.text }))
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Cevap üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Haftalik koc ozeti: son N gunluk verilerden kisa, motive edici bir
 // degerlendirme yazar (kucuk, tek seferlik token). data = ozet metni.
 export async function weeklyCoachSummary(opts: {
