@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -1104,31 +1104,68 @@ function MoodCheckIn() {
 // Gunluk su takibi (ml). Pratik +ml butonlari; hedef cubugu.
 function WaterCard({ goalMl }: { goalMl: number }) {
   const today = todayStr()
-  const ml = useLiveQuery(() => getWaterMlDay(today), [today], 0) ?? 0
+  const rows = useLiveQuery(() => listWater(), [], [])
+  const add = (d: number) => void addWaterMl(today, d)
+
+  // Son 7 gunun ml'i (Samsung tarzi mini cubuk + gun seridi)
+  const mlOf = (d: string) => {
+    const r = (rows ?? []).find((x) => x.dateStr === d)
+    return r ? (r.ml != null ? r.ml : (r.glasses || 0) * 200) : 0
+  }
+  const series = Array.from({ length: 7 }, (_, i) => {
+    const d = todayStr(new Date(Date.now() - (6 - i) * 86_400_000))
+    return { d, ml: mlOf(d), day: new Date(d + 'T00:00:00').getDate() }
+  })
+  const ml = mlOf(today)
   const pct = goalMl > 0 ? Math.min(100, Math.round((ml / goalMl) * 100)) : 0
   const reached = ml >= goalMl
-  const add = (d: number) => void addWaterMl(today, d)
+  const maxMl = Math.max(goalMl, ...series.map((s) => s.ml), 1)
 
   return (
     <div className="card p-4 bg-sky-50 border-sky-100">
-      <div className="flex items-end justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        {/* Buyuk rakam */}
+        <div className="min-w-0">
           <span className="section-title text-sky-700">💧 Su</span>
-          <p className="text-3xl font-extrabold text-sky-700 mt-0.5">
-            {ml}
-            <span className="text-base font-bold text-sky-400"> ml</span>
-            <span className="text-sm font-semibold text-slate-400"> / {goalMl}</span>
+          <p className="mt-1 leading-none">
+            <span className="text-5xl font-extrabold text-sky-700">{ml}</span>
+            <span className="text-lg font-bold text-sky-400"> ml</span>
+          </p>
+          <p className="text-xs text-slate-400 mt-1.5">
+            / {goalMl} ml hedef{reached ? ' · tamam 🎉' : ''}
           </p>
         </div>
-        {ml > 0 && (
-          <button onClick={() => add(-200)} className="text-xs text-slate-400 underline pb-1">
-            geri al
-          </button>
-        )}
+        {/* 7 gunluk mini cubuk grafik + gun seridi */}
+        <div className="flex-shrink-0">
+          <div className="flex items-end gap-1.5 h-14">
+            {series.map((s, i) => {
+              const h = Math.max(5, Math.round((s.ml / maxMl) * 56))
+              const isToday = i === 6
+              return (
+                <div
+                  key={s.d}
+                  className={`w-2.5 rounded-full transition-all ${isToday ? 'bg-sky-500' : s.ml > 0 ? 'bg-sky-300' : 'bg-sky-200 dark:bg-white/10'}`}
+                  style={{ height: `${h}px` }}
+                />
+              )
+            })}
+          </div>
+          <div className="flex gap-1.5 mt-1.5">
+            {series.map((s, i) => (
+              <span key={s.d} className={`w-2.5 text-center text-[9px] ${i === 6 ? 'text-sky-600 font-bold' : 'text-slate-400'}`}>
+                {s.day}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="h-2.5 w-full bg-sky-100 rounded-full overflow-hidden mt-2">
+
+      {/* Ilerleme cubugu */}
+      <div className="h-2 w-full bg-sky-100 dark:bg-white/10 rounded-full overflow-hidden mt-3">
         <div className={`h-full rounded-full transition-all ${reached ? 'bg-emerald-500' : 'bg-sky-500'}`} style={{ width: `${pct}%` }} />
       </div>
+
+      {/* Hizli ekleme */}
       <div className="grid grid-cols-3 gap-2 mt-3">
         <button onClick={() => add(200)} className="btn bg-white text-sky-700 border border-sky-200 py-2.5 flex-col gap-0 leading-tight">
           <span className="text-base">🥛 +200</span>
@@ -1143,7 +1180,11 @@ function WaterCard({ goalMl }: { goalMl: number }) {
           <span className="text-[10px] text-slate-400">büyük</span>
         </button>
       </div>
-      {reached && <p className="text-xs font-semibold text-emerald-700 mt-2">Günlük su hedefine ulaştın! 💧🎉</p>}
+      {ml > 0 && (
+        <button onClick={() => add(-200)} className="w-full text-center text-xs text-slate-400 underline mt-2">
+          geri al (−200 ml)
+        </button>
+      )}
     </div>
   )
 }
