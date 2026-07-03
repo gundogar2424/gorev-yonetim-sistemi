@@ -15,14 +15,15 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since30 = todayStr(new Date(Date.now() - 29 * 86_400_000))
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
     dietDb.exercises.toArray(),
     dietDb.water.where('dateStr').equals(today).first(),
     dietDb.checkins.where('dateStr').equals(today).sortBy('createdAt'),
-    dietDb.cravings.toArray()
+    dietDb.cravings.toArray(),
+    dietDb.labs.orderBy('createdAt').toArray()
   ])
 
   const L: string[] = []
@@ -121,6 +122,17 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const hrs = cr.map((c) => `${new Date(c.createdAt).getHours()}:00`)
     const res = cr.filter((c) => c.outcome === 'resisted').length
     L.push(`Son 14 günde ${cr.length} kriz anı (saatler: ${hrs.join(', ')}); ${res}/${cr.length} direnç. Kriz saatleri yaklaşırken önden uyarabilirsin.`)
+  }
+
+  // Son tahlil(ler): en yeni 1-2 kaydin kisa ozeti (kompakt tutulur). Boylece
+  // koc/yemek/seker analizi de tahlil sonuclarini (HbA1c, kolesterol vb.) bilir.
+  if (labs.length) {
+    const recent = labs.slice(-2)
+    const bits = recent.map((lb) => {
+      const body = (lb.analysis?.trim() || lb.text?.trim() || '').replace(/\s+/g, ' ').slice(0, 500)
+      return `[${lb.dateStr}] ${lb.title || 'Tahlil'}: ${body}`
+    })
+    L.push(`Son tahlil(ler) (özet; ilaç/rahatsızlıkla birlikte değerlendir):\n${bits.join('\n')}`)
   }
 
   return L.join('\n')
