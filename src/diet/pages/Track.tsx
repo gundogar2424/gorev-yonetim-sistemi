@@ -389,8 +389,13 @@ function VitalPanel({ range }: { range: number }) {
   const all = useLiveQuery(() => listVitals(), [], [])
   const rows = (all ?? []).filter((v) => withinRange(v.dateStr, range))
 
-  const sugarPoints = rows
-    .filter((v) => v.kind === 'seker' && typeof v.sugar === 'number')
+  // Aclik ve tok sekerini AYRI grafiklerde goster (karisinca yaniltici oluyor)
+  const isTok = (v: { sugarContext?: string }) => (v.sugarContext ?? '').toLowerCase().startsWith('tok')
+  const sugarAcPoints = rows
+    .filter((v) => v.kind === 'seker' && typeof v.sugar === 'number' && !isTok(v))
+    .map((v) => ({ label: shortDate(v.dateStr), value: v.sugar as number }))
+  const sugarTokPoints = rows
+    .filter((v) => v.kind === 'seker' && typeof v.sugar === 'number' && isTok(v))
     .map((v) => ({ label: shortDate(v.dateStr), value: v.sugar as number }))
   const sysPoints = rows
     .filter((v) => v.kind === 'tansiyon' && typeof v.systolic === 'number')
@@ -405,8 +410,20 @@ function VitalPanel({ range }: { range: number }) {
   return (
     <div className="space-y-4">
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-rose-500 uppercase tracking-wide">🩸 Kan Şekeri (mg/dL)</h3>
-        <MiniChart points={sugarPoints} color="#ef4444" unit="mg/dL" />
+        <h3 className="text-xs font-bold text-amber-600 uppercase tracking-wide">🩸 Açlık Şekeri (mg/dL)</h3>
+        {sugarAcPoints.length ? (
+          <MiniChart points={sugarAcPoints} color="#d97706" unit="mg/dL" />
+        ) : (
+          <p className="text-xs text-slate-400">Açlık ölçümü yok.</p>
+        )}
+      </section>
+      <section className="card p-3 space-y-2">
+        <h3 className="text-xs font-bold text-sky-600 uppercase tracking-wide">🩸 Tok Şekeri · yemek sonrası (mg/dL)</h3>
+        {sugarTokPoints.length ? (
+          <MiniChart points={sugarTokPoints} color="#0284c7" unit="mg/dL" />
+        ) : (
+          <p className="text-xs text-slate-400">Tok ölçümü yok.</p>
+        )}
       </section>
       <section className="card p-3 space-y-2">
         <h3 className="text-xs font-bold text-sky-600 uppercase tracking-wide">💓 Büyük Tansiyon (sistolik)</h3>
@@ -432,10 +449,23 @@ function VitalPanel({ range }: { range: number }) {
               <p className="font-semibold text-slate-700">
                 {v.kind === 'seker' ? '🩸 Şeker' : '💓 Tansiyon'} · {v.dateStr} {v.time}
               </p>
-              <p className="text-slate-500 text-xs">
-                {v.kind === 'seker'
-                  ? `${v.sugar} mg/dL${v.sugarContext ? ` (${v.sugarContext})` : ''}`
-                  : `${v.systolic}/${v.diastolic}${v.pulse ? ` · nabız ${v.pulse}` : ''}`}
+              <p className="text-slate-600 text-sm flex items-center gap-1.5 mt-0.5">
+                {v.kind === 'seker' ? (
+                  <>
+                    <span className="font-bold">{v.sugar} mg/dL</span>
+                    {v.sugarContext && (
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          isTok(v) ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {isTok(v) ? '🍽️ Tok' : '🕐 Açlık'}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span>{`${v.systolic}/${v.diastolic}${v.pulse ? ` · nabız ${v.pulse}` : ''}`}</span>
+                )}
               </p>
             </div>
             <button onClick={() => deleteVital(v.id!)} className="text-slate-300 hover:text-rose-500 px-1">
