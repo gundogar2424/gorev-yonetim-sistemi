@@ -13,7 +13,7 @@ import {
   deleteVital,
   readDietSettings
 } from '../db'
-import { analyzeMealSugar } from '../ai'
+import { analyzeMealSugar, quickMealSugarNote } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
 import { buildMeasurementsReport } from '../lib/report'
@@ -487,6 +487,41 @@ function VitalForm() {
   const [sys, setSys] = useState('')
   const [dia, setDia] = useState('')
   const [pulse, setPulse] = useState('')
+  const [note, setNote] = useState('') // anlik tok-seker notu
+  const [noteBusy, setNoteBusy] = useState(false)
+
+  // Tok seker girildiginde, hemen oncesindeki ogunle iliskisini aninda yorumla
+  async function instantNote(sugarVal: number, dateStr: string, timeStr: string, ctx: string) {
+    setNote('')
+    const settings = await readDietSettings()
+    if (!settings?.apiKey) return
+    const t = new Date(dateStr + 'T' + (timeStr || '12:00') + ':00').getTime()
+    const entries = await dietDb.entries.toArray()
+    const meals = entries
+      .filter((e) => e.decision === 'ate' && e.dateStr === dateStr && t - e.createdAt > 10 * 60_000 && t - e.createdAt < 3.5 * 3_600_000)
+      .sort((a, b) => a.createdAt - b.createdAt)
+    if (!meals.length) return // eslesecek ogun yoksa not verme
+    const mealText = meals.map((m) => `${m.foodName} (~${m.estimatedCalories} kcal)`).join(' + ')
+    const minutesAfter = Math.round((t - meals[meals.length - 1].createdAt) / 60_000)
+    setNoteBusy(true)
+    try {
+      const res = await quickMealSugarNote({
+        apiKey: settings.apiKey,
+        sugar: sugarVal,
+        context: ctx,
+        time: timeStr,
+        meal: mealText,
+        minutesAfter,
+        model: settings.model,
+        health: await buildHealthContext(settings)
+      })
+      setNote(res)
+    } catch {
+      /* not verilemezse sessiz gec */
+    } finally {
+      setNoteBusy(false)
+    }
+  }
 
   async function save() {
     const base = { kind, dateStr: date, time }
@@ -495,8 +530,11 @@ function VitalForm() {
         alert('Şeker değeri gir.')
         return
       }
-      await addVital({ ...base, sugar: Number(sugar.replace(',', '.')), sugarContext })
+      const sugarVal = Number(sugar.replace(',', '.'))
+      await addVital({ ...base, sugar: sugarVal, sugarContext })
       setSugar('')
+      // Tok olcumde ogunle iliskisini aninda yorumla (aclikta ogun oncesi olduğundan atla)
+      if (sugarContext.toLowerCase().startsWith('tok')) void instantNote(sugarVal, date, time, sugarContext)
     } else {
       if (!sys || !dia) {
         alert('Büyük ve küçük tansiyonu gir.')
@@ -582,6 +620,15 @@ function VitalForm() {
       <button onClick={save} className="btn-primary w-full">
         Kaydet
       </button>
+
+      {/* Anlik tok-seker notu (yediğin öğünle ilişkisi) */}
+      {noteBusy && <p className="text-xs text-rose-600 font-semibold">🩸 Bu ölçümü son öğününle karşılaştırıyorum…</p>}
+      {note && (
+        <div className="rounded-xl bg-rose-50 border border-rose-100 p-3">
+          <p className="text-[11px] font-bold text-rose-700 uppercase tracking-wide mb-1">🩸 Öğün–Şeker Notu</p>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap leading-snug">{note}</p>
+        </div>
+      )}
     </section>
   )
 }

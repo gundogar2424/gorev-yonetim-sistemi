@@ -1065,6 +1065,50 @@ Kısa başlıklar + kısa maddeler kullan, okunaklı yaz. ÇOK ÖNEMLİ: Bu tıb
   }
 }
 
+// ANLIK tok-seker notu: kullanici bir TOK seker olcumu girdiginde, hemen
+// oncesindeki ogunle iliskisini KISA (1-2 cumle) yorumlar. 3 olcum birikmesini
+// beklemeden aninda geri bildirim. Kucuk token.
+export async function quickMealSugarNote(opts: {
+  apiKey: string
+  sugar: number
+  context?: string // aç / tok
+  time: string
+  meal: string // "yemek adı (~kcal)" (birden fazla olabilir)
+  minutesAfter?: number // ogunden kac dk sonra olculdu
+  model?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, sugar, context, time, meal, minutesAfter, model = DEFAULT_MODEL, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const after = minutesAfter ? ` (öğünden ~${minutesAfter} dk sonra)` : ''
+  const system = `Sen bir klinik diyetisyen/sağlık asistanısın. Kullanıcı SON yediği öğünden sonra bir KAN ŞEKERİ ölçtü. Görevin, bu ÖLÇÜMÜN o ÖĞÜNLE ilişkisini KISA (en fazla 2 cümle) ve KİŞİYE ÖZEL yorumlamak:
+- Bu değer bu öğün için iyi mi, yüksek mi? Öğündeki hangi bileşen (nişasta/şeker/porsiyon) etkilemiş olabilir?
+- Somut, uygulanabilir tek bir mini öneri ver (örn. "bir dahaki sefere pilavı yarıya indir / yanına protein ekle").
+Kişinin sağlık verisi verildiyse (ilaç/rahatsızlık/eğilim) onu da dikkate al. ÇOK ÖNEMLİ: Tıbbi teşhis değildir; endişe verecek bir durumda doktora danışmasını hatırlat. Türkçe, sıcak ve kısa yaz.${healthText(health)}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 300,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: `Saat ${time}'te kan şekerim ${sugar} mg/dL${context ? ` (${context})` : ''} çıktı${after}. Öncesinde şunları yemiştim: ${meal}. Bu öğünle ilişkisini kısaca yorumla.`
+        }
+      ]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Not üretilemedi.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Haftalik koc ozeti: son N gunluk verilerden kisa, motive edici bir
 // degerlendirme yazar (kucuk, tek seferlik token). data = ozet metni.
 export async function weeklyCoachSummary(opts: {
