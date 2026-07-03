@@ -632,6 +632,153 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
   return out
 }
 
+// ---- TEK ÖĞÜN görseli: sadece bir yemeğin fotoğrafı + detayları ----
+// Diyetisyene o öğünü tek tek göndermek için. Token harcamaz.
+export async function buildMealImage(e: DietEntry, userName?: string): Promise<Blob> {
+  const img = e.photo ? await loadImage(e.photo) : null
+
+  const mctx = document.createElement('canvas').getContext('2d')!
+  const contentW = W - 2 * PAD
+  const innerW = contentW - 48 // beyaz kart ic genisligi (2*24 padding)
+
+  // Yazi bloklarini onceden olc (satirlara bol)
+  mctx.font = 'bold 34px sans-serif'
+  const nameLines = wrapText(mctx, e.foodName || 'Öğün', innerW)
+
+  // Etiketli metin bloklari (verdict / uyum notu / puan nedeni / alternatif)
+  const blocks: { label: string; lines: string[] }[] = []
+  const addBlock = (label: string, text?: string) => {
+    if (!text || !text.trim()) return
+    mctx.font = '21px sans-serif'
+    blocks.push({ label, lines: wrapText(mctx, text.trim(), innerW - 8) })
+  }
+  addBlock('📝 Değerlendirme', e.verdict)
+  if (e.compliancePercent >= 0) addBlock('📋 Diyet listesine uyum', e.complianceNote)
+  addBlock('⭐ Puan notu', e.scoreReason)
+  addBlock('🥗 Daha sağlıklı alternatif', e.healthierAlternative)
+
+  const BANNER = 88
+  const PHOTO_H = img ? 420 : 180
+  const NAME_LH = 42
+  const CHIP_ROW = 40
+
+  // Bilgi kart yuksekligi
+  let infoH = 24 // ust pad
+  infoH += nameLines.length * NAME_LH
+  infoH += 34 // saat · kalori satiri
+  infoH += CHIP_ROW // rozetler
+  for (const b of blocks) infoH += 30 + b.lines.length * 27 + 10
+  infoH += 16 // alt pad
+
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = PAD + BANNER + 20 + PHOTO_H + 18 + infoH + 46
+  const ctx = canvas.getContext('2d')!
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#f6f8fa'
+  ctx.fillRect(0, 0, W, canvas.height)
+
+  // Banner
+  let y = PAD
+  const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
+  grad.addColorStop(0, '#059669')
+  grad.addColorStop(1, '#34d399')
+  roundRectPath(ctx, PAD, y, contentW, BANNER, 22)
+  ctx.fillStyle = grad
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 30px sans-serif'
+  const mealTitle = (e.mealType ? mealLabel(e.mealType) : 'Öğün')
+  ctx.fillText(`🍽️ ${mealTitle}`, PAD + 26, y + 42)
+  const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  const dateNice = new Date(e.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  })
+  ctx.font = '18px sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.fillText(`${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`, PAD + 26, y + 70)
+  y += BANNER + 20
+
+  // Fotograf (genis, kirparak sigdir)
+  if (img) {
+    ctx.save()
+    roundRectPath(ctx, PAD, y, contentW, PHOTO_H, 20)
+    ctx.clip()
+    const ratio = Math.max(contentW / img.width, PHOTO_H / img.height)
+    const iw = img.width * ratio
+    const ih = img.height * ratio
+    ctx.drawImage(img, PAD + (contentW - iw) / 2, y + (PHOTO_H - ih) / 2, iw, ih)
+    ctx.restore()
+  } else {
+    fillRound(ctx, PAD, y, contentW, PHOTO_H, 20, '#eef2f6')
+    ctx.fillStyle = '#cbd5e1'
+    ctx.font = '72px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('🍽️', W / 2, y + PHOTO_H / 2 + 24)
+    ctx.textAlign = 'left'
+  }
+  y += PHOTO_H + 18
+
+  // Bilgi karti
+  fillRound(ctx, PAD, y, contentW, infoH, 20, '#ffffff')
+  const cx = PAD + 24
+  let cy = y + 24
+  // Ad
+  ctx.fillStyle = '#0f172a'
+  ctx.font = 'bold 34px sans-serif'
+  for (const ln of nameLines) {
+    cy += NAME_LH - 8
+    ctx.fillText(ln, cx, cy)
+    cy += 8
+  }
+  // Saat · kalori
+  ctx.fillStyle = '#64748b'
+  ctx.font = '20px sans-serif'
+  cy += 26
+  ctx.fillText(`${t}  ·  ~${e.estimatedCalories} kcal`, cx, cy)
+  cy += 20
+  // Rozetler
+  let chipX = cx
+  const dec = DEC_STYLE[e.decision] ?? DEC_STYLE.none
+  chipX += drawChip(ctx, chipX, cy, dec.t, dec.bg, dec.fg) + 8
+  if (e.compliancePercent >= 0) {
+    const pct = e.compliancePercent
+    const bg = pct >= 80 ? '#d1fae5' : pct >= 50 ? '#fef3c7' : '#fee2e2'
+    const fg = pct >= 80 ? '#065f46' : pct >= 50 ? '#92400e' : '#991b1b'
+    chipX += drawChip(ctx, chipX, cy, `✓ Uyum %${pct}`, bg, fg) + 8
+  }
+  if (e.satiety) chipX += drawChip(ctx, chipX, cy, `🍽️ Tokluk ${e.satiety}/10`, '#e0f2fe', '#075985') + 8
+  if (e.dietScore) drawChip(ctx, chipX, cy, `⭐ ${e.dietScore}/10`, '#fef9c3', '#854d0e')
+  cy += CHIP_ROW - 12
+
+  // Etiketli bloklar
+  for (const b of blocks) {
+    cy += 30
+    ctx.fillStyle = '#0f766e'
+    ctx.font = 'bold 18px sans-serif'
+    ctx.fillText(b.label, cx, cy)
+    ctx.fillStyle = '#334155'
+    ctx.font = '21px sans-serif'
+    for (const ln of b.lines) {
+      cy += 27
+      ctx.fillText(ln, cx, cy)
+    }
+    cy += 10
+  }
+
+  // Alt bilgi
+  ctx.fillStyle = '#94a3b8'
+  ctx.font = '18px sans-serif'
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 22)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
+  })
+}
+
 // ---- Ölçüm GÖRSEL raporu (kilo grafiği + ölçü değişimi + şeker/tansiyon) ----
 const MEASURE_FIELDS_IMG: { key: 'weight' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string; color: string }[] = [
   { key: 'weight', label: 'Kilo', unit: 'kg', color: '#059669' },

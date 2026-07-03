@@ -3,6 +3,7 @@
 import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
 import { mealLabel, MEAL_OPTIONS } from './meals'
+import type { DietEntry } from '../types'
 
 const TR_DECISION: Record<string, string> = {
   resisted: 'vazgeçti ✅',
@@ -146,6 +147,31 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     lines.push('')
   }
 
+  lines.push(SEP)
+  lines.push('Diyet Koçu uygulamasından gönderildi')
+  return lines.join('\n')
+}
+
+// ---- TEK ÖĞÜN metni: bir yemeği tek başına diyetisyene göndermek için ----
+export function buildMealText(e: DietEntry, userName?: string): string {
+  const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  const dateNice = new Date(e.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+  const lines: string[] = []
+  lines.push(`🍽️ ${e.mealType ? mealLabel(e.mealType) : 'ÖĞÜN'}`)
+  lines.push(`📅 ${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`)
+  lines.push(SEP)
+  lines.push(`${e.foodName} — ~${e.estimatedCalories} kcal`)
+  lines.push(`Karar: ${TR_DECISION[e.decision] ?? ''}`)
+  if (e.compliancePercent >= 0) lines.push(`Diyet listesine uyum: %${e.compliancePercent}${e.complianceNote ? ` — ${e.complianceNote}` : ''}`)
+  if (e.satiety) lines.push(`Tokluk: ${e.satiety}/10`)
+  if (e.verdict?.trim()) lines.push(`Değerlendirme: ${e.verdict.trim()}`)
+  if (e.scoreReason?.trim()) lines.push(`Puan notu: ${e.scoreReason.trim()}`)
+  if (e.healthierAlternative?.trim()) lines.push(`Daha sağlıklı alternatif: ${e.healthierAlternative.trim()}`)
   lines.push(SEP)
   lines.push('Diyet Koçu uygulamasından gönderildi')
   return lines.join('\n')

@@ -4,8 +4,8 @@ import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { mealEmoji, mealLabel } from '../lib/meals'
-import { buildDailyReport, whatsappLink } from '../lib/report'
-import { buildDailyImage, buildDailyImageSet } from '../lib/reportImage'
+import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
+import { buildDailyImage, buildDailyImageSet, buildMealImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
 import type { DietEntry } from '../types'
 
@@ -164,8 +164,9 @@ export default function History() {
                       )}
                     </div>
                     {e.decision === 'ate' && <MealFeedback e={e} />}
+                    <MealShare e={e} />
                   </div>
-                  <button onClick={() => remove(e.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1">
+                  <button onClick={() => remove(e.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1 self-start">
                     🗑️
                   </button>
                 </div>
@@ -199,6 +200,77 @@ function MealFeedback({ e }: { e: DietEntry }) {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+// Tek bir öğünü diyetisyene tek tek gönder (görsel veya yazılı)
+function MealShare({ e }: { e: DietEntry }) {
+  const [open, setOpen] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  function flash(m: string) {
+    setMsg(m)
+    setTimeout(() => setMsg(''), 3500)
+  }
+
+  async function sendImage() {
+    setBusy(true)
+    setMsg('Görsel hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildMealImage(e, settings.userName)
+      const res = await shareImageSmart(blob, `ogun-${e.dateStr}-${e.id}.png`)
+      if (res === 'shared') flash('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') flash('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else flash('Görsel gönderilemedi.')
+    } catch {
+      flash('Görsel oluşturulamadı.')
+    } finally {
+      setBusy(false)
+      setOpen(false)
+    }
+  }
+
+  async function sendText() {
+    setBusy(true)
+    try {
+      const settings = await readDietSettings()
+      const res = await shareTextSmart(buildMealText(e, settings.userName))
+      if (res === 'shared') flash('Paylaşım menüsü açıldı.')
+      else if (res === 'copied') flash('Panoya kopyalandı.')
+      else if (res === 'cancelled') setMsg('')
+      else flash('Gönderilemedi.')
+    } catch {
+      flash('Gönderilemedi.')
+    } finally {
+      setBusy(false)
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="mt-1.5">
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-2.5 py-1">
+          📤 Diyetisyene gönder
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 rounded-xl p-1.5">
+          <button onClick={sendImage} disabled={busy} className="text-xs font-bold bg-brand-600 text-white rounded-full px-2.5 py-1 disabled:opacity-60">
+            📸 Görsel
+          </button>
+          <button onClick={sendText} disabled={busy} className="text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-full px-2.5 py-1 disabled:opacity-60">
+            ✍️ Yazılı
+          </button>
+          <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
+            kapat
+          </button>
+        </div>
+      )}
+      {msg && <p className="text-[11px] text-brand-700 font-semibold mt-1">{msg}</p>}
     </div>
   )
 }
