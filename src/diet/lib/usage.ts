@@ -15,9 +15,20 @@ export interface UsageData {
   days: Record<string, UsageBucket> // 'YYYY-MM-DD' -> bucket
 }
 
-// Opus fiyatiyla KABA maliyet tahmini (USD). Model degisirse yaklasik olur.
-const PRICE_IN_PER_M = 15 // $/1M input token (Opus)
-const PRICE_OUT_PER_M = 75 // $/1M output token (Opus)
+// Model ailesine gore KABA fiyat ($/1M token). Net fatura icin Console.
+const PRICING: Record<'opus' | 'sonnet' | 'haiku', { in: number; out: number }> = {
+  opus: { in: 15, out: 75 },
+  sonnet: { in: 3, out: 15 },
+  haiku: { in: 1, out: 5 }
+}
+
+// Model adindan fiyat ailesini sec (bilinmiyorsa Opus — ust sinir)
+function priceFor(model?: string): { in: number; out: number } {
+  const m = (model || '').toLowerCase()
+  if (m.includes('haiku')) return PRICING.haiku
+  if (m.includes('sonnet')) return PRICING.sonnet
+  return PRICING.opus
+}
 
 function todayKey(): string {
   return new Date().toLocaleDateString('en-CA') // YYYY-MM-DD (yerel)
@@ -74,9 +85,10 @@ export function bucketTokens(b: UsageBucket): number {
   return b.in + b.out
 }
 
-// Kaba maliyet tahmini (USD) — Opus fiyatiyla; net fatura icin Console'a bak.
-export function estimateCostUsd(b: UsageBucket): number {
-  return (b.in / 1_000_000) * PRICE_IN_PER_M + (b.out / 1_000_000) * PRICE_OUT_PER_M
+// Kaba maliyet tahmini (USD) — secili modelin fiyatiyla; net fatura Console.
+export function estimateCostUsd(b: UsageBucket, model?: string): number {
+  const p = priceFor(model)
+  return (b.in / 1_000_000) * p.in + (b.out / 1_000_000) * p.out
 }
 
 export function todayUsage(): UsageBucket {

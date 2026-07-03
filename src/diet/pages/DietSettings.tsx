@@ -169,7 +169,7 @@ export default function DietSettings() {
         </section>
 
         {/* Token kullanimi (bu cihazda) */}
-        <UsageCard />
+        <UsageCard model={settings?.model} />
 
         {/* Kisisellestirme */}
         <section className="card p-4 space-y-3">
@@ -428,11 +428,13 @@ export default function DietSettings() {
 
 // Bu cihazda uygulamanin harcadigi token (Ayarlar). Kalan bakiye API'den
 // alinamaz; net kredi/fatura icin Anthropic Console'a yonlendirir.
-function UsageCard() {
+function UsageCard({ model }: { model?: string }) {
   const [tick, setTick] = useState(0)
   const u = getUsage() // her render'da taze oku (tick ile yenilenir)
   const today = todayUsage()
   const fmt = (n: number) => n.toLocaleString('tr-TR')
+  const m = (model || 'claude-opus-4-8').toLowerCase()
+  const priceLabel = m.includes('haiku') ? 'Haiku' : m.includes('sonnet') ? 'Sonnet' : 'Opus'
 
   function refresh() {
     setTick((t) => t + 1)
@@ -459,18 +461,18 @@ function UsageCard() {
           <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Bugün</p>
           <p className="text-xl font-extrabold text-emerald-800">{fmt(bucketTokens(today))}</p>
           <p className="text-[11px] text-emerald-700/80">token · {today.calls} işlem</p>
-          <p className="text-[11px] text-emerald-700/80">≈ ${estimateCostUsd(today).toFixed(3)}</p>
+          <p className="text-[11px] text-emerald-700/80">≈ ${estimateCostUsd(today, model).toFixed(3)}</p>
         </div>
         <div className="rounded-xl bg-slate-50 p-3">
           <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Toplam</p>
           <p className="text-xl font-extrabold text-slate-800">{fmt(bucketTokens(u.total))}</p>
           <p className="text-[11px] text-slate-500">token · {u.total.calls} işlem</p>
-          <p className="text-[11px] text-slate-500">≈ ${estimateCostUsd(u.total).toFixed(2)}</p>
+          <p className="text-[11px] text-slate-500">≈ ${estimateCostUsd(u.total, model).toFixed(2)}</p>
         </div>
       </div>
 
       <p className="text-[11px] text-slate-400">
-        Maliyet Opus fiyatıyla <span className="font-semibold">kaba tahmindir</span>. Kalan kredini ve net faturanı{' '}
+        Maliyet <span className="font-semibold">{priceLabel} fiyatıyla</span> kaba tahmindir. Kalan kredini ve net faturanı{' '}
         <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noreferrer" className="text-emerald-700 underline">
           Anthropic Console
         </a>
