@@ -3,14 +3,32 @@
 // NOT: SDK yalnizca cagri aninda (dinamik import) yuklenir; boylece sayfa
 // acilisinda SDK yuzunden bir hata olsa bile uygulama yine de acilir.
 import type { FoodAnalysis, MealAdvice, ShoppingSuggestion } from './types'
+import { recordUsage } from './lib/usage'
 
 export const DEFAULT_MODEL = 'claude-opus-4-8'
 
-// SDK'yi geç (lazy) yukle ve istemciyi olustur
+// SDK'yi geç (lazy) yukle ve istemciyi olustur. messages.create sarmalanir:
+// her cevaptan gelen token kullanimi merkezi olarak kaydedilir (Ayarlar'da
+// gosterilir). Boylece 17 ayri cagriya dokunmadan tek yerden sayilir.
 async function createClient(apiKey: string) {
   const mod = await import('@anthropic-ai/sdk')
   const Anthropic = mod.default
-  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+  const origCreate = client.messages.create.bind(client.messages)
+  client.messages.create = ((params: unknown, options?: unknown) => {
+    const ret = origCreate(params as never, options as never)
+    // Sadece normal (stream olmayan) yanitlarda usage vardir
+    Promise.resolve(ret as unknown)
+      .then((res) => {
+        const u = (res as { usage?: { input_tokens?: number; output_tokens?: number } })?.usage
+        if (u) recordUsage(u.input_tokens ?? 0, u.output_tokens ?? 0)
+      })
+      .catch(() => {
+        /* hata zaten cagirana gider; burada yok say */
+      })
+    return ret
+  }) as typeof client.messages.create
+  return client
 }
 
 // Yapay zekanin dolduracagi yapilandirilmis cikti semasi (JSON Schema).

@@ -7,6 +7,7 @@ import { DEFAULT_MODEL, extractDietPlan } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { buildBackupData, parseDietBackup, restoreDietBackup, clearOldPhotos } from '../lib/backup'
 import { saveJsonSmart } from '../lib/share'
+import { getUsage, resetUsage, todayUsage, bucketTokens, estimateCostUsd } from '../lib/usage'
 
 export default function DietSettings() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -166,6 +167,9 @@ export default function DietSettings() {
             <p className="text-[11px] text-slate-400 mt-1">Boş bırakırsan {DEFAULT_MODEL} kullanılır.</p>
           </div>
         </section>
+
+        {/* Token kullanimi (bu cihazda) */}
+        <UsageCard />
 
         {/* Kisisellestirme */}
         <section className="card p-4 space-y-3">
@@ -419,5 +423,61 @@ export default function DietSettings() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Bu cihazda uygulamanin harcadigi token (Ayarlar). Kalan bakiye API'den
+// alinamaz; net kredi/fatura icin Anthropic Console'a yonlendirir.
+function UsageCard() {
+  const [tick, setTick] = useState(0)
+  const u = getUsage() // her render'da taze oku (tick ile yenilenir)
+  const today = todayUsage()
+  const fmt = (n: number) => n.toLocaleString('tr-TR')
+
+  function refresh() {
+    setTick((t) => t + 1)
+  }
+  function reset() {
+    if (!confirm('Token sayacı sıfırlansın mı? (Sadece bu cihazdaki sayaç; faturanı etkilemez.)')) return
+    resetUsage()
+    refresh()
+  }
+
+  return (
+    <section className="card p-4 space-y-3" data-tick={tick}>
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Token Kullanımı</h2>
+        <button onClick={refresh} className="text-xs text-emerald-700 underline">Yenile</button>
+      </div>
+      <p className="text-xs text-slate-500">
+        Bu cihazda uygulamanın harcadığı token. <span className="font-semibold">Kalan bakiye değildir</span> — onu API
+        vermez.
+      </p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-emerald-50 p-3">
+          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Bugün</p>
+          <p className="text-xl font-extrabold text-emerald-800">{fmt(bucketTokens(today))}</p>
+          <p className="text-[11px] text-emerald-700/80">token · {today.calls} işlem</p>
+          <p className="text-[11px] text-emerald-700/80">≈ ${estimateCostUsd(today).toFixed(3)}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3">
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Toplam</p>
+          <p className="text-xl font-extrabold text-slate-800">{fmt(bucketTokens(u.total))}</p>
+          <p className="text-[11px] text-slate-500">token · {u.total.calls} işlem</p>
+          <p className="text-[11px] text-slate-500">≈ ${estimateCostUsd(u.total).toFixed(2)}</p>
+        </div>
+      </div>
+
+      <p className="text-[11px] text-slate-400">
+        Maliyet Opus fiyatıyla <span className="font-semibold">kaba tahmindir</span>. Kalan kredini ve net faturanı{' '}
+        <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noreferrer" className="text-emerald-700 underline">
+          Anthropic Console
+        </a>
+        ’dan görür, oradan kredi yükleyebilirsin.
+      </p>
+
+      <button onClick={reset} className="text-xs text-slate-400 underline">Sayacı sıfırla</button>
+    </section>
   )
 }
