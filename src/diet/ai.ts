@@ -880,6 +880,8 @@ ${daySummary}${healthText(health)}`
 export async function menuChat(opts: {
   apiKey: string
   images?: string[] // menu fotograf data URL'leri (yalnizca ilk mesajda)
+  pdfDataUrl?: string // kare koddan gelen menu PDF'i (yalnizca ilk turda)
+  menuText?: string // kare koddan gelen web sitesi menu metni (yalnizca ilk turda)
   history: { role: 'user' | 'assistant'; text: string }[]
   model?: string
   userName?: string
@@ -888,7 +890,7 @@ export async function menuChat(opts: {
   dietitianNotes?: string
   health?: string
 }): Promise<string> {
-  const { apiKey, images = [], history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  const { apiKey, images = [], pdfDataUrl, menuText, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!history.length) throw new Error('Bir şey yaz veya menü fotoğrafı ekle.')
 
@@ -896,10 +898,10 @@ export async function menuChat(opts: {
   if (userName) ctx.push(`Kullanıcı: ${userName}.`)
   if (goal) ctx.push(`Hedef: ${goal}.`)
 
-  const system = `Sen "Diyet Koçu"sun — deneyimli bir KLİNİK DİYETİSYEN. Kullanıcı ŞU AN DIŞARIDA/RESTORANDA ve ne yiyeceğine karar vermek istiyor. Sana restoran MENÜSÜNÜN fotoğraf(lar)ını yükleyebilir (birden fazla olabilir) ya da sadece seninle yazışabilir.
+  const system = `Sen "Diyet Koçu"sun — deneyimli bir KLİNİK DİYETİSYEN. Kullanıcı ŞU AN DIŞARIDA/RESTORANDA ve ne yiyeceğine karar vermek istiyor. Sana restoran MENÜSÜNÜ fotoğraf(lar) olarak, kare koddaki web sitesinden çıkarılmış METİN olarak veya PDF olarak verebilir; ya da sadece seninle yazışabilir.
 
 Görevin:
-- Menü fotoğrafı varsa: menüdeki yemekleri oku. Kullanıcının DİYET LİSTESİ ve hedefiyle en UYUMLU 2-3 seçeneği ÖNCELİK SIRASIYLA öner; her biri için tek satır gerekçe (neden uygun) ve varsa pratik uyarı ver (örn. "sosu ayrı iste", "kızartma yerine ızgara seç", "porsiyonu yarı bırak").
+- Menü (foto/PDF/web metni) varsa: menüdeki yemekleri oku. Kullanıcının DİYET LİSTESİ ve hedefiyle en UYUMLU 2-3 seçeneği ÖNCELİK SIRASIYLA öner; her biri için tek satır gerekçe (neden uygun) ve varsa pratik uyarı ver (örn. "sosu ayrı iste", "kızartma yerine ızgara seç", "porsiyonu yarı bırak").
 - KAÇINILMASI gereken 1-2 seçeneği de kısaca belirt (neden bozar).
 - Menüde net diyet-uyumlu bir şey yoksa: en az zararlı seçeneği söyle ve onu nasıl "diyet dostu" hale getireceğini (porsiyon, pişirme, yan seçim) anlat.
 - Menü fotoğrafı yoksa/okunamıyorsa: nasıl bir yer olduğunu sor veya genel bir öneri verip sohbet et.
@@ -909,16 +911,22 @@ Türkçe, KISA ve net yaz; net bir "ben olsam şunu söylerdim" tavsiyesiyle bit
 DİYET LİSTESİ:
 ${dietPlan?.trim() || '(liste girilmemiş — genel sağlıklı beslenme ilkelerine göre öner)'}${dietitianText(dietitianNotes)}${healthText(health)}`
 
-  // Gorselleri SON kullanici mesajina ekle (yalnizca bu turda gonderilir)
-  const imgBlocks = images
-    .map((d) => splitDataUrl(d))
-    .filter((x): x is { mediaType: string; base64: string } => !!x)
-    .map((im) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: im.mediaType as 'image/jpeg', data: im.base64 } }))
+  // Ekleri (foto + PDF) SON kullanici mesajina koy (yalnizca bu turda gonderilir)
+  const attachBlocks = [...images, ...(pdfDataUrl ? [pdfDataUrl] : [])]
+    .map((d) => mediaBlock(d))
+    .filter((b): b is Record<string, unknown> => !!b)
 
   const lastIdx = history.length - 1
   const msgs = history.map((m, i) => {
-    if (i === lastIdx && m.role === 'user' && imgBlocks.length) {
-      return { role: 'user' as const, content: [...imgBlocks, { type: 'text' as const, text: m.text }] }
+    if (i === lastIdx && m.role === 'user') {
+      // Web sitesinden cikarilan menu metnini kullanici mesajina ekle
+      const txt = menuText?.trim()
+        ? `${m.text}\n\nMENÜ İÇERİĞİ (kare koddaki web sitesinden alındı; buradaki yemeklere göre öner):\n${menuText.trim()}`
+        : m.text
+      if (attachBlocks.length) {
+        return { role: 'user' as const, content: [...attachBlocks, { type: 'text' as const, text: txt }] }
+      }
+      return { role: 'user' as const, content: txt }
     }
     return { role: m.role, content: m.text }
   })

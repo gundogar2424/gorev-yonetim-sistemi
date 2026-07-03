@@ -11,6 +11,8 @@ import { scheduleSatietyReminder } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
 import { buildHealthContext } from '../lib/context'
+import { fetchMenuContent } from '../lib/webmenu'
+import { nativeScan } from '../lib/barcode'
 import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
@@ -1330,10 +1332,13 @@ function CoachChat({
 function RestaurantMenu({ settings }: { settings?: DietSettings }) {
   const [open, setOpen] = useState(false)
   const [imgs, setImgs] = useState<string[]>([]) // eklenen menu fotograflari (data URL)
-  const [sent, setSent] = useState(false) // gorseller bir kez gonderildi mi (token tasarrufu)
+  const [sent, setSent] = useState(false) // ekler bir kez gonderildi mi (token tasarrufu)
   const [chat, setChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [link, setLink] = useState('') // kare koddan/elle girilen menu linki
+  const [menuDoc, setMenuDoc] = useState<{ pdfDataUrl?: string; text?: string } | null>(null) // linkten cozulen menu
+  const [linkMsg, setLinkMsg] = useState('') // link durum mesaji
   const fileRef = useRef<HTMLInputElement>(null)
   const hasKey = !!settings?.apiKey
 
@@ -1369,12 +1374,56 @@ function RestaurantMenu({ settings }: { settings?: DietSettings }) {
     setImgs((prev) => prev.filter((_, idx) => idx !== i))
   }
 
+  // Kare kodu (QR) tara -> link alani doldurulur ve otomatik cozulur (APK)
+  async function scanQr() {
+    setLinkMsg('')
+    try {
+      const code = await nativeScan() // ML Kit QR de okur; web'de null doner
+      if (code) {
+        setLink(code)
+        await resolveLink(code)
+      } else {
+        setLinkMsg('Kare kod okunamadı. Linki elle de yapıştırabilirsin.')
+      }
+    } catch {
+      setLinkMsg('Tarayıcı açılamadı. Linki elle yapıştır.')
+    }
+  }
+
+  // Menu linkini coz: web sitesi/PDF indirilir, icerigi menuDoc'a alinir
+  async function resolveLink(urlArg?: string) {
+    const url = (urlArg ?? link).trim()
+    if (!url) return
+    setLinkMsg('Menü linki açılıyor…')
+    setBusy(true)
+    try {
+      const res = await fetchMenuContent(url)
+      if (res.kind === 'pdf') {
+        setMenuDoc({ pdfDataUrl: res.pdfDataUrl })
+        setLinkMsg('Menü (PDF) alındı ✓ — “Diyetime uygun ne var?”a dokun.')
+      } else if (res.kind === 'text') {
+        setMenuDoc({ text: res.text })
+        setLinkMsg('Menü içeriği alındı ✓ — “Diyetime uygun ne var?”a dokun.')
+      } else {
+        setMenuDoc(null)
+        setLinkMsg(res.note || 'Menü okunamadı. Linki açıp ekran görüntüsünü fotoğraf olarak ekleyebilirsin.')
+      }
+    } catch {
+      setMenuDoc(null)
+      setLinkMsg('Menü okunamadı. Ekran görüntüsünü fotoğraf olarak ekleyebilirsin.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const hasAttach = imgs.length > 0 || !!menuDoc
+
   async function send(preset?: string) {
     if (!hasKey || busy) return
     const q = (preset ?? input).trim()
-    // Ilk turda gorsel varsa soru bos olsa bile analiz iste
-    const firstWithImgs = !sent && imgs.length > 0
-    if (!q && !firstWithImgs) return
+    // Ilk turda menu eki (foto/PDF/site) varsa soru bos olsa bile analiz iste
+    const firstWithAttach = !sent && hasAttach
+    if (!q && !firstWithAttach) return
     const userText = q || 'Bu menüden diyetime en uygun ne var? Öncelik sırasıyla öner.'
     const history = [...chat, { role: 'user' as const, text: userText }]
     setChat(history)
@@ -1383,7 +1432,10 @@ function RestaurantMenu({ settings }: { settings?: DietSettings }) {
     try {
       const answer = await menuChat({
         apiKey: settings!.apiKey!,
-        images: firstWithImgs ? imgs : undefined, // gorseller yalnizca ilk turda
+        // Ekler yalnizca ilk turda gonderilir (token tasarrufu)
+        images: firstWithAttach && imgs.length ? imgs : undefined,
+        pdfDataUrl: firstWithAttach ? menuDoc?.pdfDataUrl : undefined,
+        menuText: firstWithAttach ? menuDoc?.text : undefined,
         history,
         model: settings?.model,
         userName: settings?.userName,
@@ -1393,7 +1445,10 @@ function RestaurantMenu({ settings }: { settings?: DietSettings }) {
         health: await buildHealthContext(settings)
       })
       setChat([...history, { role: 'assistant', text: answer }])
-      if (firstWithImgs) setSent(true) // menu artik "goruldu", tekrar gonderme
+      if (firstWithAttach) {
+        setSent(true) // menu artik "goruldu", tekrar gonderme
+        setLinkMsg('')
+      }
     } catch (err) {
       setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
     } finally {
@@ -1406,6 +1461,9 @@ function RestaurantMenu({ settings }: { settings?: DietSettings }) {
     setSent(false)
     setChat([])
     setInput('')
+    setLink('')
+    setMenuDoc(null)
+    setLinkMsg('')
   }
 
   if (!open) {
@@ -1417,7 +1475,7 @@ function RestaurantMenu({ settings }: { settings?: DietSettings }) {
         <span className="text-2xl">🍽️</span>
         <div className="flex-1">
           <p className="text-sm font-bold text-slate-800">Dışarıda mısın? Menüyü yükle</p>
-          <p className="text-xs text-slate-500">Restoran menüsünün fotoğrafını çek, diyetine uygununu birlikte seçelim.</p>
+          <p className="text-xs text-slate-500">Menüyü fotoğrafla ya da kare kodu (QR) okut; diyetine uygununu birlikte seçelim.</p>
         </div>
         <span className="text-slate-400">→</span>
       </button>
@@ -1476,14 +1534,40 @@ function RestaurantMenu({ settings }: { settings?: DietSettings }) {
             </div>
           )}
 
-          {/* Aksiyonlar */}
+          {/* Aksiyonlar: foto ekle + kare kod/link */}
           {!sent && (
-            <button onClick={addImages} disabled={busy} className="btn bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
-              📷 {imgs.length ? 'Fotoğraf ekle' : 'Menü fotoğrafı ekle'}
-            </button>
+            <>
+              <button onClick={addImages} disabled={busy} className="btn bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
+                📷 {imgs.length ? 'Fotoğraf ekle' : 'Menü fotoğrafı ekle'}
+              </button>
+
+              {/* Kare kod (QR) / menu linki */}
+              <div className="rounded-xl bg-slate-50 p-2 space-y-1.5">
+                <p className="text-[11px] font-semibold text-slate-500">🔗 Menüde kare kod (QR) mı var?</p>
+                <div className="flex gap-2">
+                  {Capacitor.isNativePlatform() && (
+                    <button onClick={scanQr} disabled={busy} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 px-3 whitespace-nowrap">
+                      📷 Tara
+                    </button>
+                  )}
+                  <input
+                    className="field-input flex-1"
+                    placeholder="menü linkini yapıştır…"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && resolveLink()}
+                  />
+                  <button onClick={() => resolveLink()} disabled={busy || !link.trim()} className="btn-primary px-3">
+                    Çöz
+                  </button>
+                </div>
+                {menuDoc && <p className="text-[11px] text-emerald-700 font-semibold">✓ Menü {menuDoc.pdfDataUrl ? '(PDF)' : 'içeriği'} eklendi.</p>}
+                {linkMsg && <p className="text-[11px] text-slate-500">{linkMsg}</p>}
+              </div>
+            </>
           )}
 
-          {imgs.length > 0 && !sent && (
+          {hasAttach && !sent && (
             <button onClick={() => send()} disabled={busy} className="btn-primary w-full">
               🍽️ Diyetime uygun ne var?
             </button>
@@ -1493,12 +1577,12 @@ function RestaurantMenu({ settings }: { settings?: DietSettings }) {
           <div className="flex gap-2">
             <input
               className="field-input flex-1"
-              placeholder={imgs.length ? 'İstersen bir not ekle (örn. tatlı da var mı?)' : 'Nerede olduğunu yaz, öneri isteyeyim…'}
+              placeholder={hasAttach ? 'İstersen bir not ekle (örn. tatlı da var mı?)' : 'Nerede olduğunu yaz, öneri isteyeyim…'}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && send()}
             />
-            <button onClick={() => send()} disabled={busy || (!input.trim() && !(imgs.length && !sent))} className="btn-primary px-4">
+            <button onClick={() => send()} disabled={busy || (!input.trim() && !(hasAttach && !sent))} className="btn-primary px-4">
               Sor
             </button>
           </div>
