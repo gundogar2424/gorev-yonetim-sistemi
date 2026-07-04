@@ -147,6 +147,18 @@ export default function Barcode() {
     }
   }
 
+  // Barkodsuz akis: manuel/etiket kartini ac ve etiket fotografini iste
+  function startLabelRead() {
+    setProduct(null)
+    setConfirmed(false)
+    setSaved(false)
+    setCode('')
+    setMsg('')
+    setMan({ name: '', kcal: '', protein: '', carb: '', fat: '' })
+    setNotFound(true)
+    labelRef.current?.click()
+  }
+
   // Paket etiketini (besin degerleri tablosu) fotograftan oku ve alanlari doldur
   async function onLabelPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -340,6 +352,15 @@ export default function Barcode() {
               Ara
             </button>
           </div>
+
+          {/* Barkodsuz: paket etiketini (besin degerleri) dogrudan oku */}
+          <input ref={labelRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onLabelPhoto} />
+          <div className="pt-2 border-t border-slate-100">
+            <button onClick={startLabelRead} disabled={labelBusy} className="btn bg-brand-600 text-white w-full">
+              {labelBusy ? 'Etiket okunuyor…' : '📷 Barkodsuz: Paket etiketini oku'}
+            </button>
+            <p className="text-[11px] text-slate-400 text-center mt-1">Barkodu yoksa/okunmuyorsa besin değerleri tablosunu çek, yapay zeka doldursun.</p>
+          </div>
           {busy && <p className="text-sm text-emerald-700">İşleniyor…</p>}
           {msg && <p className="text-sm text-slate-600">{msg}</p>}
         </section>
@@ -350,7 +371,6 @@ export default function Barcode() {
             <p className="text-sm text-amber-800 font-semibold">
               Bu ürün veritabanında yok. Paketin <b>besin değerleri tablosunu</b> çek, yapay zeka doldursun; ya da elle gir.
             </p>
-            <input ref={labelRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onLabelPhoto} />
             <button onClick={() => labelRef.current?.click()} disabled={labelBusy} className="btn-primary w-full">
               {labelBusy ? 'Etiket okunuyor…' : '📷 Paket etiketini oku (besin değerleri)'}
             </button>

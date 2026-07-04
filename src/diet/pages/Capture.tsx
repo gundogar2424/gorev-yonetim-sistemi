@@ -448,7 +448,7 @@ export default function Capture() {
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
             <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
             <Link to="/barkod" className="btn-ghost w-full block">
-              🏷️ Barkod ile Ekle
+              🏷️ Barkod / 📷 Paket Etiketi ile Ekle
             </Link>
 
             {/* Fotografsiz: yazarak ekle */}
