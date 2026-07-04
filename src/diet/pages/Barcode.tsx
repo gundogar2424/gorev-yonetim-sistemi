@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb } from '../db'
+import { dietDb, readDietSettings } from '../db'
 import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, nativeScan, getSavedProduct, saveProduct, type ProductInfo, type ScannerControls } from '../lib/barcode'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
+import { analyzeFoodByText } from '../ai'
+import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
-import type { MealType } from '../types'
+import type { MealType, Decision, FoodAnalysis } from '../types'
 
 export default function Barcode() {
   const navigate = useNavigate()
@@ -23,6 +26,9 @@ export default function Barcode() {
   const [saved, setSaved] = useState(false) // gunluge eklendi mi
   const [notFound, setNotFound] = useState(false) // veritabaninda yok -> elle gir
   const [man, setMan] = useState({ name: '', kcal: '', protein: '', carb: '', fat: '' }) // elle giris
+  const [advice, setAdvice] = useState<FoodAnalysis | null>(null) // "yemeli miyim?" degerlendirmesi
+  const [advising, setAdvising] = useState(false)
+  const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const videoRef = useRef<HTMLVideoElement>(null)
   const scannerRef = useRef<ScannerControls | null>(null)
 
@@ -167,30 +173,58 @@ export default function Barcode() {
     setMsg('')
   }
 
-  async function addEntry() {
+  // "Yemeli miyim?" — ürünün besin değerlerini koça danış (yazıdan değerlendirir)
+  async function consult() {
+    if (!product || !vals || !settings?.apiKey) return
+    setAdvising(true)
+    setAdvice(null)
+    setMsg('')
+    try {
+      const note = `Paketli ürün: ${product.name}. Miktar: ${g} g/ml. Bu porsiyonun besin değerleri: ~${vals.kcal} kcal, protein ${vals.protein} g, karbonhidrat ${vals.carb} g, yağ ${vals.fat} g. Bunu yemeli miyim, diyetimi bozar mı?`
+      const res = await analyzeFoodByText({
+        apiKey: settings.apiKey,
+        note,
+        model: settings.model,
+        userName: settings.userName,
+        goal: settings.goal,
+        dietPlan: settings.dietPlan,
+        dietitianNotes: settings.dietitianNotes,
+        health: await buildHealthContext(settings)
+      })
+      setAdvice(res)
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Değerlendirilemedi.')
+    } finally {
+      setAdvising(false)
+    }
+  }
+
+  // Karar ver (yedim/vazgectim) ve gunluge kaydet. Danisildiysa degerlendirme
+  // alanlari (saglik/uyum/puan) da kaydedilir; danisilmadiysa notr.
+  async function decide(decision: Decision) {
     if (!product || !vals) return
-    const macroNote = `Protein ${vals.protein}g · Karb ${vals.carb}g · Yağ ${vals.fat}g`
+    const a = advice
     await dietDb.entries.add({
       foodFound: true,
       foodName: `${product.name} (${g} g)`,
-      healthy: true, // barkod kaydi notr; basari puanini bozmasin
-      riskLevel: 'orta',
+      healthy: a ? a.healthy : true,
+      riskLevel: a ? a.riskLevel : 'orta',
       estimatedCalories: vals.kcal,
       protein: vals.protein,
       carb: vals.carb,
       fat: vals.fat,
-      dietScore: 0, // barkod kaydinda diyet puani hesaplanmaz
-      scoreReason: '',
-      harms: [],
-      motivations: [],
-      healthierAlternative: '',
-      verdict: macroNote,
-      compliancePercent: -1,
-      complianceNote: '',
-      cravingPortion: '',
-      cravingNote: '',
+      dietScore: a ? a.dietScore : 0,
+      scoreReason: a ? a.scoreReason : '',
+      harms: a ? a.harms : [],
+      motivations: a ? a.motivations : [],
+      healthierAlternative: a ? a.healthierAlternative : '',
+      verdict: a ? a.verdict : `Protein ${vals.protein}g · Karb ${vals.carb}g · Yağ ${vals.fat}g`,
+      compliancePercent: a ? a.compliancePercent : -1,
+      complianceNote: a ? a.complianceNote : '',
+      cravingPortion: a ? a.cravingPortion : '',
+      cravingNote: a ? a.cravingNote : '',
       photo: '',
-      decision: 'ate',
+      decision,
       mealType,
       createdAt: Date.now(),
       dateStr: todayStr()
@@ -207,6 +241,8 @@ export default function Barcode() {
     setCode('')
     setGrams('100')
     setMsg('')
+    setAdvice(null)
+    setAdvising(false)
   }
 
   return (
@@ -395,9 +431,53 @@ export default function Barcode() {
                     </div>
                   </div>
 
-                  <button onClick={addEntry} className="btn-primary w-full">
-                    😋 Günlüğe ekle ({MEAL_OPTIONS.find((m) => m.value === mealType)?.label})
-                  </button>
+                  {/* Yemeli miyim? — önce koça danış, sonra karar ver */}
+                  {settings?.apiKey && !advice && (
+                    <button onClick={consult} disabled={advising} className="btn-primary w-full">
+                      {advising ? 'Değerlendiriyorum…' : '🤔 Yemeli miyim? (koça danış)'}
+                    </button>
+                  )}
+
+                  {advice && (
+                    <div
+                      className={`rounded-xl p-3 space-y-1.5 border ${
+                        advice.healthy ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
+                      }`}
+                    >
+                      <p className={`text-sm font-bold ${advice.healthy ? 'text-emerald-800' : 'text-rose-800'}`}>
+                        {advice.healthy ? '✅ Uygun görünüyor' : '⚠️ Dikkat et'}
+                        {advice.compliancePercent >= 0 ? ` · listeye uyum %${advice.compliancePercent}` : ''}
+                      </p>
+                      {advice.verdict && <p className="text-sm text-slate-700">{advice.verdict}</p>}
+                      {advice.motivations?.slice(0, 2).map((m, i) => (
+                        <p key={i} className="text-xs text-slate-600 leading-snug">
+                          • {m}
+                        </p>
+                      ))}
+                      {advice.cravingPortion && (
+                        <p className="text-xs text-amber-700 leading-snug">
+                          🍫 Kaçamak olacaksa: {advice.cravingPortion}
+                          {advice.cravingNote ? ` — ${advice.cravingNote}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Karar: yedim / vazgeçtim (ikisi de günlüğe işlenir) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => decide('resisted')} className="btn bg-emerald-600 text-white">
+                      💪 Vazgeçtim
+                    </button>
+                    <button onClick={() => decide('ate')} className="btn bg-rose-500 text-white">
+                      😋 Yedim
+                    </button>
+                  </div>
+                  {!settings?.apiKey && (
+                    <p className="text-[11px] text-slate-400">
+                      Yapay zeka danışması için Ayarlar’dan API anahtarı ekle. Anahtarsız da “Yedim / Vazgeçtim” ile
+                      kaydedebilirsin.
+                    </p>
+                  )}
                 </>
               )}
             </div>
