@@ -277,6 +277,67 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
   }
 }
 
+// PAKET ETIKETI (besin degerleri tablosu) fotografindan 100 g/ml icin
+// kalori + makrolari okur. Barkod veritabaninda bulunamayan urunler icin.
+const LABEL_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    found: { type: 'boolean' },
+    name: { type: 'string' },
+    kcal: { type: 'number' },
+    protein: { type: 'number' },
+    carb: { type: 'number' },
+    fat: { type: 'number' },
+    per: { type: 'string', enum: ['100g', 'porsiyon', 'bilinmiyor'] }
+  },
+  required: ['found', 'name', 'kcal', 'protein', 'carb', 'fat', 'per']
+} as const
+
+export async function readNutritionLabel(opts: {
+  apiKey: string
+  photoDataUrl: string
+  model?: string
+}): Promise<{ found: boolean; name: string; kcal: number; protein: number; carb: number; fat: number; per: string }> {
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  const img = splitDataUrl(photoDataUrl)
+  if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
+
+  const system = `Bir paketli gıdanın BESİN DEĞERLERİ tablosunu (etiketi) okuyacaksın. Amaç: 100 g/ml için değerleri çıkarmak.
+- kcal = 100 g/ml için enerji (kalori). Etikette kJ ve kcal varsa KCAL değerini al. kcal yoksa kJ'yi 4.184'e bölerek yaklaşık kcal ver.
+- protein, carb (karbonhidrat), fat (yağ) = 100 g/ml için GRAM.
+- Etikette "100 g" sütunu varsa onu kullan (per="100g"). Yoksa yalnızca porsiyon başına verilmişse o değerleri ver ve per="porsiyon" yaz. Belli değilse per="bilinmiyor".
+- Ürün adını (marka/ürün) tablodan ya da paketten oku; okunamıyorsa kısa genel bir ad yaz.
+- Tablo net okunamıyorsa found=false ve değerleri 0 ver.
+Sadece tablodaki gerçek rakamları kullan; uydurma. Türkçe ad ver.`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 500,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: img.mediaType as 'image/jpeg', data: img.base64 } },
+            { type: 'text', text: 'Bu paketin besin değerleri tablosunu oku ve 100 g/ml için kalori + makroları çıkar.' }
+          ]
+        }
+      ],
+      output_config: { format: { type: 'json_schema', schema: LABEL_SCHEMA } }
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const raw = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    return JSON.parse(cleaned)
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // SADECE METINDEN degerlendirme (fotograf gondermez -> cok daha az token).
 // Kullanici yemegi yanlis tanindiginda "bu aslinda sudur" diye yazinca kullanilir.
 export async function analyzeFoodByText(opts: {

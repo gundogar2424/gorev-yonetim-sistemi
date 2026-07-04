@@ -6,7 +6,7 @@ import { dietDb, readDietSettings } from '../db'
 import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, nativeScan, getSavedProduct, saveProduct, type ProductInfo, type ScannerControls } from '../lib/barcode'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
-import { analyzeFoodByText } from '../ai'
+import { analyzeFoodByText, readNutritionLabel } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
 import type { MealType, Decision, FoodAnalysis } from '../types'
@@ -28,8 +28,10 @@ export default function Barcode() {
   const [man, setMan] = useState({ name: '', kcal: '', protein: '', carb: '', fat: '' }) // elle giris
   const [advice, setAdvice] = useState<FoodAnalysis | null>(null) // "yemeli miyim?" degerlendirmesi
   const [advising, setAdvising] = useState(false)
+  const [labelBusy, setLabelBusy] = useState(false) // paket etiketi okunuyor
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const labelRef = useRef<HTMLInputElement>(null) // paket etiketi fotografi
   const scannerRef = useRef<ScannerControls | null>(null)
 
   // Canli tarama: scanning acilinca kamerayi baslat, kapaninca/cikinca durdur
@@ -142,6 +144,44 @@ export default function Barcode() {
       setMsg(err instanceof Error ? err.message : 'Sorgu başarısız.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  // Paket etiketini (besin degerleri tablosu) fotograftan oku ve alanlari doldur
+  async function onLabelPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!settings?.apiKey) {
+      setMsg('Etiket okuma için Ayarlar’dan API anahtarı gerekli.')
+      return
+    }
+    setLabelBusy(true)
+    setMsg('Etiket okunuyor…')
+    try {
+      const dataUrl = await fileToResizedDataUrl(file, 1400, 0.85)
+      const r = await readNutritionLabel({ apiKey: settings.apiKey, photoDataUrl: dataUrl, model: settings.model })
+      if (!r.found) {
+        setMsg('Besin değerleri tablosu okunamadı. Tabloyu net, düz ve yakından çek ya da elle gir.')
+        return
+      }
+      const num = (n: number, d = 0) => (n ? String(Math.round(n * 10 ** d) / 10 ** d) : '')
+      setMan({
+        name: r.name || man.name,
+        kcal: num(r.kcal),
+        protein: num(r.protein, 1),
+        carb: num(r.carb, 1),
+        fat: num(r.fat, 1)
+      })
+      setMsg(
+        r.per === 'porsiyon'
+          ? 'Değerler PORSİYON başına okundu — 100 g/ml’ye göre kontrol et, gerekirse düzelt.'
+          : 'Etiket okundu ✓ Değerleri kontrol edip “Kaydet ve kullan”a bas.'
+      )
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Etiket okunamadı.')
+    } finally {
+      setLabelBusy(false)
     }
   }
 
@@ -308,8 +348,13 @@ export default function Barcode() {
         {notFound && !product && (
           <section className="card p-4 space-y-3 border-amber-200">
             <p className="text-sm text-amber-800 font-semibold">
-              Bu ürün veritabanında yok. Bilgilerini bir kez gir; bu barkodu hafızaya alayım, bir daha sormayayım.
+              Bu ürün veritabanında yok. Paketin <b>besin değerleri tablosunu</b> çek, yapay zeka doldursun; ya da elle gir.
             </p>
+            <input ref={labelRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onLabelPhoto} />
+            <button onClick={() => labelRef.current?.click()} disabled={labelBusy} className="btn-primary w-full">
+              {labelBusy ? 'Etiket okunuyor…' : '📷 Paket etiketini oku (besin değerleri)'}
+            </button>
+            <p className="text-[11px] text-slate-400 text-center">Tabloyu net, düz ve yakından çek. Sonra değerleri kontrol edip kaydet.</p>
             <input
               className="field-input"
               placeholder="Ürün adı (örn. X marka bisküvi)"
