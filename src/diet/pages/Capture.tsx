@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
@@ -11,6 +11,7 @@ import { scheduleSatietyReminder, scheduleSugarReminder } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
 import { isBeverage } from '../lib/food'
+import { decodeBarcodeFromImage } from '../lib/barcode'
 import { buildHealthContext } from '../lib/context'
 import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
@@ -83,6 +84,7 @@ function bodyContext(s?: DietSettings, measurements?: Measurement[]): string | u
 }
 
 export default function Capture() {
+  const navigate = useNavigate()
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
   const exercises = useLiveQuery(() => listExercises(), [], [])
@@ -127,8 +129,7 @@ export default function Capture() {
         setNote('')
         setEditing(false)
         setMealType(guessMeal())
-        setPhoto(photo.dataUrl)
-        await analyze(photo.dataUrl, '')
+        await afterCapture(photo.dataUrl)
       } catch (err) {
         // Kullanici secimi iptal ettiyse hata gosterme
         const msg = err instanceof Error ? err.message.toLowerCase() : ''
@@ -150,13 +151,31 @@ export default function Capture() {
     setEditing(false)
     setMealType(guessMeal()) // saate gore varsayilan ogun
     try {
-      const dataUrl = await fileToResizedDataUrl(file, 800, 0.8)
-      setPhoto(dataUrl)
-      await analyze(dataUrl, '')
+      const dataUrl = await fileToResizedDataUrl(file, 1000, 0.85)
+      await afterCapture(dataUrl)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fotoğraf okunamadı.')
       setPhase('idle')
     }
+  }
+
+  // AKILLI ÇEKİM: önce karede BARKOD var mı bak (token harcamaz). Varsa
+  // paketli ürün demektir -> Barkod ekranına yönlendir (orada ürün/etiket işi
+  // yapılır). Barkod yoksa normal YEMEK analizine geç.
+  async function afterCapture(dataUrl: string) {
+    setPhase('analyzing')
+    try {
+      const code = await decodeBarcodeFromImage(dataUrl)
+      if (code && /^\d{6,14}$/.test(code.trim())) {
+        setPhase('idle')
+        navigate(`/barkod?code=${code.trim()}`)
+        return
+      }
+    } catch {
+      // barkod yok / okunamadi -> yemek olarak devam
+    }
+    setPhoto(dataUrl)
+    await analyze(dataUrl, '')
   }
 
   // Fotografi (varsa duzeltme notuyla) incele

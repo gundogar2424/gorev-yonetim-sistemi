@@ -64,10 +64,15 @@ export default function Barcode() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning])
 
-  // Ana sayfadan "Paket Etiketi" ile gelindiyse (?mode=etiket) dogrudan etiket
-  // okuma akisini ac (barkod beklemeden).
+  // Ana sayfadan gelindiyse: ?code=XXX -> otomatik ara (akilli cekim barkod
+  // buldu); ?mode=etiket -> dogrudan etiket okuma akisini ac.
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('mode') === 'etiket') {
+    const params = new URLSearchParams(location.search)
+    const c = params.get('code')
+    if (c) {
+      setCode(c)
+      void search(c)
+    } else if (params.get('mode') === 'etiket') {
       startLabelRead()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
