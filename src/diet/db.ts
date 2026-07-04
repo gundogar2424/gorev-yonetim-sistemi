@@ -15,7 +15,8 @@ import type {
   ProgressPhoto,
   SavedProduct,
   CheckIn,
-  Craving
+  Craving,
+  DayNote
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -33,6 +34,7 @@ export class DietCoachDB extends Dexie {
   products!: Table<SavedProduct, number>
   checkins!: Table<CheckIn, number>
   cravings!: Table<Craving, number>
+  daynotes!: Table<DayNote, number>
 
   constructor() {
     super('diet-coach')
@@ -152,6 +154,24 @@ export class DietCoachDB extends Dexie {
       checkins: '++id, dateStr, createdAt',
       cravings: '++id, dateStr, createdAt'
     })
+    // Surum 11: gune ozel not/plan
+    this.version(11).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt',
+      products: '++id, barcode',
+      checkins: '++id, dateStr, createdAt',
+      cravings: '++id, dateStr, createdAt',
+      daynotes: '++id, dateStr'
+    })
   }
 }
 
@@ -238,6 +258,21 @@ export async function addCraving(outcome: 'resisted' | 'ate', note?: string) {
 }
 export function listCravings(): Promise<Craving[]> {
   return dietDb.cravings.orderBy('createdAt').toArray()
+}
+
+// ---- Gune ozel not/plan ----
+export function getDayNote(dateStr: string): Promise<DayNote | undefined> {
+  return dietDb.daynotes.where('dateStr').equals(dateStr).first()
+}
+export async function setDayNote(dateStr: string, text: string) {
+  const t = text.trim()
+  const row = await dietDb.daynotes.where('dateStr').equals(dateStr).first()
+  if (row?.id != null) {
+    if (!t) await dietDb.daynotes.delete(row.id)
+    else await dietDb.daynotes.update(row.id, { text: t })
+  } else if (t) {
+    await dietDb.daynotes.add({ dateStr, text: t, createdAt: Date.now() })
+  }
 }
 
 // ---- Gun ici "nasilsin?" check-in (gunde ISTEDIGI KADAR, saatli) ----

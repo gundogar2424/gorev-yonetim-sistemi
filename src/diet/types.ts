@@ -187,6 +187,15 @@ export interface Craving {
   note?: string // Ne cekti (orn. "tatli")
 }
 
+// Gune ozel not/plan (orn. "bugun gec kahvalti, kahvalti+ara ogunu birlestirdim").
+// O gun boyunca TUM yapay zeka modulleri bu notu dikkate alir.
+export interface DayNote {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  text: string
+  createdAt: number
+}
+
 // Gun ici "nasilsin?" check-in kaydi (gunluk; his/enerji + kisa not)
 export interface CheckIn {
   id?: number

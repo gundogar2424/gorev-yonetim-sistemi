@@ -15,7 +15,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since30 = todayStr(new Date(Date.now() - 29 * 86_400_000))
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -23,10 +23,18 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.water.where('dateStr').equals(today).first(),
     dietDb.checkins.where('dateStr').equals(today).sortBy('createdAt'),
     dietDb.cravings.toArray(),
-    dietDb.labs.orderBy('createdAt').toArray()
+    dietDb.labs.orderBy('createdAt').toArray(),
+    dietDb.daynotes.where('dateStr').equals(today).first()
   ])
 
   const L: string[] = []
+
+  // BUGUNE OZEL not/plan — en basta ve guclu: tum degerlendirmeler buna uysun
+  if (dayNote?.text?.trim()) {
+    L.push(
+      `BUGÜNE ÖZEL NOT/PLAN (kullanıcı bugün için şunu belirtti — analiz, öneri ve gün değerlendirmesinde MUTLAKA dikkate al, buna aykırı ceza/uyarı verme): "${dayNote.text.trim()}". Örn. öğünleri birleştirdiyse bunu normal say, "çift öğün" gibi değerlendirme.`
+    )
+  }
 
   // Profil
   const prof: string[] = []
