@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, getDayNote, setDayNote } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -416,9 +416,6 @@ export default function Capture() {
 
         {/* Bugun nasilsin? (moral/his) */}
         <MoodCheckIn />
-
-        {/* Bugune ozel not/plan — tum moduller bunu dikkate alir */}
-        <DayNoteCard />
 
         {/* TEK yapay zeka sohbeti: menu, yarin plani, Z raporu, gun analizi */}
         <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -1352,7 +1349,20 @@ function CoachChat({
         dietitianNotes: settings?.dietitianNotes,
         health: await buildHealthContext(settings)
       })
-      setChat([...history, { role: 'assistant', text: answer }])
+      // Koç bugüne özel bir plan/not tespit ettiyse [[NOT: ...]] işaretiyle
+      // döner: onu günün notu olarak kaydet, gösterilen metinden çıkar.
+      let shown = answer
+      const m = answer.match(/\[\[\s*NOT:\s*([\s\S]*?)\]\]/i)
+      if (m) {
+        shown = answer.replace(m[0], '').trim()
+        const noteText = m[1].trim()
+        const clear = /^(sil|iptal|yok|kaldır|temizle)$/i.test(noteText)
+        await setDayNote(today, clear ? '' : noteText)
+        shown += clear
+          ? '\n\n📝 (Bugünün notu temizlendi)'
+          : `\n\n📝 (Bugünün notuna işlendi — tüm gün buna göre değerlendireceğim)`
+      }
+      setChat([...history, { role: 'assistant', text: shown }])
     } catch (err) {
       setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
     } finally {
@@ -1412,93 +1422,6 @@ function CoachChat({
           )}
         </>
       )}
-    </div>
-  )
-}
-
-// BUGÜNE ÖZEL NOT: kullanici bugun icin bir plan/durum yazar (orn. "geç
-// kahvalti, ogunleri birlestirdim"). O gun tum AI modulleri bunu dikkate alir.
-function DayNoteCard() {
-  const today = todayStr()
-  const saved = useLiveQuery(() => getDayNote(today), [today], undefined)
-  const [text, setText] = useState('')
-  const [editing, setEditing] = useState(false)
-  const [flash, setFlashMsg] = useState('')
-
-  // Kayitli not degisince kutuyu esitle (sadece duzenlemede degilken)
-  const savedText = saved?.text ?? ''
-
-  async function save() {
-    await setDayNote(today, text)
-    setEditing(false)
-    setFlashMsg('Kaydedildi — koç bugün bunu dikkate alacak. ✅')
-    setTimeout(() => setFlashMsg(''), 3000)
-  }
-
-  // Kayitli not var, duzenlemiyorsak: notu goster
-  if (savedText && !editing) {
-    return (
-      <div className="card p-3 bg-amber-50 border-amber-100">
-        <div className="flex items-start gap-2">
-          <span className="text-lg flex-shrink-0">📝</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Bugünün notu</p>
-            <p className="text-sm text-slate-700 whitespace-pre-wrap">{savedText}</p>
-          </div>
-          <button
-            onClick={() => {
-              setText(savedText)
-              setEditing(true)
-            }}
-            className="text-xs text-amber-700 underline flex-shrink-0"
-          >
-            düzenle
-          </button>
-        </div>
-        {flash && <p className="text-[11px] text-emerald-700 font-semibold mt-1">{flash}</p>}
-      </div>
-    )
-  }
-
-  // Not yok ya da duzenleniyor
-  if (!editing && !savedText) {
-    return (
-      <button
-        onClick={() => {
-          setText('')
-          setEditing(true)
-        }}
-        className="card p-3 w-full flex items-center gap-3 text-left hover:bg-slate-50 transition"
-      >
-        <span className="text-lg">📝</span>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-slate-700">Bugün için not / plan ekle</p>
-          <p className="text-xs text-slate-500">örn. “Geç kahvaltı, kahvaltı+ara öğünü birleştirdim” — koç bugün buna göre değerlendirir.</p>
-        </div>
-        <span className="text-slate-400">+</span>
-      </button>
-    )
-  }
-
-  return (
-    <div className="card p-3 space-y-2 bg-amber-50 border-amber-100">
-      <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">📝 Bugünün notu / planı</p>
-      <textarea
-        className="field-input min-h-[60px]"
-        autoFocus
-        placeholder="örn. Bugün geç kahvaltı yapacağım; kahvaltı ile ara öğünü birleştirip yiyeceğim."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => setEditing(false)} className="btn bg-slate-200 text-slate-700 py-2">
-          Vazgeç
-        </button>
-        <button onClick={save} className="btn-primary py-2">
-          Kaydet
-        </button>
-      </div>
-      <p className="text-[11px] text-slate-400">Bu not bugün geçerli; yarın otomatik sıfırlanır. Tüm modüller (koç, analiz, gün raporu) dikkate alır.</p>
     </div>
   )
 }
