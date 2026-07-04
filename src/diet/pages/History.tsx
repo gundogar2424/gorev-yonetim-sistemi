@@ -165,6 +165,7 @@ export default function History() {
                       )}
                     </div>
                     {e.decision === 'ate' && !isBeverage(e.foodName) && <MealFeedback e={e} />}
+                    <MealTimeEdit e={e} />
                     <MealShare e={e} />
                   </div>
                   <button onClick={() => remove(e.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1 self-start">
@@ -197,6 +198,50 @@ function MealFeedback({ e }: { e: DietEntry }) {
         <div className="space-y-1.5 mt-1 bg-slate-50 rounded-xl p-2">
           <Scale label="🍽️ Doyurdu mu? (tokluk)" value={e.satiety} onPick={(v) => set(v)} />
           <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400">
+            kapat
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Bir Date'i <input type="datetime-local"> degerine cevir (YYYY-MM-DDTHH:mm)
+function toLocalInput(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+// Kaydedilmis bir ogunun TARIH/SAATini sonradan duzenle (gec girilen ogun icin)
+function MealTimeEdit({ e }: { e: DietEntry }) {
+  const [open, setOpen] = useState(false)
+  const [val, setVal] = useState(() => toLocalInput(new Date(e.createdAt)))
+
+  async function save() {
+    const d = new Date(val)
+    if (isNaN(d.getTime())) return
+    await dietDb.entries.update(e.id!, { createdAt: d.getTime(), dateStr: todayStr(d) })
+    setOpen(false)
+  }
+
+  return (
+    <div className="mt-1">
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="text-[11px] text-slate-400 underline">
+          🕐 Saati düzenle
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 rounded-xl p-1.5 mt-1">
+          <input
+            type="datetime-local"
+            className="field-input w-auto py-1 text-xs flex-1 min-w-0"
+            value={val}
+            onChange={(ev) => setVal(ev.target.value)}
+          />
+          <button onClick={save} className="text-xs font-bold bg-brand-600 text-white rounded-full px-2.5 py-1">
+            Kaydet
+          </button>
+          <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
             kapat
           </button>
         </div>
