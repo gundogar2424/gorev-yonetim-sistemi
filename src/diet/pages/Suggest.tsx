@@ -2,11 +2,13 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { readDietSettings } from '../db'
+import { dietDb, readDietSettings } from '../db'
 import { buildHealthContext } from '../lib/context'
 import { suggestMeal } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
-import type { MealAdvice, MealSuggestion } from '../types'
+import { guessMeal, mealLabel, MEAL_OPTIONS } from '../lib/meals'
+import { todayStr } from '../streak'
+import type { MealAdvice, MealSuggestion, MealType } from '../types'
 
 type Phase = 'idle' | 'thinking' | 'result'
 
@@ -159,6 +161,42 @@ const PALETTE = ['from-emerald-500 to-emerald-600', 'from-indigo-500 to-violet-6
 
 function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
   const band = PALETTE[index % PALETTE.length]
+  const [added, setAdded] = useState(false)
+  const [mealType, setMealType] = useState<MealType>(guessMeal())
+  const [picking, setPicking] = useState(false)
+
+  // Bu oneriyi "yedim" olarak gunluge isle (kalori + makrolar)
+  async function eat(mt: MealType) {
+    const detail = s.items.map((it) => `${it.name} ${it.grams}g`).join(', ')
+    await dietDb.entries.add({
+      foodFound: true,
+      foodName: detail ? `${s.title} (${detail})` : s.title,
+      healthy: true,
+      riskLevel: 'düşük',
+      estimatedCalories: s.calories,
+      protein: s.protein,
+      carb: s.carb,
+      fat: s.fat,
+      dietScore: 0,
+      scoreReason: '',
+      harms: [],
+      motivations: [],
+      healthierAlternative: '',
+      verdict: s.reason || `Ne Yesem önerisi: ${s.title}`,
+      compliancePercent: -1,
+      complianceNote: '',
+      cravingPortion: '',
+      cravingNote: '',
+      photo: '',
+      decision: 'ate',
+      mealType: mt,
+      createdAt: Date.now(),
+      dateStr: todayStr()
+    })
+    setPicking(false)
+    setAdded(true)
+  }
+
   return (
     <div className="card overflow-hidden border-0 shadow-md">
       <div className={`bg-gradient-to-br ${band} text-white px-4 py-3`}>
@@ -187,6 +225,38 @@ function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
         </div>
 
         {s.reason && <p className="text-sm text-slate-600 leading-snug bg-slate-50 rounded-xl p-2.5">{s.reason}</p>}
+
+        {/* Bunu yedim -> gunluge isle */}
+        {added ? (
+          <p className="text-sm font-bold text-emerald-700 text-center">✓ Günlüğe eklendi ({mealLabel(mealType)})</p>
+        ) : !picking ? (
+          <button onClick={() => setPicking(true)} className="btn-primary w-full">
+            😋 Bunu yedim (günlüğe ekle)
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Hangi öğün?</p>
+            <div className="flex flex-wrap gap-1.5">
+              {MEAL_OPTIONS.map((m) => (
+                <button
+                  key={m.value}
+                  onClick={() => {
+                    setMealType(m.value)
+                    void eat(m.value)
+                  }}
+                  className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
+                    mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {m.emoji} {m.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setPicking(false)} className="text-xs text-slate-400 underline">
+              vazgeç
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
