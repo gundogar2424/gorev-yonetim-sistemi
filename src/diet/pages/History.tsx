@@ -108,7 +108,7 @@ export default function History() {
             </button>
           </div>
           <button onClick={sendImageSet} className="btn bg-brand-600 text-white w-full whitespace-nowrap">
-            🖼️ Ayrı Ayrı Gönder (her öğün + spor/sağlık)
+            🖼️ Ayrı Gönder
           </button>
           <p className="text-[11px] text-slate-400">
             “Ayrı ayrı”: her öğün ve spor/sağlık için ayrı, büyük fotoğraflı görseller olarak gönderir (WhatsApp’ta 3-4 foto).
