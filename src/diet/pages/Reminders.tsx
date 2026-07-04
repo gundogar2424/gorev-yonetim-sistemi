@@ -231,9 +231,9 @@ export default function Reminders() {
           <div className="card p-3 space-y-2">
             <div className="flex items-center gap-3">
               <div className="flex-1">
-                <p className="font-medium text-slate-700">Öğünden 2 saat sonra (tok)</p>
+                <p className="font-medium text-slate-700">Ana öğünden 2 saat sonra (tok)</p>
                 <p className="text-xs text-slate-500">
-                  Her öğün kaydından ~2 saat sonra tok şekerini ölçmen için hatırlatır. (Yediğini işaretlediğinde otomatik kurulur.)
+                  Ana öğünlerden (kahvaltı/öğle/akşam) ~2 saat sonra tok şekerini ölçmen için hatırlatır. Yediğini işaretlediğinde otomatik kurulur; ara öğün/içecekte tetiklenmez.
                 </p>
               </div>
               <Switch

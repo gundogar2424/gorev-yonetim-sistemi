@@ -269,8 +269,12 @@ export default function Capture() {
     // Iceceklerde "doydun mu?" anlamsiz — tokluk hatirlatmasini atla.
     if (decision === 'ate' && Date.now() - createdAt < 60_000) {
       if (!isBeverage(analysis.foodName)) void scheduleSatietyReminder(30)
-      // Ogunden 2 saat sonra tok seker olcum hatirlatmasi (acikse; icecekler de sekeri etkiler)
-      if (settings?.sugarPostMealReminderEnabled) void scheduleSugarReminder(120)
+      // Yalnizca ANA ogunlerden (kahvalti/ogle/aksam) ~2 saat sonra tok seker
+      // olcum hatirlatmasi. Ara ogun/icecekte tetiklenmez.
+      const mainMeal = mealType === 'kahvalti' || mealType === 'ogle' || mealType === 'aksam'
+      if (settings?.sugarPostMealReminderEnabled && mainMeal && !isBeverage(analysis.foodName)) {
+        void scheduleSugarReminder(120)
+      }
     }
   }
 

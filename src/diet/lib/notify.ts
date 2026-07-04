@@ -204,7 +204,7 @@ export async function scheduleSugarReminder(minutes = 120): Promise<void> {
           id: SUGAR_POSTMEAL_ID,
           channelId: CHANNEL_ID,
           title: '🩸 Tok şekeri',
-          body: 'Öğününün üzerinden ~2 saat geçti — tok kan şekerini ölçüp girmek ister misin?',
+          body: 'Ana öğününün üzerinden ~2 saat geçti — tok kan şekerini ölçüp girmek ister misin?',
           schedule: { at: new Date(Date.now() + minutes * 60_000), allowWhileIdle: true },
           extra: { route: '/takip?tab=saglik' }
         }
