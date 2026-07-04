@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings } from '../db'
@@ -13,6 +13,7 @@ import type { MealType, Decision, FoodAnalysis } from '../types'
 
 export default function Barcode() {
   const navigate = useNavigate()
+  const location = useLocation()
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
   const [code, setCode] = useState('')
@@ -62,6 +63,15 @@ export default function Barcode() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning])
+
+  // Ana sayfadan "Paket Etiketi" ile gelindiyse (?mode=etiket) dogrudan etiket
+  // okuma akisini ac (barkod beklemeden).
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('mode') === 'etiket') {
+      startLabelRead()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search])
 
   const g = Math.max(0, Number(grams) || 0)
   const vals = product ? forGrams(product, g) : null

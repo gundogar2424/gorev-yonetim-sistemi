@@ -425,38 +425,54 @@ export default function Capture() {
 
         {error && <div className="card p-3 bg-rose-50 border-rose-200 text-rose-700 text-sm">{error}</div>}
 
-        {/* Bos durum: cek butonu */}
+        {/* Bos durum: TEK yapay zeka ekleme merkezi (foto/galeri/barkod/etiket/yazi) */}
         {phase === 'idle' && (
-          <div className="card p-6 text-center space-y-4">
-            <div className="text-6xl">📸</div>
-            <p className="text-slate-600 text-sm">
-              Yemeğini yemeden önce fotoğrafını çek. Yapay zeka onu tanıyıp diyetin için doğru kararı vermene
-              yardım etsin.
-            </p>
+          <div className="card p-5 space-y-3">
+            <div className="text-center space-y-1">
+              <div className="text-5xl">📸</div>
+              <p className="text-slate-600 text-sm">Ne eklemek istersin? Yapay zeka tanısın, diyetin için karar vermene yardım etsin.</p>
+            </div>
+
+            {/* Ana yol: yemek fotografi */}
+            <button onClick={() => pickPhoto('camera')} disabled={!hasKey} className="btn-primary w-full py-3 text-base">
+              📷 Yemek Fotoğrafı Çek
+            </button>
+
+            {/* Diger yollar: galeri, yazi, barkod, paket etiketi */}
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => pickPhoto('camera')} disabled={!hasKey} className="btn-primary">
-                📷 Fotoğraf Çek
-              </button>
               <button
                 onClick={() => pickPhoto('gallery')}
                 disabled={!hasKey}
-                className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+                className="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 py-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
               >
-                🖼️ Galeriden Seç
+                <span className="text-2xl">🖼️</span>Galeriden Seç
               </button>
+              <button
+                onClick={() => setTextMode((v) => !v)}
+                disabled={!hasKey}
+                className="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 py-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
+              >
+                <span className="text-2xl">✍️</span>Yazarak Ekle
+              </button>
+              <Link
+                to="/barkod"
+                className="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 py-3 text-xs font-semibold text-slate-700"
+              >
+                <span className="text-2xl">🏷️</span>Barkod Okut
+              </Link>
+              <Link
+                to="/barkod?mode=etiket"
+                className="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 py-3 text-xs font-semibold text-slate-700"
+              >
+                <span className="text-2xl">📷</span>Paket Etiketi
+              </Link>
             </div>
+
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
             <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
-            <Link to="/barkod" className="btn-ghost w-full block">
-              🏷️ Barkod / 📷 Paket Etiketi ile Ekle
-            </Link>
 
-            {/* Fotografsiz: yazarak ekle */}
-            {!textMode ? (
-              <button onClick={() => setTextMode(true)} disabled={!hasKey} className="btn-ghost w-full">
-                ✍️ Yazarak Ekle (fotoğrafsız)
-              </button>
-            ) : (
+            {/* Fotografsiz: yazarak ekle (acilinca metin kutusu) */}
+            {textMode && (
               <div className="space-y-2 text-left">
                 <textarea
                   className="field-input min-h-[64px]"
