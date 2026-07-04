@@ -154,6 +154,22 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     L.push(`Son 14 günde ${cr.length} kriz anı (saatler: ${hrs.join(', ')}); ${res}/${cr.length} direnç. Kriz saatleri yaklaşırken önden uyarabilirsin.`)
   }
 
+  // TANIDIK YIYECEKLER: kullanicinin daha once yedigi yiyecekler — fotograf
+  // tanimada onyargi/ipucu olsun. Kullanici bir yemegi duzeltince (dogru adla
+  // kaydedince) o da bu listeye girer; boylece ayni hata tekrarlanmaz.
+  const freq = new Map<string, number>()
+  for (const e of entries) {
+    if (e.decision !== 'ate') continue
+    const name = (e.foodName || '').trim()
+    if (name && name.length <= 40) freq.set(name, (freq.get(name) ?? 0) + 1)
+  }
+  const known = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 18).map(([n]) => n)
+  if (known.length) {
+    L.push(
+      `Kullanıcının daha önce yediği/tanıdığı yiyecekler (bir FOTOĞRAFI değerlendirirken, görseldeki şey bunlardan birine benziyorsa önce bunu düşün; örn. kahverengi kurutulmuş meyveyi yanlış türle karıştırma): ${known.join(', ')}.`
+    )
+  }
+
   // Son tahlil(ler): en yeni 1-2 kaydin kisa ozeti (kompakt tutulur). Boylece
   // koc/yemek/seker analizi de tahlil sonuclarini (HbA1c, kolesterol vb.) bilir.
   if (labs.length) {
