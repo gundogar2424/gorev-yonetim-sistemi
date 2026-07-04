@@ -460,15 +460,6 @@ export default function Capture() {
               📷 Yemek Fotoğrafı Çek
             </button>
 
-            {/* Sofra/masa oner: fotograftan diyete uygun secenekleri onerir */}
-            <Link to="/oneri" className="flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2.5 text-left">
-              <span className="text-2xl flex-shrink-0">🍽️</span>
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-brand-800">Ne Yesem? — Sofrayı/masayı çek</span>
-                <span className="block text-[11px] text-brand-700/80">Tüm masayı görür, diyetine uygun olanları gramajıyla söyler.</span>
-              </span>
-            </Link>
-
             {/* Diger yollar: galeri, yazi, barkod, paket etiketi */}
             <div className="grid grid-cols-2 gap-2">
               <button
