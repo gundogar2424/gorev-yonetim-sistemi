@@ -7,6 +7,7 @@ import Track from './pages/Track'
 import More from './pages/More'
 import Labs from './pages/Labs'
 import Checkup from './pages/Checkup'
+import Dining from './pages/Dining'
 import Shopping from './pages/Shopping'
 import Reminders from './pages/Reminders'
 import ExercisePage from './pages/Exercise'
@@ -101,6 +102,7 @@ export default function DietApp() {
           <Route path="/daha" element={<More />} />
           <Route path="/tahliller" element={<Labs />} />
           <Route path="/checkup" element={<Checkup />} />
+          <Route path="/disarida" element={<Dining />} />
           <Route path="/alisveris" element={<Shopping />} />
           <Route path="/hatirlaticilar" element={<Reminders />} />
           <Route path="/egzersiz" element={<ExercisePage />} />

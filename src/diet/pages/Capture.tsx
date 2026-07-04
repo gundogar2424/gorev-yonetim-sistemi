@@ -408,9 +408,6 @@ export default function Capture() {
         {/* Bugunku kalori takibi */}
         <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
 
-        {/* Bugun yapilan spor + yaklasik yakilan kalori */}
-        <ExerciseToday exercises={exercises ?? []} measurements={measurements ?? []} />
-
         {/* Su takibi (ml) */}
         <WaterCard goalMl={settings?.waterGoal ? settings.waterGoal * 200 : 2500} />
 
@@ -419,9 +416,6 @@ export default function Capture() {
 
         {/* TEK yapay zeka sohbeti: menu, yarin plani, Z raporu, gun analizi */}
         <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
-
-        {/* Disarida/restoranda: menu fotograflarini yukle, uygununu bul */}
-        <RestaurantMenu settings={settings} />
 
         {/* Yarim saat gecmis, henuz tokluk puani verilmemis ogunler */}
         <SatietyPrompt entries={entries ?? []} />
@@ -1230,49 +1224,6 @@ function WaterCard({ goalMl }: { goalMl: number }) {
   )
 }
 
-// Bugun yapilan egzersizler + kiloya gore YAKLASIK yakilan kalori (token yok).
-// Tahmin: kcal ≈ MET(5, orta tempo) × kilo(kg) × süre(saat).
-function ExerciseToday({ exercises, measurements }: { exercises: Exercise[]; measurements: Measurement[] }) {
-  const today = todayStr()
-  const todays = exercises.filter((e) => e.dateStr === today)
-  if (todays.length === 0) return null
-
-  const weights = measurements.filter((m) => typeof m.weight === 'number').sort((a, b) => a.createdAt - b.createdAt)
-  const weight = weights.length ? (weights[weights.length - 1].weight as number) : 75
-  const MET = 5
-  const totalMin = todays.reduce((s, e) => s + (e.minutes ?? 0), 0)
-  // Once yapay zeka tahmini (e.kcal), yoksa kabaca MET x kilo x sure
-  const kcal = Math.round(
-    todays.reduce((s, e) => s + (e.kcal != null ? e.kcal : e.minutes ? MET * weight * (e.minutes / 60) : 0), 0)
-  )
-
-  return (
-    <div className="card p-4">
-      <div className="flex items-center justify-between">
-        <span className="section-title">🏃 Bugün spor</span>
-        {kcal > 0 && <span className="chip bg-indigo-100 text-indigo-800">≈ {kcal} kcal yaktın</span>}
-      </div>
-      <div className="mt-2.5 space-y-1.5">
-        {todays.map((e) => (
-          <div key={e.id} className="flex items-center gap-2 text-sm">
-            <span className="text-lg flex-shrink-0">💪</span>
-            <span className="flex-1 min-w-0 text-slate-700 break-words">{e.text}</span>
-            {e.minutes ? <span className="text-xs text-slate-400 flex-shrink-0">{e.minutes} dk</span> : null}
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between mt-2.5">
-        <p className="text-[11px] text-slate-400">
-          {totalMin > 0 ? `Toplam ${totalMin} dk · ` : ''}yakılan kalori yaklaşıktır (kilona göre).
-        </p>
-        <Link to="/egzersiz" className="text-xs text-brand-700 underline flex-shrink-0">
-          Egzersiz →
-        </Link>
-      </div>
-    </div>
-  )
-}
-
 // Bugunun kompakt ozetini (yemekler, kararlar, spor) metne dokup sohbete baglam verir
 function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: string, waterMl = 0, checkins: CheckIn[] = []): string {
   const meals = entries.filter((e) => e.dateStr === today).sort((a, b) => a.createdAt - b.createdAt)
@@ -1427,8 +1378,9 @@ function CoachChat({
 }
 
 // DISARIDA/RESTORAN: menu fotograf(lar)ini yukle, yapay zeka diyetine en
-// uygun secenekleri cikarsin; menu olmadan da sohbet edilebilir.
-function RestaurantMenu({ settings }: { settings?: DietSettings }) {
+// uygun secenekleri cikarsin; menu olmadan da sohbet edilebilir. Ana sayfada
+// degil; "Dışarıda" sayfasinda kullanilir (Dining.tsx export eder).
+export function RestaurantMenu({ settings }: { settings?: DietSettings }) {
   const [open, setOpen] = useState(false)
   const [imgs, setImgs] = useState<string[]>([]) // eklenen menu fotograflari (data URL)
   const [sent, setSent] = useState(false) // ekler bir kez gonderildi mi (token tasarrufu)
