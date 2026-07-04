@@ -66,7 +66,10 @@ export async function shareImageSmart(blob: Blob, filename: string): Promise<Sha
       const base64 = await blobToBase64(blob)
       await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache })
       const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache })
-      await Share.share({ title: 'Diyet Raporu', text: 'Diyet raporum', url: uri, dialogTitle: 'Diyetisyene gönder' })
+      // NOT: WhatsApp'a gorselle birlikte title/text GONDERILMEZ — metinle
+      // birlikte gonderilince ilk denemede gorseli iliştirmeyip metni gonderiyor
+      // (kullanici cikip tekrar deneyince gidiyordu). Sadece dosya + dialogTitle.
+      await Share.share({ url: uri, dialogTitle: 'Diyetisyene gönder' })
       return 'shared'
     } catch (err) {
       return isCancel(err) ? 'cancelled' : 'failed'
