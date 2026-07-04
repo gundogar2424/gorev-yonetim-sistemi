@@ -7,6 +7,7 @@ import { mealEmoji, mealLabel } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
 import { buildDailyImage, buildDailyImageSet, buildMealImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
+import { isBeverage } from '../lib/food'
 import type { DietEntry } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
@@ -163,7 +164,7 @@ export default function History() {
                         </span>
                       )}
                     </div>
-                    {e.decision === 'ate' && <MealFeedback e={e} />}
+                    {e.decision === 'ate' && !isBeverage(e.foodName) && <MealFeedback e={e} />}
                     <MealShare e={e} />
                   </div>
                   <button onClick={() => remove(e.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1 self-start">

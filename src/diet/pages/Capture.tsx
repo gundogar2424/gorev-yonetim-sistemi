@@ -10,6 +10,7 @@ import { quoteOfDay } from '../lib/quotes'
 import { scheduleSatietyReminder, scheduleSugarReminder } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
+import { isBeverage } from '../lib/food'
 import { buildHealthContext } from '../lib/context'
 import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
@@ -265,9 +266,10 @@ export default function Capture() {
     setPhase('saved')
     // Yedi ise ~30 dk sonra tokluk hatirlatmasi (APK'da bildirim).
     // Gecmise islenen ogunde hatirlatma anlamsiz — yalnizca "su an" kayitlarda.
+    // Iceceklerde "doydun mu?" anlamsiz — tokluk hatirlatmasini atla.
     if (decision === 'ate' && Date.now() - createdAt < 60_000) {
-      void scheduleSatietyReminder(30)
-      // Ogunden 2 saat sonra tok seker olcum hatirlatmasi (acikse)
+      if (!isBeverage(analysis.foodName)) void scheduleSatietyReminder(30)
+      // Ogunden 2 saat sonra tok seker olcum hatirlatmasi (acikse; icecekler de sekeri etkiler)
       if (settings?.sugarPostMealReminderEnabled) void scheduleSugarReminder(120)
     }
   }
@@ -1671,6 +1673,7 @@ function SatietyPrompt({ entries }: { entries: DietEntry[] }) {
       (e) =>
         e.decision === 'ate' &&
         e.satiety == null &&
+        !isBeverage(e.foodName) &&
         now - e.createdAt >= 30 * 60_000 &&
         now - e.createdAt < 2 * 86_400_000
     )
