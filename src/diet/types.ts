@@ -44,6 +44,7 @@ export interface DietEntry extends FoodAnalysis {
   satiety?: number // Yedikten ~yarim saat sonra TOKLUK 1-10 (1 ac kaldim, 10 fazla tok)
   createdAt: number // Zaman damgasi (ms)
   dateStr: string // Yerel tarih (YYYY-MM-DD)
+  sharedAt?: number // Bu ogun diyetisyene tek tek gonderildiyse zaman damgasi
 }
 
 // Vucut olcusu kaydi (belli bir tarihte). Tum olculer cm, kilo kg; hepsi istege bagli.
@@ -232,6 +233,7 @@ export interface DietSettings {
   medications?: string // Kullanilan ilaclar (serbest metin) — saglik degerlendirmesine baglam
   conditions?: string // Kronik rahatsizliklar (serbest metin; istege bagli)
   goal?: string // Diyet hedefi (yapay zekaya baglam olarak verilir)
+  preferences?: string // Kisisel aliskanliklar/tercihler (orn. "kahveyi/cayi sekersiz icerim, tam bugday ekmek yerim") — HER analizde dikkate alinir
   dietPlan?: string // Kullanicinin diyet listesi (ogunler) — uyum karsilastirmasi icin
   reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)
   // Gunluk/haftalik hedefler (istege bagli; bos birakilirsa varsayilan kullanilir)

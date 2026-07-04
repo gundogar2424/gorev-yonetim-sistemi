@@ -215,6 +215,11 @@ function MealShare({ e }: { e: DietEntry }) {
     setTimeout(() => setMsg(''), 3500)
   }
 
+  // Paylasim baslatilinca o ogunu "gonderildi" olarak isaretle (kalici)
+  async function markShared() {
+    if (e.id != null) await dietDb.entries.update(e.id, { sharedAt: Date.now() })
+  }
+
   async function sendImage() {
     setBusy(true)
     setMsg('Görsel hazırlanıyor…')
@@ -222,9 +227,13 @@ function MealShare({ e }: { e: DietEntry }) {
       const settings = await readDietSettings()
       const blob = await buildMealImage(e, settings.userName)
       const res = await shareImageSmart(blob, `ogun-${e.dateStr}-${e.id}.png`)
-      if (res === 'shared') flash('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
-      else if (res === 'copied') flash('Görsel indirildi, diyetisyenine gönderebilirsin.')
-      else if (res === 'cancelled') setMsg('')
+      if (res === 'shared') {
+        await markShared()
+        flash('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      } else if (res === 'copied') {
+        await markShared()
+        flash('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      } else if (res === 'cancelled') setMsg('')
       else flash('Görsel gönderilemedi.')
     } catch {
       flash('Görsel oluşturulamadı.')
@@ -239,9 +248,13 @@ function MealShare({ e }: { e: DietEntry }) {
     try {
       const settings = await readDietSettings()
       const res = await shareTextSmart(buildMealText(e, settings.userName))
-      if (res === 'shared') flash('Paylaşım menüsü açıldı.')
-      else if (res === 'copied') flash('Panoya kopyalandı.')
-      else if (res === 'cancelled') setMsg('')
+      if (res === 'shared') {
+        await markShared()
+        flash('Paylaşım menüsü açıldı.')
+      } else if (res === 'copied') {
+        await markShared()
+        flash('Panoya kopyalandı.')
+      } else if (res === 'cancelled') setMsg('')
       else flash('Gönderilemedi.')
     } catch {
       flash('Gönderilemedi.')
@@ -253,9 +266,15 @@ function MealShare({ e }: { e: DietEntry }) {
 
   return (
     <div className="mt-1.5">
+      {e.sharedAt && (
+        <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 mb-1">
+          ✓ Diyetisyene gönderildi ·{' '}
+          {new Date(e.sharedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+        </p>
+      )}
       {!open ? (
         <button onClick={() => setOpen(true)} className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-2.5 py-1">
-          📤 Diyetisyene gönder
+          {e.sharedAt ? '📤 Tekrar gönder' : '📤 Diyetisyene gönder'}
         </button>
       ) : (
         <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 rounded-xl p-1.5">

@@ -664,19 +664,20 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
 
   const mctx = document.createElement('canvas').getContext('2d')!
   const contentW = W - 2 * PAD
-  const innerW = contentW - 48 // beyaz kart ic genisligi (2*24 padding)
+  const innerW = contentW - 60 // beyaz kart ic genisligi (2*28 padding + tampon)
 
   // Diyetisyene tekli gonderimde SADE tut: yalnizca urunun aciklamasi (+varsa
   // gramaji). Kalori/uyum/puan/degerlendirme YOK — diyetisyenin isine karisma.
-  mctx.font = 'bold 34px sans-serif'
+  // Yazilar BUYUK ve okunakli olsun.
+  mctx.font = 'bold 48px sans-serif'
   const nameLines = wrapText(mctx, e.foodName || 'Öğün', innerW)
 
-  const BANNER = 88
-  const PHOTO_H = img ? 420 : 180
-  const NAME_LH = 42
+  const BANNER = 100
+  const PHOTO_H = img ? 580 : 220
+  const NAME_LH = 60
 
   // Bilgi kart yuksekligi: sadece ad satirlari + pad
-  const infoH = 28 + nameLines.length * NAME_LH + 20
+  const infoH = 34 + nameLines.length * NAME_LH + 24
 
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -696,19 +697,19 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   ctx.fillStyle = grad
   ctx.fill()
   ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 30px sans-serif'
+  ctx.font = 'bold 36px sans-serif'
   const mealTitle = (e.mealType ? mealLabel(e.mealType) : 'Öğün')
-  ctx.fillText(`🍽️ ${mealTitle}`, PAD + 26, y + 42)
+  ctx.fillText(`🍽️ ${mealTitle}`, PAD + 28, y + 50)
   const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
   const dateNice = new Date(e.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long'
   })
-  ctx.font = '18px sans-serif'
+  ctx.font = '22px sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.92)'
-  ctx.fillText(`${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`, PAD + 26, y + 70)
-  y += BANNER + 20
+  ctx.fillText(`${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`, PAD + 28, y + 84)
+  y += BANNER + 22
 
   // Fotograf (genis, kirparak sigdir)
   if (img) {
@@ -730,22 +731,22 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   }
   y += PHOTO_H + 18
 
-  // Bilgi karti: yalnizca urunun aciklamasi (+varsa gramaji)
+  // Bilgi karti: yalnizca urunun aciklamasi (+varsa gramaji) — BUYUK yazi
   fillRound(ctx, PAD, y, contentW, infoH, 20, '#ffffff')
-  const cx = PAD + 24
-  let cy = y + 28
+  const cx = PAD + 28
+  let cy = y + 34
   ctx.fillStyle = '#0f172a'
-  ctx.font = 'bold 34px sans-serif'
+  ctx.font = 'bold 48px sans-serif'
   for (const ln of nameLines) {
-    cy += NAME_LH - 8
+    cy += NAME_LH - 10
     ctx.fillText(ln, cx, cy)
-    cy += 8
+    cy += 10
   }
 
   // Alt bilgi
   ctx.fillStyle = '#94a3b8'
-  ctx.font = '18px sans-serif'
-  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 22)
+  ctx.font = '20px sans-serif'
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 24)
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')

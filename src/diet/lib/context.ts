@@ -40,6 +40,11 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   if (prof.length) L.push(`Profil: ${prof.join(', ')}.`)
   if (settings?.conditions?.trim()) L.push(`Rahatsızlıklar: ${settings.conditions.trim()}.`)
   if (settings?.medications?.trim()) L.push(`Kullandığı ilaçlar: ${settings.medications.trim()}.`)
+  if (settings?.preferences?.trim()) {
+    L.push(
+      `KİŞİSEL ALIŞKANLIKLAR/TERCİHLER (analiz ve tahminlerde MUTLAKA bunları esas al, görselden aksini VARSAYMA): ${settings.preferences.trim()}. Örn. "kahveyi şekersiz içer" dendiyse kahveyi şekersiz say, kaloriyi ve şekeri ona göre hesapla.`
+    )
+  }
 
   // Kilo + TUM olcu egilimleri (son 30 gun) — "yagdan mi kastan mi" sorusu
   // icin ham veri: kilo sabitken bel/gobek inceliyorsa yag kaybi lehinedir.

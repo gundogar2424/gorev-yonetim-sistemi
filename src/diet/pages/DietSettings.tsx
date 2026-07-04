@@ -235,6 +235,19 @@ export default function DietSettings() {
             />
           </div>
           <div>
+            <label className="field-label">☕ Alışkanlıkların / tercihlerin</label>
+            <textarea
+              className="field-input"
+              rows={2}
+              placeholder="örn. Kahveyi ve çayı ŞEKERSİZ içerim, ekmek olarak tam buğday yerim, kızartma yemem"
+              value={settings?.preferences ?? ''}
+              onChange={(e) => saveDietSettings({ preferences: e.target.value })}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Yapay zeka HER analizde bunu dikkate alır; fotoğraftan aksini varsaymaz (örn. kahveni şekerli sanmaz).
+            </p>
+          </div>
+          <div>
             <label className="field-label">💊 Kullandığın ilaçlar</label>
             <textarea
               className="field-input"
