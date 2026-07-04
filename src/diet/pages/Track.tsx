@@ -180,8 +180,7 @@ function SugarMealInsight() {
     <section className="card p-3 space-y-2 bg-rose-50 border-rose-100">
       <h3 className="font-bold text-rose-800 text-sm uppercase tracking-wide">🩸 Yemek–Şeker Bağlantısı</h3>
       <p className="text-xs text-slate-500">
-        Şeker ölçümlerini, öncesinde yediğin öğünlerle eşleştirip <b>senin vücuduna özel</b> örüntüleri bulur: hangi
-        yemekler şekerini yükseltiyor, hangileri iyi geliyor.
+        Şeker ölçümlerini önceki öğünlerle eşleştirir: hangi yemek şekerini yükseltiyor, hangisi iyi geliyor.
       </p>
       {!hasKey ? (
         <p className="text-xs text-slate-500">Bu analiz için Ayarlar’dan API anahtarı ekle.</p>
@@ -241,7 +240,7 @@ function SendMeasurements() {
     <section className="card p-3 space-y-2">
       <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Ölçümleri Diyetisyene Gönder</h3>
       <p className="text-xs text-slate-500">
-        Kilo, ölçü, şeker ve tansiyon kayıtlarını (yemeklerden ayrı) seçtiğin dönem için gönderir.
+        Kilo, ölçü, şeker ve tansiyon kayıtlarını seçtiğin dönem için gönderir.
       </p>
       <div className="flex gap-1.5">
         {RANGES.map((r) => (

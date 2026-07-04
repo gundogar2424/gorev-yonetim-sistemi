@@ -135,8 +135,8 @@ export default function DietSettings() {
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yapay Zeka Anahtarı</h2>
           <p className="text-xs text-slate-500">
-            Fotoğraf incelemesi Anthropic (Claude) ile yapılır. Kendi API anahtarınızı girin. Anahtar{' '}
-            <span className="font-semibold">yalnızca bu cihazda</span> saklanır, hiçbir sunucuya gönderilmez.
+            Fotoğraf incelemesi Claude ile yapılır. Kendi API anahtarını gir; anahtar{' '}
+            <span className="font-semibold">yalnızca bu cihazda</span> saklanır.
           </p>
           <div className="flex gap-2">
             <input
@@ -244,7 +244,7 @@ export default function DietSettings() {
               onChange={(e) => saveDietSettings({ preferences: e.target.value })}
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              Yapay zeka HER analizde bunu dikkate alır; fotoğraftan aksini varsaymaz (örn. kahveni şekerli sanmaz).
+              Yapay zeka her analizde bunu dikkate alır (örn. kahveni şekerli sanmaz).
             </p>
           </div>
           <div>
@@ -280,8 +280,7 @@ export default function DietSettings() {
               onChange={(e) => saveDietSettings({ dietitianNotes: e.target.value })}
             />
             <p className="text-xs text-slate-500 mt-1">
-              Diyetisyeninin sana söylediklerini buraya yaz; koç <b>her yemek değerlendirmesinde ve sohbette</b> bu
-              talimatlara göre konuşur.
+              Diyetisyeninin söylediklerini buraya yaz; koç her değerlendirmede bu talimatlara uyar.
             </p>
           </div>
         </section>
@@ -349,8 +348,7 @@ export default function DietSettings() {
             </div>
           </div>
           <p className="text-xs text-slate-500">
-            🎯 Hedef kiloyu girersen ana ekranda “ne kadar verdin / hedefe ne kaldı” gösterilir. Başlangıç boşsa ilk
-            tartı kaydın esas alınır.
+            🎯 Hedef kiloyu girersen ana ekranda “ne kadar verdin / ne kaldı” görünür. Başlangıç boşsa ilk tartın esas alınır.
           </p>
         </section>
 
@@ -358,9 +356,8 @@ export default function DietSettings() {
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Diyet Listem</h2>
           <p className="text-xs text-slate-500">
-            Diyetisyeninin verdiği öğün listesini buraya ekle. Eklersen, çektiğin her yemeğin listene{' '}
-            <span className="font-semibold">% kaç uyduğunu</span> görürsün. Elle yazabilir veya listenin fotoğrafını
-            çekip okutabilirsin.
+            Diyet listeni buraya ekle; her yemeğin listene{' '}
+            <span className="font-semibold">% kaç uyduğunu</span> görürsün. Yazabilir ya da fotoğrafını okutabilirsin.
           </p>
 
           <div className="grid grid-cols-2 gap-2">
@@ -405,9 +402,7 @@ export default function DietSettings() {
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme & Yer Açma</h2>
           <p className="text-xs text-slate-500">
-            Tüm öğünlerin, ölçülerin, sağlık verilerin ve API anahtarın tek dosyaya iner. Uygulamayı silmeden önce
-            yedek al; yeniden kurunca geri yükle, anahtarı tekrar girmen gerekmez. (Yedek dosyası kişiseldir,
-            başkasıyla paylaşma.)
+            Tüm verilerin ve API anahtarın tek dosyaya iner. Silmeden önce yedek al, yeniden kurunca geri yükle. (Yedek kişiseldir, paylaşma.)
           </p>
           <button onClick={doBackup} className="btn-primary w-full">
             ⬇️ Yedeği İndir
@@ -459,7 +454,7 @@ function ThemeSelector() {
     <section className="card p-4 space-y-3">
       <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Görünüm</h2>
       <p className="text-xs text-slate-500">
-        Otomatik: telefonun karanlık/aydınlık ayarına uyar. Dilersen sabitleyebilirsin.
+        Otomatik: telefonun ayarına uyar. Dilersen sabitle.
       </p>
       <div className="grid grid-cols-3 gap-2">
         {opts.map((o) => (

@@ -160,8 +160,7 @@ export default function Checkup() {
 
             {chat.length === 0 && (
               <p className="text-[11px] text-slate-400 px-1">
-                İstediğin zaman gel, sağlığınla ilgili ne merak edersen sor. Tahlillerini, şeker/tansiyon ve kilo verini
-                bilerek, sana özel cevap verir. Not: Bu tıbbi teşhis değildir; kesin değerlendirme için doktoruna danış.
+                Sağlığınla ilgili ne merak edersen sor; tahlil, şeker/tansiyon ve kilo verini bilerek cevaplar. Not: tıbbi teşhis değildir, doktoruna danış.
               </p>
             )}
           </>

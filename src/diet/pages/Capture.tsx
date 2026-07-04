@@ -443,7 +443,7 @@ export default function Capture() {
           <div className="card p-5 space-y-3">
             <div className="text-center space-y-1">
               <div className="text-5xl">📸</div>
-              <p className="text-slate-600 text-sm">Ne eklemek istersin? Yapay zeka tanısın, diyetin için karar vermene yardım etsin.</p>
+              <p className="text-slate-600 text-sm">Ne eklemek istersin? Yapay zeka tanısın, karar vermene yardım etsin.</p>
             </div>
 
             {/* Ana yol: yemek fotografi */}
@@ -511,7 +511,7 @@ export default function Capture() {
               </div>
             )}
             <p className="text-[11px] text-slate-400">
-              Barkod: paketli ürün (token gerekmez). Yazarak ekle: fotoğraf çekmeden, yazdığına göre değerlendirir.
+              Barkod paketli üründe token harcamaz; yazarak eklede fotoğraf gerekmez.
             </p>
           </div>
         )}
@@ -567,7 +567,7 @@ export default function Capture() {
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Çorba kaşığı, su bardağı, porsiyon, dilim, avuç gibi yazabilirsin — hesaplar. Fotoğraf kayıtta kalır.
+                  Porsiyon, dilim, su bardağı gibi yazabilirsin — hesaplar.
                 </p>
               </div>
             )}
@@ -622,7 +622,7 @@ export default function Capture() {
                     şimdiye al
                   </button>
                   <p className="text-[11px] text-slate-400">
-                    Dün unuttuğun öğünü doğru tarih ve saate kaydedebilirsin.
+                    Geçmiş öğünü doğru tarih/saate kaydedebilirsin.
                   </p>
                 </div>
               )}
@@ -1077,7 +1077,7 @@ function MoodCheckIn() {
     await addCheckin(mood, note.trim() || undefined)
     setMood(null)
     setNote('')
-    setFlash('Kaydedildi 👍 Gün içinde istediğin kadar ekleyebilirsin.')
+    setFlash('Kaydedildi 👍')
     setTimeout(() => setFlash(''), 3000)
   }
 
@@ -1116,7 +1116,7 @@ function MoodCheckIn() {
           </button>
         ))}
       </div>
-      <p className="text-[11px] text-slate-400">1: kötü · 10: harika — yemekten önce/sonra, ne zaman istersen işaretle.</p>
+      <p className="text-[11px] text-slate-400">1: kötü · 10: harika</p>
 
       {mood != null && (
         <div className="space-y-1.5">
@@ -1368,7 +1368,7 @@ function CoachChat({
           </div>
           {chat.length === 0 && (
             <p className="text-[11px] text-slate-400">
-              Menünü, yarının planını, Z raporunu, günün analizini — ne istersen yaz. Koç tüm verilerini bilerek cevaplar.
+              Menü, plan, Z raporu, gün analizi — ne istersen yaz.
             </p>
           )}
         </>
@@ -1645,7 +1645,7 @@ export function RestaurantMenu({ settings }: { settings?: DietSettings }) {
           )}
           {chat.length === 0 && (
             <p className="text-[11px] text-slate-400">
-              Birden fazla menü sayfası ekleyebilirsin. Koç, diyet listeni ve sağlık verilerini bilerek en uygun seçeneği önerir.
+              Birden fazla sayfa ekleyebilirsin; koç diyetine en uygununu önerir.
             </p>
           )}
         </>

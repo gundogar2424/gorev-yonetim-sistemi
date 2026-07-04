@@ -133,7 +133,7 @@ export default function ExercisePage() {
           </div>
           {flash && <p className="text-sm font-semibold text-emerald-700">{flash}</p>}
           <p className="text-xs text-slate-400">
-            Her egzersiz +8 puan, süre uzadıkça +12'ye kadar bonus puan kazandırır.
+            Her egzersiz +8 puan, süre uzadıkça +12'ye kadar bonus.
             {settings?.apiKey ? ' Yakılan kaloriyi yapay zeka tahmin eder (küçük token).' : ''}
           </p>
         </section>

@@ -45,8 +45,7 @@ export default function Progress() {
         {/* Yeni fotograf ekle */}
         <section className="card p-4 space-y-3">
           <p className="text-xs text-slate-500">
-            Düzenli aralıklarla (örn. haftada bir) aynı açıdan fotoğraf çek. Değişimi yan yana görmek en büyük
-            motivasyon! Fotoğraflar yalnızca cihazında saklanır.
+            Haftada bir aynı açıdan fotoğraf çek; değişimi yan yana gör. Fotoğraflar yalnızca cihazında saklanır.
           </p>
           <input
             type="text"

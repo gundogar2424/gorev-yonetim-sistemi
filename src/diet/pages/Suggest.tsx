@@ -79,9 +79,8 @@ export default function Suggest() {
           <div className="card p-6 text-center space-y-4">
             <div className="text-6xl">🧊🥚🥦</div>
             <p className="text-slate-600 text-sm">
-              Buzdolabını, dolabını ya da elindeki ürünleri fotoğrafla. Yapay zeka onlardan{' '}
-              <span className="font-semibold">diyetine uygun</span>, gramajlı öğünler önersin — kalori{' '}
-              <span className="font-semibold">ve makro</span> (protein/karbonhidrat/yağ) ile.
+              Elindeki ürünleri fotoğrafla; yapay zeka{' '}
+              <span className="font-semibold">diyetine uygun</span>, gramajlı öğünler önersin — kalori ve makro ile.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => cameraRef.current?.click()} disabled={!hasKey} className="btn-primary">

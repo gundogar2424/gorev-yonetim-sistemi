@@ -101,8 +101,7 @@ export default function Reminders() {
           <div className="card p-3 bg-amber-50 border-amber-200 text-amber-800 text-sm">
             <p className="font-semibold mb-1">📱 Bildirimler için APK gerekir</p>
             <p>
-              Web (tarayıcı) sürümünde, uygulama kapalıyken bildirim gelmez. Saatleri yine de ayarlayabilirsin; APK
-              sürümünü kurduğunda bu saatlerde bildirim alırsın.
+              Tarayıcıda, uygulama kapalıyken bildirim gelmez. Saatleri yine ayarla; APK'da bu saatlerde bildirim alırsın.
             </p>
           </div>
         )}
@@ -177,7 +176,7 @@ export default function Reminders() {
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <p className="font-medium text-slate-700">Nasıl hissediyorsun?</p>
-                <p className="text-xs text-slate-500">Gün içinde “nasıl gidiyor, kendini nasıl hissediyorsun?” diye sorar; koç bunu değerlendirmede dikkate alır.</p>
+                <p className="text-xs text-slate-500">Gün içinde nasıl hissettiğini sorar; koç bunu dikkate alır.</p>
               </div>
               <Switch
                 on={!!settings?.checkinReminderEnabled}
@@ -233,7 +232,7 @@ export default function Reminders() {
               <div className="flex-1">
                 <p className="font-medium text-slate-700">Ana öğünden 2 saat sonra (tok)</p>
                 <p className="text-xs text-slate-500">
-                  Ana öğünlerden (kahvaltı/öğle/akşam) ~2 saat sonra tok şekerini ölçmen için hatırlatır. Yediğini işaretlediğinde otomatik kurulur; ara öğün/içecekte tetiklenmez.
+                  Ana öğünden ~2 saat sonra tok şekerini ölçmen için hatırlatır. Yediğini işaretleyince otomatik kurulur.
                 </p>
               </div>
               <Switch
@@ -308,8 +307,8 @@ export default function Reminders() {
           <div className="card p-3 bg-sky-50 border-sky-100 text-sky-900 text-sm">
             <p className="font-semibold mb-1">🔊 Bildirim sesini/tonunu seçmek için</p>
             <p>
-              Telefon <b>Ayarlar → Uygulamalar → Diyet Koçu → Bildirimler → "Öğün Hatırlatıcıları"</b> kanalına gir; oradan
-              istediğin <b>sesi/tonu ve titreşimi</b> seçebilirsin. (Önce yukarıdan "İzni Ver & Kur"a bas ki kanal oluşsun.)
+              Telefon <b>Ayarlar → Uygulamalar → Diyet Koçu → Bildirimler → "Öğün Hatırlatıcıları"</b> kanalından
+              <b> ses ve titreşimi</b> seçebilirsin. (Önce "İzni Ver & Kur"a bas ki kanal oluşsun.)
             </p>
           </div>
         )}

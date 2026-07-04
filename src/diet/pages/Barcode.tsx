@@ -554,8 +554,7 @@ export default function Barcode() {
                   </div>
                   {!settings?.apiKey && (
                     <p className="text-[11px] text-slate-400">
-                      Yapay zeka danışması için Ayarlar’dan API anahtarı ekle. Anahtarsız da “Yedim / Vazgeçtim” ile
-                      kaydedebilirsin.
+                      Yapay zeka danışması için Ayarlar’dan API anahtarı ekle. Anahtarsız da “Yedim / Vazgeçtim” ile kaydedebilirsin.
                     </p>
                   )}
                 </>
@@ -565,8 +564,7 @@ export default function Barcode() {
         )}
 
         <p className="text-center text-xs text-slate-400">
-          Veriler ücretsiz Open Food Facts veritabanından gelir. Bazı ürünler eksik olabilir; o zaman barkod numarasını
-          elle deneyebilir ya da fotoğrafla normal "Çek" ekranını kullanabilirsin.
+          Veriler Open Food Facts’ten gelir; bazı ürünler eksik olabilir. O zaman "Çek" ekranından fotoğrafla ekle.
         </p>
       </div>
     </div>

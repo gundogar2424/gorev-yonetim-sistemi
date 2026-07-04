@@ -95,8 +95,7 @@ export default function History() {
         <section className="card p-3 space-y-2">
           <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Diyetisyene Gönder</h3>
           <p className="text-xs text-slate-500">
-            Seçtiğin günün öğünleri, ölçüleri, sağlık verileri ve diyet başarısı gönderilir. Görsel rapor; yemek
-            fotoğraflarını ve başarı grafiğini de içerir.
+            Seçtiğin günün öğün, ölçü, sağlık verisi ve diyet başarısı gönderilir. Görsel rapor yemek fotoğraflarını da içerir.
           </p>
           <input type="date" className="field-input" value={reportDate} onChange={(e) => setReportDate(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
@@ -111,7 +110,7 @@ export default function History() {
             🖼️ Ayrı Gönder
           </button>
           <p className="text-[11px] text-slate-400">
-            “Ayrı ayrı”: her öğün ve spor/sağlık için ayrı, büyük fotoğraflı görseller olarak gönderir (WhatsApp’ta 3-4 foto).
+            Her öğün ve sağlık verisi için ayrı, büyük fotoğraflı görsel gönderir.
           </p>
           {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
         </section>

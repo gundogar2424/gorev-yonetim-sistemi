@@ -146,8 +146,7 @@ export default function Labs() {
         <section className="card p-4 space-y-2">
           <p className="text-xs text-slate-500">
             Tahlilinin fotoğrafını veya PDF’ini yükle; yapay zeka metne çevirip <b>hafızasında tutar</b>. Sonra
-            “Sağlığımı Değerlendir” ile <b>tahlil + şeker/tansiyon + ilaçların + rahatsızlıkların</b> birlikte
-            değerlendirilip uyarılar verilir. <i>(Yapay zeka kullanır — token harcar.)</i>
+            “Sağlığımı Değerlendir” tahlil + şeker/tansiyon + ilaç ve rahatsızlıklarını birlikte değerlendirir.
           </p>
           <button onClick={() => fileRef.current?.click()} disabled={!!busy || !hasKey} className="btn-primary w-full">
             {busy === 'Tahlil okunuyor…' ? 'Okunuyor…' : '📄 Tahlil Yükle (Foto / PDF)'}
