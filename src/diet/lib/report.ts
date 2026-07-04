@@ -161,17 +161,13 @@ export function buildMealText(e: DietEntry, userName?: string): string {
     month: 'long',
     year: 'numeric'
   })
+  // Diyetisyene tekli gonderimde SADE: yalnizca urunun aciklamasi (+varsa
+  // gramaji). Kalori/uyum/puan/degerlendirme yazma — yorumu diyetisyen yapar.
   const lines: string[] = []
   lines.push(`🍽️ ${e.mealType ? mealLabel(e.mealType) : 'ÖĞÜN'}`)
   lines.push(`📅 ${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`)
   lines.push(SEP)
-  lines.push(`${e.foodName} — ~${e.estimatedCalories} kcal`)
-  lines.push(`Karar: ${TR_DECISION[e.decision] ?? ''}`)
-  if (e.compliancePercent >= 0) lines.push(`Diyet listesine uyum: %${e.compliancePercent}${e.complianceNote ? ` — ${e.complianceNote}` : ''}`)
-  if (e.satiety) lines.push(`Tokluk: ${e.satiety}/10`)
-  if (e.verdict?.trim()) lines.push(`Değerlendirme: ${e.verdict.trim()}`)
-  if (e.scoreReason?.trim()) lines.push(`Puan notu: ${e.scoreReason.trim()}`)
-  if (e.healthierAlternative?.trim()) lines.push(`Daha sağlıklı alternatif: ${e.healthierAlternative.trim()}`)
+  lines.push(e.foodName)
   lines.push(SEP)
   lines.push('Diyet Koçu uygulamasından gönderildi')
   return lines.join('\n')

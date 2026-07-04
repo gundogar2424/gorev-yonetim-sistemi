@@ -666,34 +666,17 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   const contentW = W - 2 * PAD
   const innerW = contentW - 48 // beyaz kart ic genisligi (2*24 padding)
 
-  // Yazi bloklarini onceden olc (satirlara bol)
+  // Diyetisyene tekli gonderimde SADE tut: yalnizca urunun aciklamasi (+varsa
+  // gramaji). Kalori/uyum/puan/degerlendirme YOK — diyetisyenin isine karisma.
   mctx.font = 'bold 34px sans-serif'
   const nameLines = wrapText(mctx, e.foodName || 'Öğün', innerW)
-
-  // Etiketli metin bloklari (verdict / uyum notu / puan nedeni / alternatif)
-  const blocks: { label: string; lines: string[] }[] = []
-  const addBlock = (label: string, text?: string) => {
-    if (!text || !text.trim()) return
-    mctx.font = '21px sans-serif'
-    blocks.push({ label, lines: wrapText(mctx, text.trim(), innerW - 8) })
-  }
-  addBlock('📝 Değerlendirme', e.verdict)
-  if (e.compliancePercent >= 0) addBlock('📋 Diyet listesine uyum', e.complianceNote)
-  addBlock('⭐ Puan notu', e.scoreReason)
-  addBlock('🥗 Daha sağlıklı alternatif', e.healthierAlternative)
 
   const BANNER = 88
   const PHOTO_H = img ? 420 : 180
   const NAME_LH = 42
-  const CHIP_ROW = 40
 
-  // Bilgi kart yuksekligi
-  let infoH = 24 // ust pad
-  infoH += nameLines.length * NAME_LH
-  infoH += 34 // saat · kalori satiri
-  infoH += CHIP_ROW // rozetler
-  for (const b of blocks) infoH += 30 + b.lines.length * 27 + 10
-  infoH += 16 // alt pad
+  // Bilgi kart yuksekligi: sadece ad satirlari + pad
+  const infoH = 28 + nameLines.length * NAME_LH + 20
 
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -747,51 +730,16 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   }
   y += PHOTO_H + 18
 
-  // Bilgi karti
+  // Bilgi karti: yalnizca urunun aciklamasi (+varsa gramaji)
   fillRound(ctx, PAD, y, contentW, infoH, 20, '#ffffff')
   const cx = PAD + 24
-  let cy = y + 24
-  // Ad
+  let cy = y + 28
   ctx.fillStyle = '#0f172a'
   ctx.font = 'bold 34px sans-serif'
   for (const ln of nameLines) {
     cy += NAME_LH - 8
     ctx.fillText(ln, cx, cy)
     cy += 8
-  }
-  // Saat · kalori
-  ctx.fillStyle = '#64748b'
-  ctx.font = '20px sans-serif'
-  cy += 26
-  ctx.fillText(`${t}  ·  ~${e.estimatedCalories} kcal`, cx, cy)
-  cy += 20
-  // Rozetler
-  let chipX = cx
-  const dec = DEC_STYLE[e.decision] ?? DEC_STYLE.none
-  chipX += drawChip(ctx, chipX, cy, dec.t, dec.bg, dec.fg) + 8
-  if (e.compliancePercent >= 0) {
-    const pct = e.compliancePercent
-    const bg = pct >= 80 ? '#d1fae5' : pct >= 50 ? '#fef3c7' : '#fee2e2'
-    const fg = pct >= 80 ? '#065f46' : pct >= 50 ? '#92400e' : '#991b1b'
-    chipX += drawChip(ctx, chipX, cy, `✓ Uyum %${pct}`, bg, fg) + 8
-  }
-  if (e.satiety) chipX += drawChip(ctx, chipX, cy, `🍽️ Tokluk ${e.satiety}/10`, '#e0f2fe', '#075985') + 8
-  if (e.dietScore) drawChip(ctx, chipX, cy, `⭐ ${e.dietScore}/10`, '#fef9c3', '#854d0e')
-  cy += CHIP_ROW - 12
-
-  // Etiketli bloklar
-  for (const b of blocks) {
-    cy += 30
-    ctx.fillStyle = '#0f766e'
-    ctx.font = 'bold 18px sans-serif'
-    ctx.fillText(b.label, cx, cy)
-    ctx.fillStyle = '#334155'
-    ctx.font = '21px sans-serif'
-    for (const ln of b.lines) {
-      cy += 27
-      ctx.fillText(ln, cx, cy)
-    }
-    cy += 10
   }
 
   // Alt bilgi
