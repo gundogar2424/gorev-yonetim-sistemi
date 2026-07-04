@@ -66,10 +66,12 @@ export async function shareImageSmart(blob: Blob, filename: string): Promise<Sha
       const base64 = await blobToBase64(blob)
       await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache })
       const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache })
-      // NOT: WhatsApp'a gorselle birlikte title/text GONDERILMEZ — metinle
-      // birlikte gonderilince ilk denemede gorseli iliştirmeyip metni gonderiyor
-      // (kullanici cikip tekrar deneyince gidiyordu). Sadece dosya + dialogTitle.
-      await Share.share({ url: uri, dialogTitle: 'Diyetisyene gönder' })
+      // Dosyanin FileProvider uzerinden hazir olmasi icin minik bekleme (bazi
+      // cihazlarda ilk paylasimda dosya henuz erisilebilir olmuyordu).
+      await new Promise((r) => setTimeout(r, 120))
+      // WhatsApp'ta tek dosyayi 'url' ile gondermek ilk denemede iliştirmiyordu;
+      // coklu-dosya API'si (files[]) tek dosyada da daha guvenilir. title/text YOK.
+      await Share.share({ files: [uri], dialogTitle: 'Diyetisyene gönder' })
       return 'shared'
     } catch (err) {
       return isCancel(err) ? 'cancelled' : 'failed'

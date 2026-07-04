@@ -1811,6 +1811,7 @@ function SatietyPrompt({ entries }: { entries: DietEntry[] }) {
       (e) =>
         e.decision === 'ate' &&
         e.satiety == null &&
+        !e.satietySkipped &&
         !isBeverage(e.foodName) &&
         now - e.createdAt >= 30 * 60_000 &&
         now - e.createdAt < 2 * 86_400_000
@@ -1821,6 +1822,9 @@ function SatietyPrompt({ entries }: { entries: DietEntry[] }) {
   async function set(id: number, v: number) {
     await dietDb.entries.update(id, { satiety: v })
   }
+  async function skip(id: number) {
+    await dietDb.entries.update(id, { satietySkipped: true })
+  }
 
   return (
     <div className="card p-4 bg-sky-50 border-sky-200 space-y-2.5">
@@ -1830,6 +1834,14 @@ function SatietyPrompt({ entries }: { entries: DietEntry[] }) {
           <div className="flex items-center gap-2">
             {e.photo && <img src={e.photo} alt={e.foodName} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />}
             <p className="text-sm font-semibold text-slate-700 flex-1 min-w-0 truncate">{e.foodName}</p>
+            <button
+              onClick={() => skip(e.id!)}
+              className="text-slate-400 hover:text-slate-600 text-lg leading-none px-1.5 flex-shrink-0"
+              aria-label="Bu öğün için sorma"
+              title="Bu öğün için sorma"
+            >
+              ×
+            </button>
           </div>
           <div className="flex flex-wrap gap-1">
             {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
