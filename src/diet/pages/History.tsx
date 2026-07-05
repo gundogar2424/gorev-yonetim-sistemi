@@ -3,12 +3,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
 import { computeStats, todayStr, dayAdherence } from '../streak'
-import { mealEmoji, mealLabel } from '../lib/meals'
+import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
 import { buildDailyImage, buildDailyImageSet, buildMealImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
 import { isBeverage } from '../lib/food'
-import type { DietEntry } from '../types'
+import type { DietEntry, MealType } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
   resisted: { text: '💪 Vazgeçti', cls: 'bg-emerald-100 text-emerald-800' },
@@ -164,6 +164,7 @@ export default function History() {
                       )}
                     </div>
                     {e.decision === 'ate' && !isBeverage(e.foodName) && <MealFeedback e={e} />}
+                    <MealEdit e={e} />
                     <MealTimeEdit e={e} />
                     <MealShare e={e} />
                   </div>
@@ -209,6 +210,92 @@ function MealFeedback({ e }: { e: DietEntry }) {
 function toLocalInput(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+// Kaydedilmis bir ogunu DUZENLE: ad, ogun, kalori, makrolar (gozden kacani duzelt).
+function MealEdit({ e }: { e: DietEntry }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState(e.foodName)
+  const [meal, setMeal] = useState<MealType>(e.mealType ?? 'serbest')
+  const [kcal, setKcal] = useState(String(e.estimatedCalories ?? 0))
+  const [p, setP] = useState(String(e.protein ?? 0))
+  const [c, setC] = useState(String(e.carb ?? 0))
+  const [f, setF] = useState(String(e.fat ?? 0))
+
+  function num(v: string): number {
+    const n = Number(v.trim().replace(',', '.'))
+    return isNaN(n) ? 0 : Math.round(n)
+  }
+
+  async function save() {
+    await dietDb.entries.update(e.id!, {
+      foodName: name.trim() || e.foodName,
+      mealType: meal,
+      estimatedCalories: num(kcal),
+      protein: num(p),
+      carb: num(c),
+      fat: num(f)
+    })
+    setOpen(false)
+  }
+
+  return (
+    <div className="mt-1">
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="text-[11px] text-slate-400 underline">
+          ✏️ Öğünü düzenle
+        </button>
+      ) : (
+        <div className="space-y-1.5 bg-slate-50 rounded-xl p-2 mt-1">
+          <input
+            className="field-input py-1 text-sm"
+            placeholder="Yemek adı"
+            value={name}
+            onChange={(ev) => setName(ev.target.value)}
+          />
+          <div className="flex flex-wrap gap-1">
+            {MEAL_OPTIONS.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setMeal(m.value)}
+                className={`text-[11px] font-semibold rounded-full px-2 py-1 ${
+                  meal === m.value ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-600'
+                }`}
+              >
+                {m.emoji} {m.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            <label className="text-[10px] text-slate-500">
+              Kalori
+              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={kcal} onChange={(ev) => setKcal(ev.target.value)} />
+            </label>
+            <label className="text-[10px] text-slate-500">
+              Prot.
+              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={p} onChange={(ev) => setP(ev.target.value)} />
+            </label>
+            <label className="text-[10px] text-slate-500">
+              Karb.
+              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={c} onChange={(ev) => setC(ev.target.value)} />
+            </label>
+            <label className="text-[10px] text-slate-500">
+              Yağ
+              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={f} onChange={(ev) => setF(ev.target.value)} />
+            </label>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button onClick={save} className="text-xs font-bold bg-brand-600 text-white rounded-full px-3 py-1">
+              Kaydet
+            </button>
+            <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
+              kapat
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // Kaydedilmis bir ogunun TARIH/SAATini sonradan duzenle (gec girilen ogun icin)
