@@ -963,17 +963,16 @@ export async function buildMeasurementsImage(days: number, userName?: string): P
 export async function buildLatestMeasurementImage(userName?: string): Promise<Blob> {
   const measAll = await dietDb.measurements.orderBy('createdAt').toArray()
 
-  // Her alan icin: en guncel deger + tarihi + bir onceki deger (kiyas)
+  // Her alan icin SADECE en guncel deger (yorum/degisim yok — sade ve buyuk)
   const rows = MEASURE_FIELDS_IMG.map((f) => {
     const withVal = measAll.filter((m) => typeof m[f.key] === 'number')
     if (!withVal.length) return null
     const latest = withVal[withVal.length - 1]
-    const prev = withVal.length >= 2 ? (withVal[withVal.length - 2][f.key] as number) : null
-    return { f, val: latest[f.key] as number, dateStr: latest.dateStr, prev }
+    return { f, val: latest[f.key] as number, dateStr: latest.dateStr }
   }).filter((r): r is NonNullable<typeof r> => !!r)
 
   const BANNER = 96
-  const ROW_H = 78
+  const ROW_H = 92
   const ROW_GAP = 12
   const cardTop = PAD + BANNER + 20
   const cardH = rows.length ? 22 + rows.length * (ROW_H + ROW_GAP) + 10 : 90
@@ -1030,37 +1029,20 @@ export async function buildLatestMeasurementImage(userName?: string): Promise<Bl
     // renkli nokta
     ctx.fillStyle = r.f.color
     ctx.beginPath()
-    ctx.arc(rowX + 12, cy, 9, 0, Math.PI * 2)
+    ctx.arc(rowX + 13, cy, 10, 0, Math.PI * 2)
     ctx.fill()
-    // etiket + tarih
-    ctx.fillStyle = '#0f172a'
-    ctx.font = 'bold 27px sans-serif'
-    ctx.fillText(r.f.label, rowX + 36, cy - 2)
-    ctx.fillStyle = '#94a3b8'
-    ctx.font = '17px sans-serif'
-    ctx.fillText(shortD(r.dateStr), rowX + 36, cy + 24)
-    // deger (sagda, buyuk)
-    ctx.textAlign = 'right'
+    // etiket + tarih (buyuk yazi)
     ctx.fillStyle = '#0f172a'
     ctx.font = 'bold 34px sans-serif'
-    const valStr = `${r.val}${r.f.unit}`
-    ctx.fillText(valStr, rowX + rowW, cy + 2)
-    // degisim rozeti (deger yazisinin altinda)
-    if (r.prev != null) {
-      const diff = Math.round((r.val - r.prev) * 10) / 10
-      const arrow = diff === 0 ? '→' : diff < 0 ? '↓' : '↑'
-      const sign = diff > 0 ? '+' : ''
-      const txt = `${arrow} ${sign}${diff}${r.f.unit}`
-      // azalma = yesil (iyi), artis = kirmizi, ayni = gri
-      const col = diff === 0 ? '#64748b' : diff < 0 ? '#059669' : '#e11d48'
-      ctx.font = 'bold 17px sans-serif'
-      const tw = ctx.measureText(txt).width
-      ctx.textAlign = 'left'
-      const chipX = rowX + rowW - tw - 20
-      fillRound(ctx, chipX, cy + 12, tw + 20, 26, 13, diff === 0 ? '#f1f5f9' : diff < 0 ? '#ecfdf5' : '#fef2f2')
-      ctx.fillStyle = col
-      ctx.fillText(txt, chipX + 10, cy + 30)
-    }
+    ctx.fillText(r.f.label, rowX + 42, cy - 2)
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '19px sans-serif'
+    ctx.fillText(shortD(r.dateStr), rowX + 42, cy + 26)
+    // deger (sagda, cok buyuk)
+    ctx.textAlign = 'right'
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 46px sans-serif'
+    ctx.fillText(`${r.val}${r.f.unit}`, rowX + rowW, cy + 12)
     ctx.textAlign = 'left'
     y += ROW_H + ROW_GAP
   })
