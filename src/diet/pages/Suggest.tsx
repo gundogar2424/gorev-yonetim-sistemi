@@ -371,38 +371,46 @@ function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
   const band = PALETTE[index % PALETTE.length]
   const [added, setAdded] = useState(false)
   const [mealType, setMealType] = useState<MealType>(guessMeal())
-  const [picking, setPicking] = useState(false)
+  const [changing, setChanging] = useState(false)
+  const [err, setErr] = useState('')
 
-  // Bu oneriyi "yedim" olarak gunluge isle (kalori + makrolar)
+  // Bu oneriyi "yedim" olarak gunluge isle (kalori + makrolar). TEK DOKUNUS:
+  // tahmini ogune ekler; sonra istersen ogunu degistirirsin. Hata olursa gosterir.
   async function eat(mt: MealType) {
-    const detail = s.items.map((it) => `${it.name} ${it.grams}g`).join(', ')
-    await dietDb.entries.add({
-      foodFound: true,
-      foodName: detail ? `${s.title} (${detail})` : s.title,
-      healthy: true,
-      riskLevel: 'düşük',
-      estimatedCalories: s.calories,
-      protein: s.protein,
-      carb: s.carb,
-      fat: s.fat,
-      dietScore: 0,
-      scoreReason: '',
-      harms: [],
-      motivations: [],
-      healthierAlternative: '',
-      verdict: s.reason || `Ne Yesem önerisi: ${s.title}`,
-      compliancePercent: -1,
-      complianceNote: '',
-      cravingPortion: '',
-      cravingNote: '',
-      photo: '',
-      decision: 'ate',
-      mealType: mt,
-      createdAt: Date.now(),
-      dateStr: todayStr()
-    })
-    setPicking(false)
-    setAdded(true)
+    try {
+      const detail = (s.items ?? []).map((it) => `${it.name} ${it.grams}g`).join(', ')
+      await dietDb.entries.add({
+        foodFound: true,
+        foodName: detail ? `${s.title} (${detail})` : s.title,
+        healthy: true,
+        riskLevel: 'düşük',
+        estimatedCalories: s.calories || 0,
+        protein: s.protein || 0,
+        carb: s.carb || 0,
+        fat: s.fat || 0,
+        dietScore: 0,
+        scoreReason: '',
+        harms: [],
+        motivations: [],
+        healthierAlternative: '',
+        verdict: s.reason || `Ne Yesem önerisi: ${s.title}`,
+        compliancePercent: -1,
+        complianceNote: '',
+        cravingPortion: '',
+        cravingNote: '',
+        photo: '',
+        decision: 'ate',
+        mealType: mt,
+        createdAt: Date.now(),
+        dateStr: todayStr()
+      })
+      setMealType(mt)
+      setChanging(false)
+      setErr('')
+      setAdded(true)
+    } catch {
+      setErr('Günlüğe eklenemedi, lütfen tekrar dene.')
+    }
   }
 
   return (
@@ -434,37 +442,36 @@ function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
 
         {s.reason && <p className="text-sm text-slate-600 leading-snug bg-slate-50 rounded-xl p-2.5">{s.reason}</p>}
 
-        {/* Bunu yedim -> gunluge isle */}
+        {/* Bunu yedim -> TEK DOKUNUSLA gunluge isle (tahmini ogune), sonra degistirilebilir */}
         {added ? (
-          <p className="text-sm font-bold text-emerald-700 text-center">✓ Günlüğe eklendi ({mealLabel(mealType)})</p>
-        ) : !picking ? (
-          <button onClick={() => setPicking(true)} className="btn-primary w-full">
+          <div className="text-center space-y-1.5">
+            <p className="text-sm font-bold text-emerald-700">✓ Günlüğe eklendi ({mealLabel(mealType)})</p>
+            {!changing ? (
+              <button onClick={() => setChanging(true)} className="text-xs text-slate-400 underline">
+                öğünü değiştir
+              </button>
+            ) : (
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                {MEAL_OPTIONS.map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => void eat(m.value)}
+                    className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
+                      mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {m.emoji} {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <button onClick={() => void eat(mealType)} className="btn-primary w-full">
             😋 Bunu yedim (günlüğe ekle)
           </button>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Hangi öğün?</p>
-            <div className="flex flex-wrap gap-1.5">
-              {MEAL_OPTIONS.map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => {
-                    setMealType(m.value)
-                    void eat(m.value)
-                  }}
-                  className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
-                    mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {m.emoji} {m.label}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setPicking(false)} className="text-xs text-slate-400 underline">
-              vazgeç
-            </button>
-          </div>
         )}
+        {err && <p className="text-xs text-rose-600 text-center mt-1">{err}</p>}
       </div>
     </div>
   )
