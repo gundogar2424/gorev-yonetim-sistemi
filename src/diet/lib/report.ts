@@ -256,51 +256,47 @@ export async function buildMeasurementsReport(days: number, userName?: string): 
   return lines.join('\n')
 }
 
-// Diyetisyene SADECE en son ölçümü gönder: en son günün en son ölçüm kaydı.
-// Her alan için (varsa) bir önceki değerle kıyas da eklenir — trend görünsün.
+// Diyetisyene son ölçümleri gönder: KİLO DAHİL her ölçünün en güncel değeri.
+// (Kilo başka gün, bel başka gün girilmiş olabilir; her biri için en son
+// kayıtlı değeri alırız — böylece kilo her zaman dahil olur.) Her alanda bir
+// önceki değerle kıyas da eklenir — trend görünsün.
 export async function buildLatestMeasurementReport(userName?: string): Promise<string> {
   const measAll = await dietDb.measurements.orderBy('createdAt').toArray()
-  const last = measAll[measAll.length - 1]
 
   const lines: string[] = []
-  lines.push('📐 SON ÖLÇÜM')
+  lines.push('📐 SON ÖLÇÜLER')
   if (userName) lines.push(`Kişi: ${userName}`)
+  lines.push('')
 
-  if (!last) {
-    lines.push('')
+  if (!measAll.length) {
     lines.push('  (henüz ölçüm kaydı yok)')
     lines.push('')
     lines.push('— Diyet Koçu uygulamasından gönderildi')
     return lines.join('\n')
   }
 
-  const dateNice = new Date(last.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
-  lines.push(`Tarih: ${dateNice}`)
-  lines.push('')
+  const shortD = (dateStr: string) =>
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
 
   let any = false
   for (const f of MEASURE_FIELDS) {
-    if (typeof last[f.key] !== 'number') continue
+    // Bu alanı içeren kayıtlar, eskiden yeniye
+    const withVal = measAll.filter((m) => typeof m[f.key] === 'number')
+    if (!withVal.length) continue
     any = true
-    const val = last[f.key] as number
-    // Bu kayıttan önceki, aynı alanı içeren en yakın ölçüm (kıyas için)
-    const prev = [...measAll].reverse().find((m) => m.createdAt < last.createdAt && typeof m[f.key] === 'number')
-    if (prev) {
-      const pv = prev[f.key] as number
-      const diff = Math.round((val - pv) * 10) / 10
+    const latest = withVal[withVal.length - 1]
+    const val = latest[f.key] as number
+    const prev = withVal.length >= 2 ? (withVal[withVal.length - 2][f.key] as number) : null
+    if (prev != null) {
+      const diff = Math.round((val - prev) * 10) / 10
       const arrow = diff === 0 ? '→' : diff < 0 ? '↓' : '↑'
       const sign = diff > 0 ? '+' : ''
-      lines.push(`  • ${f.label}: ${val}${f.unit}  (önceki ${pv}${f.unit} · ${arrow} ${sign}${diff}${f.unit})`)
+      lines.push(`  • ${f.label}: ${val}${f.unit} (${shortD(latest.dateStr)})  · önceki ${prev}${f.unit} ${arrow} ${sign}${diff}${f.unit}`)
     } else {
-      lines.push(`  • ${f.label}: ${val}${f.unit}`)
+      lines.push(`  • ${f.label}: ${val}${f.unit} (${shortD(latest.dateStr)})`)
     }
   }
-  if (!any) lines.push('  (bu kayıtta ölçü değeri yok)')
+  if (!any) lines.push('  (ölçü değeri yok)')
   lines.push('')
   lines.push('— Diyet Koçu uygulamasından gönderildi')
   return lines.join('\n')
