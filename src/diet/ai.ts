@@ -236,7 +236,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
             },
             {
               type: 'text',
-              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}${noteText}`
+              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir. ÖNEMLİ: Aşağıdaki bilgide yemeğin TAMAMININ yenmediği/bir kısmının bırakıldığı belirtiliyorsa (örn. "yarısını yedim", "üçte birini bıraktım", "birkaç kaşık yedim"), kaloriyi ve makroyu SADECE YENEN miktara göre hesapla, tabaktaki tümüne göre değil; foodName'de de ne kadar yendiğini belirt.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}${noteText}`
             }
           ]
         }
@@ -1585,6 +1585,7 @@ export async function mealClarifyChat(opts: {
   const system = `Sen "Diyet Koçu"sun. Kullanıcı bir yemek fotoğrafı çekti. GÖREVİN: fotoğrafı incele, ne gördüğünü KISACA söyle, sonra kalori/makro tahmininde EMİN OLAMADIĞIN veya yanlış yapabileceğin şeyleri kullanıcıya SOR ve birlikte netleştir.
 Kurallar:
 - Aynı anda en fazla 2-3 KISA soru sor (porsiyon/gramaj, pişirme yağı/tereyağı, şeker/tatlandırıcı, sos, görünmeyen malzemeler, içecek şekerli mi vb.).
+- MUTLAKA şunu da sor: "Bu tabağın TAMAMINI mı yedin, yoksa bir kısmını mı bıraktın? Ne kadarını yedin (örn. hepsi / yarısı / çoğu / birkaç kaşık)?" — çünkü kalori yalnızca YENEN miktara göre hesaplanacak.
 - HENÜZ kalori/makro/puan VERME; önce yeterince netleştir.
 - Kullanıcı cevapladıkça kısaca "anladım" diye teyit et; belirsizlik sürüyorsa 1-2 soru daha sor.
 - Yeterince netleştiğinde şunu yaz: "Netleşti 👍 Hazırsan aşağıdan 'Onayla ve hesapla'ya bas."
