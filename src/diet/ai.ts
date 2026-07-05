@@ -651,6 +651,7 @@ export async function suggestMeal(opts: {
   apiKey: string
   photoDataUrl?: string
   photoDataUrls?: string[] // birden fazla foto (masa/farkli yemekler/coklu sayfa)
+  note?: string // kullanicinin dogruladigi/duzelttigi urun listesi (sohbetten)
   model?: string
   userName?: string
   goal?: string
@@ -658,7 +659,7 @@ export async function suggestMeal(opts: {
   dietitianNotes?: string
   health?: string
 }): Promise<MealAdvice> {
-  const { apiKey, photoDataUrl, photoDataUrls, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  const { apiKey, photoDataUrl, photoDataUrls, note, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const sources = (photoDataUrls?.length ? photoDataUrls : photoDataUrl ? [photoDataUrl] : [])
   const imgs = sources.map((u) => splitDataUrl(u)).filter((v): v is NonNullable<typeof v> => !!v)
@@ -670,6 +671,9 @@ export async function suggestMeal(opts: {
   const ctxText = ctx.length ? `\n\nKullanıcı bağlamı: ${ctx.join(' ')}` : ''
   const planText = dietPlan?.trim()
     ? `\n\nDİYET LİSTEM (önerileri buna uydur):\n${dietPlan.trim()}`
+    : ''
+  const noteText = note?.trim()
+    ? `\n\nKULLANICININ DOĞRULADIĞI/DÜZELTTİĞİ ÜRÜNLER (fotoğraf üzerine konuştuk; ELDE OLAN ürünler KESİN olarak bunlardır — önerini bunlara göre yap, kullanıcının olmadığını söylediği şeyi kullanma, eklediğini dahil et):\n${note.trim()}`
     : ''
 
   const client = await createClient(apiKey)
@@ -688,7 +692,7 @@ export async function suggestMeal(opts: {
             })),
             {
               type: 'text',
-              text: `Elimde bunlar var${imgs.length > 1 ? ` (${imgs.length} fotoğrafa da bak — masadaki/farklı fotoğraflardaki tüm ürünleri birlikte değerlendir)` : ''}. Bunlardan diyetime uygun ne yapıp ne kadar yiyebilirim? Gramaj ve makro (protein/karbonhidrat/yağ) ver.${ctxText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}`
+              text: `Elimde bunlar var${imgs.length > 1 ? ` (${imgs.length} fotoğrafa da bak — masadaki/farklı fotoğraflardaki tüm ürünleri birlikte değerlendir)` : ''}. Bunlardan diyetime uygun ne yapıp ne kadar yiyebilirim? Gramaj ve makro (protein/karbonhidrat/yağ) ver.${noteText}${ctxText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}`
             }
           ]
         }
@@ -1548,6 +1552,63 @@ Kurallar:
   const firstContent = [
     ...(img ? [{ type: 'image' as const, source: { type: 'base64' as const, media_type: img.mediaType as 'image/jpeg', data: img.base64 } }] : []),
     { type: 'text' as const, text: 'Bu yemeği çektim. Fotoğrafa bak; ne gördüğünü söyle ve kalori/makro için netleştirmen gerekenleri bana sor. Henüz sayı verme.' }
+  ]
+  const messages = [
+    { role: 'user' as const, content: firstContent },
+    ...history.map((m) => ({ role: m.role, content: m.text }))
+  ]
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({ model, max_tokens: 700, system, messages })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Cevap üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// NE YESEM ÜRÜN NETLEŞTİRME: masadaki/eldeki ürünlerin fotoğraflarına bakar,
+// gördüğü ürünleri LİSTELER ve kullanıcıya "doğru mu, eksik/yanlış var mı?" diye
+// sorar. Öneri VERMEZ; önce ürün listesi kesinleşir. Fotoğraflar yalnızca ilk
+// turda gönderilir (token tasarrufu). Sonuç: netleşen ürün listesi suggestMeal'e
+// note olarak verilir.
+export async function pantryClarifyChat(opts: {
+  apiKey: string
+  photoDataUrls?: string[]
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+  dietitianNotes?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, photoDataUrls, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  const planText = dietPlan?.trim() ? `\n\nDİYET LİSTESİ (bağlam): ${dietPlan.trim()}` : ''
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcı elindeki/masadaki yemek ve ürünlerin fotoğraflarını çekti; birazdan ona ne yiyeceğini önereceksin. AMA ÖNCE elimizde tam olarak NELER VAR onu netleştir. GÖREVİN: fotoğraflardaki ürünleri KISA bir liste halinde say ("Şunları görüyorum: …") ve kullanıcıya sor: "Doğru mu? Yanlış tanıdığım, eksik ya da fotoğrafta olmayan bir şey var mı? Eklemek istediğin ürün var mı?".
+Kurallar:
+- HENÜZ öneri/gramaj/kalori VERME. Önce ürün listesini kesinleştir.
+- Kullanıcı düzeltince güncel listeyi kısaca teyit et; hâlâ belirsizse tek bir soru daha sor.
+- Liste netleşince şunu yaz: "Liste net 👍 Hazırsan 'Öner'e bas."
+- Kısa, samimi, Türkçe. ${ctx.join(' ')}${dietitianText(dietitianNotes)}${planText}${healthText(health)}`
+
+  const sources = photoDataUrls?.length && history.length === 0 ? photoDataUrls : []
+  const imgs = sources.map((u) => splitDataUrl(u)).filter((v): v is NonNullable<typeof v> => !!v)
+  const firstContent = [
+    ...imgs.map((img) => ({
+      type: 'image' as const,
+      source: { type: 'base64' as const, media_type: img.mediaType as 'image/jpeg', data: img.base64 }
+    })),
+    { type: 'text' as const, text: 'Bu ürünleri/masayı çektim. Ne gördüğünü listele ve doğrulamam için sor. Henüz öneri verme.' }
   ]
   const messages = [
     { role: 'user' as const, content: firstContent },

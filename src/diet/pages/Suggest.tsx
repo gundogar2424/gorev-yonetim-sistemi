@@ -5,13 +5,13 @@ import { Capacitor } from '@capacitor/core'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings } from '../db'
 import { buildHealthContext } from '../lib/context'
-import { suggestMeal } from '../ai'
+import { suggestMeal, pantryClarifyChat } from '../ai'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { guessMeal, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { todayStr } from '../streak'
 import type { MealAdvice, MealSuggestion, MealType } from '../types'
 
-type Phase = 'idle' | 'thinking' | 'result'
+type Phase = 'idle' | 'converse' | 'thinking' | 'result'
 const MAX_PHOTOS = 6
 
 export default function Suggest() {
@@ -22,6 +22,10 @@ export default function Suggest() {
   const [photos, setPhotos] = useState<string[]>([])
   const [advice, setAdvice] = useState<MealAdvice | null>(null)
   const [error, setError] = useState('')
+  // Oneri ONCESI urun netlestirme sohbeti (koc gordugunu soyler, kullanici duzeltir)
+  const [clarifyChat, setClarifyChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const [clarifyInput, setClarifyInput] = useState('')
+  const [clarifyBusy, setClarifyBusy] = useState(false)
 
   const hasKey = !!settings?.apiKey
 
@@ -66,7 +70,64 @@ export default function Suggest() {
     setPhotos((prev) => prev.filter((_, idx) => idx !== i))
   }
 
-  async function analyze() {
+  // Önce KOÇ ürünleri doğrulasın: gördüklerini söyler, kullanıcı düzeltir.
+  async function startConverse() {
+    if (!photos.length || !hasKey) return
+    setError('')
+    setClarifyChat([])
+    setClarifyInput('')
+    setPhase('converse')
+    setClarifyBusy(true)
+    try {
+      const reply = await pantryClarifyChat({
+        apiKey: settings!.apiKey!,
+        photoDataUrls: photos,
+        history: [],
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
+      })
+      setClarifyChat([{ role: 'assistant', text: reply }])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setPhase('idle')
+    } finally {
+      setClarifyBusy(false)
+    }
+  }
+
+  async function sendClarify() {
+    const q = clarifyInput.trim()
+    if (!q || clarifyBusy) return
+    const hist = [...clarifyChat, { role: 'user' as const, text: q }]
+    setClarifyChat(hist)
+    setClarifyInput('')
+    setClarifyBusy(true)
+    try {
+      const reply = await pantryClarifyChat({
+        apiKey: settings!.apiKey!,
+        photoDataUrls: photos,
+        history: hist,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
+      })
+      setClarifyChat([...hist, { role: 'assistant', text: reply }])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+    } finally {
+      setClarifyBusy(false)
+    }
+  }
+
+  // Öneri üret. note = doğrulanan ürün listesi (sohbetten). Boş da olabilir.
+  async function runSuggest(note?: string) {
     if (!photos.length) return
     setError('')
     setAdvice(null)
@@ -75,6 +136,7 @@ export default function Suggest() {
       const res = await suggestMeal({
         apiKey: settings!.apiKey!,
         photoDataUrls: photos,
+        note,
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
@@ -86,8 +148,13 @@ export default function Suggest() {
       setPhase('result')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
-      setPhase('idle')
+      setPhase(clarifyChat.length ? 'converse' : 'idle')
     }
+  }
+
+  function finalizeSuggest() {
+    const transcript = clarifyChat.map((m) => `${m.role === 'assistant' ? 'Koç' : 'Ben'}: ${m.text}`).join('\n')
+    void runSuggest(transcript || undefined)
   }
 
   function reset() {
@@ -95,6 +162,9 @@ export default function Suggest() {
     setPhotos([])
     setAdvice(null)
     setError('')
+    setClarifyChat([])
+    setClarifyInput('')
+    setClarifyBusy(false)
   }
 
   return (
@@ -154,8 +224,8 @@ export default function Suggest() {
             </div>
 
             {photos.length > 0 && (
-              <button onClick={analyze} disabled={!hasKey} className="btn-primary w-full">
-                ✨ Öner ({photos.length} foto)
+              <button onClick={startConverse} disabled={!hasKey} className="btn-primary w-full">
+                ✨ Devam ({photos.length} foto)
               </button>
             )}
 
@@ -166,6 +236,68 @@ export default function Suggest() {
                 İpucu: Ayarlar'a diyet listeni eklersen öneriler listene göre kişiselleşir.
               </p>
             )}
+          </div>
+        )}
+
+        {/* Öneri ÖNCESİ: koç gördüğü ürünleri söyler, kullanıcı doğrular/düzeltir */}
+        {phase === 'converse' && (
+          <div className="card p-4 space-y-3">
+            {photos.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {photos.map((p, i) => (
+                  <img key={i} src={p} alt={`Foto ${i + 1}`} className="h-16 w-16 rounded-lg object-cover" />
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {clarifyChat.map((m, i) => (
+                <div
+                  key={i}
+                  className={`text-sm rounded-2xl px-3 py-2 whitespace-pre-wrap leading-relaxed ${
+                    m.role === 'assistant'
+                      ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10'
+                      : 'bg-slate-100 text-slate-700 ml-6'
+                  }`}
+                >
+                  {m.role === 'assistant' ? '🧑‍🍳 ' : ''}
+                  {m.text}
+                </div>
+              ))}
+              {clarifyBusy && (
+                <div className="flex items-center gap-2 text-emerald-700 text-sm py-1">
+                  <span className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full" />
+                  <span>Koç bakıyor…</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                className="field-input flex-1"
+                placeholder="Düzelt / ekle: örn. o gördüğün balık, bir de yoğurt var"
+                value={clarifyInput}
+                onChange={(e) => setClarifyInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void sendClarify()
+                }}
+              />
+              <button onClick={sendClarify} disabled={!clarifyInput.trim() || clarifyBusy} className="btn-primary px-3 py-2 disabled:opacity-50">
+                Gönder
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={reset} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2.5">
+                Vazgeç
+              </button>
+              <button onClick={finalizeSuggest} disabled={clarifyBusy} className="btn-primary py-2.5 disabled:opacity-50">
+                ✓ Doğru — öner
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Koç gördüklerini doğrula/düzelt; hazır olunca “Doğru — öner”. İstersen direkt de basabilirsin.
+            </p>
           </div>
         )}
 
