@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, listMedLogsDay, addMedLog, deleteMedLog } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -411,8 +411,11 @@ export default function Capture() {
         {/* Su takibi (ml) */}
         <WaterCard goalMl={settings?.waterGoal ? settings.waterGoal * 200 : 2500} />
 
-        {/* Bugun nasilsin? (moral/his) */}
+        {/* Bugun nasilsin? (moral/his + aclik) */}
         <MoodCheckIn />
+
+        {/* Ilac takibi: yalnizca ayarlarda ilac tanimliysa goster (bos yer kaplamasin) */}
+        {settings?.medications?.trim() && <MedLogCard settings={settings} />}
 
         {/* TEK yapay zeka sohbeti: menu, yarin plani, Z raporu, gun analizi */}
         <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -1069,32 +1072,37 @@ function MoodCheckIn() {
   const today = todayStr()
   const list = useLiveQuery(() => listCheckinsDay(today), [today], []) ?? []
   const [mood, setMood] = useState<number | null>(null)
+  const [hunger, setHunger] = useState<number | null>(null)
   const [note, setNote] = useState('')
   const [flash, setFlash] = useState('')
 
   async function save() {
-    if (mood == null) return
-    await addCheckin(mood, note.trim() || undefined)
+    if (mood == null && hunger == null) return
+    await addCheckin(mood ?? undefined, note.trim() || undefined, hunger ?? undefined)
     setMood(null)
+    setHunger(null)
     setNote('')
     setFlash('Kaydedildi 👍')
     setTimeout(() => setFlash(''), 3000)
   }
 
+  const last = list[list.length - 1]
+
   return (
     <div className="card p-4 space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="section-title">{moodEmoji(list[list.length - 1]?.mood)} Şu an nasılsın?</span>
+        <span className="section-title">{moodEmoji(last?.mood)} Şu an nasılsın?</span>
         {list.length > 0 && <span className="text-xs font-semibold text-slate-500">{list.length} kayıt bugün</span>}
       </div>
 
-      {/* Bugunun his zaman cizelgesi */}
+      {/* Bugunun his/aclik zaman cizelgesi */}
       {list.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {list.map((c) => (
             <span key={c.id} className="chip bg-violet-50 text-violet-800 border border-violet-100">
               {new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}{' '}
-              {moodEmoji(c.mood)} {c.mood ?? ''}
+              {c.mood != null && <>{moodEmoji(c.mood)} {c.mood}</>}
+              {c.hunger != null && <span className="ml-1">🍽️ {c.hunger}</span>}
               <button onClick={() => void deleteCheckin(c.id!)} className="ml-0.5 text-violet-300">
                 ✕
               </button>
@@ -1103,35 +1111,138 @@ function MoodCheckIn() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            onClick={() => setMood(n)}
-            className={`w-7 h-7 rounded-full text-xs font-bold ${
-              mood === n ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'
-            }`}
-          >
-            {n}
-          </button>
-        ))}
+      {/* Moral / ruh hali */}
+      <div>
+        <p className="text-xs font-semibold text-slate-500 mb-1">😊 Moralin (nasıl hissediyorsun?)</p>
+        <div className="flex flex-wrap gap-1">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              onClick={() => setMood(mood === n ? null : n)}
+              className={`w-7 h-7 rounded-full text-xs font-bold ${
+                mood === n ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-400 mt-0.5">1: kötü · 10: harika</p>
       </div>
-      <p className="text-[11px] text-slate-400">1: kötü · 10: harika</p>
 
-      {mood != null && (
+      {/* Aclik — moralden AYRI boyut */}
+      <div>
+        <p className="text-xs font-semibold text-slate-500 mb-1">🍽️ Açlığın (şu an ne kadar açsın?)</p>
+        <div className="flex flex-wrap gap-1">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              onClick={() => setHunger(hunger === n ? null : n)}
+              className={`w-7 h-7 rounded-full text-xs font-bold ${
+                hunger === n ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-400 mt-0.5">1: tok · 10: çok aç</p>
+      </div>
+
+      {(mood != null || hunger != null) && (
         <div className="space-y-1.5">
           <textarea
             className="field-input min-h-[48px]"
-            placeholder="İstersen bir not ekle: örn. öğle yemeğinden sonra enerjim yerinde"
+            placeholder="İstersen not ekle: örn. öğleden 2 saat sonra acıktım, enerjim düştü"
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
           <button onClick={save} className="btn-primary w-full py-2">
-            {moodEmoji(mood)} {mood}/10 olarak kaydet
+            Kaydet{mood != null ? ` · moral ${mood}` : ''}{hunger != null ? ` · açlık ${hunger}` : ''}
           </button>
         </div>
       )}
       {flash && <p className="text-xs font-semibold text-violet-700">{flash}</p>}
+    </div>
+  )
+}
+
+// ILAC TAKIBI: ayarlardaki ilac listesinden secip "aldim" de; ya da elle yaz.
+// Yemekle iliskisi (ac/tok) da isaretlenebilir. AI bunu baglamda gorur.
+function MedLogCard({ settings }: { settings?: DietSettings }) {
+  const today = todayStr()
+  const list = useLiveQuery(() => listMedLogsDay(today), [today], []) ?? []
+  const [custom, setCustom] = useState('')
+  const [flash, setFlash] = useState('')
+
+  // Ayarlardaki ilac metnini virgul/yeni satirdan parcala -> secilebilir cipler
+  const meds = (settings?.medications ?? '')
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 12)
+
+  async function take(name: string, relation?: 'ac' | 'tok' | 'genel') {
+    if (!name.trim()) return
+    await addMedLog(name, relation)
+    setCustom('')
+    setFlash(`${name} · alındı 👍`)
+    setTimeout(() => setFlash(''), 2500)
+  }
+
+  return (
+    <div className="card p-4 space-y-2.5">
+      <span className="section-title">💊 İlaç Takibi</span>
+
+      {/* Bugun alinan ilaclar (saat + iliski) */}
+      {list.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {list.map((m) => (
+            <span key={m.id} className="chip bg-teal-50 text-teal-800 border border-teal-100">
+              {new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · {m.name}
+              {m.relation === 'tok' ? ' (tok)' : m.relation === 'ac' ? ' (aç)' : ''}
+              <button onClick={() => void deleteMedLog(m.id!)} className="ml-0.5 text-teal-300">
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {meds.length > 0 ? (
+        <div className="space-y-1.5">
+          <p className="text-xs text-slate-500">İlacını seç, aldığında dokun:</p>
+          {meds.map((name) => (
+            <div key={name} className="flex items-center gap-1.5">
+              <span className="flex-1 text-sm font-semibold text-slate-700 truncate">{name}</span>
+              <button onClick={() => take(name, 'ac')} className="text-[11px] font-semibold bg-slate-100 text-slate-600 rounded-full px-2 py-1">
+                Aç karnına
+              </button>
+              <button onClick={() => take(name, 'tok')} className="text-[11px] font-semibold bg-teal-600 text-white rounded-full px-2 py-1">
+                Yemekten sonra
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400">
+          İpucu: Ayarlar’a kullandığın ilaçları yazarsan burada tek dokunuşla işaretlersin.
+        </p>
+      )}
+
+      {/* Elle ilac ekle */}
+      <div className="flex items-center gap-1.5">
+        <input
+          className="field-input flex-1"
+          placeholder="Başka ilaç yaz…"
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+        />
+        <button onClick={() => take(custom, 'genel')} disabled={!custom.trim()} className="btn-primary px-3 py-2 disabled:opacity-50">
+          Aldım
+        </button>
+      </div>
+      {flash && <p className="text-xs font-semibold text-teal-700">{flash}</p>}
     </div>
   )
 }

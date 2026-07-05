@@ -15,7 +15,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since30 = todayStr(new Date(Date.now() - 29 * 86_400_000))
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -24,7 +24,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.checkins.where('dateStr').equals(today).sortBy('createdAt'),
     dietDb.cravings.toArray(),
     dietDb.labs.orderBy('createdAt').toArray(),
-    dietDb.daynotes.where('dateStr').equals(today).first()
+    dietDb.daynotes.where('dateStr').equals(today).first(),
+    dietDb.medlogs.where('dateStr').equals(today).sortBy('createdAt'),
+    dietDb.medlogs.orderBy('createdAt').toArray()
   ])
 
   const L: string[] = []
@@ -140,6 +142,36 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const lastMood = checkins.length ? checkins[checkins.length - 1] : undefined
   if (lastMood?.mood != null) bits.push(`son moral ${lastMood.mood}/10${lastMood.note ? ` ("${lastMood.note}")` : ''}`)
   L.push(`Bugün şu ana kadar: ${bits.join(' · ')}.`)
+
+  // Bugunku ACLIK kayitlari (moralden AYRI boyut) — ogun/aktivite ile bag kur.
+  // Ornek: "14:00 açlık 8/10" ama son ogun 11:00 ise porsiyon/protein yetersiz.
+  const hungerToday = checkins.filter((c) => c.hunger != null)
+  if (hungerToday.length) {
+    const hs = hungerToday
+      .map((c) => `${new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} açlık ${c.hunger}/10`)
+      .join(', ')
+    L.push(
+      `Bugünkü AÇLIK kayıtları (1 tok–10 çok aç; moralden ayrı): ${hs}. Yüksek açlık saatlerini son öğünle ve aktiviteyle ilişkilendir; sık erken acıkıyorsa porsiyon/protein/lif önerisi ver.`
+    )
+  }
+
+  // ILAC kullanim kayitlari: bugun alinanlar + son 7 gun duzeni. Ogunle iliskisi
+  // (ac/tok) onemli; ilac yemekten sonra aliniyor mu goruntule.
+  if (medToday.length) {
+    const ms = medToday
+      .map((m) => {
+        const t = new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        const rel = m.relation === 'tok' ? ' (yemekten sonra)' : m.relation === 'ac' ? ' (aç karnına)' : ''
+        return `${t} ${m.name}${rel}`
+      })
+      .join(', ')
+    L.push(`Bugün alınan ilaçlar: ${ms}.`)
+  }
+  const med7 = medAll.filter((m) => m.dateStr >= todayStr(new Date(Date.now() - 6 * 86_400_000)))
+  if (med7.length >= 3) {
+    const days = new Set(med7.map((m) => m.dateStr)).size
+    L.push(`Son 7 günde ${med7.length} ilaç kaydı (${days} gün) — düzenliliği ve öğünle ilişkisini değerlendirebilirsin.`)
+  }
 
   // Tokluk dusuk ogun tipleri (son 14 gun) — porsiyon sinyali
   const lowSat = entries.filter((e) => e.dateStr >= since14 && e.decision === 'ate' && e.satiety != null && e.satiety <= 4)

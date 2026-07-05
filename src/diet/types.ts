@@ -197,14 +197,25 @@ export interface DayNote {
   createdAt: number
 }
 
-// Gun ici "nasilsin?" check-in kaydi (gunluk; his/enerji + kisa not)
+// Gun ici "nasilsin?" check-in kaydi (gunluk; his/enerji/aclik + kisa not)
 export interface CheckIn {
   id?: number
   dateStr: string // YYYY-MM-DD
   createdAt: number
-  mood?: number // Genel moral/his 1-10
+  mood?: number // Genel moral/his 1-10 (1 kotu, 10 harika)
   energy?: number // Enerji 1-10 (istege bagli)
+  hunger?: number // O anki ACLIK 1-10 (1 tok, 10 cok ac) — moralden AYRI boyut
   note?: string // Kisa not: bugun nasil hissediyorsun
+}
+
+// Ilac kullanim kaydi: hangi ilaci ne zaman aldigi (orn. yemekten sonra).
+// Zamanla "ilaci duzenli aliyor mu, ogunle iliskisi" gorulur; AI bunu bilir.
+export interface MedLog {
+  id?: number
+  dateStr: string // YYYY-MM-DD
+  createdAt: number // zaman damgasi (saat bu alandan)
+  name: string // ilac adi (ayarlardaki listeden ya da elle)
+  relation?: 'ac' | 'tok' | 'genel' // yemekten once / sonra / farketmez
 }
 
 // Alisveris listesi ogesi

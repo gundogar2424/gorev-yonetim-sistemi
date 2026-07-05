@@ -16,7 +16,8 @@ import type {
   SavedProduct,
   CheckIn,
   Craving,
-  DayNote
+  DayNote,
+  MedLog
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -35,6 +36,7 @@ export class DietCoachDB extends Dexie {
   checkins!: Table<CheckIn, number>
   cravings!: Table<Craving, number>
   daynotes!: Table<DayNote, number>
+  medlogs!: Table<MedLog, number>
 
   constructor() {
     super('diet-coach')
@@ -172,6 +174,25 @@ export class DietCoachDB extends Dexie {
       cravings: '++id, dateStr, createdAt',
       daynotes: '++id, dateStr'
     })
+    // Surum 12: ilac kullanim kayitlari (ne zaman/hangi ilac, ogunle iliskisi)
+    this.version(12).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt',
+      products: '++id, barcode',
+      checkins: '++id, dateStr, createdAt',
+      cravings: '++id, dateStr, createdAt',
+      daynotes: '++id, dateStr',
+      medlogs: '++id, dateStr, createdAt'
+    })
   }
 }
 
@@ -283,10 +304,10 @@ export async function getCheckinDay(dateStr: string): Promise<CheckIn | undefine
 export function listCheckinsDay(dateStr: string): Promise<CheckIn[]> {
   return dietDb.checkins.where('dateStr').equals(dateStr).sortBy('createdAt')
 }
-// Yeni bir his kaydi ekler (her cagrida AYRI kayit; saat damgasiyla)
-export async function addCheckin(mood?: number, note?: string) {
+// Yeni bir his/aclik kaydi ekler (her cagrida AYRI kayit; saat damgasiyla)
+export async function addCheckin(mood?: number, note?: string, hunger?: number) {
   const now = new Date()
-  await dietDb.checkins.add({ dateStr: now.toLocaleDateString('en-CA'), createdAt: Date.now(), mood, note })
+  await dietDb.checkins.add({ dateStr: now.toLocaleDateString('en-CA'), createdAt: Date.now(), mood, note, hunger })
 }
 export async function deleteCheckin(id: number) {
   await dietDb.checkins.delete(id)
@@ -299,6 +320,24 @@ export async function saveCheckinDay(dateStr: string, patch: { mood?: number; en
   const row = await dietDb.checkins.where('dateStr').equals(dateStr).first()
   if (row?.id != null) await dietDb.checkins.update(row.id, patch)
   else await dietDb.checkins.add({ dateStr, createdAt: Date.now(), ...patch })
+}
+
+// ---- Ilac kullanim kayitlari ----
+// Gunun ilac kayitlari (kronolojik)
+export function listMedLogsDay(dateStr: string): Promise<MedLog[]> {
+  return dietDb.medlogs.where('dateStr').equals(dateStr).sortBy('createdAt')
+}
+// Tum ilac kayitlari (baglam/rapor icin)
+export function listMedLogs(): Promise<MedLog[]> {
+  return dietDb.medlogs.orderBy('createdAt').toArray()
+}
+// Bir ilaci "aldim" olarak isaretle (su an; ogunle iliskisi opsiyonel)
+export async function addMedLog(name: string, relation?: MedLog['relation']) {
+  const now = new Date()
+  await dietDb.medlogs.add({ dateStr: now.toLocaleDateString('en-CA'), createdAt: Date.now(), name: name.trim(), relation })
+}
+export async function deleteMedLog(id: number) {
+  await dietDb.medlogs.delete(id)
 }
 
 // ---- Su (ml esasli) ----
