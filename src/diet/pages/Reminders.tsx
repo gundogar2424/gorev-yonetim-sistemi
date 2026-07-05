@@ -102,6 +102,29 @@ export default function Reminders() {
     flash(`Öğrenildi: genelde ${topHour}:00 civarı acıkıyorsun → ${hh}:${mm}'de hatırlatacağım.`)
   }
 
+  // Ilac/seker hapi hatirlatmasi: birden fazla saat (yemek sonralarina gore)
+  async function toggleMed(enabled: boolean) {
+    if (enabled && native && !(await ensurePermission())) {
+      flash('Bildirim izni verilmedi.')
+      return
+    }
+    const times = settings?.medReminderTimes?.length ? settings.medReminderTimes : ['08:30', '20:30']
+    await persist({ medReminderEnabled: enabled, medReminderTimes: times })
+  }
+  async function setMedTime(i: number, time: string) {
+    const times = [...(settings?.medReminderTimes ?? ['08:30', '20:30'])]
+    times[i] = time
+    await persist({ medReminderTimes: times })
+  }
+  async function addMedTime() {
+    const times = [...(settings?.medReminderTimes ?? []), '13:00'].slice(0, 6)
+    await persist({ medReminderTimes: times })
+  }
+  async function removeMedTime(i: number) {
+    const times = (settings?.medReminderTimes ?? []).filter((_, idx) => idx !== i)
+    await persist({ medReminderTimes: times })
+  }
+
   // Genel amacli bildirim ac/kapa + saat (yarin plani, rapor hatirlatma)
   async function toggleFlag(patch: Partial<DietSettings>, enabled: boolean) {
     if (enabled && native && !(await ensurePermission())) {
@@ -291,6 +314,40 @@ export default function Reminders() {
               <p className="text-xs font-semibold text-emerald-700">
                 Öğrenilen saat: {settings.smartHungerReminderTime} · yeni veri girdikçe tekrar aç/kapat, güncellensin.
               </p>
+            )}
+          </div>
+        </section>
+
+        {/* Ilac / seker hapi hatirlatmasi (yemekten sonra) */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">💊 İlaç / şeker hapı hatırlatması</h3>
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">İlaçlarını almayı hatırlat</p>
+                <p className="text-xs text-slate-500">
+                  Belirlediğin saatlerde (örn. kahvaltı ve akşam sonrası) her gün “ilacını al” bildirimi gönderir.
+                </p>
+              </div>
+              <Switch on={!!settings?.medReminderEnabled} onClick={() => toggleMed(!settings?.medReminderEnabled)} />
+            </div>
+            {settings?.medReminderEnabled && (
+              <div className="space-y-2">
+                {(settings?.medReminderTimes ?? []).map((t, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-slate-500">
+                    <span>🕒 Saat:</span>
+                    <input type="time" className="field-input w-28" value={t} onChange={(e) => setMedTime(i, e.target.value)} />
+                    <button onClick={() => removeMedTime(i)} className="text-slate-300 hover:text-rose-500 px-1">
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+                {(settings?.medReminderTimes?.length ?? 0) < 6 && (
+                  <button onClick={addMedTime} className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
+                    + Saat ekle
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </section>

@@ -12,6 +12,7 @@ const PLAN_ID = 303 // aksam "yarini planla"
 const REPORT_ID = 304 // aksam "raporu gonder" hatirlatmasi
 const SUGAR_FASTING_ID = 305 // sabah aclik sekeri olcum hatirlatmasi
 const SMART_HUNGER_ID = 306 // ogrenilen aclik saatinden once proaktif ara ogun hatirlatmasi
+const MED_IDS_START = 310 // ilac/seker hapi hatirlatmalari 310..3xx (her saat icin bir tane)
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
 const SUGAR_POSTMEAL_ID = 402 // ogunden 2 saat sonra tok seker olcum hatirlatmasi (tek)
@@ -207,6 +208,26 @@ function smartHungerNotification(time: string) {
   }
 }
 
+// Ilac/seker hapi hatirlatmalari: kullanicinin belirledigi her saatte, her gun.
+// Yemekten sonra alinan ilaclar icin (saatler yemek saatlerine gore ayarlanir).
+function medNotifications(times: string[]) {
+  return times
+    .map((t) => (t || '').trim())
+    .filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+    .slice(0, 6)
+    .map((t, i) => {
+      const [h, m] = t.split(':').map(Number)
+      return {
+        id: MED_IDS_START + i,
+        channelId: CHANNEL_ID,
+        title: '💊 İlaç vakti',
+        body: 'İlaçlarını/şeker hapını almayı unutma. Alınca uygulamadan işaretleyebilirsin.',
+        schedule: { on: { hour: h || 0, minute: m || 0 }, repeats: true, allowWhileIdle: true },
+        extra: { route: '/' }
+      }
+    })
+}
+
 // Bir ogun yenince ~2 saat sonra "tok sekerini olc" bildirimi (tek seferlik).
 // Her yeni ogunde yeniden kurulur (ayni ID en son ogune gore guncellenir).
 export async function scheduleSugarReminder(minutes = 120): Promise<void> {
@@ -302,6 +323,9 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   }
   if (settings.smartHungerReminderEnabled && settings.smartHungerReminderTime) {
     notifications.push(smartHungerNotification(settings.smartHungerReminderTime))
+  }
+  if (settings.medReminderEnabled && settings.medReminderTimes?.length) {
+    notifications.push(...medNotifications(settings.medReminderTimes))
   }
 
   if (notifications.length === 0) return
