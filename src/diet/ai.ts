@@ -1512,3 +1512,56 @@ Genel geçer öğüt VERME; sadece ELDEKİ veriden çıkanı söyle. Veri azsa d
     throw friendlyError(err)
   }
 }
+
+// YEMEK NETLEŞTİRME SOHBETİ: fotoğrafı inceler, ne gördüğünü söyler ve kalori/
+// makro için emin olamadıklarını kullanıcıya SORAR. Henüz sayı vermez; kullanıcı
+// cevapladıkça netleştirir. Foto yalnızca ilk turda gönderilir (token tasarrufu);
+// sonraki turlar metinden devam eder (ilk açıklama geçmişte kalır).
+export async function mealClarifyChat(opts: {
+  apiKey: string
+  photoDataUrl?: string
+  history: { role: 'user' | 'assistant'; text: string }[]
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+  dietitianNotes?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, photoDataUrl, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  const planText = dietPlan?.trim() ? `\n\nDİYET LİSTESİ (bağlam): ${dietPlan.trim()}` : ''
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcı bir yemek fotoğrafı çekti. GÖREVİN: fotoğrafı incele, ne gördüğünü KISACA söyle, sonra kalori/makro tahmininde EMİN OLAMADIĞIN veya yanlış yapabileceğin şeyleri kullanıcıya SOR ve birlikte netleştir.
+Kurallar:
+- Aynı anda en fazla 2-3 KISA soru sor (porsiyon/gramaj, pişirme yağı/tereyağı, şeker/tatlandırıcı, sos, görünmeyen malzemeler, içecek şekerli mi vb.).
+- HENÜZ kalori/makro/puan VERME; önce yeterince netleştir.
+- Kullanıcı cevapladıkça kısaca "anladım" diye teyit et; belirsizlik sürüyorsa 1-2 soru daha sor.
+- Yeterince netleştiğinde şunu yaz: "Netleşti 👍 Hazırsan aşağıdan 'Onayla ve hesapla'ya bas."
+- Kullanıcının söylediğini varsayma, sor; ama gereksiz uzatma. Kısa, samimi, Türkçe. ${ctx.join(' ')}${dietitianText(dietitianNotes)}${planText}${healthText(health)}`
+
+  const img = photoDataUrl && history.length === 0 ? splitDataUrl(photoDataUrl) : null
+  const firstContent = [
+    ...(img ? [{ type: 'image' as const, source: { type: 'base64' as const, media_type: img.mediaType as 'image/jpeg', data: img.base64 } }] : []),
+    { type: 'text' as const, text: 'Bu yemeği çektim. Fotoğrafa bak; ne gördüğünü söyle ve kalori/makro için netleştirmen gerekenleri bana sor. Henüz sayı verme.' }
+  ]
+  const messages = [
+    { role: 'user' as const, content: firstContent },
+    ...history.map((m) => ({ role: m.role, content: m.text }))
+  ]
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({ model, max_tokens: 700, system, messages })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Cevap üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}

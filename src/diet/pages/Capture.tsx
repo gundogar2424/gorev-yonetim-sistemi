@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, listMedLogsDay, addMedLog, deleteMedLog } from '../db'
-import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat } from '../ai'
+import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { scheduleSatietyReminder, scheduleSugarReminder } from '../lib/notify'
@@ -17,7 +17,7 @@ import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
 import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
 
-type Phase = 'idle' | 'preAnalyze' | 'analyzing' | 'result' | 'saved'
+type Phase = 'idle' | 'converse' | 'analyzing' | 'result' | 'saved'
 
 // Bir Date'i yerel <input type="datetime-local"> degerine cevirir (YYYY-MM-DDTHH:mm)
 function toLocalInput(d: Date): string {
@@ -100,7 +100,10 @@ export default function Capture() {
   const [savedDecision, setSavedDecision] = useState<Decision>('none')
   const [mealType, setMealType] = useState<MealType>(guessMeal())
   const [note, setNote] = useState('') // kullanici duzeltmesi (result ekraninda)
-  const [preNote, setPreNote] = useState('') // analizden ONCE eklenen bilgi (icindekiler/porsiyon)
+  // Analiz oncesi koc ile NETLESTIRME sohbeti (foto uzerine konusma)
+  const [clarifyChat, setClarifyChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const [clarifyInput, setClarifyInput] = useState('')
+  const [clarifyBusy, setClarifyBusy] = useState(false)
   const [editing, setEditing] = useState(false) // duzeltme kutusu acik mi
   const [textMode, setTextMode] = useState(false) // fotografsiz, yazarak ekleme
   const [textNote, setTextNote] = useState('') // yazarak ekleme metni
@@ -175,11 +178,75 @@ export default function Capture() {
     } catch {
       // barkod yok / okunamadi -> yemek olarak devam
     }
-    // Hemen yorumlama; önce kullanıcı içerik/porsiyon bilgisi ekleyebilsin.
-    // Böylece yanlış tanıma azalır. İsterse boş bırakıp direkt inceletir.
+    // Hemen yorumlayıp sayı basma; önce KOÇ fotoğrafa bakıp kullanıcıyla
+    // konuşsun, emin olamadıklarını sorsun. Kullanıcı onaylayınca kalori/makro
+    // hesaplanır. İstenirse konuşmadan da direkt hesaplatılabilir.
     setPhoto(dataUrl)
-    setPreNote('')
-    setPhase('preAnalyze')
+    setClarifyChat([])
+    setClarifyInput('')
+    setPhase('converse')
+    void startClarify(dataUrl)
+  }
+
+  // Koç fotoğrafa bakıp ilk gözlemini + sorularını üretir (netleştirme başlar)
+  async function startClarify(dataUrl: string) {
+    setError('')
+    setClarifyBusy(true)
+    try {
+      const reply = await mealClarifyChat({
+        apiKey: settings!.apiKey!,
+        photoDataUrl: dataUrl,
+        history: [],
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
+      })
+      setClarifyChat([{ role: 'assistant', text: reply }])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+    } finally {
+      setClarifyBusy(false)
+    }
+  }
+
+  // Kullanıcı cevap yazar; koç netleştirmeye devam eder (foto tekrar gitmez)
+  async function sendClarify() {
+    const q = clarifyInput.trim()
+    if (!q || clarifyBusy) return
+    const hist = [...clarifyChat, { role: 'user' as const, text: q }]
+    setClarifyChat(hist)
+    setClarifyInput('')
+    setClarifyBusy(true)
+    try {
+      const reply = await mealClarifyChat({
+        apiKey: settings!.apiKey!,
+        photoDataUrl: photo,
+        history: hist,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings)
+      })
+      setClarifyChat([...hist, { role: 'assistant', text: reply }])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+    } finally {
+      setClarifyBusy(false)
+    }
+  }
+
+  // Onayla ve hesapla: konuşmayı + fotoğrafı birlikte gönderip kesin analizi al
+  async function finalizeConversation() {
+    const transcript = clarifyChat.map((m) => `${m.role === 'assistant' ? 'Koç' : 'Ben'}: ${m.text}`).join('\n')
+    const note = transcript
+      ? `Fotoğraf üzerine koçla yaptığım netleştirme konuşması (analizini fotoğrafa VE bu konuşmada netleşen bilgilere göre yap):\n${transcript}`
+      : ''
+    await analyze(photo, note)
   }
 
   // Fotografi (varsa duzeltme notuyla) incele
@@ -314,7 +381,9 @@ export default function Capture() {
     setSavedDecision('none')
     setError('')
     setNote('')
-    setPreNote('')
+    setClarifyChat([])
+    setClarifyInput('')
+    setClarifyBusy(false)
     setEditing(false)
     setTextMode(false)
     setTextNote('')
@@ -530,32 +599,63 @@ export default function Capture() {
           </div>
         )}
 
-        {/* Analizden ÖNCE: kullanıcı içerik/porsiyon bilgisi ekleyebilir (yanlış
-            tanımayı azaltır). Boş bırakıp direkt de inceletebilir. */}
-        {phase === 'preAnalyze' && (
+        {/* Analizden ÖNCE: KOÇ fotoğrafa bakar, ne gördüğünü söyler ve emin
+            olamadıklarını SORAR. Konuşup netleştirince "Onayla ve hesapla" ile
+            kesin kalori/makro çıkar. İstenirse konuşmadan direkt de hesaplanır. */}
+        {phase === 'converse' && (
           <div className="card p-4 space-y-3">
-            {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-72 object-cover" />}
-            <div>
-              <p className="font-semibold text-slate-700 text-sm">Bu yemekle ilgili eklemek istediğin var mı?</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                İçindekiler, pişirme, porsiyon… yazarsan daha doğru tanır. İstemezsen boş bırak.
-              </p>
+            {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-60 object-cover" />}
+
+            {/* Netlestirme sohbeti */}
+            <div className="space-y-2">
+              {clarifyChat.map((m, i) => (
+                <div
+                  key={i}
+                  className={`text-sm rounded-2xl px-3 py-2 whitespace-pre-wrap leading-relaxed ${
+                    m.role === 'assistant'
+                      ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10'
+                      : 'bg-slate-100 text-slate-700 ml-6'
+                  }`}
+                >
+                  {m.role === 'assistant' ? '🧑‍🍳 ' : ''}
+                  {m.text}
+                </div>
+              ))}
+              {clarifyBusy && (
+                <div className="flex items-center gap-2 text-emerald-700 text-sm py-1">
+                  <span className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full" />
+                  <span>Koç bakıyor…</span>
+                </div>
+              )}
             </div>
-            <textarea
-              className="field-input min-h-[64px]"
-              autoFocus
-              placeholder="örn. bulgur pilavı + 1 köfte kadar tavuk, 1 tatlı kaşığı zeytinyağı ile pişti; şekersiz"
-              value={preNote}
-              onChange={(e) => setPreNote(e.target.value)}
-            />
+
+            {/* Cevap yaz */}
+            <div className="flex items-center gap-2">
+              <input
+                className="field-input flex-1"
+                placeholder="Koçun sorusunu yanıtla…"
+                value={clarifyInput}
+                onChange={(e) => setClarifyInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void sendClarify()
+                }}
+              />
+              <button onClick={sendClarify} disabled={!clarifyInput.trim() || clarifyBusy} className="btn-primary px-3 py-2 disabled:opacity-50">
+                Gönder
+              </button>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <button onClick={reset} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2.5">
                 Vazgeç
               </button>
-              <button onClick={() => analyze(photo, preNote.trim())} className="btn-primary py-2.5">
-                🔍 İncele
+              <button onClick={finalizeConversation} disabled={clarifyBusy} className="btn-primary py-2.5 disabled:opacity-50">
+                ✓ Onayla ve hesapla
               </button>
             </div>
+            <p className="text-[11px] text-slate-400">
+              Koçun sorularını yanıtla; netleşince “Onayla ve hesapla”. Konuşmak istemezsen direkt de basabilirsin.
+            </p>
           </div>
         )}
 
