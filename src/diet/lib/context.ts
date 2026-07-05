@@ -15,7 +15,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since30 = todayStr(new Date(Date.now() - 29 * 86_400_000))
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -27,7 +27,8 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.daynotes.where('dateStr').equals(today).first(),
     dietDb.medlogs.where('dateStr').equals(today).sortBy('createdAt'),
     dietDb.medlogs.orderBy('createdAt').toArray(),
-    dietDb.checkins.toArray()
+    dietDb.checkins.toArray(),
+    dietDb.meds.toArray()
   ])
 
   const L: string[] = []
@@ -180,6 +181,30 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     L.push(
       `AÇLIK ÖRÜNTÜSÜ: son 30 günde en çok ${top.join(' ve ')} civarı acıkıyor (yüksek açlık kaydı). Bu saatlerden önce ara öğün/su öner, proaktif davran.`
     )
+  }
+
+  // TANIMLI ILAC/VITAMIN listesi + bugunku uyum (planlanan vs alinan)
+  const activeMeds = medDefs.filter((m) => m.active !== false)
+  if (activeMeds.length) {
+    const todayDow = new Date(today + 'T00:00:00').getDay()
+    const todaysMeds = activeMeds.filter((m) => !m.days || !m.days.length || m.days.includes(todayDow))
+    const defLines = activeMeds.map((m) => {
+      const rel = m.relation === 'tok' ? 'tok' : m.relation === 'ac' ? 'aç' : 'farketmez'
+      const gun = !m.days || !m.days.length ? 'her gün' : m.days.map((d) => ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d]).join(',')
+      return `${m.name} (${m.kind === 'vitamin' ? 'vitamin' : 'ilaç'}, ${rel}, ${gun}, saat ${m.times?.join('/') || '—'})`
+    })
+    L.push(`Düzenli kullandığı ilaç/vitaminler: ${defLines.join('; ')}.`)
+    // Bugun alinmamis dozlar
+    const missing = todaysMeds
+      .filter((m) => {
+        const need = (m.times || []).length || 1
+        const got = medToday.filter((l) => l.medId === m.id).length
+        return got < need
+      })
+      .map((m) => m.name)
+    if (missing.length) {
+      L.push(`Bugün HENÜZ alınmamış görünen ilaç/vitamin: ${missing.join(', ')} — uygunsa nazikçe hatırlat.`)
+    }
   }
 
   // ILAC kullanim kayitlari: bugun alinanlar + son 7 gun duzeni. Ogunle iliskisi

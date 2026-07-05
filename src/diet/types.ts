@@ -214,8 +214,25 @@ export interface MedLog {
   id?: number
   dateStr: string // YYYY-MM-DD
   createdAt: number // zaman damgasi (saat bu alandan)
-  name: string // ilac adi (ayarlardaki listeden ya da elle)
-  relation?: 'ac' | 'tok' | 'genel' // yemekten once / sonra / farketmez
+  name: string // ilac/vitamin adi
+  relation?: 'ac' | 'tok' | 'genel' // ac karnina / yemekten sonra / farketmez
+  medId?: number // hangi tanimli ilaca/vitamine ait (varsa)
+  kind?: 'ilac' | 'vitamin'
+}
+
+// Tanimli ilac/vitamin: adi, turu, ogunle iliskisi, doz saatleri ve gunleri.
+// Bunlardan hem hatirlatmalar, hem gunluk doz listesi, hem uyum raporlari uretilir.
+export interface MedDef {
+  id?: number
+  name: string // orn. "Metformin 1000 mg", "D Vitamini"
+  kind: 'ilac' | 'vitamin'
+  relation?: 'ac' | 'tok' | 'genel' // ac karnina / tok (yemekten sonra) / farketmez
+  times: string[] // gunluk doz saatleri (SS:DD listesi)
+  days?: number[] // haftanin gunleri 0=Paz..6=Cmt; bos/undefined = HER gun
+  reminder: boolean // bu ilac icin bildirim kurulsun mu
+  active: boolean // aktif mi (birakildiysa false)
+  note?: string
+  createdAt: number
 }
 
 // Alisveris listesi ogesi

@@ -2,7 +2,8 @@
 // web'de sessizce devre disidir (tarayici kapaliyken bildirim gonderemez).
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import type { Reminder, DietSettings } from '../types'
+import type { Reminder, DietSettings, MedDef } from '../types'
+import { dietDb } from '../db'
 
 // Bildirim kimlik araliklari (catismayi onlemek icin sabit)
 const WATER_IDS_START = 201 // su hatirlaticilari 201..2xx
@@ -244,6 +245,35 @@ function medNotifications(schedule: { time: string; name?: string }[]) {
     })
 }
 
+// Tanimli ilac/vitaminlerden bildirim uretir: her ilac x her doz saati x
+// (varsa) haftanin gunu. Bildirimde "✓ Aldim" butonu olur.
+function medDefNotifications(meds: MedDef[]): unknown[] {
+  const out: unknown[] = []
+  let id = MED_IDS_START
+  for (const m of meds) {
+    for (const t of m.times || []) {
+      if (!/^\d{1,2}:\d{2}$/.test((t || '').trim())) continue
+      const [h, mi] = t.split(':').map(Number)
+      const days = m.days && m.days.length ? m.days : [null as number | null]
+      for (const d of days) {
+        if (id > MED_IDS_START + 60) return out
+        const on = d == null ? { hour: h, minute: mi } : { weekday: d + 1, hour: h, minute: mi }
+        const rel = m.relation === 'tok' ? ' (yemekten sonra)' : m.relation === 'ac' ? ' (aç karnına)' : ''
+        out.push({
+          id: id++,
+          channelId: CHANNEL_ID,
+          actionTypeId: 'MED',
+          title: m.kind === 'vitamin' ? '💊 Vitamin vakti' : '💊 İlaç vakti',
+          body: `${m.name}${rel} almayı unutma. Aldıysan “✓ Aldım”a dokun.`,
+          schedule: { on, repeats: true, allowWhileIdle: true },
+          extra: { route: '/ilaclarim', med: m.name, medId: m.id }
+        })
+      }
+    }
+  }
+  return out
+}
+
 // Bir ogun yenince ~2 saat sonra "tok sekerini olc" bildirimi (tek seferlik).
 // Her yeni ogunde yeniden kurulur (ayni ID en son ogune gore guncellenir).
 export async function scheduleSugarReminder(minutes = 120): Promise<void> {
@@ -271,16 +301,16 @@ export async function scheduleSugarReminder(minutes = 120): Promise<void> {
 // kaydedilir; bildirim uygulamayi soguk baslatsa bile olay teslim edilir.
 export async function initNotificationNavigation(
   go: (route: string) => void,
-  onMedTaken?: (name: string) => void
+  onMedTaken?: (name: string, medId?: number) => void
 ): Promise<void> {
   if (!isNative()) return
   try {
     await ensureMedActionType()
     await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
-      const extra = event.notification?.extra as { route?: string; med?: string } | undefined
+      const extra = event.notification?.extra as { route?: string; med?: string; medId?: number } | undefined
       // Bildirimdeki "✓ Aldım" butonuna basildiysa ilaci kaydet, sayfaya gitme
       if (event.actionId === 'MED_TAKEN') {
-        onMedTaken?.(extra?.med || 'İlaç')
+        onMedTaken?.(extra?.med || 'İlaç', extra?.medId)
         return
       }
       go(extra?.route ?? '/')
@@ -325,7 +355,7 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   }
 
   const reminders = mergeReminders(settings.reminders)
-  const notifications: ReturnType<typeof mealNotification>[] = []
+  const notifications: unknown[] = []
 
   for (const r of reminders) {
     if (r.enabled) notifications.push(mealNotification({ ...r, lead: r.lead ?? 0 }))
@@ -349,16 +379,23 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   if (settings.smartHungerReminderEnabled && settings.smartHungerReminderTime) {
     notifications.push(smartHungerNotification(settings.smartHungerReminderTime))
   }
-  // Ilac: yeni medSchedule varsa onu kullan; yoksa eski medReminderTimes'i cevir
-  const medSchedule = settings.medSchedule?.length
-    ? settings.medSchedule
-    : (settings.medReminderTimes ?? []).map((t) => ({ time: t, name: '' }))
-  if (settings.medReminderEnabled && medSchedule.length) {
+  // Ilac/vitamin: once tanimli meds tablosundan uret; hic yoksa eski medSchedule'a dus
+  const meds = await dietDb.meds.toArray()
+  const activeMeds = meds.filter((m) => m.active && m.reminder && m.times?.length)
+  if (activeMeds.length) {
     await ensureMedActionType()
-    notifications.push(...medNotifications(medSchedule))
+    notifications.push(...medDefNotifications(activeMeds))
+  } else {
+    const medSchedule = settings.medSchedule?.length
+      ? settings.medSchedule
+      : (settings.medReminderTimes ?? []).map((t) => ({ time: t, name: '' }))
+    if (settings.medReminderEnabled && medSchedule.length) {
+      await ensureMedActionType()
+      notifications.push(...medNotifications(medSchedule))
+    }
   }
 
   if (notifications.length === 0) return
   await ensureChannel()
-  await LocalNotifications.schedule({ notifications })
+  await LocalNotifications.schedule({ notifications: notifications as never })
 }

@@ -17,7 +17,8 @@ import type {
   CheckIn,
   Craving,
   DayNote,
-  MedLog
+  MedLog,
+  MedDef
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -37,6 +38,7 @@ export class DietCoachDB extends Dexie {
   cravings!: Table<Craving, number>
   daynotes!: Table<DayNote, number>
   medlogs!: Table<MedLog, number>
+  meds!: Table<MedDef, number>
 
   constructor() {
     super('diet-coach')
@@ -193,6 +195,26 @@ export class DietCoachDB extends Dexie {
       daynotes: '++id, dateStr',
       medlogs: '++id, dateStr, createdAt'
     })
+    // Surum 13: tanimli ilac/vitamin listesi (doz saatleri, gunler, uyum raporu)
+    this.version(13).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt',
+      products: '++id, barcode',
+      checkins: '++id, dateStr, createdAt',
+      cravings: '++id, dateStr, createdAt',
+      daynotes: '++id, dateStr',
+      medlogs: '++id, dateStr, createdAt, medId',
+      meds: '++id, active, createdAt'
+    })
   }
 }
 
@@ -336,13 +358,38 @@ export function listMedLogsDay(dateStr: string): Promise<MedLog[]> {
 export function listMedLogs(): Promise<MedLog[]> {
   return dietDb.medlogs.orderBy('createdAt').toArray()
 }
-// Bir ilaci "aldim" olarak isaretle (su an; ogunle iliskisi opsiyonel)
-export async function addMedLog(name: string, relation?: MedLog['relation']) {
+// Bir ilaci "aldim" olarak isaretle (su an; ogun iliskisi/tanim opsiyonel)
+export async function addMedLog(
+  name: string,
+  relation?: MedLog['relation'],
+  opts?: { medId?: number; kind?: 'ilac' | 'vitamin' }
+) {
   const now = new Date()
-  await dietDb.medlogs.add({ dateStr: now.toLocaleDateString('en-CA'), createdAt: Date.now(), name: name.trim(), relation })
+  await dietDb.medlogs.add({
+    dateStr: now.toLocaleDateString('en-CA'),
+    createdAt: Date.now(),
+    name: name.trim(),
+    relation,
+    medId: opts?.medId,
+    kind: opts?.kind
+  })
 }
 export async function deleteMedLog(id: number) {
   await dietDb.medlogs.delete(id)
+}
+
+// ---- Tanimli ilac/vitamin (MedDef) ----
+export function listMeds(): Promise<MedDef[]> {
+  return dietDb.meds.orderBy('createdAt').toArray()
+}
+export async function addMed(m: Omit<MedDef, 'id' | 'createdAt'>) {
+  return dietDb.meds.add({ ...m, createdAt: Date.now() })
+}
+export async function updateMed(id: number, patch: Partial<MedDef>) {
+  await dietDb.meds.update(id, patch)
+}
+export async function deleteMed(id: number) {
+  await dietDb.meds.delete(id)
 }
 
 // ---- Su (ml esasli) ----

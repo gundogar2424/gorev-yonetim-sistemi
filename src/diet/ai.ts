@@ -1517,6 +1517,46 @@ Genel geçer öğüt VERME; sadece ELDEKİ veriden çıkanı söyle. Veri azsa d
   }
 }
 
+// İLAÇ/VİTAMİN UYUM YORUMU: hesaplanan kullanım özetine bakıp kısa, net bir
+// değerlendirme + düzeni artırma önerisi verir. Teşhis/tedavi vermez.
+export async function medComment(opts: {
+  apiKey: string
+  summary: string
+  model?: string
+  userName?: string
+  conditions?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, summary, model = DEFAULT_MODEL, userName, conditions, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (conditions?.trim()) ctx.push(`Rahatsızlıkları: ${conditions.trim()}.`)
+
+  const system = `Sen bir sağlık asistanısın. Kullanıcının İLAÇ/VİTAMİN kullanım UYUM verileri aşağıda. KISA (3-6 cümle), sıcak ve NET bir değerlendirme yaz:
+- Hangilerini düzenli almış, hangilerini aksatmış (yüzdelere değin).
+- Öğünle ilişkisi (aç/tok) varsa ona kısaca değin.
+- Düzeni artırmak için 1-2 SOMUT, uygulanabilir öneri (saat, hatırlatıcı, öğüne bağlama).
+ÇOK ÖNEMLİ: Teşhis KOYMA, ilaç/doz DEĞİŞTİRME; gerektiğinde doktor/eczacıya danışmasını söyle. Türkçe, güçlendirici, suçlayıcı olmadan. ${ctx.join(' ')}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 600,
+      system,
+      messages: [{ role: 'user', content: `${summary}${healthText(health)}\n\nBu ilaç/vitamin kullanım uyumunu değerlendir.` }]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Yorum üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // YEMEK NETLEŞTİRME SOHBETİ: fotoğrafı inceler, ne gördüğünü söyler ve kalori/
 // makro için emin olamadıklarını kullanıcıya SORAR. Henüz sayı vermez; kullanıcı
 // cevapladıkça netleştirir. Foto yalnızca ilk turda gönderilir (token tasarrufu);

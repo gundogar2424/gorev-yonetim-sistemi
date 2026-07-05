@@ -18,6 +18,7 @@ import Menu from './pages/Menu'
 import Progress from './pages/Progress'
 import Weekly from './pages/Weekly'
 import BeniTani from './pages/BeniTani'
+import Meds from './pages/Meds'
 import DietSettings from './pages/DietSettings'
 
 // Alt gezinme ikonlari (cizgi/SVG — emoji yerine daha profesyonel gorunum)
@@ -89,10 +90,10 @@ export default function DietApp() {
 
   // Bildirime tiklaninca ilgili sayfaya git (tokluk -> ana ekran, rapor -> gecmis vb.)
   useEffect(() => {
-    // Bildirimdeki "✓ Aldım"a basilinca ilaci otomatik kaydet (yemekten sonra)
+    // Bildirimdeki "✓ Aldım"a basilinca ilaci otomatik kaydet (tanima bagli)
     void initNotificationNavigation(
       (route) => navigate(route),
-      (name) => void addMedLog(name, 'tok')
+      (name, medId) => void addMedLog(name, undefined, { medId })
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -118,6 +119,7 @@ export default function DietApp() {
           <Route path="/fotograf" element={<Progress />} />
           <Route path="/ozet" element={<Weekly />} />
           <Route path="/beni-tani" element={<BeniTani />} />
+          <Route path="/ilaclarim" element={<Meds />} />
           <Route path="/ayarlar" element={<DietSettings />} />
         </Routes>
       </main>
