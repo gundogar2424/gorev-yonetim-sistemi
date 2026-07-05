@@ -8,6 +8,7 @@ import {
   listMeasurements,
   addMeasurement,
   deleteMeasurement,
+  updateMeasurement,
   listVitals,
   addVital,
   deleteVital,
@@ -331,21 +332,88 @@ function MeasurePanel({ range }: { range: number }) {
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Kayıtlar</h3>
         {rows.length === 0 && <p className="text-sm text-slate-400 px-1">Bu aralıkta kayıt yok.</p>}
         {[...rows].reverse().map((m) => (
-          <div key={m.id} className="card p-3 flex items-center justify-between">
-            <div className="text-sm">
-              <p className="font-semibold text-slate-700">{m.dateStr}</p>
-              <p className="text-slate-500 text-xs">
-                {METRICS.filter((x) => typeof m[x.key] === 'number')
-                  .map((x) => `${x.label}: ${m[x.key]}${x.unit}`)
-                  .join(' · ') || '—'}
-              </p>
-            </div>
-            <button onClick={() => deleteMeasurement(m.id!)} className="text-slate-300 hover:text-rose-500 px-1">
-              🗑️
-            </button>
-          </div>
+          <MeasureRow key={m.id} m={m} />
         ))}
       </section>
+    </div>
+  )
+}
+
+// Tek bir olcum kaydi: goster + DUZENLE (yanlis girileni duzelt) + sil.
+function MeasureRow({ m }: { m: Measurement }) {
+  const [editing, setEditing] = useState(false)
+  const [vals, setVals] = useState<Record<string, string>>({})
+
+  function startEdit() {
+    const init: Record<string, string> = {}
+    for (const x of METRICS) {
+      const v = m[x.key]
+      if (typeof v === 'number') init[x.key as string] = String(v)
+    }
+    setVals(init)
+    setEditing(true)
+  }
+
+  async function saveEdit() {
+    const patch: Partial<Measurement> = {}
+    for (const x of METRICS) {
+      const raw = (vals[x.key as string] ?? '').trim().replace(',', '.')
+      const n = Number(raw)
+      // Bos ya da gecersiz -> alan silinir (undefined); gecerli sayi -> yaz
+      patch[x.key] = raw === '' || isNaN(n) ? undefined : (n as never)
+    }
+    await updateMeasurement(m.id!, patch)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="card p-3 space-y-2">
+        <p className="font-semibold text-slate-700 text-sm">{m.dateStr} — düzelt</p>
+        <div className="grid grid-cols-2 gap-2">
+          {METRICS.map((x) => (
+            <label key={x.key} className="text-xs text-slate-500">
+              {x.label} ({x.unit})
+              <input
+                type="number"
+                inputMode="decimal"
+                className="field-input mt-0.5"
+                value={vals[x.key as string] ?? ''}
+                onChange={(e) => setVals((s) => ({ ...s, [x.key as string]: e.target.value }))}
+              />
+            </label>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => setEditing(false)} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2">
+            Vazgeç
+          </button>
+          <button onClick={saveEdit} className="btn-primary py-2">
+            Kaydet
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card p-3 flex items-center justify-between">
+      <div className="text-sm">
+        <p className="font-semibold text-slate-700">{m.dateStr}</p>
+        <p className="text-slate-500 text-xs">
+          {METRICS.filter((x) => typeof m[x.key] === 'number')
+            .map((x) => `${x.label}: ${m[x.key]}${x.unit}`)
+            .join(' · ') || '—'}
+        </p>
+      </div>
+      <div className="flex items-center gap-1">
+        <button onClick={startEdit} className="text-slate-400 hover:text-brand-600 px-1" title="Düzelt">
+          ✏️
+        </button>
+        <button onClick={() => deleteMeasurement(m.id!)} className="text-slate-300 hover:text-rose-500 px-1" title="Sil">
+          🗑️
+        </button>
+      </div>
     </div>
   )
 }

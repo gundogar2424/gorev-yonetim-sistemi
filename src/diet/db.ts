@@ -208,6 +208,11 @@ export async function addMeasurement(m: Omit<Measurement, 'id' | 'createdAt'>) {
 export async function deleteMeasurement(id: number) {
   await dietDb.measurements.delete(id)
 }
+// Bir olcum kaydini gunceller (yanlis girilen degeri duzeltmek icin).
+// patch icinde bir alan undefined ise o alan kayittan SILINIR (bosaltilir).
+export async function updateMeasurement(id: number, patch: Partial<Measurement>) {
+  await dietDb.measurements.update(id, patch)
+}
 
 // ---- Seker / tansiyon olcumleri ----
 export function listVitals(): Promise<Vital[]> {
