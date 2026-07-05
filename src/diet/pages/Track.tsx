@@ -16,7 +16,7 @@ import {
 import { analyzeMealSugar, quickMealSugarNote } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
-import { buildMeasurementsReport } from '../lib/report'
+import { buildMeasurementsReport, buildLatestMeasurementReport } from '../lib/report'
 import { buildMeasurementsImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { Measurement } from '../types'
@@ -220,6 +220,18 @@ function SendMeasurements() {
     setTimeout(() => setMsg(''), 4000)
   }
 
+  // Sadece en son ölçümü gönder (dönem değil — tek son kayıt)
+  async function sendLatest() {
+    const settings = await readDietSettings()
+    const text = await buildLatestMeasurementReport(settings.userName)
+    const res = await shareTextSmart(text)
+    if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+    else if (res === 'copied') setMsg('Son ölçüm panoya kopyalandı, WhatsApp’a yapıştır.')
+    else if (res === 'cancelled') setMsg('')
+    else setMsg('Gönderilemedi.')
+    setTimeout(() => setMsg(''), 4000)
+  }
+
   async function sendImage() {
     setMsg('Görsel rapor hazırlanıyor…')
     try {
@@ -239,8 +251,14 @@ function SendMeasurements() {
   return (
     <section className="card p-3 space-y-2">
       <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Ölçümleri Diyetisyene Gönder</h3>
-      <p className="text-xs text-slate-500">
-        Kilo, ölçü, şeker ve tansiyon kayıtlarını seçtiğin dönem için gönderir.
+
+      {/* Hizli: sadece EN SON olcum (donem secmeye gerek yok) */}
+      <button onClick={sendLatest} className="btn-primary w-full whitespace-nowrap">
+        📍 Sadece Son Ölçümü Gönder
+      </button>
+
+      <p className="text-xs text-slate-500 pt-1">
+        Ya da dönem seçip tümünü gönder (kilo, ölçü, şeker, tansiyon):
       </p>
       <div className="flex gap-1.5">
         {RANGES.map((r) => (
@@ -259,7 +277,7 @@ function SendMeasurements() {
         <button onClick={sendText} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
           ✍️ Yazılı Gönder
         </button>
-        <button onClick={sendImage} className="btn-primary whitespace-nowrap">
+        <button onClick={sendImage} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
           📸 Resimli Gönder
         </button>
       </div>
