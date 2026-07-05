@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { initNotificationNavigation } from './lib/notify'
+import { addMedLog } from './db'
 import Capture from './pages/Capture'
 import History from './pages/History'
 import Track from './pages/Track'
@@ -88,7 +89,11 @@ export default function DietApp() {
 
   // Bildirime tiklaninca ilgili sayfaya git (tokluk -> ana ekran, rapor -> gecmis vb.)
   useEffect(() => {
-    void initNotificationNavigation((route) => navigate(route))
+    // Bildirimdeki "✓ Aldım"a basilinca ilaci otomatik kaydet (yemekten sonra)
+    void initNotificationNavigation(
+      (route) => navigate(route),
+      (name) => void addMedLog(name, 'tok')
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

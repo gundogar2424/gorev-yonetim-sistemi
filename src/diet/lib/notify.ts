@@ -208,22 +208,38 @@ function smartHungerNotification(time: string) {
   }
 }
 
-// Ilac/seker hapi hatirlatmalari: kullanicinin belirledigi her saatte, her gun.
-// Yemekten sonra alinan ilaclar icin (saatler yemek saatlerine gore ayarlanir).
-function medNotifications(times: string[]) {
-  return times
-    .map((t) => (t || '').trim())
-    .filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+// Bildirimde "✓ Aldım" aksiyon butonu icin tip. Bir kez kaydedilmesi yeter.
+async function ensureMedActionType(): Promise<void> {
+  if (!isNative()) return
+  try {
+    await LocalNotifications.registerActionTypes({
+      types: [{ id: 'MED', actions: [{ id: 'MED_TAKEN', title: '✓ Aldım' }] }]
+    })
+  } catch {
+    // desteklenmiyorsa yok say
+  }
+}
+
+// Ilac/seker hapi hatirlatmalari: her saatte, her gun. Her saatin kendi ilac
+// adi olabilir (sabah/ogle/aksam farkli). Bildirimde "✓ Aldim" butonu vardir;
+// dokununca ilac otomatik "alindi" kaydedilir (extra.med).
+function medNotifications(schedule: { time: string; name?: string }[]) {
+  return schedule
+    .filter((s) => /^\d{1,2}:\d{2}$/.test((s.time || '').trim()))
     .slice(0, 6)
-    .map((t, i) => {
-      const [h, m] = t.split(':').map(Number)
+    .map((s, i) => {
+      const [h, m] = s.time.split(':').map(Number)
+      const name = (s.name || '').trim()
       return {
         id: MED_IDS_START + i,
         channelId: CHANNEL_ID,
+        actionTypeId: 'MED',
         title: '💊 İlaç vakti',
-        body: 'İlaçlarını/şeker hapını almayı unutma. Alınca uygulamadan işaretleyebilirsin.',
+        body: name
+          ? `${name} almayı unutma. Aldıysan bildirimdeki “✓ Aldım”a dokun.`
+          : 'İlaçlarını/şeker hapını almayı unutma. Aldıysan “✓ Aldım”a dokun.',
         schedule: { on: { hour: h || 0, minute: m || 0 }, repeats: true, allowWhileIdle: true },
-        extra: { route: '/' }
+        extra: { route: '/', med: name || 'İlaç' }
       }
     })
 }
@@ -253,12 +269,21 @@ export async function scheduleSugarReminder(minutes = 120): Promise<void> {
 
 // Bildirime TIKLANINCA ilgili sayfaya git. Uygulama acilisinda bir kez
 // kaydedilir; bildirim uygulamayi soguk baslatsa bile olay teslim edilir.
-export async function initNotificationNavigation(go: (route: string) => void): Promise<void> {
+export async function initNotificationNavigation(
+  go: (route: string) => void,
+  onMedTaken?: (name: string) => void
+): Promise<void> {
   if (!isNative()) return
   try {
+    await ensureMedActionType()
     await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
-      const route = (event.notification?.extra as { route?: string } | undefined)?.route ?? '/'
-      go(route)
+      const extra = event.notification?.extra as { route?: string; med?: string } | undefined
+      // Bildirimdeki "✓ Aldım" butonuna basildiysa ilaci kaydet, sayfaya gitme
+      if (event.actionId === 'MED_TAKEN') {
+        onMedTaken?.(extra?.med || 'İlaç')
+        return
+      }
+      go(extra?.route ?? '/')
     })
   } catch {
     // dinleyici kurulamazsa sessiz gec
@@ -324,8 +349,13 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   if (settings.smartHungerReminderEnabled && settings.smartHungerReminderTime) {
     notifications.push(smartHungerNotification(settings.smartHungerReminderTime))
   }
-  if (settings.medReminderEnabled && settings.medReminderTimes?.length) {
-    notifications.push(...medNotifications(settings.medReminderTimes))
+  // Ilac: yeni medSchedule varsa onu kullan; yoksa eski medReminderTimes'i cevir
+  const medSchedule = settings.medSchedule?.length
+    ? settings.medSchedule
+    : (settings.medReminderTimes ?? []).map((t) => ({ time: t, name: '' }))
+  if (settings.medReminderEnabled && medSchedule.length) {
+    await ensureMedActionType()
+    notifications.push(...medNotifications(medSchedule))
   }
 
   if (notifications.length === 0) return

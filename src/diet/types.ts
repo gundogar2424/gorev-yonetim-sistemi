@@ -279,7 +279,8 @@ export interface DietSettings {
   sugarFastingReminderTime?: string // Sabah aclik olcum saati (SS:DD, varsayilan 07:00)
   sugarPostMealReminderEnabled?: boolean // Ogunden 2 saat sonra tok seker olcum hatirlatmasi
   medReminderEnabled?: boolean // Ilac/seker hapi hatirlatmasi (yemekten sonra) — APK bildirimi
-  medReminderTimes?: string[] // Ilac hatirlatma saatleri (SS:DD listesi, orn. ["08:30","20:30"])
+  medReminderTimes?: string[] // (ESKI) sadece saat listesi — geriye uyum icin korunur
+  medSchedule?: { time: string; name: string }[] // Saat + o saatteki ilac adi (sabah/ogle/aksam farkli)
   dietitianNotes?: string // Diyetisyenin talimatlari — yapay zeka HER degerlendirmede dikkate alir
   // Profil derinlestirme (isabetli oneri icin; hepsi istege bagli)
   activityLevel?: string // Hareket duzeyi (orn. "masabasi/az hareketli", "ayakta calisirim")
