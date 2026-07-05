@@ -649,7 +649,8 @@ Kurallar:
 // Eldeki urunlerin fotografindan gramajli ogun onerileri + makrolar uretir
 export async function suggestMeal(opts: {
   apiKey: string
-  photoDataUrl: string
+  photoDataUrl?: string
+  photoDataUrls?: string[] // birden fazla foto (masa/farkli yemekler/coklu sayfa)
   model?: string
   userName?: string
   goal?: string
@@ -657,10 +658,11 @@ export async function suggestMeal(opts: {
   dietitianNotes?: string
   health?: string
 }): Promise<MealAdvice> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  const { apiKey, photoDataUrl, photoDataUrls, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
-  const img = splitDataUrl(photoDataUrl)
-  if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
+  const sources = (photoDataUrls?.length ? photoDataUrls : photoDataUrl ? [photoDataUrl] : [])
+  const imgs = sources.map((u) => splitDataUrl(u)).filter((v): v is NonNullable<typeof v> => !!v)
+  if (!imgs.length) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
 
   const ctx: string[] = []
   if (userName) ctx.push(`Kullanıcının adı: ${userName}.`)
@@ -680,13 +682,13 @@ export async function suggestMeal(opts: {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: img.mediaType as 'image/jpeg', data: img.base64 }
-            },
+            ...imgs.map((img) => ({
+              type: 'image' as const,
+              source: { type: 'base64' as const, media_type: img.mediaType as 'image/jpeg', data: img.base64 }
+            })),
             {
               type: 'text',
-              text: `Elimde bunlar var. Bunlardan diyetime uygun ne yapıp ne kadar yiyebilirim? Gramaj ve makro (protein/karbonhidrat/yağ) ver.${ctxText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}`
+              text: `Elimde bunlar var${imgs.length > 1 ? ` (${imgs.length} fotoğrafa da bak — masadaki/farklı fotoğraflardaki tüm ürünleri birlikte değerlendir)` : ''}. Bunlardan diyetime uygun ne yapıp ne kadar yiyebilirim? Gramaj ve makro (protein/karbonhidrat/yağ) ver.${ctxText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}`
             }
           ]
         }

@@ -1,41 +1,80 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Capacitor } from '@capacitor/core'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings } from '../db'
 import { buildHealthContext } from '../lib/context'
 import { suggestMeal } from '../ai'
-import { fileToResizedDataUrl } from '../../lib/image'
+import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { guessMeal, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { todayStr } from '../streak'
 import type { MealAdvice, MealSuggestion, MealType } from '../types'
 
 type Phase = 'idle' | 'thinking' | 'result'
+const MAX_PHOTOS = 6
 
 export default function Suggest() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
   const [phase, setPhase] = useState<Phase>('idle')
-  const [photo, setPhoto] = useState('')
+  const [photos, setPhotos] = useState<string[]>([])
   const [advice, setAdvice] = useState<MealAdvice | null>(null)
   const [error, setError] = useState('')
 
   const hasKey = !!settings?.apiKey
 
-  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+  // Tek foto cek (kamera). Her cekim listeye eklenir — birden fazla cekilebilir.
+  function shoot() {
+    cameraRef.current?.click()
+  }
+
+  // Galeriden sec: APK'da native cok-secim, web'de <input multiple>
+  async function pickGallery() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Camera } = await import('@capacitor/camera')
+        const res = await Camera.pickImages({ quality: 80, limit: MAX_PHOTOS })
+        const urls = await Promise.all(
+          res.photos.map((p) => urlToResizedDataUrl(p.webPath || (p as { path?: string }).path || '', 1000, 0.8))
+        )
+        addPhotos(urls.filter((u): u is string => !!u))
+      } catch {
+        /* iptal/izin — sessiz gec */
+      }
+      return
+    }
+    galleryRef.current?.click()
+  }
+
+  function addPhotos(urls: string[]) {
+    if (!urls.length) return
+    setError('')
+    setPhotos((prev) => [...prev, ...urls].slice(0, MAX_PHOTOS))
+  }
+
+  async function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (!file) return
+    if (!files.length) return
+    const urls = await Promise.all(files.map((f) => fileToResizedDataUrl(f, 1000, 0.8).catch(() => null)))
+    addPhotos(urls.filter((u): u is string => !!u))
+  }
+
+  function removePhoto(i: number) {
+    setPhotos((prev) => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function analyze() {
+    if (!photos.length) return
     setError('')
     setAdvice(null)
+    setPhase('thinking')
     try {
-      const dataUrl = await fileToResizedDataUrl(file, 900, 0.8)
-      setPhoto(dataUrl)
-      setPhase('thinking')
       const res = await suggestMeal({
         apiKey: settings!.apiKey!,
-        photoDataUrl: dataUrl,
+        photoDataUrls: photos,
         model: settings?.model,
         userName: settings?.userName,
         goal: settings?.goal,
@@ -53,7 +92,7 @@ export default function Suggest() {
 
   function reset() {
     setPhase('idle')
-    setPhoto('')
+    setPhotos([])
     setAdvice(null)
     setError('')
   }
@@ -79,23 +118,49 @@ export default function Suggest() {
           <div className="card p-6 text-center space-y-4">
             <div className="text-6xl">🧊🥚🥦</div>
             <p className="text-slate-600 text-sm">
-              Elindeki ürünleri fotoğrafla; yapay zeka{' '}
+              Elindeki ürünleri, masayı ya da farklı yemekleri fotoğrafla; yapay zeka{' '}
               <span className="font-semibold">diyetine uygun</span>, gramajlı öğünler önersin — kalori ve makro ile.
+              <span className="block text-[11px] text-slate-400 mt-1">Birden fazla fotoğraf ekleyebilirsin.</span>
             </p>
+
+            {/* Eklenen fotograflarin kucuk onizlemesi */}
+            {photos.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {photos.map((p, i) => (
+                  <div key={i} className="relative">
+                    <img src={p} alt={`Foto ${i + 1}`} className="h-20 w-20 rounded-xl object-cover" />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-slate-800/80 text-white text-xs leading-none flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => cameraRef.current?.click()} disabled={!hasKey} className="btn-primary">
+              <button onClick={shoot} disabled={!hasKey || photos.length >= MAX_PHOTOS} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-50">
                 📷 Fotoğraf Çek
               </button>
               <button
-                onClick={() => galleryRef.current?.click()}
-                disabled={!hasKey}
-                className="btn bg-slate-200 text-slate-700 hover:bg-slate-300"
+                onClick={pickGallery}
+                disabled={!hasKey || photos.length >= MAX_PHOTOS}
+                className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-50"
               >
                 🖼️ Galeriden Seç
               </button>
             </div>
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPick} />
-            <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+
+            {photos.length > 0 && (
+              <button onClick={analyze} disabled={!hasKey} className="btn-primary w-full">
+                ✨ Öner ({photos.length} foto)
+              </button>
+            )}
+
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPickFiles} />
+            <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickFiles} />
             {!settings?.dietPlan?.trim() && (
               <p className="text-[11px] text-slate-400">
                 İpucu: Ayarlar'a diyet listeni eklersen öneriler listene göre kişiselleşir.
@@ -106,7 +171,13 @@ export default function Suggest() {
 
         {phase === 'thinking' && (
           <div className="card p-4 space-y-3 text-center">
-            {photo && <img src={photo} alt="Ürünler" className="w-full rounded-xl max-h-72 object-cover" />}
+            {photos.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {photos.map((p, i) => (
+                  <img key={i} src={p} alt={`Foto ${i + 1}`} className="h-24 w-24 rounded-xl object-cover" />
+                ))}
+              </div>
+            )}
             <div className="flex items-center justify-center gap-2 text-emerald-700 py-2">
               <span className="animate-spin h-5 w-5 border-2 border-emerald-600 border-t-transparent rounded-full" />
               <span className="font-semibold">Öğünler hazırlanıyor…</span>
@@ -116,7 +187,13 @@ export default function Suggest() {
 
         {phase === 'result' && advice && (
           <div className="space-y-3">
-            {photo && <img src={photo} alt="Ürünler" className="w-full rounded-2xl max-h-56 object-cover shadow" />}
+            {photos.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {photos.map((p, i) => (
+                  <img key={i} src={p} alt={`Foto ${i + 1}`} className="h-24 w-24 rounded-xl object-cover shadow" />
+                ))}
+              </div>
+            )}
 
             {/* Taninan urunler */}
             {advice.foodsDetected.length > 0 && (
