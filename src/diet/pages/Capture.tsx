@@ -19,6 +19,63 @@ import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise
 
 type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
 
+const MAX_SCAN = 5 // tarama modunda en fazla kare (token/maliyet dengesi)
+
+// Bir videodan esit araliklarla birkac kare cikarir (JPEG data URL). Yapay zeka
+// video izleyemez; "tarama" hissini bu kareleri birlikte gondererek veririz.
+async function extractVideoFrames(file: File, count = 4, maxW = 1000): Promise<string[]> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const video = document.createElement('video')
+    video.preload = 'auto'
+    video.muted = true
+    ;(video as HTMLVideoElement & { playsInline?: boolean }).playsInline = true
+    video.src = url
+    const frames: string[] = []
+    const done = () => {
+      URL.revokeObjectURL(url)
+      resolve(frames)
+    }
+    video.onerror = done
+    video.onloadedmetadata = () => {
+      const dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0
+      const canvas = document.createElement('canvas')
+      const times: number[] = []
+      for (let i = 0; i < count; i++) times.push(dur ? (dur * (i + 0.5)) / count : 0)
+      let idx = 0
+      const grab = () => {
+        if (idx >= times.length) return done()
+        try {
+          video.currentTime = Math.min(times[idx], Math.max(0, dur - 0.05))
+        } catch {
+          done()
+        }
+      }
+      video.onseeked = () => {
+        const w = video.videoWidth
+        const h = video.videoHeight
+        if (w && h) {
+          const scale = Math.min(1, maxW / w)
+          canvas.width = Math.round(w * scale)
+          canvas.height = Math.round(h * scale)
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+            try {
+              frames.push(canvas.toDataURL('image/jpeg', 0.8))
+            } catch {
+              /* codec/gorsel okunamadi — atla */
+            }
+          }
+        }
+        idx++
+        grab()
+      }
+      grab()
+    }
+  })
+}
+
 // Bir Date'i yerel <input type="datetime-local"> degerine cevirir (YYYY-MM-DDTHH:mm)
 function toLocalInput(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0')
@@ -93,7 +150,12 @@ export default function Capture() {
 
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
+  const scanInputRef = useRef<HTMLInputElement>(null) // tarama: web tek cekim
+  const videoInputRef = useRef<HTMLInputElement>(null) // tarama: video
   const [phase, setPhase] = useState<Phase>('idle')
+  const [scanMode, setScanMode] = useState(false) // cok acili tarama paneli acik mi
+  const [scanPhotos, setScanPhotos] = useState<string[]>([]) // tarama kareleri
+  const [scanBusy, setScanBusy] = useState(false) // videodan kare cikariliyor
   const [photo, setPhoto] = useState<string>('')
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null)
   const [error, setError] = useState('')
@@ -198,6 +260,105 @@ export default function Capture() {
       })
       setAnalysis(result)
       setPhase('result')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setPhase('idle')
+    }
+  }
+
+  // TARAMA: ayni yemegi birkac acidan cek ya da videoyla tara; kareler birlikte
+  // analiz edilir (analyzeFood coklu goruntu alir). Daha iyi tanima icin.
+  async function addScanShot() {
+    if (!hasKey || scanPhotos.length >= MAX_SCAN) return
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+        const photo = await Camera.getPhoto({
+          quality: 80,
+          width: 1024,
+          correctOrientation: true,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Camera
+        })
+        if (photo.dataUrl) setScanPhotos((p) => [...p, photo.dataUrl!].slice(0, MAX_SCAN))
+      } catch {
+        /* iptal/izin — sessiz gec */
+      }
+      return
+    }
+    scanInputRef.current?.click()
+  }
+
+  async function onScanFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const url = await fileToResizedDataUrl(file, 1000, 0.8)
+      setScanPhotos((p) => [...p, url].slice(0, MAX_SCAN))
+    } catch {
+      /* okunamadi — sessiz gec */
+    }
+  }
+
+  function openVideoScan() {
+    if (!hasKey) return
+    videoInputRef.current?.click()
+  }
+
+  async function onVideoPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setScanBusy(true)
+    setError('')
+    try {
+      const frames = await extractVideoFrames(file, 4, 1000)
+      if (frames.length) setScanPhotos((p) => [...p, ...frames].slice(0, MAX_SCAN))
+      else setError('Videodan kare çıkarılamadı. “Açılı Çek” ile deneyebilirsin.')
+    } catch {
+      setError('Video işlenemedi. “Açılı Çek” ile deneyebilirsin.')
+    } finally {
+      setScanBusy(false)
+    }
+  }
+
+  function removeScan(i: number) {
+    setScanPhotos((p) => p.filter((_, idx) => idx !== i))
+  }
+
+  function exitScan() {
+    setScanMode(false)
+    setScanPhotos([])
+    setScanBusy(false)
+  }
+
+  // Tarama karelerini birlikte incele (barkod aramasi yok — bu yemek analizi)
+  async function runScan() {
+    if (!scanPhotos.length) return
+    setScanMode(false)
+    setNote('')
+    setEditing(false)
+    setMealType(guessMeal())
+    setPhoto(scanPhotos[0]) // kaydetme/onizleme icin ilk kare
+    setError('')
+    setAnalysis(null)
+    setPhase('analyzing')
+    try {
+      const result = await analyzeFood({
+        apiKey: settings!.apiKey!,
+        photoDataUrls: scanPhotos,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        body: bodyContext(settings, measurements),
+        health: await buildHealthContext(settings)
+      })
+      setAnalysis(result)
+      setPhase('result')
+      setScanPhotos([])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
       setPhase('idle')
@@ -311,6 +472,9 @@ export default function Capture() {
     setChatInput('')
     setCustomWhen(false)
     setWhenStr('')
+    setScanMode(false)
+    setScanPhotos([])
+    setScanBusy(false)
   }
 
   // Yemek hakkinda soru sor (sadece metin -> az token)
@@ -450,6 +614,73 @@ export default function Capture() {
             <button onClick={() => pickPhoto('camera')} disabled={!hasKey} className="btn-primary w-full py-3 text-base">
               📷 Yemek Fotoğrafı Çek
             </button>
+
+            {/* Cok acili tarama: ayni yemegi birkac acidan / video ile daha iyi tani */}
+            <button
+              onClick={() => setScanMode((v) => !v)}
+              disabled={!hasKey}
+              className="w-full rounded-xl border border-brand-200 bg-brand-50 py-2.5 text-sm font-semibold text-brand-700 disabled:opacity-50 dark:bg-brand-500/10"
+            >
+              🔎 Çok Açılı Tara {scanMode ? '▲' : '▾'}
+            </button>
+
+            {scanMode && (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+                <p className="text-xs text-slate-500">
+                  Aynı yemeği farklı açılardan çek (üst · yan · yakın) ya da etrafında dönerek kısa bir video çek —
+                  yapay zeka kareleri birlikte inceleyip daha iyi tanır.
+                </p>
+
+                {scanPhotos.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {scanPhotos.map((p, i) => (
+                      <div key={i} className="relative">
+                        <img src={p} alt={`Kare ${i + 1}`} className="h-16 w-16 rounded-lg object-cover" />
+                        <button
+                          onClick={() => removeScan(i)}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-slate-800/80 text-white text-xs leading-none flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={addScanShot}
+                    disabled={!hasKey || scanBusy || scanPhotos.length >= MAX_SCAN}
+                    className="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white py-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                  >
+                    <span className="text-2xl">📷</span>Açılı Çek
+                  </button>
+                  <button
+                    onClick={openVideoScan}
+                    disabled={!hasKey || scanBusy || scanPhotos.length >= MAX_SCAN}
+                    className="flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white py-3 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                  >
+                    <span className="text-2xl">🎥</span>Video Tara
+                  </button>
+                </div>
+
+                {scanBusy && (
+                  <p className="text-xs text-emerald-700 font-semibold text-center">🎞️ Video kareleri çıkarılıyor…</p>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={exitScan} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2.5">
+                    Vazgeç
+                  </button>
+                  <button onClick={runScan} disabled={!scanPhotos.length || scanBusy} className="btn-primary py-2.5">
+                    🔎 Analiz Et{scanPhotos.length ? ` (${scanPhotos.length})` : ''}
+                  </button>
+                </div>
+
+                <input ref={scanInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onScanFile} />
+                <input ref={videoInputRef} type="file" accept="video/*" capture="environment" className="hidden" onChange={onVideoPick} />
+              </div>
+            )}
 
             {/* Diger yollar: galeri, yazi, barkod, paket etiketi */}
             <div className="grid grid-cols-2 gap-2">

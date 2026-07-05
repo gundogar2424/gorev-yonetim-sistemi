@@ -165,7 +165,8 @@ function friendlyError(err: unknown): Error {
 
 interface AnalyzeOptions {
   apiKey: string
-  photoDataUrl: string
+  photoDataUrl?: string
+  photoDataUrls?: string[] // ayni yemegin cok acili/tarama kareleri (video/çoklu çekim)
   model?: string
   userName?: string
   goal?: string
@@ -194,11 +195,16 @@ function healthText(h?: string): string {
 
 // Fotografi inceler ve yapilandirilmis sonucu dondurur
 export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body, dietitianNotes, health } = opts
+  const { apiKey, photoDataUrl, photoDataUrls, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body, dietitianNotes, health } = opts
 
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
-  const img = splitDataUrl(photoDataUrl)
-  if (!img) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
+  const sources = photoDataUrls?.length ? photoDataUrls : photoDataUrl ? [photoDataUrl] : []
+  const imgs = sources.map((u) => splitDataUrl(u)).filter((v): v is NonNullable<typeof v> => !!v)
+  if (!imgs.length) throw new Error('Fotoğraf okunamadı, lütfen tekrar deneyin.')
+  // Cok kareli tarama: bunlar AYNI yemegin farkli acilaridir, tek yemek gibi degerlendir
+  const scanText = imgs.length > 1
+    ? `\n\nÖNEMLİ: Bu ${imgs.length} fotoğraf AYNI yemeğin/tabağın farklı açılardan çekilmiş kareleridir (tarama). Hepsini birlikte inceleyip TEK bir yemek olarak değerlendir; kareleri ayrı öğün sanma. Farklı açılar sayesinde içeriği ve porsiyonu daha doğru tahmin et.`
+    : ''
 
   // Kullanici baglamini (isim/hedef/vucut) ek bir not olarak ilet
   const contextLines: string[] = []
@@ -230,13 +236,13 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: img.mediaType as 'image/jpeg', data: img.base64 }
-            },
+            ...imgs.map((img) => ({
+              type: 'image' as const,
+              source: { type: 'base64' as const, media_type: img.mediaType as 'image/jpeg', data: img.base64 }
+            })),
             {
               type: 'text',
-              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}${noteText}`
+              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}${noteText}${scanText}`
             }
           ]
         }
