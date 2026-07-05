@@ -237,11 +237,17 @@ export default function Capture() {
     }
   }
 
-  // Kullanici "yanlis tanidi" deyip aciklama yazinca SADECE METINDEN incele
-  // (fotograf tekrar gonderilmez -> cok daha az token harcar)
+  // Kullanici "yanlis tanidi" deyip aciklama yazinca yeniden incele.
+  // FOTOGRAF VARSA foto + notu BIRLIKTE gonderiyoruz: boylece kullanici notta
+  // bir seyi yazmayi unutsa bile, fotografta gorunen diger ogeler dusmez.
+  // Fotograf yoksa (yazarak eklenen ogun) sadece metinden incelenir.
   async function reanalyze() {
     if (!note.trim()) return
     setEditing(false)
+    if (photo) {
+      await analyze(photo, note)
+      return
+    }
     setError('')
     setAnalysis(null)
     setPhase('analyzing')
@@ -604,7 +610,7 @@ export default function Capture() {
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Porsiyon, dilim, su bardağı gibi yazabilirsin — hesaplar.
+                  Yazdığını düzeltir/ekler; fotoğrafta görünen diğerlerini de sayar (unuttuğun düşmez).
                 </p>
               </div>
             )}

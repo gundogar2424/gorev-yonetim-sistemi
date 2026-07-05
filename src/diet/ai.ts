@@ -216,7 +216,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
 
   // Kullanici duzeltmesi varsa, gorseldeki tahminden ONCE gelir (otorite kullanicidir)
   const noteText = note?.trim()
-    ? `\n\nKULLANICININ DÜZELTMESİ (ÇOK ÖNEMLİ — buna KESIN uy): Bu yemek/öğün aslında şudur: "${note.trim()}". foodName alanını ve miktar/kalori tahminini KULLANICININ söylediğine göre belirle; görseldeki görüntüyle çelişse bile kullanıcının beyanını esas al. Belirttiği miktarı (porsiyon/gram) kaloride dikkate al.`
+    ? `\n\nKULLANICININ NOTU/DÜZELTMESİ (ÇOK ÖNEMLİ): "${note.trim()}". Bu, yemekle ilgili EK BİLGİ ve düzeltmedir. Kurallar: (1) Notun belirttiği her şeyi (isim, içerik, miktar, pişirme, şeker/yağ durumu) KESİN doğru kabul et ve uygula; görselle çelişse bile notu esas al. (2) ANCAK fotoğrafta AÇIKÇA görünen ve notun YALANLAMADIĞI diğer öğeleri de öğüne DAHİL ET, sakın atma — kullanıcı bir şeyi yazmayı unutmuş olabilir. (3) Yalnızca kullanıcı "sadece/yalnızca şu var" gibi net sınırlarsa öğünü tam olarak onunla sınırla. (4) Belirtilen miktar/porsiyonu kaloride dikkate al.`
     : ''
 
   const client = await createClient(apiKey)
