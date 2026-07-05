@@ -6,6 +6,7 @@ import { dietDb, readDietSettings } from '../db'
 import { decodeBarcodeFromImage, lookupProduct, forGrams, startLiveScan, nativeScan, getSavedProduct, saveProduct, type ProductInfo, type ScannerControls } from '../lib/barcode'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal } from '../lib/meals'
+import { isBeverage } from '../lib/food'
 import { analyzeFoodByText, readNutritionLabel } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
@@ -80,6 +81,8 @@ export default function Barcode() {
 
   const g = Math.max(0, Number(grams) || 0)
   const vals = product ? forGrams(product, g) : null
+  // Icecek/sivi urunlerde birim ml, digerlerinde g
+  const unit = product && isBeverage(product.name) ? 'ml' : 'g'
 
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -247,7 +250,7 @@ export default function Barcode() {
     setAdvice(null)
     setMsg('')
     try {
-      const note = `Paketli ürün: ${product.name}. Miktar: ${g} g/ml. Bu porsiyonun besin değerleri: ~${vals.kcal} kcal, protein ${vals.protein} g, karbonhidrat ${vals.carb} g, yağ ${vals.fat} g. Bunu yemeli miyim, diyetimi bozar mı?`
+      const note = `Paketli ürün: ${product.name}. Miktar: ${g} ${unit}. Bu porsiyonun besin değerleri: ~${vals.kcal} kcal, protein ${vals.protein} g, karbonhidrat ${vals.carb} g, yağ ${vals.fat} g. Bunu yemeli/içmeli miyim, diyetimi bozar mı?`
       const res = await analyzeFoodByText({
         apiKey: settings.apiKey,
         note,
@@ -273,7 +276,7 @@ export default function Barcode() {
     const a = advice
     await dietDb.entries.add({
       foodFound: true,
-      foodName: `${product.name} (${g} g)`,
+      foodName: `${product.name} (${g} ${unit})`,
       healthy: a ? a.healthy : true,
       riskLevel: a ? a.riskLevel : 'orta',
       estimatedCalories: vals.kcal,
@@ -430,7 +433,7 @@ export default function Barcode() {
             <div className="text-5xl">✅</div>
             <p className="font-bold text-slate-800">Günlüğe eklendi</p>
             <p className="text-sm text-slate-600">
-              {product.name} — {g} g/ml{vals ? ` · ${vals.kcal} kcal` : ''}
+              {product.name} — {g} {unit}{vals ? ` · ${vals.kcal} kcal` : ''}
             </p>
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button onClick={() => navigate('/gecmis')} className="btn bg-slate-200 text-slate-700">
@@ -452,7 +455,7 @@ export default function Barcode() {
             </div>
             <div className="p-4 space-y-3">
               {/* 100 g/ml icin besin degerleri (bilgi) */}
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">100 g/ml için</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">100 {unit} için</p>
               <div className="grid grid-cols-4 gap-2 text-center">
                 <Box label="Kalori" value={`${product.per100.kcal}`} unit="kcal" cls="bg-orange-50 text-orange-700" />
                 <Box label="Protein" value={`${product.per100.protein}`} unit="g" cls="bg-rose-50 text-rose-700" />
@@ -482,7 +485,7 @@ export default function Barcode() {
                       value={grams}
                       onChange={(e) => setGrams(e.target.value)}
                     />
-                    <span className="text-sm text-slate-500">g / ml</span>
+                    <span className="text-sm text-slate-500">{unit}</span>
                   </div>
 
                   {vals && (
