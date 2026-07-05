@@ -17,7 +17,7 @@ import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
 import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
 
-type Phase = 'idle' | 'analyzing' | 'result' | 'saved'
+type Phase = 'idle' | 'preAnalyze' | 'analyzing' | 'result' | 'saved'
 
 // Bir Date'i yerel <input type="datetime-local"> degerine cevirir (YYYY-MM-DDTHH:mm)
 function toLocalInput(d: Date): string {
@@ -99,7 +99,8 @@ export default function Capture() {
   const [error, setError] = useState('')
   const [savedDecision, setSavedDecision] = useState<Decision>('none')
   const [mealType, setMealType] = useState<MealType>(guessMeal())
-  const [note, setNote] = useState('') // kullanici duzeltmesi
+  const [note, setNote] = useState('') // kullanici duzeltmesi (result ekraninda)
+  const [preNote, setPreNote] = useState('') // analizden ONCE eklenen bilgi (icindekiler/porsiyon)
   const [editing, setEditing] = useState(false) // duzeltme kutusu acik mi
   const [textMode, setTextMode] = useState(false) // fotografsiz, yazarak ekleme
   const [textNote, setTextNote] = useState('') // yazarak ekleme metni
@@ -161,7 +162,7 @@ export default function Capture() {
 
   // AKILLI ÇEKİM: önce karede BARKOD var mı bak (token harcamaz). Varsa
   // paketli ürün demektir -> Barkod ekranına yönlendir (orada ürün/etiket işi
-  // yapılır). Barkod yoksa normal YEMEK analizine geç.
+  // yapılır). Barkod yoksa YEMEK -> önce "bilgi ekle" ekranı (preAnalyze).
   async function afterCapture(dataUrl: string) {
     setPhase('analyzing')
     try {
@@ -174,8 +175,11 @@ export default function Capture() {
     } catch {
       // barkod yok / okunamadi -> yemek olarak devam
     }
+    // Hemen yorumlama; önce kullanıcı içerik/porsiyon bilgisi ekleyebilsin.
+    // Böylece yanlış tanıma azalır. İsterse boş bırakıp direkt inceletir.
     setPhoto(dataUrl)
-    await analyze(dataUrl, '')
+    setPreNote('')
+    setPhase('preAnalyze')
   }
 
   // Fotografi (varsa duzeltme notuyla) incele
@@ -304,6 +308,7 @@ export default function Capture() {
     setSavedDecision('none')
     setError('')
     setNote('')
+    setPreNote('')
     setEditing(false)
     setTextMode(false)
     setTextNote('')
@@ -516,6 +521,35 @@ export default function Capture() {
             <p className="text-[11px] text-slate-400">
               Barkod paketli üründe token harcamaz; yazarak eklede fotoğraf gerekmez.
             </p>
+          </div>
+        )}
+
+        {/* Analizden ÖNCE: kullanıcı içerik/porsiyon bilgisi ekleyebilir (yanlış
+            tanımayı azaltır). Boş bırakıp direkt de inceletebilir. */}
+        {phase === 'preAnalyze' && (
+          <div className="card p-4 space-y-3">
+            {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-72 object-cover" />}
+            <div>
+              <p className="font-semibold text-slate-700 text-sm">Bu yemekle ilgili eklemek istediğin var mı?</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                İçindekiler, pişirme, porsiyon… yazarsan daha doğru tanır. İstemezsen boş bırak.
+              </p>
+            </div>
+            <textarea
+              className="field-input min-h-[64px]"
+              autoFocus
+              placeholder="örn. bulgur pilavı + 1 köfte kadar tavuk, 1 tatlı kaşığı zeytinyağı ile pişti; şekersiz"
+              value={preNote}
+              onChange={(e) => setPreNote(e.target.value)}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={reset} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2.5">
+                Vazgeç
+              </button>
+              <button onClick={() => analyze(photo, preNote.trim())} className="btn-primary py-2.5">
+                🔍 İncele
+              </button>
+            </div>
           </div>
         )}
 
