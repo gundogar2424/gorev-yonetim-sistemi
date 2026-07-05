@@ -126,6 +126,8 @@ export default function Capture() {
           quality: 80,
           width: 1024,
           correctOrientation: true,
+          allowEditing: true, // cektikten sonra kirp/duzenle (kesme-bicme)
+          saveToGallery: source === 'camera', // cekilen fotografi telefon galerisine kaydet
           resultType: CameraResultType.DataUrl,
           source: source === 'camera' ? CameraSource.Camera : CameraSource.Photos
         })
