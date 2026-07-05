@@ -113,6 +113,7 @@ export interface Exercise {
 export interface MealItem {
   name: string // Urun adi (orn. "yulaf")
   grams: number // Onerilen miktar (gram)
+  measure: string // Ev olcusu (orn. "3 corba kasigi", "1 su bardagi (~200 ml)", "2 dilim", "1 orta boy")
 }
 export interface MealSuggestion {
   title: string // Onerinin adi (orn. "Yuksek proteinli kahvalti")

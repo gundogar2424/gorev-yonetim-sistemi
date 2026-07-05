@@ -378,7 +378,7 @@ function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
   // tahmini ogune ekler; sonra istersen ogunu degistirirsin. Hata olursa gosterir.
   async function eat(mt: MealType) {
     try {
-      const detail = (s.items ?? []).map((it) => `${it.name} ${it.grams}g`).join(', ')
+      const detail = (s.items ?? []).map((it) => `${it.name} ${it.measure || `${it.grams}g`}`).join(', ')
       await dietDb.entries.add({
         foodFound: true,
         foodName: detail ? `${s.title} (${detail})` : s.title,
@@ -423,12 +423,15 @@ function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
       </div>
 
       <div className="p-4 space-y-3">
-        {/* Gramajli urunler */}
+        {/* Porsiyonlu urunler: ev olcusu (buyuk) + gram (kucuk) */}
         <ul className="space-y-1.5">
           {s.items.map((it, i) => (
-            <li key={i} className="flex items-center justify-between text-sm">
-              <span className="text-slate-700">{it.name}</span>
-              <span className="font-bold text-slate-900">{it.grams} g</span>
+            <li key={i} className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-slate-700 min-w-0 truncate">{it.name}</span>
+              <span className="text-right flex-shrink-0">
+                <span className="font-bold text-slate-900">{it.measure || `${it.grams} g`}</span>
+                {it.measure && <span className="text-xs text-slate-400"> · ~{it.grams} g</span>}
+              </span>
             </li>
           ))}
         </ul>
