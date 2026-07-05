@@ -16,8 +16,8 @@ import {
 import { analyzeMealSugar, quickMealSugarNote } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
-import { buildMeasurementsReport, buildLatestMeasurementReport } from '../lib/report'
-import { buildMeasurementsImage } from '../lib/reportImage'
+import { buildMeasurementsReport } from '../lib/report'
+import { buildMeasurementsImage, buildLatestMeasurementImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { Measurement } from '../types'
 
@@ -220,15 +220,21 @@ function SendMeasurements() {
     setTimeout(() => setMsg(''), 4000)
   }
 
-  // Sadece en son ölçümü gönder (dönem değil — tek son kayıt)
+  // Sadece son ölçüleri gönder (kilo dahil, her ölçünün en güncel değeri) —
+  // okunaklı GÖRSEL kart olarak. Yazılı istenirse aşağıdaki dönem butonları var.
   async function sendLatest() {
-    const settings = await readDietSettings()
-    const text = await buildLatestMeasurementReport(settings.userName)
-    const res = await shareTextSmart(text)
-    if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
-    else if (res === 'copied') setMsg('Son ölçüm panoya kopyalandı, WhatsApp’a yapıştır.')
-    else if (res === 'cancelled') setMsg('')
-    else setMsg('Gönderilemedi.')
+    setMsg('Görsel hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildLatestMeasurementImage(settings.userName)
+      const res = await shareImageSmart(blob, 'son-olcum.png')
+      if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Gönderilemedi.')
+    } catch {
+      setMsg('Görsel oluşturulamadı.')
+    }
     setTimeout(() => setMsg(''), 4000)
   }
 

@@ -958,6 +958,123 @@ export async function buildMeasurementsImage(days: number, userName?: string): P
   })
 }
 
+// SON ÖLÇÜLER — temiz, okunakli tek gorsel: kilo dahil her olcunun en guncel
+// degeri, tarihi ve bir onceki degere gore degisimi (renkli rozet). Token yok.
+export async function buildLatestMeasurementImage(userName?: string): Promise<Blob> {
+  const measAll = await dietDb.measurements.orderBy('createdAt').toArray()
+
+  // Her alan icin: en guncel deger + tarihi + bir onceki deger (kiyas)
+  const rows = MEASURE_FIELDS_IMG.map((f) => {
+    const withVal = measAll.filter((m) => typeof m[f.key] === 'number')
+    if (!withVal.length) return null
+    const latest = withVal[withVal.length - 1]
+    const prev = withVal.length >= 2 ? (withVal[withVal.length - 2][f.key] as number) : null
+    return { f, val: latest[f.key] as number, dateStr: latest.dateStr, prev }
+  }).filter((r): r is NonNullable<typeof r> => !!r)
+
+  const BANNER = 96
+  const ROW_H = 78
+  const ROW_GAP = 12
+  const cardTop = PAD + BANNER + 20
+  const cardH = rows.length ? 22 + rows.length * (ROW_H + ROW_GAP) + 10 : 90
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = cardTop + cardH + 56
+  const ctx = canvas.getContext('2d')!
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#f6f8fa'
+  ctx.fillRect(0, 0, W, canvas.height)
+
+  // Banner
+  const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
+  grad.addColorStop(0, '#059669')
+  grad.addColorStop(1, '#34d399')
+  roundRectPath(ctx, PAD, PAD, W - 2 * PAD, BANNER, 22)
+  ctx.fillStyle = grad
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 32px sans-serif'
+  ctx.fillText('📐 Son Ölçüler', PAD + 26, PAD + 46)
+  ctx.font = '19px sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+  ctx.fillText(`${userName ? userName + ' · ' : ''}${today}`, PAD + 26, PAD + 76)
+
+  // Beyaz kart
+  fillRound(ctx, PAD, cardTop, W - 2 * PAD, cardH, 22, '#ffffff')
+
+  if (!rows.length) {
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '20px sans-serif'
+    ctx.fillText('Henüz ölçüm kaydı yok.', PAD + 26, cardTop + 52)
+  }
+
+  const shortD = (dateStr: string) =>
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+
+  let y = cardTop + 22
+  const rowX = PAD + 22
+  const rowW = W - 2 * PAD - 44
+  rows.forEach((r, i) => {
+    // ince ayirici cizgi (ilk satir haric)
+    if (i > 0) {
+      ctx.strokeStyle = '#eef2f6'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(rowX, y)
+      ctx.lineTo(rowX + rowW, y)
+      ctx.stroke()
+    }
+    const cy = y + ROW_H / 2
+    // renkli nokta
+    ctx.fillStyle = r.f.color
+    ctx.beginPath()
+    ctx.arc(rowX + 12, cy, 9, 0, Math.PI * 2)
+    ctx.fill()
+    // etiket + tarih
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 27px sans-serif'
+    ctx.fillText(r.f.label, rowX + 36, cy - 2)
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '17px sans-serif'
+    ctx.fillText(shortD(r.dateStr), rowX + 36, cy + 24)
+    // deger (sagda, buyuk)
+    ctx.textAlign = 'right'
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 34px sans-serif'
+    const valStr = `${r.val}${r.f.unit}`
+    ctx.fillText(valStr, rowX + rowW, cy + 2)
+    // degisim rozeti (deger yazisinin altinda)
+    if (r.prev != null) {
+      const diff = Math.round((r.val - r.prev) * 10) / 10
+      const arrow = diff === 0 ? '→' : diff < 0 ? '↓' : '↑'
+      const sign = diff > 0 ? '+' : ''
+      const txt = `${arrow} ${sign}${diff}${r.f.unit}`
+      // azalma = yesil (iyi), artis = kirmizi, ayni = gri
+      const col = diff === 0 ? '#64748b' : diff < 0 ? '#059669' : '#e11d48'
+      ctx.font = 'bold 17px sans-serif'
+      const tw = ctx.measureText(txt).width
+      ctx.textAlign = 'left'
+      const chipX = rowX + rowW - tw - 20
+      fillRound(ctx, chipX, cy + 12, tw + 20, 26, 13, diff === 0 ? '#f1f5f9' : diff < 0 ? '#ecfdf5' : '#fef2f2')
+      ctx.fillStyle = col
+      ctx.fillText(txt, chipX + 10, cy + 30)
+    }
+    ctx.textAlign = 'left'
+    y += ROW_H + ROW_GAP
+  })
+
+  ctx.fillStyle = '#94a3b8'
+  ctx.font = '18px sans-serif'
+  ctx.textAlign = 'left'
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 22)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
+  })
+}
+
 // Gorseli paylas: once cihazin paylas menusu (dosya), olmazsa indir
 export async function shareImage(blob: Blob, filename: string): Promise<'shared' | 'downloaded'> {
   const file = new File([blob], filename, { type: 'image/png' })
