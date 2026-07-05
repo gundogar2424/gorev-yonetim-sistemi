@@ -15,7 +15,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since30 = todayStr(new Date(Date.now() - 29 * 86_400_000))
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -26,10 +26,18 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.labs.orderBy('createdAt').toArray(),
     dietDb.daynotes.where('dateStr').equals(today).first(),
     dietDb.medlogs.where('dateStr').equals(today).sortBy('createdAt'),
-    dietDb.medlogs.orderBy('createdAt').toArray()
+    dietDb.medlogs.orderBy('createdAt').toArray(),
+    dietDb.checkins.toArray()
   ])
 
   const L: string[] = []
+
+  // SENI TANIYAN KALICI PROFIL (varsa) — en tepede, tum degerlendirmelerin temeli
+  if (settings?.personalProfile?.trim()) {
+    L.push(
+      `SENİ TANIYAN KİŞİSEL PROFİL (uygulamanın bu kullanıcı için çıkardığı kalıcı özet — önerilerini ve yorumlarını buna göre kişiselleştir, buradaki kurallara uy):\n${settings.personalProfile.trim()}`
+    )
+  }
 
   // BUGUNE OZEL not/plan — en basta ve guclu: tum degerlendirmeler buna uysun
   if (dayNote?.text?.trim()) {
@@ -50,6 +58,10 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   if (prof.length) L.push(`Profil: ${prof.join(', ')}.`)
   if (settings?.conditions?.trim()) L.push(`Rahatsızlıklar: ${settings.conditions.trim()}.`)
   if (settings?.medications?.trim()) L.push(`Kullandığı ilaçlar: ${settings.medications.trim()}.`)
+  if (settings?.activityLevel?.trim()) L.push(`Hareket düzeyi: ${settings.activityLevel.trim()} (kalori/porsiyon önerisinde dikkate al).`)
+  if (settings?.dailyRhythm?.trim()) L.push(`Günlük düzen (uyku/iş): ${settings.dailyRhythm.trim()} (öğün saati/plan önerisini buna göre yap).`)
+  if (settings?.dislikedFoods?.trim())
+    L.push(`Sevmediği/kaçındığı/alerjik yiyecekler (ASLA önerme): ${settings.dislikedFoods.trim()}.`)
   if (settings?.preferences?.trim()) {
     L.push(
       `KİŞİSEL ALIŞKANLIKLAR/TERCİHLER (analiz ve tahminlerde MUTLAKA bunları esas al, görselden aksini VARSAYMA): ${settings.preferences.trim()}. Örn. "kahveyi şekersiz içer" dendiyse kahveyi şekersiz say, kaloriyi ve şekeri ona göre hesapla.`
@@ -152,6 +164,21 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       .join(', ')
     L.push(
       `Bugünkü AÇLIK kayıtları (1 tok–10 çok aç; moralden ayrı): ${hs}. Yüksek açlık saatlerini son öğünle ve aktiviteyle ilişkilendir; sık erken acıkıyorsa porsiyon/protein/lif önerisi ver.`
+    )
+  }
+
+  // ACLIK ORUNTUSU (son 30 gun): en sik hangi saatlerde cok acikiyor (>=7/10).
+  // Proaktif oneri/hatirlatma icin sinyal: "genelde 16'da acikiyorsun".
+  const hungry30 = checkinsAll.filter((c) => c.dateStr >= since30 && (c.hunger ?? 0) >= 7)
+  if (hungry30.length >= 3) {
+    const hourCount = new Map<number, number>()
+    for (const c of hungry30) {
+      const h = new Date(c.createdAt).getHours()
+      hourCount.set(h, (hourCount.get(h) ?? 0) + 1)
+    }
+    const top = [...hourCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([h]) => `${h}:00`)
+    L.push(
+      `AÇLIK ÖRÜNTÜSÜ: son 30 günde en çok ${top.join(' ve ')} civarı acıkıyor (yüksek açlık kaydı). Bu saatlerden önce ara öğün/su öner, proaktif davran.`
     )
   }
 

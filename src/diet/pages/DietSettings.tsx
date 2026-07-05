@@ -270,6 +270,40 @@ export default function DietSettings() {
           <p className="text-xs text-slate-500">
             İlaç ve rahatsızlıklar, Tahliller bölümündeki sağlık değerlendirmesinde birlikte dikkate alınır.
           </p>
+
+          {/* Profil derinlestirme — daha isabetli oneri icin */}
+          <div>
+            <label className="field-label">🏃 Hareket düzeyin</label>
+            <input
+              className="field-input"
+              placeholder="örn. masabaşı/az hareketli, günde 8 saat ayakta"
+              value={settings?.activityLevel ?? ''}
+              onChange={(e) => saveDietSettings({ activityLevel: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="field-label">🌙 Günlük düzenin (uyku/iş)</label>
+            <input
+              className="field-input"
+              placeholder="örn. gece 01'de yatarım, vardiyalı çalışırım"
+              value={settings?.dailyRhythm ?? ''}
+              onChange={(e) => saveDietSettings({ dailyRhythm: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="field-label">🚫 Sevmediğin / alerjik / kaçındığın yiyecekler</label>
+            <textarea
+              className="field-input"
+              rows={2}
+              placeholder="örn. balık sevmem, laktoz intoleransı, kırmızı et yemiyorum"
+              value={settings?.dislikedFoods ?? ''}
+              onChange={(e) => saveDietSettings({ dislikedFoods: e.target.value })}
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Bunları koç asla önermez; öneriler ve analizler buna göre kişiselleşir.
+            </p>
+          </div>
+
           <div>
             <label className="field-label">📋 Diyetisyenin talimatları</label>
             <textarea

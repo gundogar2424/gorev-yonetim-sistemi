@@ -279,4 +279,17 @@ export interface DietSettings {
   sugarFastingReminderTime?: string // Sabah aclik olcum saati (SS:DD, varsayilan 07:00)
   sugarPostMealReminderEnabled?: boolean // Ogunden 2 saat sonra tok seker olcum hatirlatmasi
   dietitianNotes?: string // Diyetisyenin talimatlari — yapay zeka HER degerlendirmede dikkate alir
+  // Profil derinlestirme (isabetli oneri icin; hepsi istege bagli)
+  activityLevel?: string // Hareket duzeyi (orn. "masabasi/az hareketli", "ayakta calisirim")
+  dailyRhythm?: string // Uyku/is duzeni (orn. "gece 01'de yatarim, vardiyali calisirim")
+  dislikedFoods?: string // Sevmedigi/alerjik/kacindigi yiyecekler — onerilerde ONERILMEZ
+  // "Beni Tani" kalici profil (AI tum veriden ozetler; tum modullere temel olur)
+  personalProfile?: string // AI'nin cikardigi "seni taniyan" ozet
+  personalProfileAt?: number // En son ne zaman uretildi (ms)
+  // Haftalik icgoru raporu (AI proaktif kocluk)
+  weeklyInsights?: string // Son uretilen haftalik icgoru metni
+  weeklyInsightsAt?: number // En son ne zaman uretildi (ms)
+  // Proaktif akilli aclik hatirlatmasi (verilerden ogrenilen saatte)
+  smartHungerReminderEnabled?: boolean
+  smartHungerReminderTime?: string // Ogrenilen aclik saati (SS:DD) — otomatik hesaplanir
 }

@@ -11,6 +11,7 @@ const CHECKIN_ID = 302 // gun ici "nasilsin?" check-in
 const PLAN_ID = 303 // aksam "yarini planla"
 const REPORT_ID = 304 // aksam "raporu gonder" hatirlatmasi
 const SUGAR_FASTING_ID = 305 // sabah aclik sekeri olcum hatirlatmasi
+const SMART_HUNGER_ID = 306 // ogrenilen aclik saatinden once proaktif ara ogun hatirlatmasi
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
 const SUGAR_POSTMEAL_ID = 402 // ogunden 2 saat sonra tok seker olcum hatirlatmasi (tek)
@@ -192,6 +193,20 @@ function sugarFastingNotification(time: string) {
   }
 }
 
+// Proaktif akilli aclik hatirlatmasi: verilerden ogrenilen aclik saatinden
+// once "ara ogun hazirla" der (her gun tekrar eder). Saat Reminders'ta hesaplanir.
+function smartHungerNotification(time: string) {
+  const [h, m] = (time || '15:30').split(':').map(Number)
+  return {
+    id: SMART_HUNGER_ID,
+    channelId: CHANNEL_ID,
+    title: '🍽️ Diyet Koçu',
+    body: 'Genelde bu saatlerde acıkıyorsun — sağlıklı bir ara öğün/su hazırla, krize girme. 💪',
+    schedule: { on: { hour: h || 15, minute: m || 30 }, repeats: true, allowWhileIdle: true },
+    extra: { route: '/' }
+  }
+}
+
 // Bir ogun yenince ~2 saat sonra "tok sekerini olc" bildirimi (tek seferlik).
 // Her yeni ogunde yeniden kurulur (ayni ID en son ogune gore guncellenir).
 export async function scheduleSugarReminder(minutes = 120): Promise<void> {
@@ -284,6 +299,9 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   }
   if (settings.sugarFastingReminderEnabled) {
     notifications.push(sugarFastingNotification(settings.sugarFastingReminderTime || '07:00'))
+  }
+  if (settings.smartHungerReminderEnabled && settings.smartHungerReminderTime) {
+    notifications.push(smartHungerNotification(settings.smartHungerReminderTime))
   }
 
   if (notifications.length === 0) return

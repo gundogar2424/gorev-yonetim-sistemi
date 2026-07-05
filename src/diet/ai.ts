@@ -1426,3 +1426,89 @@ export async function analyzeLabs(opts: {
     throw friendlyError(err)
   }
 }
+
+// "BENI TANI" PROFILI: ortak akil (health) baglamindan, kullaniciyi TANIYAN
+// kalici bir ozet cikarir. Bir kez uretilir, tum modullere temel olur.
+export async function buildPersonalProfile(opts: {
+  apiKey: string
+  health: string
+  model?: string
+  userName?: string
+  goal?: string
+  dietitianNotes?: string
+}): Promise<string> {
+  const { apiKey, health, model = DEFAULT_MODEL, userName, goal, dietitianNotes } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları: ${dietitianNotes.trim()}.`)
+
+  const system = `Sen "Diyet Koçu"nun hafızasısın. Aşağıdaki verilerden kullanıcıyı TANIYAN, kalıcı bir "kişisel profil" çıkar. Bu profil daha sonra tüm modüllere temel olacak; bu yüzden ÖZ, NET ve İŞE YARAR olmalı.
+Şu başlıklarda, KISA maddeler halinde yaz (veri yoksa o başlığı atla, uydurma):
+• Açlık/tokluk örüntüsü (hangi saatlerde acıkıyor, hangi öğün doyurmuyor)
+• Kan şekeri tepkileri (hangi yemek yükseltiyor/iyi geliyor)
+• Moral/enerji örüntüsü (varsa yemekle ilişkisi)
+• Kriz/tatlı isteği saatleri
+• İlaç düzeni (öğünle ilişkisi)
+• Alışkanlıklar/tercihler ve kaçındıkları
+• Kilo/ölçü gidişatı (kısaca)
+En sona "KOÇA NOT:" başlığıyla, gelecekteki önerilerde dikkat edilecek 2-3 kişisel kuralı yaz (örn. "kahvesi şekersiz", "16:00'da ara öğün öner"). Türkçe, madde işaretli, abartısız. Toplam en fazla ~200 kelime. ${ctx.join(' ')}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 700,
+      system,
+      messages: [{ role: 'user', content: `Verilerim:\n\n${health}\n\nBeni tanıyan kişisel profili çıkar.` }]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Profil üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// HAFTALIK ICGORU: son 7 gunun verilerinden 3-5 kisisel cikarim + bu haftanin
+// odagini uretir (proaktif kocluk). health = ortak akil baglami.
+export async function weeklyInsights(opts: {
+  apiKey: string
+  health: string
+  model?: string
+  userName?: string
+  goal?: string
+  dietitianNotes?: string
+}): Promise<string> {
+  const { apiKey, health, model = DEFAULT_MODEL, userName, goal, dietitianNotes } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
+  if (goal) ctx.push(`Hedef: ${goal}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları (dikkate al): ${dietitianNotes.trim()}.`)
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcının verilerine bakıp KİŞİSEL bir haftalık içgörü raporu yaz. Format:
+1) "📌 Bu hafta seninle ilgili fark ettiklerim" başlığı altında 3-5 madde — her biri SOMUT ve kişisel (sayı/saat/yemek adıyla). Örn. "Öğle öğünlerinde tokluğun düşük (ort. 4/10), bu yüzden ikindi krizine giriyorsun."
+2) "🎯 Bu haftanın odağı" başlığı altında 1 net, ulaşılabilir hedef.
+Genel geçer öğüt VERME; sadece ELDEKİ veriden çıkanı söyle. Veri azsa dürüst ol ("henüz örüntü çıkacak kadar veri yok, şunları girmeye devam et"). Türkçe, güçlendirici, kısa. ${ctx.join(' ')}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 800,
+      system,
+      messages: [{ role: 'user', content: `Verilerim:\n\n${health}\n\nBu haftanın kişisel içgörüsünü çıkar.` }]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('İçgörü üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}

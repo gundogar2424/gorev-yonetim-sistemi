@@ -16,6 +16,7 @@ import Barcode from './pages/Barcode'
 import Menu from './pages/Menu'
 import Progress from './pages/Progress'
 import Weekly from './pages/Weekly'
+import BeniTani from './pages/BeniTani'
 import DietSettings from './pages/DietSettings'
 
 // Alt gezinme ikonlari (cizgi/SVG — emoji yerine daha profesyonel gorunum)
@@ -111,6 +112,7 @@ export default function DietApp() {
           <Route path="/menu" element={<Menu />} />
           <Route path="/fotograf" element={<Progress />} />
           <Route path="/ozet" element={<Weekly />} />
+          <Route path="/beni-tani" element={<BeniTani />} />
           <Route path="/ayarlar" element={<DietSettings />} />
         </Routes>
       </main>

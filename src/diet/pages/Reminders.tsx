@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { readDietSettings, saveDietSettings } from '../db'
+import { readDietSettings, saveDietSettings, listCheckins } from '../db'
 import { mergeReminders, ensurePermission, applyNotifications, isNative } from '../lib/notify'
 import type { Reminder, DietSettings } from '../types'
 
@@ -69,6 +69,37 @@ export default function Reminders() {
 
   async function setCheckinTime(time: string) {
     await persist({ checkinReminderTime: time })
+  }
+
+  // AKILLI ACLIK HATIRLATICISI: verilerden en sik yuksek-aclik saatini ogrenip
+  // 30 dk oncesine gunluk bildirim kurar. Yeterli veri yoksa uyarir.
+  async function toggleSmartHunger(enabled: boolean) {
+    if (!enabled) {
+      await persist({ smartHungerReminderEnabled: false })
+      return
+    }
+    if (native && !(await ensurePermission())) {
+      flash('Bildirim izni verilmedi.')
+      return
+    }
+    const all = await listCheckins()
+    const hungry = all.filter((c) => (c.hunger ?? 0) >= 7)
+    if (hungry.length < 3) {
+      flash('Henüz açlık örüntüsü çıkacak kadar veri yok. Birkaç gün "açlık" girince otomatik öğrenir.')
+      return
+    }
+    const hourCount = new Map<number, number>()
+    for (const c of hungry) {
+      const h = new Date(c.createdAt).getHours()
+      hourCount.set(h, (hourCount.get(h) ?? 0) + 1)
+    }
+    const topHour = [...hourCount.entries()].sort((a, b) => b[1] - a[1])[0][0]
+    let total = topHour * 60 - 30 // 30 dk once uyar
+    total = ((total % 1440) + 1440) % 1440
+    const hh = String(Math.floor(total / 60)).padStart(2, '0')
+    const mm = String(total % 60).padStart(2, '0')
+    await persist({ smartHungerReminderEnabled: true, smartHungerReminderTime: `${hh}:${mm}` })
+    flash(`Öğrenildi: genelde ${topHour}:00 civarı acıkıyorsun → ${hh}:${mm}'de hatırlatacağım.`)
   }
 
   // Genel amacli bildirim ac/kapa + saat (yarin plani, rapor hatirlatma)
@@ -240,6 +271,27 @@ export default function Reminders() {
                 onClick={() => toggleFlag({ sugarPostMealReminderEnabled: !settings?.sugarPostMealReminderEnabled }, !settings?.sugarPostMealReminderEnabled)}
               />
             </div>
+          </div>
+        </section>
+
+        {/* Akilli aclik hatirlaticisi (verilerden ogrenir) */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🍽️ Akıllı açlık hatırlatıcısı</h3>
+          <div className="card p-3 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-slate-700">Acıkmadan önce uyar</p>
+                <p className="text-xs text-slate-500">
+                  Girdiğin açlık kayıtlarından en sık acıktığın saati öğrenir; o saatten 30 dk önce “ara öğün hazırla” der.
+                </p>
+              </div>
+              <Switch on={!!settings?.smartHungerReminderEnabled} onClick={() => toggleSmartHunger(!settings?.smartHungerReminderEnabled)} />
+            </div>
+            {settings?.smartHungerReminderEnabled && settings?.smartHungerReminderTime && (
+              <p className="text-xs font-semibold text-emerald-700">
+                Öğrenilen saat: {settings.smartHungerReminderTime} · yeni veri girdikçe tekrar aç/kapat, güncellensin.
+              </p>
+            )}
           </div>
         </section>
 

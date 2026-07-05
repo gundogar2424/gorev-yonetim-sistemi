@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import DietHeader from '../DietHeader'
 
 const links = [
+  { to: '/beni-tani', icon: '🧠', title: 'Beni Tanı & İçgörü', desc: 'Yapay zekanın seni tanıyan profili + haftalık kişisel içgörü' },
   { to: '/takip?tab=saglik', icon: '🩺', title: 'Şeker & Tansiyon', desc: 'Kan şekeri ve tansiyon kaydı + grafikler' },
   { to: '/menu', icon: '🍽️', title: 'Menüm', desc: 'Diyet listene sor (öğlen ne var?) ve sohbetle düzelt' },
   { to: '/oneri', icon: '🍳', title: 'Ne Yesem?', desc: 'Sofranın/elindeki ürünlerin fotoğrafını çek, sana uygunları gramajıyla önersin' },
