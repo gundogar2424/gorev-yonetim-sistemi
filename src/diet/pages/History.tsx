@@ -7,7 +7,6 @@ import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
 import { buildDailyImage, buildDailyImageSet, buildMealImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
-import { isBeverage } from '../lib/food'
 import type { DietEntry, MealType } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
@@ -163,7 +162,6 @@ export default function History() {
                         </span>
                       )}
                     </div>
-                    {e.decision === 'ate' && !isBeverage(e.foodName) && <MealFeedback e={e} />}
                     <MealEdit e={e} />
                     <MealTimeEdit e={e} />
                     <MealShare e={e} />
@@ -181,30 +179,6 @@ export default function History() {
   )
 }
 
-// Ogun sonrasi tokluk puani (doydun mu?) 1-10
-function MealFeedback({ e }: { e: DietEntry }) {
-  const [open, setOpen] = useState(false)
-  async function set(v: number) {
-    await dietDb.entries.update(e.id!, { satiety: v })
-  }
-  return (
-    <div className="mt-1">
-      {!open && (
-        <button onClick={() => setOpen(true)} className="text-xs text-emerald-700 underline">
-          {e.satiety ? `🍽️ Tokluk ${e.satiety}/10 ✏️` : '+ Doydun mu? (tokluk)'}
-        </button>
-      )}
-      {open && (
-        <div className="space-y-1.5 mt-1 bg-slate-50 rounded-xl p-2">
-          <Scale label="🍽️ Doyurdu mu? (tokluk)" value={e.satiety} onPick={(v) => set(v)} />
-          <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400">
-            kapat
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 // Bir Date'i <input type="datetime-local"> degerine cevir (YYYY-MM-DDTHH:mm)
 function toLocalInput(d: Date): string {
@@ -422,27 +396,6 @@ function MealShare({ e }: { e: DietEntry }) {
         </div>
       )}
       {msg && <p className="text-[11px] text-brand-700 font-semibold mt-1">{msg}</p>}
-    </div>
-  )
-}
-
-function Scale({ label, value, onPick }: { label: string; value?: number; onPick: (v: number) => void }) {
-  return (
-    <div>
-      <p className="text-[11px] text-slate-500">{label}</p>
-      <div className="flex flex-wrap gap-1 mt-0.5">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            onClick={() => onPick(n)}
-            className={`w-6 h-6 rounded-full text-[11px] font-bold ${
-              value === n ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-600'
-            }`}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
     </div>
   )
 }

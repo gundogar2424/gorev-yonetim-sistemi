@@ -7,7 +7,7 @@ import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDa
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
-import { scheduleSatietyReminder, scheduleSugarReminder } from '../lib/notify'
+import { scheduleSugarReminder } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
 import { isBeverage } from '../lib/food'
@@ -362,13 +362,10 @@ export default function Capture() {
     })
     setSavedDecision(decision)
     setPhase('saved')
-    // Yedi ise ~30 dk sonra tokluk hatirlatmasi (APK'da bildirim).
-    // Gecmise islenen ogunde hatirlatma anlamsiz — yalnizca "su an" kayitlarda.
-    // Iceceklerde "doydun mu?" anlamsiz — tokluk hatirlatmasini atla.
+    // Ana ogunlerden (kahvalti/ogle/aksam) ~2 saat sonra tok seker olcum
+    // hatirlatmasi. Ara ogun/icecekte tetiklenmez. (Tokluk/"doydun mu"
+    // hatirlatmasi kaldirildi — kullanici acligini istedigi zaman isaretliyor.)
     if (decision === 'ate' && Date.now() - createdAt < 60_000) {
-      if (!isBeverage(analysis.foodName)) void scheduleSatietyReminder(30)
-      // Yalnizca ANA ogunlerden (kahvalti/ogle/aksam) ~2 saat sonra tok seker
-      // olcum hatirlatmasi. Ara ogun/icecekte tetiklenmez.
       const mainMeal = mealType === 'kahvalti' || mealType === 'ogle' || mealType === 'aksam'
       if (settings?.sugarPostMealReminderEnabled && mainMeal && !isBeverage(analysis.foodName)) {
         void scheduleSugarReminder(120)
@@ -501,9 +498,6 @@ export default function Capture() {
 
         {/* TEK yapay zeka sohbeti: menu, yarin plani, Z raporu, gun analizi */}
         <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
-
-        {/* Yarim saat gecmis, henuz tokluk puani verilmemis ogunler */}
-        <SatietyPrompt entries={entries ?? []} />
 
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
         <PendingCheckIn entries={entries ?? []} />
@@ -1923,63 +1917,6 @@ function MacroBar({ label, grams, pct, color }: { label: string; grams: number; 
 }
 
 // Yarim saat gecmis ama tokluk puani verilmemis "yedim" ogunleri sorar
-function SatietyPrompt({ entries }: { entries: DietEntry[] }) {
-  const now = Date.now()
-  const pending = entries
-    .filter(
-      (e) =>
-        e.decision === 'ate' &&
-        e.satiety == null &&
-        !e.satietySkipped &&
-        !isBeverage(e.foodName) &&
-        now - e.createdAt >= 30 * 60_000 &&
-        now - e.createdAt < 2 * 86_400_000
-    )
-    .sort((a, b) => b.createdAt - a.createdAt)
-  if (pending.length === 0) return null
-
-  async function set(id: number, v: number) {
-    await dietDb.entries.update(id, { satiety: v })
-  }
-  async function skip(id: number) {
-    await dietDb.entries.update(id, { satietySkipped: true })
-  }
-
-  return (
-    <div className="card p-4 bg-sky-50 border-sky-200 space-y-2.5">
-      <p className="font-bold text-sky-800 text-sm">🍽️ Doydun mu? — son öğünlerinin tokluğunu puanla</p>
-      {pending.map((e) => (
-        <div key={e.id} className="bg-white rounded-xl p-2 space-y-1.5">
-          <div className="flex items-center gap-2">
-            {e.photo && <img src={e.photo} alt={e.foodName} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />}
-            <p className="text-sm font-semibold text-slate-700 flex-1 min-w-0 truncate">{e.foodName}</p>
-            <button
-              onClick={() => skip(e.id!)}
-              className="text-slate-400 hover:text-slate-600 text-lg leading-none px-1.5 flex-shrink-0"
-              aria-label="Bu öğün için sorma"
-              title="Bu öğün için sorma"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                onClick={() => set(e.id!, n)}
-                className="w-7 h-7 rounded-full text-xs font-bold bg-slate-100 text-slate-600 active:bg-sky-600 active:text-white"
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-      <p className="text-[11px] text-sky-700/70">1: hâlâ açım · 10: fazlasıyla tok</p>
-    </div>
-  )
-}
-
 // Aksam kontrolu: bugun "sonra karar ver" denmis ogunleri sorar
 function PendingCheckIn({ entries }: { entries: DietEntry[] }) {
   const today = todayStr()
