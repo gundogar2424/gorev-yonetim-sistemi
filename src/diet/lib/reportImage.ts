@@ -434,14 +434,16 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
 // Tek uzun gorsel yerine, WhatsApp'a AYRI AYRI gonderilecek gorsel SETI uretir:
 // her ogun turu icin bir gorsel (buyuk foto + buyuk yazi) + spor/saglik icin bir gorsel.
 export async function buildDailyImageSet(dateStr: string, userName?: string): Promise<{ filename: string; blob: Blob }[]> {
-  const [entries, measurements, vitals, exercises, waterRow] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
     dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
-    dietDb.water.where('dateStr').equals(dateStr).first()
+    dietDb.water.where('dateStr').equals(dateStr).first(),
+    dietDb.checkins.where('dateStr').equals(dateStr).sortBy('createdAt')
   ])
   const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
+  const hungerRecs = checkins.filter((c) => c.hunger != null) // moral GONDERILMEZ
   entries.sort((a, b) => a.createdAt - b.createdAt)
   exercises.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
@@ -570,7 +572,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
 
   // Spor & Saglik: tek bir gorsel — her bolum kendi beyaz kartinda, ferah ve
   // buyuk yazili; seker olcumlerinde aclik/tok net renkli rozetle.
-  if (exercises.length || vitals.length || measurements.length || waterMl > 0) {
+  if (exercises.length || vitals.length || measurements.length || waterMl > 0 || hungerRecs.length) {
     const EXLINE = 34 // egzersiz satir yuksekligi
     const ROW = 50 // vital/olcu satir yuksekligi (ferah)
     const CPAD = 22 // kart ic bosluğu
@@ -585,7 +587,8 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     const vitH = vitals.length ? TITLE_H + CPAD * 2 + vitals.length * ROW + 22 : 0
     const meaH = measurements.length ? TITLE_H + CPAD * 2 + measurements.length * ROW + 22 : 0
     const watH = waterMl > 0 ? TITLE_H + 86 + 22 : 0
-    const contentH = exH + vitH + meaH + watH + 10
+    const hunH = hungerRecs.length ? TITLE_H + CPAD * 2 + hungerRecs.length * ROW + ROW + 22 : 0
+    const contentH = exH + vitH + meaH + watH + hunH + 10
 
     const { ctx, canvas, y: y0 } = makeCanvas('🏃 Spor & 🩺 Sağlık', contentH)
     let y = y0
@@ -672,6 +675,25 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
       ctx.font = 'bold 40px sans-serif'
       ctx.fillText(`${waterMl} ml`, PAD + CPAD, y + 56)
       y += 86 + 22
+    }
+
+    if (hungerRecs.length) {
+      drawTitle('🍽️ Gün içi açlık (1 tok–10 çok aç)')
+      const cardH = CPAD * 2 + hungerRecs.length * ROW + ROW
+      fillRound(ctx, PAD, y, W - 2 * PAD, cardH, 18, '#ffffff')
+      let ry = y + CPAD
+      for (const c of hungerRecs) {
+        const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 25px sans-serif'
+        ctx.fillText(`${t}  ·  açlık ${c.hunger}/10`, PAD + CPAD, ry + 33)
+        ry += ROW
+      }
+      const avg = Math.round((hungerRecs.reduce((s, c) => s + (c.hunger || 0), 0) / hungerRecs.length) * 10) / 10
+      ctx.fillStyle = '#0f766e'
+      ctx.font = 'bold 22px sans-serif'
+      ctx.fillText(`Ortalama açlık: ${avg}/10`, PAD + CPAD, ry + 33)
+      y += cardH + 22
     }
 
     ctx.fillStyle = '#94a3b8'
