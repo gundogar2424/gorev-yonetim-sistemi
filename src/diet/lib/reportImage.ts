@@ -4,6 +4,7 @@
 import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
 import { mealLabel, MEAL_OPTIONS } from './meals'
+import { groupHungerByMeal, hungerAvg } from './report'
 import type { DietEntry } from '../types'
 
 const W = 820
@@ -164,7 +165,8 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   if (exercises.length) h += 44 + exCardH
   if (measurements.length) h += 48 + measurements.length * 30
   if (vitals.length) h += 48 + vitals.length * 30
-  if (hungerRecs.length) h += 48 + hungerRecs.length * 30 + 30
+  const hGroups = hungerRecs.length ? groupHungerByMeal(entries, checkins) : []
+  if (hungerRecs.length) h += 48 + (hGroups.length + hungerRecs.length + 1) * 30 + 10
   if (waterMl > 0) h += 44
   h += 50 // alt bilgi
 
@@ -385,25 +387,30 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     y += 6
   }
 
-  // Gun ici aclik (1 tok - 10 cok ac). Moral gonderilmez.
+  // Gun ici aclik — OGUNE gore gruplu (ust: ogun, alt: o ogunden sonraki aclik).
   if (hungerRecs.length) {
     y += 8
     ctx.fillStyle = '#0f172a'
     ctx.font = 'bold 24px sans-serif'
     ctx.fillText('🍽️ Gün içi açlık (1 tok–10 çok aç)', PAD, y)
     y += 8
-    ctx.fillStyle = '#334155'
-    ctx.font = '20px sans-serif'
-    for (const c of hungerRecs) {
+    for (const g of hGroups) {
       y += 30
-      const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-      ctx.fillText(`• ${t} — açlık ${c.hunger}/10`, PAD + 6, y)
+      ctx.fillStyle = '#0f766e'
+      ctx.font = 'bold 20px sans-serif'
+      ctx.fillText(`▸ ${g.label}${g.mtime ? ` (${g.mtime})` : ''}`, PAD + 6, y)
+      ctx.fillStyle = '#334155'
+      ctx.font = '20px sans-serif'
+      for (const c of g.recs) {
+        y += 30
+        const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        ctx.fillText(`   • ${t} — açlık ${c.hunger}/10`, PAD + 6, y)
+      }
     }
-    const avg = Math.round((hungerRecs.reduce((s, c) => s + (c.hunger || 0), 0) / hungerRecs.length) * 10) / 10
     y += 30
     ctx.fillStyle = '#0f766e'
     ctx.font = 'bold 18px sans-serif'
-    ctx.fillText(`Ortalama açlık: ${avg}/10`, PAD + 6, y)
+    ctx.fillText(`Ortalama açlık: ${hungerAvg(checkins)}/10`, PAD + 6, y)
     y += 6
   }
 
@@ -444,6 +451,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
   ])
   const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
   const hungerRecs = checkins.filter((c) => c.hunger != null) // moral GONDERILMEZ
+  const hGroups = hungerRecs.length ? groupHungerByMeal(entries, checkins) : []
   entries.sort((a, b) => a.createdAt - b.createdAt)
   exercises.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
@@ -587,7 +595,8 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     const vitH = vitals.length ? TITLE_H + CPAD * 2 + vitals.length * ROW + 22 : 0
     const meaH = measurements.length ? TITLE_H + CPAD * 2 + measurements.length * ROW + 22 : 0
     const watH = waterMl > 0 ? TITLE_H + 86 + 22 : 0
-    const hunH = hungerRecs.length ? TITLE_H + CPAD * 2 + hungerRecs.length * ROW + ROW + 22 : 0
+    const hunLines = hGroups.length + hungerRecs.length + 1 // basliklar + kayitlar + ortalama
+    const hunH = hungerRecs.length ? TITLE_H + CPAD * 2 + hunLines * ROW + 22 : 0
     const contentH = exH + vitH + meaH + watH + hunH + 10
 
     const { ctx, canvas, y: y0 } = makeCanvas('🏃 Spor & 🩺 Sağlık', contentH)
@@ -679,20 +688,27 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
 
     if (hungerRecs.length) {
       drawTitle('🍽️ Gün içi açlık (1 tok–10 çok aç)')
-      const cardH = CPAD * 2 + hungerRecs.length * ROW + ROW
+      const cardH = CPAD * 2 + hunLines * ROW
       fillRound(ctx, PAD, y, W - 2 * PAD, cardH, 18, '#ffffff')
       let ry = y + CPAD
-      for (const c of hungerRecs) {
-        const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-        ctx.fillStyle = '#0f172a'
-        ctx.font = 'bold 25px sans-serif'
-        ctx.fillText(`${t}  ·  açlık ${c.hunger}/10`, PAD + CPAD, ry + 33)
+      for (const g of hGroups) {
+        // Ust: ogun basligi
+        ctx.fillStyle = '#0f766e'
+        ctx.font = 'bold 23px sans-serif'
+        ctx.fillText(`▸ ${g.label}${g.mtime ? ` (${g.mtime})` : ''}`, PAD + CPAD, ry + 33)
         ry += ROW
+        // Alt: o ogunden sonraki aclik saatleri
+        for (const c of g.recs) {
+          const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+          ctx.fillStyle = '#0f172a'
+          ctx.font = '24px sans-serif'
+          ctx.fillText(`    ${t}  ·  açlık ${c.hunger}/10`, PAD + CPAD, ry + 33)
+          ry += ROW
+        }
       }
-      const avg = Math.round((hungerRecs.reduce((s, c) => s + (c.hunger || 0), 0) / hungerRecs.length) * 10) / 10
       ctx.fillStyle = '#0f766e'
       ctx.font = 'bold 22px sans-serif'
-      ctx.fillText(`Ortalama açlık: ${avg}/10`, PAD + CPAD, ry + 33)
+      ctx.fillText(`Ortalama açlık: ${hungerAvg(checkins)}/10`, PAD + CPAD, ry + 33)
       y += cardH + 22
     }
 

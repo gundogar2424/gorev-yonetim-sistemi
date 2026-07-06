@@ -3,7 +3,42 @@
 import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
 import { mealLabel, MEAL_OPTIONS } from './meals'
-import type { DietEntry } from '../types'
+import type { DietEntry, CheckIn, MealType } from '../types'
+
+// Gun ici aclik kayitlarini, KENDINDEN ONCEKI ogune gore gruplar.
+// Boylece raporda "ust: ogun, alt: o ogunden sonraki aclik saatleri" gorunur.
+export interface HungerGroup {
+  label: string // orn. "Kahvaltı sonrası"
+  mtime: string // o ogunun saati (varsa)
+  recs: CheckIn[]
+}
+export function groupHungerByMeal(entries: DietEntry[], checkins: CheckIn[]): HungerGroup[] {
+  const meals = entries.filter((e) => e.decision === 'ate').sort((a, b) => a.createdAt - b.createdAt)
+  const hunger = checkins.filter((c) => c.hunger != null).sort((a, b) => a.createdAt - b.createdAt)
+  const byKey = new Map<string, HungerGroup>()
+  const order: string[] = []
+  for (const c of hunger) {
+    let m: DietEntry | null = null
+    for (const meal of meals) {
+      if (meal.createdAt <= c.createdAt) m = meal
+      else break
+    }
+    const key = m ? `m${m.id ?? m.createdAt}` : 'before'
+    if (!byKey.has(key)) {
+      const label = m ? `${mealLabel((m.mealType ?? 'serbest') as MealType)} sonrası` : 'Öğün öncesi (aç karnına)'
+      const mtime = m ? new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : ''
+      byKey.set(key, { label, mtime, recs: [] })
+      order.push(key)
+    }
+    byKey.get(key)!.recs.push(c)
+  }
+  return order.map((k) => byKey.get(k)!)
+}
+export function hungerAvg(checkins: CheckIn[]): number {
+  const h = checkins.filter((c) => c.hunger != null)
+  if (!h.length) return 0
+  return Math.round((h.reduce((s, c) => s + (c.hunger || 0), 0) / h.length) * 10) / 10
+}
 
 const TR_DECISION: Record<string, string> = {
   resisted: 'vazgeçti ✅',
@@ -91,12 +126,14 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
   const hungerRecs = checkins.filter((c) => c.hunger != null)
   if (hungerRecs.length) {
     lines.push('🍽️ GÜN İÇİ AÇLIK (1 tok — 10 çok aç)')
-    for (const c of hungerRecs) {
-      const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-      lines.push(`   • ${t} — açlık ${c.hunger}/10`)
+    for (const g of groupHungerByMeal(entries, checkins)) {
+      lines.push(`▸ ${g.label}${g.mtime ? ` (${g.mtime})` : ''}`)
+      for (const c of g.recs) {
+        const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        lines.push(`   • ${t} — açlık ${c.hunger}/10`)
+      }
     }
-    const avg = Math.round((hungerRecs.reduce((s, c) => s + (c.hunger || 0), 0) / hungerRecs.length) * 10) / 10
-    lines.push(`  Ortalama açlık: ${avg}/10`)
+    lines.push(`  Ortalama açlık: ${hungerAvg(checkins)}/10`)
     lines.push('')
   }
 
