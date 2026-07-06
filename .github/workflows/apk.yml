@@ -59,6 +59,10 @@ jobs:
           grep -q 'android.permission.CAMERA' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' "$f"
           grep -q 'READ_MEDIA_IMAGES' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n</manifest>#' "$f"
           grep -q 'mlkit.vision.DEPENDENCIES' "$f" || sed -i 's#</application>#    <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />\n</application>#' "$f"
+          # Bildirimlerin TAM ZAMANINDA (ekrani uyandirarak, sesle) gelmesi icin
+          # kesin-alarm + bildirim izinleri. USE_EXACT_ALARM (Android 13+) otomatik
+          # verilir ve alarmlarin Doze/uyku modunda bile zamaninda calmasini saglar.
+          grep -q 'USE_EXACT_ALARM' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
           echo "--- manifest ---"; grep -E "uses-permission|uses-feature|mlkit" "$f" || true
 
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
