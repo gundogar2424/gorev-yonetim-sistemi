@@ -103,14 +103,17 @@ function measureLines(m: { weight?: number; waist?: number; navel?: number; fold
 
 // Bir gunun gorsel raporunu PNG Blob olarak uretir
 export async function buildDailyImage(dateStr: string, userName?: string): Promise<Blob> {
-  const [entries, measurements, vitals, exercises, waterRow] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
     dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
-    dietDb.water.where('dateStr').equals(dateStr).first()
+    dietDb.water.where('dateStr').equals(dateStr).first(),
+    dietDb.checkins.where('dateStr').equals(dateStr).sortBy('createdAt')
   ])
   const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
+  // Gun ici aclik kayitlari (moral GONDERILMEZ — sadece aclik)
+  const hungerRecs = checkins.filter((c) => c.hunger != null)
   exercises.sort((a, b) => a.createdAt - b.createdAt)
   entries.sort((a, b) => a.createdAt - b.createdAt)
   const photos = await Promise.all(entries.map((e) => (e.photo ? loadImage(e.photo) : Promise.resolve(null))))
@@ -161,6 +164,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   if (exercises.length) h += 44 + exCardH
   if (measurements.length) h += 48 + measurements.length * 30
   if (vitals.length) h += 48 + vitals.length * 30
+  if (hungerRecs.length) h += 48 + hungerRecs.length * 30 + 30
   if (waterMl > 0) h += 44
   h += 50 // alt bilgi
 
@@ -378,6 +382,28 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
           : `• ${v.time} — Tansiyon ${v.systolic}/${v.diastolic}${v.pulse ? `, nabız ${v.pulse}` : ''}`
       ctx.fillText(line, PAD + 6, y)
     }
+    y += 6
+  }
+
+  // Gun ici aclik (1 tok - 10 cok ac). Moral gonderilmez.
+  if (hungerRecs.length) {
+    y += 8
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 24px sans-serif'
+    ctx.fillText('🍽️ Gün içi açlık (1 tok–10 çok aç)', PAD, y)
+    y += 8
+    ctx.fillStyle = '#334155'
+    ctx.font = '20px sans-serif'
+    for (const c of hungerRecs) {
+      y += 30
+      const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      ctx.fillText(`• ${t} — açlık ${c.hunger}/10`, PAD + 6, y)
+    }
+    const avg = Math.round((hungerRecs.reduce((s, c) => s + (c.hunger || 0), 0) / hungerRecs.length) * 10) / 10
+    y += 30
+    ctx.fillStyle = '#0f766e'
+    ctx.font = 'bold 18px sans-serif'
+    ctx.fillText(`Ortalama açlık: ${avg}/10`, PAD + 6, y)
     y += 6
   }
 

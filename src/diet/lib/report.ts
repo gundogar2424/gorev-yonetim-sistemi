@@ -15,7 +15,7 @@ const SEP = '━━━━━━━━━━━━━━━━'
 
 // Belirli bir gunun (YYYY-MM-DD) raporunu duz metin olarak uretir
 export async function buildDailyReport(dateStr: string, userName?: string): Promise<string> {
-  const [entries, measurements, vitals, exercises, waterRow, stepsRow, sleepRow, cravings] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, stepsRow, sleepRow, cravings, checkins] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
     dietDb.measurements.where('dateStr').equals(dateStr).toArray(),
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
@@ -23,7 +23,8 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     dietDb.water.where('dateStr').equals(dateStr).first(),
     dietDb.steps.where('dateStr').equals(dateStr).first(),
     dietDb.sleep.where('dateStr').equals(dateStr).first(),
-    dietDb.cravings.where('dateStr').equals(dateStr).toArray()
+    dietDb.cravings.where('dateStr').equals(dateStr).toArray(),
+    dietDb.checkins.where('dateStr').equals(dateStr).sortBy('createdAt')
   ])
 
   const dateNice = new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -84,6 +85,20 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
     lines.push(`  Özet: ${resisted} vazgeçiş, ${ate} yenen öğün, ~${kcal} kcal alındı.`)
   }
   lines.push('')
+
+  // GUN ICI ACLIK (moral GONDERILMEZ — sadece aclik). Diyetisyen porsiyon/ogun
+  // araligini ayarlamak icin gun ici acligi gormek ister.
+  const hungerRecs = checkins.filter((c) => c.hunger != null)
+  if (hungerRecs.length) {
+    lines.push('🍽️ GÜN İÇİ AÇLIK (1 tok — 10 çok aç)')
+    for (const c of hungerRecs) {
+      const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      lines.push(`   • ${t} — açlık ${c.hunger}/10`)
+    }
+    const avg = Math.round((hungerRecs.reduce((s, c) => s + (c.hunger || 0), 0) / hungerRecs.length) * 10) / 10
+    lines.push(`  Ortalama açlık: ${avg}/10`)
+    lines.push('')
+  }
 
   // Olculer
   if (measurements.length) {
