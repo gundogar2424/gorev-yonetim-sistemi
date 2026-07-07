@@ -13,7 +13,7 @@ import {
 } from '../db'
 import { suggestShopping } from '../ai'
 import { buildHealthContext } from '../lib/context'
-import type { ShoppingItem, ShoppingSuggestion, ShoppingSuggestItem } from '../types'
+import type { ShoppingItem, ShoppingSuggestion } from '../types'
 
 export default function Shopping() {
   const items = useLiveQuery(() => listShopping(), [], [])
@@ -28,16 +28,16 @@ export default function Shopping() {
   }
 
   const list = items ?? []
+  // Sade: kategori/öğün YOK. Tik atılmayan = alınacak (elimizde yok), tik atılan = alındı.
   const pending = list.filter((i) => !i.done)
   const done = list.filter((i) => i.done)
-  const allGroups = groupByCategory(list)
 
   return (
     <div>
-      <DietHeader title="Alışveriş Listesi" subtitle="Sağlıklı alışveriş" />
+      <DietHeader title="Alışveriş Listesi" subtitle="Tik at = alındı · tik yok = elimizde yok" />
 
       <div className="p-3 space-y-4">
-        {/* Diyet listesine gore otomatik oneri */}
+        {/* Diyet listesine gore otomatik oneri (sade — dogrudan urunler) */}
         <SuggestFromPlan
           apiKey={settings?.apiKey}
           dietPlan={settings?.dietPlan}
@@ -46,10 +46,11 @@ export default function Shopping() {
           goal={settings?.goal}
         />
 
+        {/* Elle urun ekle */}
         <div className="flex gap-2">
           <input
             className="field-input"
-            placeholder="örn. yulaf, yumurta, brokoli"
+            placeholder="Ürün ekle: örn. yumurta"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -68,55 +69,29 @@ export default function Shopping() {
           </div>
         )}
 
-        {/* Tum urunler — kategoriye gore gruplanir; tik atinca yerinde kalir,
-            istediginde tekrar dokununca tiki kalkar */}
-        {list.length > 0 && (
-          <section className="space-y-3">
+        {/* ALINACAKLAR (elimizde yok) — tik atılmamışlar */}
+        {pending.length > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">
+              🛒 Alınacaklar ({pending.length})
+            </h3>
+            {pending.map((i) => (
+              <Row key={i.id} i={i} />
+            ))}
+          </section>
+        )}
+
+        {/* ALINDI — tik atılmışlar (altta, üstü çizili) */}
+        {done.length > 0 && (
+          <section className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                Liste ({pending.length} kaldı{done.length ? ` · ${done.length} alındı` : ''})
-              </h3>
-              {done.length > 0 && (
-                <button onClick={clearDoneShopping} className="text-xs text-rose-500 underline">
-                  Alınanları temizle
-                </button>
-              )}
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">✓ Alındı ({done.length})</h3>
+              <button onClick={clearDoneShopping} className="text-xs text-rose-500 underline">
+                Temizle
+              </button>
             </div>
-            {allGroups.map(([cat, group]) => (
-              <div key={cat} className="space-y-2">
-                {cat && <p className="text-xs font-bold text-emerald-700 px-1">{cat}</p>}
-                {group.map((i) => (
-                  <div key={i.id} className={`card p-3 flex items-center gap-3 ${i.done ? 'opacity-60' : ''}`}>
-                    <button
-                      onClick={() => toggleShopping(i.id!, !i.done)}
-                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        i.done ? 'bg-emerald-500 text-white' : 'border-2 border-emerald-500'
-                      }`}
-                      aria-label={i.done ? 'Tiki kaldır' : 'Tamamla'}
-                    >
-                      {i.done ? '✓' : ''}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <span className={i.done ? 'text-slate-500 line-through' : 'text-slate-700'}>{i.text}</span>
-                      {i.meals && i.meals.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {i.meals.map((m) => (
-                            <span
-                              key={m}
-                              className="text-[10px] font-semibold bg-amber-100 text-amber-800 rounded-full px-1.5 py-0.5"
-                            >
-                              🍽️ {m}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <button onClick={() => deleteShopping(i.id!)} className="text-slate-300 hover:text-rose-500">
-                      🗑️
-                    </button>
-                  </div>
-                ))}
-              </div>
+            {done.map((i) => (
+              <Row key={i.id} i={i} />
             ))}
           </section>
         )}
@@ -125,7 +100,31 @@ export default function Shopping() {
   )
 }
 
-// Diyet listesine gore kategorili alisveris onerisi uretir (yapay zeka)
+// Tek satır: yuvarlak tik + ürün adı + sil. Kategori/öğün yok.
+function Row({ i }: { i: ShoppingItem }) {
+  return (
+    <div className={`card p-3 flex items-center gap-3 ${i.done ? 'opacity-60' : ''}`}>
+      <button
+        onClick={() => toggleShopping(i.id!, !i.done)}
+        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+          i.done ? 'bg-emerald-500 text-white' : 'border-2 border-emerald-500'
+        }`}
+        aria-label={i.done ? 'Tiki kaldır' : 'Alındı işaretle'}
+      >
+        {i.done ? '✓' : ''}
+      </button>
+      <span className={`flex-1 min-w-0 ${i.done ? 'text-slate-500 line-through' : 'text-slate-800 font-medium'}`}>
+        {i.text}
+      </span>
+      <button onClick={() => deleteShopping(i.id!)} className="text-slate-300 hover:text-rose-500">
+        🗑️
+      </button>
+    </div>
+  )
+}
+
+// Diyet listesine gore SADE alisveris onerisi (kategori/ogun etiketi olmadan,
+// duz urun listesi). Cift urunler tekillestirilir.
 function SuggestFromPlan({
   apiKey,
   dietPlan,
@@ -141,7 +140,8 @@ function SuggestFromPlan({
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [result, setResult] = useState<ShoppingSuggestion | null>(null)
+  const [names, setNames] = useState<string[] | null>(null)
+  const [note, setNote] = useState('')
   const [days, setDays] = useState(7)
   const [added, setAdded] = useState<Set<string>>(new Set())
 
@@ -150,13 +150,26 @@ function SuggestFromPlan({
 
   async function suggest() {
     setError('')
-    setResult(null)
+    setNames(null)
+    setNote('')
     setAdded(new Set())
     setBusy(true)
     try {
       const health = await buildHealthContext(await readDietSettings())
-      const res = await suggestShopping({ apiKey: apiKey!, dietPlan: dietPlan ?? '', days, model, userName, goal, health })
-      setResult(res)
+      const res: ShoppingSuggestion = await suggestShopping({ apiKey: apiKey!, dietPlan: dietPlan ?? '', days, model, userName, goal, health })
+      // Kategorileri düz listeye indir + tekilleştir (öğün/kategori gösterme)
+      const seen = new Set<string>()
+      const flat: string[] = []
+      for (const c of res.categories)
+        for (const it of c.items) {
+          const key = it.name.trim().toLowerCase()
+          if (key && !seen.has(key)) {
+            seen.add(key)
+            flat.push(it.name.trim())
+          }
+        }
+      setNames(flat)
+      setNote(res.note || '')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Öneri alınamadı.')
     } finally {
@@ -164,18 +177,15 @@ function SuggestFromPlan({
     }
   }
 
-  async function addOne(cat: string, item: ShoppingSuggestItem) {
-    await addShopping(item.name, cat, item.meals)
-    setAdded((s) => new Set(s).add(cat + '|' + item.name))
+  async function addOne(name: string) {
+    await addShopping(name)
+    setAdded((s) => new Set(s).add(name.toLowerCase()))
   }
 
   async function addAll() {
-    if (!result) return
-    const all: { text: string; category: string; meals: string[] }[] = []
-    for (const c of result.categories)
-      for (const it of c.items) all.push({ text: it.name, category: c.name, meals: it.meals })
-    await addShoppingMany(all)
-    setAdded(new Set(all.map((a) => a.category + '|' + a.text)))
+    if (!names) return
+    await addShoppingMany(names.map((n) => ({ text: n })))
+    setAdded(new Set(names.map((n) => n.toLowerCase())))
   }
 
   return (
@@ -203,9 +213,7 @@ function SuggestFromPlan({
         </p>
       ) : (
         <>
-          <p className="text-xs text-slate-500">
-            Diyet listendeki öğünleri yapabilmen için gereken ürünleri kategorilere ayırıp çıkarır.
-          </p>
+          <p className="text-xs text-slate-500">Diyetindeki öğünler için gereken ürünleri düz bir liste olarak çıkarır.</p>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Kaç günlük:</span>
             {[3, 7, 14].map((d) => (
@@ -229,33 +237,27 @@ function SuggestFromPlan({
 
       {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
 
-      {result && (
-        <div className="space-y-3 pt-1">
-          {result.note && <p className="text-xs text-emerald-700 font-medium">{result.note}</p>}
-          {result.categories.map((c) => (
-            <div key={c.name} className="bg-white rounded-xl p-2.5 space-y-1.5">
-              <p className="text-xs font-bold text-slate-600">{c.name}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {c.items.map((it) => {
-                  const isAdded = added.has(c.name + '|' + it.name)
-                  return (
-                    <button
-                      key={it.name}
-                      onClick={() => addOne(c.name, it)}
-                      disabled={isAdded}
-                      className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
-                        isAdded ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {isAdded ? '✓ ' : '+ '}
-                      {it.name}
-                      {it.meals.length > 0 && <span className="opacity-70"> · {it.meals.join(', ')}</span>}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+      {names && (
+        <div className="space-y-2 pt-1">
+          {note && <p className="text-xs text-emerald-700 font-medium">{note}</p>}
+          <div className="flex flex-wrap gap-1.5">
+            {names.map((n) => {
+              const isAdded = added.has(n.toLowerCase())
+              return (
+                <button
+                  key={n}
+                  onClick={() => addOne(n)}
+                  disabled={isAdded}
+                  className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+                    isAdded ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-700'
+                  }`}
+                >
+                  {isAdded ? '✓ ' : '+ '}
+                  {n}
+                </button>
+              )
+            })}
+          </div>
           <button onClick={addAll} className="btn bg-emerald-600 text-white w-full">
             Tümünü listeye ekle
           </button>
@@ -263,21 +265,4 @@ function SuggestFromPlan({
       )}
     </section>
   )
-}
-
-// Bekleyen urunleri kategoriye gore gruplar (kategorisizler en sonda, baslıksız)
-function groupByCategory(items: ShoppingItem[]): [string, ShoppingItem[]][] {
-  const map = new Map<string, ShoppingItem[]>()
-  for (const i of items) {
-    const key = i.category?.trim() || ''
-    const arr = map.get(key) ?? []
-    arr.push(i)
-    map.set(key, arr)
-  }
-  // Kategorili olanlar once, kategorisiz ('') en sonda
-  return Array.from(map.entries()).sort((a, b) => {
-    if (a[0] === '') return 1
-    if (b[0] === '') return -1
-    return a[0].localeCompare(b[0], 'tr')
-  })
 }
