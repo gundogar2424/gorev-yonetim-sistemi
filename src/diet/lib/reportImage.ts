@@ -9,6 +9,20 @@ import type { DietEntry } from '../types'
 
 const W = 820
 const PAD = 32
+// Yuksek cozunurluk carpani: tuvali 2x piksel yogunlugunda cizeriz; yerlesim
+// (koordinatlar/fontlar) ayni kalir ama gorsel daha buyuk ve NET olur — diyetisyen
+// yakinlastirdiginda yazilar bulaniklasmaz. Tum rapor gorsellerine uygulanir.
+const SCALE = 2
+
+// Tuvali logic boyutta kur ama 2x piksel destekli yap; ctx'i olcekle dondur.
+function hiDpiCanvas(logicalW: number, logicalH: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(logicalW * SCALE)
+  canvas.height = Math.round(logicalH * SCALE)
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(SCALE, SCALE)
+  return { canvas, ctx }
+}
 
 function scoreColor(pct: number): string {
   return pct >= 80 ? '#059669' : pct >= 50 ? '#d97706' : '#e11d48'
@@ -46,6 +60,15 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: numb
   const w = img.width * ratio
   const h = img.height * ratio
   ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h)
+}
+
+// Goruntuyu kutuya "contain" sigdirir (KIRPMADAN, gercek en-boy orani korunur;
+// bosluk kalirsa ortalanir). Diyetisyene giden yemek fotografi icin.
+function drawContain(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, boxW: number, boxH: number) {
+  const ratio = Math.min(boxW / img.width, boxH / img.height)
+  const w = img.width * ratio
+  const h = img.height * ratio
+  ctx.drawImage(img, x + (boxW - w) / 2, y + (boxH - h) / 2, w, h)
 }
 
 function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
@@ -170,16 +193,14 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   if (waterMl > 0) h += 44
   h += 50 // alt bilgi
 
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = Math.max(h, 480)
-  const ctx = canvas.getContext('2d')!
+  const logicalH = Math.max(h, 480)
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
   ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
 
   // Arka plan
   ctx.fillStyle = '#f6f8fa'
-  ctx.fillRect(0, 0, W, canvas.height)
+  ctx.fillRect(0, 0, W, logicalH)
 
   // Baslik banneri (yesil degrade)
   let y = PAD
@@ -431,7 +452,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   // Alt bilgi
   ctx.fillStyle = '#94a3b8'
   ctx.font = '18px sans-serif'
-  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 22)
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 22)
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
@@ -466,10 +487,15 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
   const mctx = document.createElement('canvas').getContext('2d')!
   const out: { filename: string; blob: Blob }[] = []
 
-  const PHOTO = 200
+  // YENI DUZEN: fotograf ustte TAM GENISLIK + gercek en-boy orani (kirpmasiz),
+  // aciklama altta. Diyetisyen fotografi net ve butun gorsun.
+  const CARD_PAD = 20
+  const PHOTO_BOX_W = W - 2 * PAD - 2 * CARD_PAD
+  const MAX_PHOTO_H = 900 // cok uzun (portre) fotograflarda tavan
+  const NO_PHOTO_H = 300 // fotografsiz ogun icin yer tutucu yukseklik
   const NAME_PX = 30
   const NAME_LH = 40
-  const nameMaxW = W - 2 * PAD - 60 - PHOTO
+  const nameMaxW = PHOTO_BOX_W
 
   const toBlob = (canvas: HTMLCanvasElement) =>
     new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('Görsel oluşturulamadı'))), 'image/png'))
@@ -477,14 +503,12 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
   // Yesil baslikli bos bir tuval hazirlar; icerik alanini y ile dondurur
   function makeCanvas(title: string, contentH: number) {
     const BANNER = 88
-    const canvas = document.createElement('canvas')
-    canvas.width = W
-    canvas.height = Math.max(PAD + BANNER + 22 + contentH + 46, 340)
-    const ctx = canvas.getContext('2d')!
+    const logicalH = Math.max(PAD + BANNER + 22 + contentH + 46, 340)
+    const { canvas, ctx } = hiDpiCanvas(W, logicalH)
     ctx.textBaseline = 'alphabetic'
     ctx.textAlign = 'left'
     ctx.fillStyle = '#f6f8fa'
-    ctx.fillRect(0, 0, W, canvas.height)
+    ctx.fillRect(0, 0, W, logicalH)
     const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
     grad.addColorStop(0, '#059669')
     grad.addColorStop(1, '#34d399')
@@ -497,32 +521,38 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     ctx.font = '18px sans-serif'
     ctx.fillStyle = 'rgba(255,255,255,0.92)'
     ctx.fillText(subtitle, PAD + 26, PAD + 70)
-    return { ctx, canvas, y: PAD + BANNER + 22 }
+    return { ctx, canvas, y: PAD + BANNER + 22, h: logicalH }
   }
 
-  // Ogun kartini buyuk cizer
-  function drawBigCard(ctx: CanvasRenderingContext2D, card: { e: DietEntry; img: HTMLImageElement | null; lines: string[]; hasParts3: boolean; cardH: number }, y: number) {
+  // Ogun kartini cizer: fotograf ustte (tam genislik, gercek oran), aciklama altta
+  function drawBigCard(ctx: CanvasRenderingContext2D, card: { e: DietEntry; img: HTMLImageElement | null; lines: string[]; hasParts3: boolean; photoH: number; cardH: number }, y: number) {
     fillRound(ctx, PAD, y, W - 2 * PAD, card.cardH, 20, '#ffffff')
-    const ix = PAD + 18
-    const iy = y + 18
+    const px = PAD + CARD_PAD
+    const py = y + CARD_PAD
+    const boxW = PHOTO_BOX_W
+    const boxH = card.photoH
+    // Fotograf kutusu (kirpmasiz — arta kalan bosluk acik gri)
+    ctx.save()
+    roundRectPath(ctx, px, py, boxW, boxH, 16)
+    ctx.clip()
+    ctx.fillStyle = '#eef2f6'
+    ctx.fillRect(px, py, boxW, boxH)
     if (card.img) {
-      ctx.save()
-      roundRectPath(ctx, ix, iy, PHOTO, PHOTO, 16)
-      ctx.clip()
-      drawCover(ctx, card.img, ix, iy, PHOTO)
-      ctx.restore()
+      drawContain(ctx, card.img, px, py, boxW, boxH)
     } else {
-      fillRound(ctx, ix, iy, PHOTO, PHOTO, 16, '#eef2f6')
       ctx.fillStyle = '#cbd5e1'
-      ctx.font = '64px sans-serif'
+      ctx.font = '80px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('🍽️', ix + PHOTO / 2, iy + PHOTO / 2 + 22)
+      ctx.fillText('🍽️', px + boxW / 2, py + boxH / 2 + 28)
       ctx.textAlign = 'left'
     }
-    const tx = ix + PHOTO + 24
+    ctx.restore()
+
+    // Aciklama (fotografin altinda)
+    const tx = px
+    let ty = py + boxH + 18 + NAME_PX
     ctx.fillStyle = '#0f172a'
     ctx.font = `bold ${NAME_PX}px sans-serif`
-    let ty = y + 50
     for (const ln of card.lines) {
       ctx.fillText(ln, tx, ty)
       ty += NAME_LH
@@ -531,9 +561,9 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     ctx.font = '20px sans-serif'
     const t = new Date(card.e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
     const meta = `${t}  ·  ~${card.e.estimatedCalories} kcal`
-    ctx.fillText(meta, tx, ty + 8)
+    ctx.fillText(meta, tx, ty + 6)
     const d = DEC_STYLE[card.e.decision] ?? DEC_STYLE.none
-    drawChip(ctx, tx + ctx.measureText(meta).width + 16, ty - 10, d.t, d.bg, d.fg)
+    drawChip(ctx, tx + ctx.measureText(meta).width + 16, ty - 12, d.t, d.bg, d.fg)
     ty += 36
     if (card.hasParts3) {
       const p3: string[] = []
@@ -545,15 +575,18 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     }
   }
 
-  // Ogun kartini olcup hazirla (satirlar + yukseklik)
+  // Ogun kartini olcup hazirla (fotograf yuksekligi + satirlar + kart yuksekligi)
   function prep(p: { e: DietEntry; img: HTMLImageElement | null }) {
     mctx.font = `bold ${NAME_PX}px sans-serif`
     let lines = wrapText(mctx, p.e.foodName, nameMaxW)
     if (lines.length > 3) lines = [lines[0], lines[1], truncate(mctx, lines.slice(2).join(' '), nameMaxW)]
     const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.satiety
-    const textH = lines.length * NAME_LH + 46 + (hasParts3 ? 32 : 0)
-    const cardH = 32 + Math.max(PHOTO, textH)
-    return { ...p, lines, hasParts3, cardH }
+    // Fotograf yuksekligi: tam genislikte gercek en-boy orani (tavan MAX_PHOTO_H)
+    const aspect = p.img && p.img.width > 0 ? p.img.width / p.img.height : 0
+    const photoH = p.img && aspect > 0 ? Math.min(Math.round(PHOTO_BOX_W / aspect), MAX_PHOTO_H) : NO_PHOTO_H
+    const textH = lines.length * NAME_LH + 44 + (hasParts3 ? 32 : 0)
+    const cardH = CARD_PAD + photoH + 18 + textH + CARD_PAD
+    return { ...p, lines, hasParts3, photoH, cardH }
   }
 
   // Ogunler: her ogun turu icin bir gorsel
@@ -566,7 +599,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
   for (const g of mealGroups) {
     const contentH = g.list.reduce((s, c) => s + c.cardH + 16, 0)
     const title = '🍽️ ' + (g.mt ? mealLabel(g.mt) : 'Diğer')
-    const { ctx, canvas, y: y0 } = makeCanvas(title, contentH)
+    const { ctx, canvas, y: y0, h: chH } = makeCanvas(title, contentH)
     let y = y0
     for (const card of g.list) {
       drawBigCard(ctx, card, y)
@@ -574,7 +607,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     }
     ctx.fillStyle = '#94a3b8'
     ctx.font = '16px sans-serif'
-    ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 20)
+    ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, chH - 20)
     out.push({ filename: `diyet-${dateStr}-${idx++}-ogun.png`, blob: await toBlob(canvas) })
   }
 
@@ -599,7 +632,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     const hunH = hungerRecs.length ? TITLE_H + CPAD * 2 + hunLines * ROW + 22 : 0
     const contentH = exH + vitH + meaH + watH + hunH + 10
 
-    const { ctx, canvas, y: y0 } = makeCanvas('🏃 Spor & 🩺 Sağlık', contentH)
+    const { ctx, canvas, y: y0, h: chH } = makeCanvas('🏃 Spor & 🩺 Sağlık', contentH)
     let y = y0
 
     const drawTitle = (t: string) => {
@@ -714,7 +747,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
 
     ctx.fillStyle = '#94a3b8'
     ctx.font = '16px sans-serif'
-    ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 20)
+    ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, chH - 20)
     out.push({ filename: `diyet-${dateStr}-${idx++}-spor-saglik.png`, blob: await toBlob(canvas) })
   }
 
@@ -737,20 +770,21 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   const nameLines = wrapText(mctx, e.foodName || 'Öğün', innerW)
 
   const BANNER = 100
-  const PHOTO_H = img ? 580 : 220
+  // Fotograf TAM GENISLIK + gercek en-boy orani (kirpmasiz). Tavan yuksekligi
+  // cok uzun portre fotograflar icin sinir koyar.
+  const aspect = img && img.width > 0 ? img.width / img.height : 0
+  const PHOTO_H = img && aspect > 0 ? Math.min(Math.round(contentW / aspect), 1100) : 220
   const NAME_LH = 60
 
   // Bilgi kart yuksekligi: sadece ad satirlari + pad
   const infoH = 34 + nameLines.length * NAME_LH + 24
 
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = PAD + BANNER + 20 + PHOTO_H + 18 + infoH + 46
-  const ctx = canvas.getContext('2d')!
+  const logicalH = PAD + BANNER + 20 + PHOTO_H + 18 + infoH + 46
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
   ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
   ctx.fillStyle = '#f6f8fa'
-  ctx.fillRect(0, 0, W, canvas.height)
+  ctx.fillRect(0, 0, W, logicalH)
 
   // Banner
   let y = PAD
@@ -775,24 +809,22 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   ctx.fillText(`${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`, PAD + 28, y + 84)
   y += BANNER + 22
 
-  // Fotograf (genis, kirparak sigdir)
+  // Fotograf (tam genislik, gercek en-boy orani — KIRPMASIZ)
+  ctx.save()
+  roundRectPath(ctx, PAD, y, contentW, PHOTO_H, 20)
+  ctx.clip()
+  ctx.fillStyle = '#eef2f6'
+  ctx.fillRect(PAD, y, contentW, PHOTO_H)
   if (img) {
-    ctx.save()
-    roundRectPath(ctx, PAD, y, contentW, PHOTO_H, 20)
-    ctx.clip()
-    const ratio = Math.max(contentW / img.width, PHOTO_H / img.height)
-    const iw = img.width * ratio
-    const ih = img.height * ratio
-    ctx.drawImage(img, PAD + (contentW - iw) / 2, y + (PHOTO_H - ih) / 2, iw, ih)
-    ctx.restore()
+    drawContain(ctx, img, PAD, y, contentW, PHOTO_H)
   } else {
-    fillRound(ctx, PAD, y, contentW, PHOTO_H, 20, '#eef2f6')
     ctx.fillStyle = '#cbd5e1'
     ctx.font = '72px sans-serif'
     ctx.textAlign = 'center'
     ctx.fillText('🍽️', W / 2, y + PHOTO_H / 2 + 24)
     ctx.textAlign = 'left'
   }
+  ctx.restore()
   y += PHOTO_H + 18
 
   // Bilgi karti: yalnizca urunun aciklamasi (+varsa gramaji) — BUYUK yazi
@@ -810,7 +842,7 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   // Alt bilgi
   ctx.fillStyle = '#94a3b8'
   ctx.font = '20px sans-serif'
-  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 24)
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 24)
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
@@ -902,14 +934,12 @@ export async function buildMeasurementsImage(days: number, userName?: string): P
   if (!metricRows.length && !vit.length) h += 60
   h += 50
 
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = Math.max(h, 420)
-  const ctx = canvas.getContext('2d')!
+  const logicalH = Math.max(h, 420)
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
   ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
   ctx.fillStyle = '#f1f5f9'
-  ctx.fillRect(0, 0, W, canvas.height)
+  ctx.fillRect(0, 0, W, logicalH)
 
   let y = PAD + 36
   ctx.fillStyle = '#0f172a'
@@ -1015,7 +1045,7 @@ export async function buildMeasurementsImage(days: number, userName?: string): P
 
   ctx.fillStyle = '#94a3b8'
   ctx.font = '18px sans-serif'
-  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 22)
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 22)
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
@@ -1040,14 +1070,12 @@ export async function buildLatestMeasurementImage(userName?: string): Promise<Bl
   const ROW_GAP = 12
   const cardTop = PAD + BANNER + 20
   const cardH = rows.length ? 22 + rows.length * (ROW_H + ROW_GAP) + 10 : 90
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = cardTop + cardH + 56
-  const ctx = canvas.getContext('2d')!
+  const logicalH = cardTop + cardH + 56
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
   ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
   ctx.fillStyle = '#f6f8fa'
-  ctx.fillRect(0, 0, W, canvas.height)
+  ctx.fillRect(0, 0, W, logicalH)
 
   // Banner
   const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
@@ -1114,7 +1142,7 @@ export async function buildLatestMeasurementImage(userName?: string): Promise<Bl
   ctx.fillStyle = '#94a3b8'
   ctx.font = '18px sans-serif'
   ctx.textAlign = 'left'
-  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, canvas.height - 22)
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 22)
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
