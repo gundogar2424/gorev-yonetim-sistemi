@@ -12,7 +12,7 @@ import {
   addMedLog,
   deleteMedLog
 } from '../db'
-import { applyNotifications } from '../lib/notify'
+import { applyNotifications, ensurePermission, ensureExactAlarm, isNative } from '../lib/notify'
 import { buildHealthContext } from '../lib/context'
 import { medComment } from '../ai'
 import { todayStr } from '../streak'
@@ -192,6 +192,8 @@ export default function Meds() {
       <div className="p-3 space-y-4">
         {err && <div className="card p-3 bg-rose-50 border-rose-200 text-rose-700 text-sm">{err}</div>}
 
+        <AggressiveNotifCard />
+
         {/* HAFTALIK GÜN ŞERİDİ */}
         <section className="card p-3">
           <div className="flex items-center justify-between mb-2">
@@ -365,6 +367,45 @@ export default function Meds() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Agresif bildirim izinlerini açtıran kart: bildirim izni + tam-zamanlı alarm + ipuçları
+function AggressiveNotifCard() {
+  const [open, setOpen] = useState(false)
+  const [done, setDone] = useState(false)
+  if (!isNative()) return null
+
+  async function enable() {
+    await ensurePermission()
+    await ensureExactAlarm()
+    setDone(true)
+  }
+
+  return (
+    <section className="card p-3 bg-amber-50 border-amber-200 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-bold text-amber-800">🔔 Agresif ilaç hatırlatması</span>
+        <button onClick={() => setOpen((o) => !o)} className="text-xs text-amber-700 underline">
+          {open ? 'gizle' : 'nasıl?'}
+        </button>
+      </div>
+      <p className="text-xs text-amber-700">
+        Dozunu işaretlemezsen aynı ilaç için <b>saatinde + 10 dk + 30 dk sonra</b> tekrar, sesli ve titreşimli uyarır.
+      </p>
+      <button onClick={enable} className="btn-primary w-full py-2">
+        {done ? '✓ İzinler istendi' : 'Bildirimleri aç / izin ver'}
+      </button>
+      {open && (
+        <div className="text-[11px] text-amber-700 space-y-1 pt-1">
+          <p className="font-semibold">Bildirimler geç geliyorsa telefon ayarlarından:</p>
+          <p>• <b>Pil optimizasyonu</b>: Diyet Koçu → “Kısıtlama yok / İzin ver”.</p>
+          <p>• <b>Otomatik başlatma</b> (Xiaomi/Huawei/Oppo): Diyet Koçu’na izin ver.</p>
+          <p>• <b>Alarmlar ve hatırlatıcılar</b>: Diyet Koçu’na izin ver (tam zamanlı alarm).</p>
+          <p>• Bildirim sesini “alarm” tonu yapmak için: Ayarlar → Bildirimler → “İlaç Alarmı” kanalı.</p>
+        </div>
+      )}
+    </section>
   )
 }
 

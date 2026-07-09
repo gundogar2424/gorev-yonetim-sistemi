@@ -13,8 +13,12 @@ const PLAN_ID = 303 // aksam "yarini planla"
 const REPORT_ID = 304 // aksam "raporu gonder" hatirlatmasi
 const SUGAR_FASTING_ID = 305 // sabah aclik sekeri olcum hatirlatmasi
 const SMART_HUNGER_ID = 306 // ogrenilen aclik saatinden once proaktif ara ogun hatirlatmasi
-const MED_IDS_START = 310 // ilac/seker hapi hatirlatmalari 310..3xx (her saat icin bir tane)
+const MED_IDS_START = 310 // ilac/seker hapi hatirlatmalari 310..399 (her doz icin ana + tekrarlar)
+const MED_IDS_END = 399 // ilac bildirim ID ust siniri (401/402 tokluk/seker ile catismasin)
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
+const MED_CHANNEL_ID = 'diyet-ilac-alarm' // ILAC icin AYRI, agresif kanal (max onem + titresim)
+// Ilac dozu icin "uzerine gelen" tekrar dakikalari: ana bildirim + almazsan tekrar duyurur
+const MED_NAG_OFFSETS = [0, 10, 30]
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
 const SUGAR_POSTMEAL_ID = 402 // ogunden 2 saat sonra tok seker olcum hatirlatmasi (tek)
 
@@ -61,6 +65,33 @@ async function ensureChannel(): Promise<void> {
   }
 }
 
+// ILAC icin AYRI agresif kanal: maksimum onem (ekranda belirir + ses), guclu titresim,
+// isik. Kullanici telefon ayarlarindan bu kanalin sesini "alarm" tonu yapabilir.
+async function ensureMedChannel(): Promise<void> {
+  if (!isNative()) return
+  try {
+    await LocalNotifications.createChannel({
+      id: MED_CHANNEL_ID,
+      name: 'İlaç Alarmı',
+      description: 'İlaç/vitamin dozu için ısrarcı hatırlatma (ses + titreşim)',
+      importance: 5, // MAX: ekranin ustunde belirir, ses cikar
+      visibility: 1,
+      vibration: true,
+      lights: true,
+      lightColor: '#16a34a'
+    })
+  } catch {
+    // kanal zaten varsa ya da desteklenmiyorsa yok say
+  }
+}
+
+// Bir saate dakika ekle/cikar, 0..1439 araliginda sar (gece yarisi gecisini yonetir)
+function addMinutes(hour: number, minute: number, delta: number): { hour: number; minute: number } {
+  let total = hour * 60 + minute + delta
+  total = ((total % 1440) + 1440) % 1440
+  return { hour: Math.floor(total / 60), minute: total % 60 }
+}
+
 // Ogun saatinden "lead" dakika cikararak bildirim saatini hesaplar (gece yarisi sarmasini da yonetir)
 function notifyHM(time: string, lead: number): { hour: number; minute: number } {
   const [h, m] = time.split(':').map(Number)
@@ -73,7 +104,27 @@ function notifyHM(time: string, lead: number): { hour: number; minute: number } 
 export async function ensurePermission(): Promise<boolean> {
   if (!isNative()) return false
   const res = await LocalNotifications.requestPermissions()
+  await ensureExactAlarm()
   return res.display === 'granted'
+}
+
+// TAM ZAMANLI ALARM izni: Android 12+'da bu izin olmadan bildirimler gecikir
+// (yalnizca telefon acilinca gelir). Izin yoksa kullaniciyi ayar ekranina yonlendirir.
+export async function ensureExactAlarm(): Promise<void> {
+  if (!isNative()) return
+  try {
+    const api = LocalNotifications as unknown as {
+      checkExactNotificationSetting?: () => Promise<{ exact_alarm: string }>
+      changeExactNotificationSetting?: () => Promise<{ exact_alarm: string }>
+    }
+    if (!api.checkExactNotificationSetting) return
+    const cur = await api.checkExactNotificationSetting()
+    if (cur.exact_alarm !== 'granted' && api.changeExactNotificationSetting) {
+      await api.changeExactNotificationSetting() // sistem ayar ekranini acar
+    }
+  } catch {
+    // desteklenmiyorsa (eski surum/eski Android) yok say
+  }
 }
 
 // Hatirlaticilari isletim sistemine kur (her gun tekrar eden).
@@ -233,7 +284,7 @@ function medNotifications(schedule: { time: string; name?: string }[]) {
       const name = (s.name || '').trim()
       return {
         id: MED_IDS_START + i,
-        channelId: CHANNEL_ID,
+        channelId: MED_CHANNEL_ID,
         actionTypeId: 'MED',
         title: '💊 İlaç vakti',
         body: name
@@ -245,29 +296,41 @@ function medNotifications(schedule: { time: string; name?: string }[]) {
     })
 }
 
-// Tanimli ilac/vitaminlerden bildirim uretir: her ilac x her doz saati x
-// (varsa) haftanin gunu. Bildirimde "✓ Aldim" butonu olur.
+// Tanimli ilac/vitaminlerden AGRESIF bildirim uretir: her ilac x her doz saati x
+// (varsa) haftanin gunu icin ANA bildirim + "uzerine gelen" tekrarlar (+10, +30 dk).
+// Hepsi AYRI alarm kanalindan (max onem + titresim) ve "✓ Aldim" butonlu.
 function medDefNotifications(meds: MedDef[]): unknown[] {
   const out: unknown[] = []
   let id = MED_IDS_START
   for (const m of meds) {
+    const rel = m.relation === 'tok' ? ' (yemekten sonra)' : m.relation === 'ac' ? ' (aç karnına)' : ''
+    const dozStr = m.dose ? ` — ${m.dose}` : ''
     for (const t of m.times || []) {
       if (!/^\d{1,2}:\d{2}$/.test((t || '').trim())) continue
       const [h, mi] = t.split(':').map(Number)
       const days = m.days && m.days.length ? m.days : [null as number | null]
       for (const d of days) {
-        if (id > MED_IDS_START + 60) return out
-        const on = d == null ? { hour: h, minute: mi } : { weekday: d + 1, hour: h, minute: mi }
-        const rel = m.relation === 'tok' ? ' (yemekten sonra)' : m.relation === 'ac' ? ' (aç karnına)' : ''
-        out.push({
-          id: id++,
-          channelId: CHANNEL_ID,
-          actionTypeId: 'MED',
-          title: m.kind === 'vitamin' ? '💊 Vitamin vakti' : '💊 İlaç vakti',
-          body: `${m.name}${rel} almayı unutma. Aldıysan “✓ Aldım”a dokun.`,
-          schedule: { on, repeats: true, allowWhileIdle: true },
-          extra: { route: '/ilaclarim', med: m.name, medId: m.id }
-        })
+        for (let k = 0; k < MED_NAG_OFFSETS.length; k++) {
+          if (id > MED_IDS_END) return out
+          const { hour, minute } = addMinutes(h, mi, MED_NAG_OFFSETS[k])
+          const on = d == null ? { hour, minute } : { weekday: d + 1, hour, minute }
+          const nag = k > 0
+          out.push({
+            id: id++,
+            channelId: MED_CHANNEL_ID,
+            actionTypeId: 'MED',
+            title: nag
+              ? '🔴 İlacını hâlâ almadın!'
+              : m.kind === 'vitamin'
+                ? '💊 Vitamin vakti'
+                : '💊 İlaç vakti',
+            body: nag
+              ? `${m.name}${dozStr} — lütfen şimdi al ve “✓ Aldım”a dokun.`
+              : `${m.name}${rel}${dozStr} almayı unutma. Aldıysan “✓ Aldım”a dokun.`,
+            schedule: { on, repeats: true, allowWhileIdle: true },
+            extra: { route: '/ilaclarim', med: m.name, medId: m.id }
+          })
+        }
       }
     }
   }
@@ -384,6 +447,8 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   const activeMeds = meds.filter((m) => m.active && m.reminder && m.times?.length)
   if (activeMeds.length) {
     await ensureMedActionType()
+    await ensureMedChannel()
+    await ensureExactAlarm() // ilac icin tam-zamanli alarm izni yoksa iste (gecikmesin)
     notifications.push(...medDefNotifications(activeMeds))
   } else {
     const medSchedule = settings.medSchedule?.length
@@ -391,6 +456,7 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
       : (settings.medReminderTimes ?? []).map((t) => ({ time: t, name: '' }))
     if (settings.medReminderEnabled && medSchedule.length) {
       await ensureMedActionType()
+      await ensureMedChannel()
       notifications.push(...medNotifications(medSchedule))
     }
   }
