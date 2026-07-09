@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, listMedLogsDay, addMedLog, deleteMedLog } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -493,8 +493,8 @@ export default function Capture() {
         {/* Bugun nasilsin? (moral/his + aclik) */}
         <MoodCheckIn />
 
-        {/* Ilac takibi: yalnizca ayarlarda ilac tanimliysa goster (bos yer kaplamasin) */}
-        {settings?.medications?.trim() && <MedLogCard settings={settings} />}
+        {/* İlaç takibi artık ana sayfada değil: doz vakti gelince ekranı kaplayan
+            zorunlu hatırlatma penceresi çıkar (DueMedGate) + /ilaclarim sayfası. */}
 
         {/* TEK yapay zeka sohbeti: menu, yarin plani, Z raporu, gun analizi */}
         <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -1299,86 +1299,6 @@ function MoodCheckIn() {
         </div>
       )}
       {flash && <p className="text-xs font-semibold text-violet-700">{flash}</p>}
-    </div>
-  )
-}
-
-// ILAC TAKIBI: ayarlardaki ilac listesinden secip "aldim" de; ya da elle yaz.
-// Yemekle iliskisi (ac/tok) da isaretlenebilir. AI bunu baglamda gorur.
-function MedLogCard({ settings }: { settings?: DietSettings }) {
-  const today = todayStr()
-  const list = useLiveQuery(() => listMedLogsDay(today), [today], []) ?? []
-  const [custom, setCustom] = useState('')
-  const [flash, setFlash] = useState('')
-
-  // Ayarlardaki ilac metnini virgul/yeni satirdan parcala -> secilebilir cipler
-  const meds = (settings?.medications ?? '')
-    .split(/[\n,;]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 12)
-
-  async function take(name: string, relation?: 'ac' | 'tok' | 'genel') {
-    if (!name.trim()) return
-    await addMedLog(name, relation)
-    setCustom('')
-    setFlash(`${name} · alındı 👍`)
-    setTimeout(() => setFlash(''), 2500)
-  }
-
-  return (
-    <div className="card p-4 space-y-2.5">
-      <span className="section-title">💊 İlaç Takibi</span>
-
-      {/* Bugun alinan ilaclar (saat + iliski) */}
-      {list.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {list.map((m) => (
-            <span key={m.id} className="chip bg-teal-50 text-teal-800 border border-teal-100">
-              {new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · {m.name}
-              {m.relation === 'tok' ? ' (tok)' : m.relation === 'ac' ? ' (aç)' : ''}
-              <button onClick={() => void deleteMedLog(m.id!)} className="ml-0.5 text-teal-300">
-                ✕
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {meds.length > 0 ? (
-        <div className="space-y-1.5">
-          <p className="text-xs text-slate-500">İlacını seç, aldığında dokun:</p>
-          {meds.map((name) => (
-            <div key={name} className="flex items-center gap-1.5">
-              <span className="flex-1 text-sm font-semibold text-slate-700 truncate">{name}</span>
-              <button onClick={() => take(name, 'ac')} className="text-[11px] font-semibold bg-slate-100 text-slate-600 rounded-full px-2 py-1">
-                Aç karnına
-              </button>
-              <button onClick={() => take(name, 'tok')} className="text-[11px] font-semibold bg-teal-600 text-white rounded-full px-2 py-1">
-                Yemekten sonra
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-slate-400">
-          İpucu: Ayarlar’a kullandığın ilaçları yazarsan burada tek dokunuşla işaretlersin.
-        </p>
-      )}
-
-      {/* Elle ilac ekle */}
-      <div className="flex items-center gap-1.5">
-        <input
-          className="field-input flex-1"
-          placeholder="Başka ilaç yaz…"
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-        />
-        <button onClick={() => take(custom, 'genel')} disabled={!custom.trim()} className="btn-primary px-3 py-2 disabled:opacity-50">
-          Aldım
-        </button>
-      </div>
-      {flash && <p className="text-xs font-semibold text-teal-700">{flash}</p>}
     </div>
   )
 }

@@ -383,6 +383,31 @@ export async function initNotificationNavigation(
   }
 }
 
+// ILAC dozu "ertelendi": X dakika sonra tek seferlik, alarm kanalindan tekrar duyur.
+// Her ilac icin ayri ID (medId'ye gore) ki farkli ilaclarin ertelemesi cakismasin.
+export async function scheduleMedSnooze(name: string, minutes: number, medId?: number): Promise<void> {
+  if (!isNative()) return
+  try {
+    await ensureMedChannel()
+    await ensureMedActionType()
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: 380 + ((medId ?? 0) % 10),
+          channelId: MED_CHANNEL_ID,
+          actionTypeId: 'MED',
+          title: '⏰ İlaç hatırlatma (ertelendi)',
+          body: `${name} — alma vakti geldi. Aldıysan “✓ Aldım”a dokun.`,
+          schedule: { at: new Date(Date.now() + minutes * 60_000), allowWhileIdle: true },
+          extra: { route: '/ilaclarim', med: name, medId }
+        }
+      ]
+    })
+  } catch {
+    // yok say
+  }
+}
+
 // Bir ogun yenince ~30 dk sonra "toklugunu puanla" bildirimi kurar (tek seferlik)
 export async function scheduleSatietyReminder(minutes = 30): Promise<void> {
   if (!isNative()) return

@@ -20,6 +20,7 @@ import Weekly from './pages/Weekly'
 import BeniTani from './pages/BeniTani'
 import Meds from './pages/Meds'
 import DietSettings from './pages/DietSettings'
+import DueMedGate from './DueMedGate'
 
 // Alt gezinme ikonlari (cizgi/SVG — emoji yerine daha profesyonel gorunum)
 type IconName = 'camera' | 'chart' | 'calendar' | 'plus' | 'settings'
@@ -149,6 +150,9 @@ export default function DietApp() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Doz vakti gelmiş ve işaretlenmemiş ilaç varsa: ekranı kaplayan zorunlu pencere */}
+      <DueMedGate />
     </div>
   )
 }

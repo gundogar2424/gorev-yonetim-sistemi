@@ -368,12 +368,13 @@ export async function addMedLog(
     time?: string
     status?: 'taken' | 'skipped'
     dateStr?: string
+    takenAt?: number // gercekte alinan zaman (ms) — kullanici saati degistirdiyse
   }
 ) {
   const now = new Date()
   await dietDb.medlogs.add({
     dateStr: opts?.dateStr ?? now.toLocaleDateString('en-CA'),
-    createdAt: Date.now(),
+    createdAt: opts?.takenAt ?? Date.now(),
     name: name.trim(),
     relation,
     medId: opts?.medId,
