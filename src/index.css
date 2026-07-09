@@ -39,6 +39,10 @@ textarea {
   .field-input {
     @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-800 outline-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100 transition;
   }
+  /* Dar sayı kutusu (Kalori/Prot/Karb/Yağ gibi 4'lü grid için) — kenar boşluğu az, ortalı, tam rakam sığar */
+  .num-input {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-1 py-1.5 text-sm text-center text-slate-800 outline-none focus:border-brand-500 focus:bg-white transition;
+  }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
   }
@@ -202,13 +206,25 @@ textarea {
 }
 
 /* Form alanlari */
-.dark .field-input {
+.dark .field-input,
+.dark .num-input {
   background-color: #1b2740;
   border-color: #2b3a57;
   color: #e5e9f0;
 }
-.dark .field-input:focus {
+.dark .field-input:focus,
+.dark .num-input:focus {
   background-color: #161f31;
+}
+/* Sayi kutularindaki artir/azalt oklarini gizle (yer kaplamasin, rakam sigsin) */
+.num-input::-webkit-outer-spin-button,
+.num-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.num-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 .dark .field-label {
   color: #aab4c5;

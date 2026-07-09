@@ -243,19 +243,19 @@ function MealEdit({ e }: { e: DietEntry }) {
           <div className="grid grid-cols-4 gap-1.5">
             <label className="text-[10px] text-slate-500">
               Kalori
-              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={kcal} onChange={(ev) => setKcal(ev.target.value)} />
+              <input type="number" inputMode="numeric" className="num-input" value={kcal} onChange={(ev) => setKcal(ev.target.value)} />
             </label>
             <label className="text-[10px] text-slate-500">
               Prot.
-              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={p} onChange={(ev) => setP(ev.target.value)} />
+              <input type="number" inputMode="numeric" className="num-input" value={p} onChange={(ev) => setP(ev.target.value)} />
             </label>
             <label className="text-[10px] text-slate-500">
               Karb.
-              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={c} onChange={(ev) => setC(ev.target.value)} />
+              <input type="number" inputMode="numeric" className="num-input" value={c} onChange={(ev) => setC(ev.target.value)} />
             </label>
             <label className="text-[10px] text-slate-500">
               Yağ
-              <input type="number" inputMode="numeric" className="field-input py-1 text-sm" value={f} onChange={(ev) => setF(ev.target.value)} />
+              <input type="number" inputMode="numeric" className="num-input" value={f} onChange={(ev) => setF(ev.target.value)} />
             </label>
           </div>
           <div className="flex items-center gap-1.5">
