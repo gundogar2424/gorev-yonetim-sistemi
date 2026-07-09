@@ -362,16 +362,24 @@ export function listMedLogs(): Promise<MedLog[]> {
 export async function addMedLog(
   name: string,
   relation?: MedLog['relation'],
-  opts?: { medId?: number; kind?: 'ilac' | 'vitamin' }
+  opts?: {
+    medId?: number
+    kind?: 'ilac' | 'vitamin'
+    time?: string
+    status?: 'taken' | 'skipped'
+    dateStr?: string
+  }
 ) {
   const now = new Date()
   await dietDb.medlogs.add({
-    dateStr: now.toLocaleDateString('en-CA'),
+    dateStr: opts?.dateStr ?? now.toLocaleDateString('en-CA'),
     createdAt: Date.now(),
     name: name.trim(),
     relation,
     medId: opts?.medId,
-    kind: opts?.kind
+    kind: opts?.kind,
+    time: opts?.time,
+    status: opts?.status
   })
 }
 export async function deleteMedLog(id: number) {

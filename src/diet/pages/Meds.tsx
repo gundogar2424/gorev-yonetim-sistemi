@@ -16,15 +16,33 @@ import { applyNotifications } from '../lib/notify'
 import { buildHealthContext } from '../lib/context'
 import { medComment } from '../ai'
 import { todayStr } from '../streak'
-import type { MedDef } from '../types'
+import type { MedDef, MedLog } from '../types'
 
 const DOW = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'] // 0..6 (getDay)
+const DOW1 = ['P', 'P', 'S', 'Ç', 'P', 'C', 'C'] // tek harf (strip için, Pzt-Sal-Çar-Per-Cum-Cmt-Paz sırasıyla ayrıca gösterilir)
 const REL: { v: MedDef['relation']; l: string }[] = [
   { v: 'tok', l: 'Yemekten sonra (tok)' },
   { v: 'ac', l: 'Aç karnına' },
   { v: 'genel', l: 'Farketmez' }
 ]
 const relShort = (r?: MedDef['relation']) => (r === 'tok' ? 'tok' : r === 'ac' ? 'aç' : '')
+
+// YYYY-MM-DD üret (yerel)
+function dstr(d: Date): string {
+  return d.toLocaleDateString('en-CA')
+}
+// Bir tarihin bu ilaç için programda olup olmadığı (başlangıç/bitiş penceresi)
+function inProgram(m: MedDef, dateStr: string): boolean {
+  if (m.startDate && dateStr < m.startDate) return false
+  if (m.endDate && dateStr > m.endDate) return false
+  return true
+}
+// Bir ilaç belirli bir güne (haftanın günü + program) denk geliyor mu
+function scheduledOn(m: MedDef, dateStr: string, dow: number): boolean {
+  if (m.active === false) return false
+  if (m.days && m.days.length && !m.days.includes(dow)) return false
+  return inProgram(m, dateStr)
+}
 
 // Bir ilacin belli bir tarih araliginda PLANLANAN doz sayisi (gunler x doz saati)
 function plannedDoses(m: MedDef, startMs: number, endMs: number): number {
@@ -36,8 +54,8 @@ function plannedDoses(m: MedDef, startMs: number, endMs: number): number {
   e.setHours(0, 0, 0, 0)
   let days = 0
   for (const d = new Date(s); d.getTime() <= e.getTime(); d.setDate(d.getDate() + 1)) {
-    const dow = d.getDay()
-    if (!m.days || !m.days.length || m.days.includes(dow)) days++
+    const ds = dstr(d)
+    if (scheduledOn(m, ds, d.getDay())) days++
   }
   return days * perDay
 }
@@ -47,6 +65,28 @@ const PERIODS = [
   { key: 30, label: 'Ay' },
   { key: 365, label: 'Yıl' }
 ]
+
+// Bir gün için doz slotları: her ilaç × her saat. Kayıtlı log'ları eşleştir.
+type Slot = { med: MedDef; time: string; log?: MedLog }
+function buildSlots(meds: MedDef[], logs: MedLog[], dateStr: string, dow: number): Slot[] {
+  const scheduled = meds.filter((m) => scheduledOn(m, dateStr, dow))
+  const slots: Slot[] = []
+  for (const m of scheduled) {
+    const times = (m.times || []).filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+    const list = times.length ? [...times].sort() : ['—']
+    // Bu ilacın o güne ait kayıtları (kopya — eşleştirdikçe tükenir)
+    const medLogs = logs.filter((l) => l.medId === m.id && l.dateStr === dateStr)
+    const pool = [...medLogs]
+    for (const time of list) {
+      // Önce tam saat eşleşmesi, yoksa saatsiz bir "alındı" kaydını doldur (bildirimden gelen)
+      let idx = pool.findIndex((l) => l.time === time)
+      if (idx < 0) idx = pool.findIndex((l) => !l.time && (l.status ?? 'taken') === 'taken')
+      const log = idx >= 0 ? pool.splice(idx, 1)[0] : undefined
+      slots.push({ med: m, time, log })
+    }
+  }
+  return slots.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0))
+}
 
 export default function Meds() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -60,31 +100,55 @@ export default function Meds() {
 
   const hasKey = !!settings?.apiKey
   const today = todayStr()
-  const todayDow = new Date(today + 'T00:00:00').getDay()
+  const [selected, setSelected] = useState(today)
+  const [weekOffset, setWeekOffset] = useState(0)
 
   const active = meds.filter((m) => m.active !== false)
 
-  // Bugün planlanan (bugüne denk gelen ilaçlar) ve alınanlar
-  const todayLogs = logs.filter((l) => l.dateStr === today)
-  const takenToday = (medId?: number) => todayLogs.filter((l) => l.medId === medId).length
-  const scheduledToday = active.filter((m) => !m.days || !m.days.length || m.days.includes(todayDow))
+  // Haftalık gün şeridi: seçili haftanın Pazartesi'sinden başlar
+  const weekDays = useMemo(() => {
+    const base = new Date(today + 'T00:00:00')
+    const sinceMon = (base.getDay() + 6) % 7
+    const mon = new Date(base)
+    mon.setDate(base.getDate() - sinceMon + weekOffset * 7)
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(mon)
+      d.setDate(mon.getDate() + i)
+      return { dateStr: dstr(d), dow: d.getDay(), dayNum: d.getDate() }
+    })
+  }, [today, weekOffset])
 
-  async function markTaken(m: MedDef) {
-    await addMedLog(m.name, m.relation, { medId: m.id, kind: m.kind })
+  const selDow = new Date(selected + 'T00:00:00').getDay()
+  const slots = useMemo(() => buildSlots(active, logs, selected, selDow), [active, logs, selected, selDow])
+
+  const takenCount = slots.filter((s) => s.log && (s.log.status ?? 'taken') === 'taken').length
+  const pendingCount = slots.filter((s) => !s.log).length
+
+  async function setSlot(slot: Slot, status: 'taken' | 'skipped') {
+    // Aynı slotun eski kaydını temizle, yenisini ekle
+    if (slot.log?.id != null) await deleteMedLog(slot.log.id)
+    await addMedLog(slot.med.name, slot.med.relation, {
+      medId: slot.med.id,
+      kind: slot.med.kind,
+      time: slot.time === '—' ? undefined : slot.time,
+      status,
+      dateStr: selected
+    })
   }
-  async function undoTaken(m: MedDef) {
-    const mine = todayLogs.filter((l) => l.medId === m.id).sort((a, b) => b.createdAt - a.createdAt)
-    if (mine[0]?.id != null) await deleteMedLog(mine[0].id)
+  async function clearSlot(slot: Slot) {
+    if (slot.log?.id != null) await deleteMedLog(slot.log.id)
   }
 
-  // Rapor: her ilac icin planlanan vs alinan (secilen donem)
+  // Rapor: her ilac icin planlanan vs alinan (secilen donem) — atlanan sayılmaz
   const report = useMemo(() => {
     const endMs = Date.now()
     const startMs = endMs - (period - 1) * 86_400_000
     const startStr = todayStr(new Date(startMs))
     return active.map((m) => {
       const planned = plannedDoses(m, startMs, endMs)
-      const taken = logs.filter((l) => l.medId === m.id && l.dateStr >= startStr).length
+      const taken = logs.filter(
+        (l) => l.medId === m.id && l.dateStr >= startStr && (l.status ?? 'taken') === 'taken'
+      ).length
       const pct = planned > 0 ? Math.min(100, Math.round((taken / planned) * 100)) : taken > 0 ? 100 : 0
       return { m, planned, taken, pct }
     })
@@ -116,72 +180,99 @@ export default function Meds() {
     }
   }
 
+  const selLabel =
+    selected === today
+      ? 'Bugün'
+      : new Date(selected + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' })
+
   return (
     <div>
-      <DietHeader title="İlaçlarım & Vitaminlerim" subtitle="Tanımla, hatırlat, işaretle, uyum raporunu gör" />
+      <DietHeader title="İlaçlarım" subtitle="Günlük dozlar · hatırlatma · uyum raporu" />
 
       <div className="p-3 space-y-4">
         {err && <div className="card p-3 bg-rose-50 border-rose-200 text-rose-700 text-sm">{err}</div>}
 
-        {/* BUGÜN */}
-        {scheduledToday.length > 0 && (
-          <section className="card p-4 space-y-2.5">
-            <span className="section-title">📅 Bugün</span>
-            {scheduledToday.map((m) => {
-              const need = (m.times || []).length || 1
-              const got = takenToday(m.id)
-              const done = got >= need
-              return (
-                <div key={m.id} className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-semibold truncate ${done ? 'text-emerald-700' : 'text-slate-800'}`}>
-                      {m.kind === 'vitamin' ? '🍊' : '💊'} {m.name}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {got}/{need} alındı{relShort(m.relation) ? ` · ${relShort(m.relation)}` : ''}
-                      {m.times?.length ? ` · ${m.times.join(', ')}` : ''}
-                    </p>
-                  </div>
-                  {got > 0 && (
-                    <button onClick={() => undoTaken(m)} className="text-xs text-slate-400 underline px-1">
-                      geri al
-                    </button>
-                  )}
-                  <button
-                    onClick={() => markTaken(m)}
-                    disabled={done}
-                    className={`text-xs font-bold rounded-full px-3 py-1.5 ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-brand-600 text-white'}`}
-                  >
-                    {done ? '✓ Tamam' : '＋ Aldım'}
-                  </button>
-                </div>
-              )
-            })}
-            {scheduledToday.some((m) => takenToday(m.id) < ((m.times || []).length || 1)) && (
-              <p className="text-[11px] text-amber-600 font-semibold">
-                Bugün alınmayı bekleyen doz(lar) var.
-              </p>
-            )}
-          </section>
-        )}
-
-        {/* İLAÇ / VİTAMİN LİSTESİ */}
-        <section className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">İlaçlarım & vitaminlerim</h3>
-            <button
-              onClick={() => setEditing('new')}
-              className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1"
-            >
-              ＋ Ekle
+        {/* HAFTALIK GÜN ŞERİDİ */}
+        <section className="card p-3">
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => setWeekOffset((w) => w - 1)} className="text-slate-400 hover:text-brand-600 px-2 text-lg">
+              ‹
+            </button>
+            <span className="text-xs font-semibold text-slate-500">
+              {weekOffset === 0 ? 'Bu hafta' : weekDays[0].dateStr.slice(5) + ' – ' + weekDays[6].dateStr.slice(5)}
+            </span>
+            <button onClick={() => setWeekOffset((w) => w + 1)} className="text-slate-400 hover:text-brand-600 px-2 text-lg">
+              ›
             </button>
           </div>
+          <div className="grid grid-cols-7 gap-1">
+            {weekDays.map((d) => {
+              const isSel = d.dateStr === selected
+              const isToday = d.dateStr === today
+              const hasDose = active.some((m) => scheduledOn(m, d.dateStr, d.dow))
+              return (
+                <button
+                  key={d.dateStr}
+                  onClick={() => setSelected(d.dateStr)}
+                  className={`flex flex-col items-center py-1.5 rounded-xl transition ${
+                    isSel ? 'bg-brand-600 text-white shadow' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className={`text-[10px] font-semibold ${isSel ? 'text-white/80' : 'text-slate-400'}`}>
+                    {DOW1[d.dow]}
+                  </span>
+                  <span className="text-base font-bold leading-tight">{d.dayNum}</span>
+                  <span
+                    className={`mt-0.5 w-1.5 h-1.5 rounded-full ${
+                      hasDose ? (isSel ? 'bg-white' : 'bg-brand-400') : 'bg-transparent'
+                    } ${isToday && !isSel ? 'ring-2 ring-brand-300' : ''}`}
+                  />
+                </button>
+              )
+            })}
+          </div>
+        </section>
 
-          {meds.length === 0 && !editing && (
-            <div className="card p-4 text-center text-slate-500 text-sm">
-              Henüz ilaç/vitamin eklemedin. “＋ Ekle” ile başla.
+        {/* SEÇİLİ GÜN — DOZ KARTLARI (Pillo tarzı) */}
+        <section className="space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-bold text-slate-700">{selLabel}</h3>
+            {slots.length > 0 && (
+              <span className="text-xs font-semibold text-slate-400">
+                {takenCount}/{slots.length} alındı
+              </span>
+            )}
+          </div>
+
+          {active.length === 0 ? (
+            <div className="card p-6 text-center text-slate-500 text-sm">
+              <div className="text-4xl mb-2">💊</div>
+              Henüz ilaç eklemedin. Aşağıdan “＋ Ekle” ile başla.
             </div>
+          ) : slots.length === 0 ? (
+            <div className="card p-5 text-center text-slate-400 text-sm">Bu güne planlı doz yok. 🎉</div>
+          ) : (
+            slots.map((s, i) => <DoseCard key={s.med.id + '-' + s.time + '-' + i} slot={s} onSet={setSlot} onClear={clearSlot} />)
           )}
+
+          {pendingCount > 0 && (
+            <p className="text-[11px] text-amber-600 font-semibold px-1">
+              {pendingCount} doz alınmayı bekliyor.
+            </p>
+          )}
+        </section>
+
+        {/* İLAÇ / VİTAMİN LİSTESİ (tanımlar) */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Programım</h3>
+            <button
+              onClick={() => setEditing('new')}
+              className="text-xs font-semibold text-white bg-brand-600 rounded-full px-3 py-1"
+            >
+              ＋ Program
+            </button>
+          </div>
 
           {editing === 'new' && <MedForm onClose={() => setEditing(null)} />}
 
@@ -193,7 +284,9 @@ export default function Meds() {
                 <div className="text-2xl">{m.kind === 'vitamin' ? '🍊' : '💊'}</div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-slate-800 truncate">
-                    {m.name} {m.active === false && <span className="text-[11px] text-slate-400">(bırakıldı)</span>}
+                    {m.name}
+                    {m.dose ? <span className="text-slate-400 font-normal"> · {m.dose}</span> : ''}
+                    {m.active === false && <span className="text-[11px] text-slate-400"> (bırakıldı)</span>}
                   </p>
                   <p className="text-xs text-slate-500">
                     {(m.times || []).join(', ') || 'saat yok'}
@@ -201,6 +294,7 @@ export default function Meds() {
                     {' · '}
                     {!m.days || !m.days.length ? 'her gün' : m.days.map((d) => DOW[d]).join(' ')}
                     {m.reminder ? ' · 🔔' : ''}
+                    {m.endDate ? ` · bitiş ${m.endDate.slice(5)}` : ''}
                   </p>
                 </div>
                 <button onClick={() => setEditing(m)} className="text-slate-400 hover:text-brand-600 px-1">
@@ -274,15 +368,84 @@ export default function Meds() {
   )
 }
 
-// İlaç/vitamin ekle-düzenle formu
+// Pillo tarzı tek doz kartı: saat + ad + doz + büyük Alındı/Atlandı
+function DoseCard({
+  slot,
+  onSet,
+  onClear
+}: {
+  slot: Slot
+  onSet: (s: Slot, status: 'taken' | 'skipped') => void
+  onClear: (s: Slot) => void
+}) {
+  const { med, time, log } = slot
+  const status = log ? log.status ?? 'taken' : 'pending'
+  const taken = status === 'taken'
+  const skipped = status === 'skipped'
+
+  return (
+    <div
+      className={`card p-3 ${taken ? 'bg-emerald-50 border-emerald-200' : skipped ? 'bg-slate-50 border-slate-200 opacity-80' : ''}`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center justify-center w-14 flex-shrink-0">
+          <span className="text-base font-extrabold text-slate-700 leading-none">{time}</span>
+          <span className="text-[10px] text-slate-400 mt-0.5">{med.kind === 'vitamin' ? 'vitamin' : 'ilaç'}</span>
+        </div>
+        <div className="w-px self-stretch bg-slate-200" />
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-slate-800 truncate">
+            {med.kind === 'vitamin' ? '🍊' : '💊'} {med.name}
+          </p>
+          <p className="text-xs text-slate-500 truncate">
+            {med.dose ? med.dose : '1 doz'}
+            {relShort(med.relation) ? ` · ${relShort(med.relation)}` : ''}
+            {' · '}
+            {!med.days || !med.days.length ? 'Her gün' : med.days.map((d) => DOW[d]).join(' ')}
+          </p>
+        </div>
+      </div>
+
+      {status === 'pending' ? (
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <button
+            onClick={() => onSet(slot, 'skipped')}
+            className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200"
+          >
+            ✗ Atlandı
+          </button>
+          <button
+            onClick={() => onSet(slot, 'taken')}
+            className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 font-bold text-white bg-emerald-500 hover:bg-emerald-600"
+          >
+            ✓ Alındı
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between mt-2.5">
+          <span className={`text-sm font-bold ${taken ? 'text-emerald-700' : 'text-slate-500'}`}>
+            {taken ? '✓ Alındı' : '✗ Atlandı'}
+          </span>
+          <button onClick={() => onClear(slot)} className="text-xs text-slate-400 underline">
+            geri al
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// İlaç/vitamin ekle-düzenle formu (program)
 function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
   const [name, setName] = useState(med?.name ?? '')
+  const [dose, setDose] = useState(med?.dose ?? '')
   const [kind, setKind] = useState<MedDef['kind']>(med?.kind ?? 'ilac')
   const [relation, setRelation] = useState<MedDef['relation']>(med?.relation ?? 'tok')
   const [times, setTimes] = useState<string[]>(med?.times?.length ? med.times : ['08:30'])
   const [days, setDays] = useState<number[]>(med?.days ?? [])
   const [reminder, setReminder] = useState<boolean>(med?.reminder ?? true)
   const [active, setActive] = useState<boolean>(med?.active ?? true)
+  const [endDate, setEndDate] = useState<string>(med?.endDate ?? '')
 
   function toggleDay(d: number) {
     setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()))
@@ -294,7 +457,17 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
   async function save() {
     if (!name.trim()) return
     const clean = times.filter((t) => /^\d{1,2}:\d{2}$/.test(t))
-    const patch = { name: name.trim(), kind, relation, times: clean.length ? clean : ['08:30'], days, reminder, active }
+    const patch = {
+      name: name.trim(),
+      dose: dose.trim() || undefined,
+      kind,
+      relation,
+      times: clean.length ? clean : ['08:30'],
+      days,
+      reminder,
+      active,
+      endDate: endDate || undefined
+    }
     if (med?.id != null) await updateMed(med.id, patch)
     else await addMed(patch)
     await applyNotifications(await readDietSettings()) // bildirimleri yeniden kur
@@ -309,6 +482,12 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         autoFocus
+      />
+      <input
+        className="field-input"
+        placeholder="Doz (örn. 1 tablet, 5 ml, 2 damla)"
+        value={dose}
+        onChange={(e) => setDose(e.target.value)}
       />
       <div className="flex gap-1.5">
         {(['ilac', 'vitamin'] as const).map((k) => (
@@ -371,6 +550,11 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <p className="text-[11px] text-slate-500 mb-1">Kür bitişi (opsiyonel — boş = süresiz)</p>
+        <input type="date" className="field-input w-44" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
       </div>
 
       <div className="flex items-center justify-between">

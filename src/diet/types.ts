@@ -219,6 +219,8 @@ export interface MedLog {
   relation?: 'ac' | 'tok' | 'genel' // ac karnina / yemekten sonra / farketmez
   medId?: number // hangi tanimli ilaca/vitamine ait (varsa)
   kind?: 'ilac' | 'vitamin'
+  time?: string // hangi doz saatine ait (SS:DD) — belli bir doz slotunu isaretlemek icin
+  status?: 'taken' | 'skipped' // alindi mi atlandi mi (varsayilan: taken)
 }
 
 // Tanimli ilac/vitamin: adi, turu, ogunle iliskisi, doz saatleri ve gunleri.
@@ -232,6 +234,9 @@ export interface MedDef {
   days?: number[] // haftanin gunleri 0=Paz..6=Cmt; bos/undefined = HER gun
   reminder: boolean // bu ilac icin bildirim kurulsun mu
   active: boolean // aktif mi (birakildiysa false)
+  dose?: string // doz miktari metni (orn. "1 Tablet", "5 ml", "2 damla")
+  startDate?: string // program baslangici YYYY-MM-DD (kür/tedavi suresi icin)
+  endDate?: string // program bitisi YYYY-MM-DD (bos = suresiz)
   note?: string
   createdAt: number
 }
