@@ -173,7 +173,7 @@ export default function DietSettings() {
         </section>
 
         {/* Token kullanimi (bu cihazda) */}
-        <UsageCard model={settings?.model} />
+        <UsageCard model={settings?.model} budget={settings?.aiBudgetUsd} budgetBase={settings?.aiBudgetSetCostUsd} />
 
         {/* Kisisellestirme */}
         <section className="card p-4 space-y-3">
@@ -512,13 +512,32 @@ function ThemeSelector() {
 
 // Bu cihazda uygulamanin harcadigi token (Ayarlar). Kalan bakiye API'den
 // alinamaz; net kredi/fatura icin Anthropic Console'a yonlendirir.
-function UsageCard({ model }: { model?: string }) {
+function UsageCard({ model, budget, budgetBase }: { model?: string; budget?: number; budgetBase?: number }) {
   const [tick, setTick] = useState(0)
   const u = getUsage() // her render'da taze oku (tick ile yenilenir)
   const today = todayUsage()
   const fmt = (n: number) => n.toLocaleString('tr-TR')
   const m = (model || 'claude-opus-4-8').toLowerCase()
   const priceLabel = m.includes('haiku') ? 'Haiku' : m.includes('sonnet') ? 'Sonnet' : 'Opus'
+
+  // Kalan bakiye TAHMINI: butce girildigi andaki harcamadan bu yana harcanani dus
+  const totalCost = estimateCostUsd(u.total, model)
+  const [budgetInput, setBudgetInput] = useState(budget != null ? String(budget) : '')
+  const hasBudget = budget != null && budget > 0
+  const spentSince = hasBudget ? Math.max(0, totalCost - (budgetBase ?? 0)) : 0
+  const remaining = hasBudget ? Math.max(0, budget! - spentSince) : 0
+  const usedPct = hasBudget ? Math.min(100, (spentSince / budget!) * 100) : 0
+
+  async function saveBudget() {
+    const v = Number(budgetInput.replace(',', '.'))
+    if (!isFinite(v) || v <= 0) {
+      await saveDietSettings({ aiBudgetUsd: undefined, aiBudgetSetCostUsd: undefined })
+    } else {
+      // Bugunku toplam harcamayi taban al: kalan = butce - (bundan sonra harcanan)
+      await saveDietSettings({ aiBudgetUsd: v, aiBudgetSetCostUsd: totalCost })
+    }
+    refresh()
+  }
 
   function refresh() {
     setTick((t) => t + 1)
@@ -560,6 +579,48 @@ function UsageCard({ model }: { model?: string }) {
           <span className="text-slate-400">
             ilk: {new Date(u.since + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
+        )}
+      </div>
+
+      {/* KALAN KREDI (tahmini): kullanici yukledigi tutari girer, kalan hesaplanir */}
+      <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-amber-800 whitespace-nowrap">💳 Yüklediğim kredi $</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            className="num-input flex-1 !text-left !px-2"
+            placeholder="örn. 20"
+            value={budgetInput}
+            onChange={(e) => setBudgetInput(e.target.value)}
+          />
+          <button onClick={saveBudget} className="text-xs font-bold bg-amber-600 text-white rounded-lg px-3 py-1.5">
+            Kaydet
+          </button>
+        </div>
+        {hasBudget ? (
+          <>
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-amber-700">Tahmini kalan</span>
+              <span className={`text-lg font-extrabold ${remaining <= budget! * 0.15 ? 'text-rose-600' : 'text-amber-800'}`}>
+                ≈ ${remaining.toFixed(2)}
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-amber-100 overflow-hidden">
+              <div
+                className={`h-full rounded-full ${usedPct >= 85 ? 'bg-rose-500' : usedPct >= 60 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                style={{ width: `${usedPct}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-amber-700/80">
+              Bu tutarı girdiğinden beri ≈ ${spentSince.toFixed(2)} harcandı. TAHMİNİDİR — net bakiye Console’da. Yeni kredi yükleyince tutarı güncelle.
+            </p>
+          </>
+        ) : (
+          <p className="text-[10px] text-amber-700/80">
+            Anthropic kalan bakiyeyi API’den vermez. Yüklediğin tutarı buraya yazarsan kalanı tahmini takip ederim.
+          </p>
         )}
       </div>
 

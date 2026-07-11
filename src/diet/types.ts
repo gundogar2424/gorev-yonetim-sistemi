@@ -273,6 +273,8 @@ export interface DietSettings {
   id?: number
   apiKey?: string // Anthropic API anahtari (yalnizca cihazda saklanir)
   model?: string // Kullanilacak model (varsayilan: claude-opus-4-8)
+  aiBudgetUsd?: number // kullanicinin yukledigi/ayirdigi kredi ($) — kalan bakiye TAHMINI icin
+  aiBudgetSetCostUsd?: number // butce girildigi andaki toplam harcama ($) — kalan = butce - (guncel - bu)
   userName?: string // Kullanici adi (kisisellestirme icin)
   heightCm?: number // Boy (cm) — kalori/BMI icin
   age?: number // Yas
