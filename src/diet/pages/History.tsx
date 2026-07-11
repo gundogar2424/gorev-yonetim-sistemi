@@ -5,7 +5,7 @@ import { dietDb, readDietSettings, listExercises } from '../db'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
-import { buildDailyImage, buildDailyImageSet, buildMealImage } from '../lib/reportImage'
+import { buildDailyImage, buildDailyImageSet, buildMealImage, buildDailyHealthImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
 import type { DietEntry, MealType } from '../types'
 
@@ -82,6 +82,23 @@ export default function History() {
     setTimeout(() => setMsg(''), 5000)
   }
 
+  // Secilen gunun SAGLIK raporunu tek gorselde gonder (seker/tansiyon + spor + ilac/vitamin)
+  async function sendHealthImage() {
+    setMsg('Sağlık raporu hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildDailyHealthImage(reportDate, settings.userName)
+      const res = await shareImageSmart(blob, `saglik-rapor-${reportDate}.png`)
+      if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Görsel gönderilemedi.')
+    } catch {
+      setMsg('Sağlık raporu oluşturulamadı.')
+    }
+    setTimeout(() => setMsg(''), 4000)
+  }
+
   // Tarihe gore grupla
   const groups = groupByDate(entries ?? [])
 
@@ -110,6 +127,12 @@ export default function History() {
           </button>
           <p className="text-[11px] text-slate-400">
             Her öğün ve sağlık verisi için ayrı, büyük fotoğraflı görsel gönderir.
+          </p>
+          <button onClick={sendHealthImage} className="btn bg-sky-600 text-white w-full whitespace-nowrap">
+            🩺 Günlük Sağlık Raporu
+          </button>
+          <p className="text-[11px] text-slate-400">
+            Şeker/tansiyon + spor + ilaç/vitamin — hepsi tek görselde.
           </p>
           {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
         </section>
