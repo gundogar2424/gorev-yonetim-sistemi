@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
-import { initNotificationNavigation } from './lib/notify'
+import { initNotificationNavigation, cancelMedSnooze } from './lib/notify'
 import { addMedLog } from './db'
 import Capture from './pages/Capture'
 import History from './pages/History'
@@ -94,7 +94,7 @@ export default function DietApp() {
     // Bildirimdeki "✓ Aldım"a basilinca ilaci otomatik kaydet (tanima bagli)
     void initNotificationNavigation(
       (route) => navigate(route),
-      (name, medId) => void addMedLog(name, undefined, { medId })
+      (name, medId) => void addMedLog(name, undefined, { medId }).then(() => cancelMedSnooze(medId))
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

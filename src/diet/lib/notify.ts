@@ -17,8 +17,6 @@ const MED_IDS_START = 310 // ilac/seker hapi hatirlatmalari 310..399 (her doz ic
 const MED_IDS_END = 399 // ilac bildirim ID ust siniri (401/402 tokluk/seker ile catismasin)
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 const MED_CHANNEL_ID = 'diyet-ilac-alarm' // ILAC icin AYRI, agresif kanal (max onem + titresim)
-// Ilac dozu icin "uzerine gelen" tekrar dakikalari: ana bildirim + almazsan tekrar duyurur
-const MED_NAG_OFFSETS = [0, 10, 30]
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
 const SUGAR_POSTMEAL_ID = 402 // ogunden 2 saat sonra tok seker olcum hatirlatmasi (tek)
 
@@ -83,13 +81,6 @@ async function ensureMedChannel(): Promise<void> {
   } catch {
     // kanal zaten varsa ya da desteklenmiyorsa yok say
   }
-}
-
-// Bir saate dakika ekle/cikar, 0..1439 araliginda sar (gece yarisi gecisini yonetir)
-function addMinutes(hour: number, minute: number, delta: number): { hour: number; minute: number } {
-  let total = hour * 60 + minute + delta
-  total = ((total % 1440) + 1440) % 1440
-  return { hour: Math.floor(total / 60), minute: total % 60 }
 }
 
 // Ogun saatinden "lead" dakika cikararak bildirim saatini hesaplar (gece yarisi sarmasini da yonetir)
@@ -296,9 +287,12 @@ function medNotifications(schedule: { time: string; name?: string }[]) {
     })
 }
 
-// Tanimli ilac/vitaminlerden AGRESIF bildirim uretir: her ilac x her doz saati x
-// (varsa) haftanin gunu icin ANA bildirim + "uzerine gelen" tekrarlar (+10, +30 dk).
-// Hepsi AYRI alarm kanalindan (max onem + titresim) ve "✓ Aldim" butonlu.
+// Tanimli ilac/vitaminlerden bildirim uretir: her ilac x her doz saati x (varsa)
+// haftanin gunu icin TEK hatirlatma (her gun tekrar eder). AYRI alarm kanalindan
+// (max onem + titresim) ve "✓ Aldim" butonlu. NOT: Ayni doz icin uzerine gelen
+// (+10/+30 dk) TEKRAR YOK — cunku sistem alarmi iptal edilemedigi icin kullanici
+// "aldim/atla" dese bile tekrar tekrar geliyordu. Israrci hatirlatmayi uygulama
+// icindeki (DueMedGate) zorunlu pencere saglar; bildirim gunde bir kez calar.
 function medDefNotifications(meds: MedDef[]): unknown[] {
   const out: unknown[] = []
   let id = MED_IDS_START
@@ -310,27 +304,17 @@ function medDefNotifications(meds: MedDef[]): unknown[] {
       const [h, mi] = t.split(':').map(Number)
       const days = m.days && m.days.length ? m.days : [null as number | null]
       for (const d of days) {
-        for (let k = 0; k < MED_NAG_OFFSETS.length; k++) {
-          if (id > MED_IDS_END) return out
-          const { hour, minute } = addMinutes(h, mi, MED_NAG_OFFSETS[k])
-          const on = d == null ? { hour, minute } : { weekday: d + 1, hour, minute }
-          const nag = k > 0
-          out.push({
-            id: id++,
-            channelId: MED_CHANNEL_ID,
-            actionTypeId: 'MED',
-            title: nag
-              ? '🔴 İlacını hâlâ almadın!'
-              : m.kind === 'vitamin'
-                ? '💊 Vitamin vakti'
-                : '💊 İlaç vakti',
-            body: nag
-              ? `${m.name}${dozStr} — lütfen şimdi al ve “✓ Aldım”a dokun.`
-              : `${m.name}${rel}${dozStr} almayı unutma. Aldıysan “✓ Aldım”a dokun.`,
-            schedule: { on, repeats: true, allowWhileIdle: true },
-            extra: { route: '/ilaclarim', med: m.name, medId: m.id }
-          })
-        }
+        if (id > MED_IDS_END) return out
+        const on = d == null ? { hour: h, minute: mi } : { weekday: d + 1, hour: h, minute: mi }
+        out.push({
+          id: id++,
+          channelId: MED_CHANNEL_ID,
+          actionTypeId: 'MED',
+          title: m.kind === 'vitamin' ? '💊 Vitamin vakti' : '💊 İlaç vakti',
+          body: `${m.name}${rel}${dozStr} almayı unutma. Aldıysan “✓ Aldım”a dokun.`,
+          schedule: { on, repeats: true, allowWhileIdle: true },
+          extra: { route: '/ilaclarim', med: m.name, medId: m.id }
+        })
       }
     }
   }
@@ -403,6 +387,17 @@ export async function scheduleMedSnooze(name: string, minutes: number, medId?: n
         }
       ]
     })
+  } catch {
+    // yok say
+  }
+}
+
+// Bir ilac dozu cevaplaninca (alindi/atlandi) o ilaca ait bekleyen ERTELEME
+// bildirimini iptal et — cevaplanan doz bir daha hatirlatilmasin.
+export async function cancelMedSnooze(medId?: number): Promise<void> {
+  if (!isNative()) return
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: 380 + ((medId ?? 0) % 10) }] })
   } catch {
     // yok say
   }

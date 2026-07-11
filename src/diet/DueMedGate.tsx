@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listMeds, listMedLogs, addMedLog } from './db'
-import { scheduleMedSnooze } from './lib/notify'
+import { scheduleMedSnooze, cancelMedSnooze } from './lib/notify'
 import { todayStr } from './streak'
 import type { MedDef, MedLog } from './types'
 
@@ -137,11 +137,13 @@ function DoseGateModal({
       dateStr,
       takenAt: toMs(takenTime)
     })
+    await cancelMedSnooze(med.id) // cevaplandi — bekleyen erteleme bildirimini iptal et
     onDone()
   }
   async function skip() {
     setBusy(true)
     await addMedLog(med.name, med.relation, { medId: med.id, kind: med.kind, time, status: 'skipped', dateStr })
+    await cancelMedSnooze(med.id)
     onDone()
   }
   async function snooze(minutes: number) {

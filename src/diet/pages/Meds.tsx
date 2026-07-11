@@ -12,7 +12,7 @@ import {
   addMedLog,
   deleteMedLog
 } from '../db'
-import { applyNotifications, ensurePermission, ensureExactAlarm, isNative } from '../lib/notify'
+import { applyNotifications, ensurePermission, ensureExactAlarm, isNative, cancelMedSnooze } from '../lib/notify'
 import { buildHealthContext } from '../lib/context'
 import { medComment } from '../ai'
 import { todayStr } from '../streak'
@@ -134,6 +134,7 @@ export default function Meds() {
       status,
       dateStr: selected
     })
+    await cancelMedSnooze(slot.med.id) // cevaplandi — bekleyen erteleme bildirimini iptal et
   }
   async function clearSlot(slot: Slot) {
     if (slot.log?.id != null) await deleteMedLog(slot.log.id)
