@@ -14,7 +14,7 @@ import {
 } from '../db'
 import { applyNotifications, ensurePermission, ensureExactAlarm, isNative, cancelMedSnooze } from '../lib/notify'
 import { buildHealthContext } from '../lib/context'
-import { medComment } from '../ai'
+import { medComment, analyzeMedIngredients } from '../ai'
 import { todayStr } from '../streak'
 import type { MedDef, MedLog } from '../types'
 
@@ -283,29 +283,32 @@ export default function Meds() {
             editing !== null && editing !== 'new' && editing.id === m.id ? (
               <MedForm key={m.id} med={m} onClose={() => setEditing(null)} />
             ) : (
-              <div key={m.id} className="card p-3 flex items-center gap-2">
-                <div className="text-2xl">{m.kind === 'vitamin' ? '🍊' : '💊'}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 truncate">
-                    {m.name}
-                    {m.dose ? <span className="text-slate-400 font-normal"> · {m.dose}</span> : ''}
-                    {m.active === false && <span className="text-[11px] text-slate-400"> (bırakıldı)</span>}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {(m.times || []).join(', ') || 'saat yok'}
-                    {relShort(m.relation) ? ` · ${relShort(m.relation)}` : ''}
-                    {' · '}
-                    {!m.days || !m.days.length ? 'her gün' : m.days.map((d) => DOW[d]).join(' ')}
-                    {m.reminder ? ' · 🔔' : ''}
-                    {m.endDate ? ` · bitiş ${m.endDate.slice(5)}` : ''}
-                  </p>
+              <div key={m.id} className="card p-3">
+                <div className="flex items-center gap-2">
+                  <div className="text-2xl">{m.kind === 'vitamin' ? '🍊' : '💊'}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-800 truncate">
+                      {m.name}
+                      {m.dose ? <span className="text-slate-400 font-normal"> · {m.dose}</span> : ''}
+                      {m.active === false && <span className="text-[11px] text-slate-400"> (bırakıldı)</span>}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {(m.times || []).join(', ') || 'saat yok'}
+                      {relShort(m.relation) ? ` · ${relShort(m.relation)}` : ''}
+                      {' · '}
+                      {!m.days || !m.days.length ? 'her gün' : m.days.map((d) => DOW[d]).join(' ')}
+                      {m.reminder ? ' · 🔔' : ''}
+                      {m.endDate ? ` · bitiş ${m.endDate.slice(5)}` : ''}
+                    </p>
+                  </div>
+                  <button onClick={() => setEditing(m)} className="text-slate-400 hover:text-brand-600 px-1">
+                    ✏️
+                  </button>
+                  <button onClick={() => m.id != null && deleteMed(m.id)} className="text-slate-300 hover:text-rose-500 px-1">
+                    🗑️
+                  </button>
                 </div>
-                <button onClick={() => setEditing(m)} className="text-slate-400 hover:text-brand-600 px-1">
-                  ✏️
-                </button>
-                <button onClick={() => m.id != null && deleteMed(m.id)} className="text-slate-300 hover:text-rose-500 px-1">
-                  🗑️
-                </button>
+                <MedIngredientInfo med={m} apiKey={settings?.apiKey} model={settings?.model} />
               </div>
             )
           )}
@@ -410,6 +413,57 @@ function AggressiveNotifCard() {
   )
 }
 
+// İlaç/vitamin etken madde analizi: göster + (yoksa) üret / yenile. Bu metin
+// ortak sağlık bağlamına girip ilerleme/gerileme yorumlarında kullanılır.
+function MedIngredientInfo({ med, apiKey, model }: { med: MedDef; apiKey?: string; model?: string }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function run() {
+    if (!apiKey || med.id == null) return
+    setErr('')
+    setBusy(true)
+    try {
+      const txt = await analyzeMedIngredients({ apiKey, name: med.name, kind: med.kind, dose: med.dose, model })
+      await updateMed(med.id, { ingredients: txt, ingredientsAt: Date.now() })
+      setOpen(true)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Analiz alınamadı.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const has = !!med.ingredients?.trim()
+  return (
+    <div className="mt-2 pt-2 border-t border-slate-100">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => (has ? setOpen((o) => !o) : run())}
+          disabled={busy || (!has && !apiKey)}
+          className="text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2.5 py-1 disabled:opacity-50"
+        >
+          {busy ? 'Analiz ediliyor…' : has ? (open ? '🔬 Etken maddeyi gizle' : '🔬 Etken madde') : '🔬 Etken madde çıkar'}
+        </button>
+        {has && !busy && (
+          <button onClick={run} disabled={!apiKey} className="text-[11px] text-slate-400 underline disabled:opacity-50">
+            yenile
+          </button>
+        )}
+        {!apiKey && !has && <span className="text-[10px] text-slate-400">(API anahtarı gerekli)</span>}
+      </div>
+      {err && <p className="text-[11px] text-rose-600 mt-1">{err}</p>}
+      {has && open && (
+        <div className="mt-2 rounded-xl bg-teal-50/60 dark:bg-teal-500/10 p-2.5 text-[12px] text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+          {med.ingredients}
+          <p className="text-[10px] text-slate-400 mt-1.5">Bilgilendirme amaçlıdır; teşhis/doz için doktor/eczacıya danış. Bu bilgi koçun ilerleme yorumlarında da kullanılır.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Pillo tarzı tek doz kartı: saat + ad + doz + büyük Alındı/Atlandı
 function DoseCard({
   slot,
@@ -510,9 +564,19 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
       active,
       endDate: endDate || undefined
     }
-    if (med?.id != null) await updateMed(med.id, patch)
-    else await addMed(patch)
-    await applyNotifications(await readDietSettings()) // bildirimleri yeniden kur
+    const s = await readDietSettings()
+    let id = med?.id
+    if (id != null) await updateMed(id, patch)
+    else id = (await addMed(patch)) as number
+    await applyNotifications(s) // bildirimleri yeniden kur
+    // Arka planda etken madde analizini üret (API anahtarı varsa, ad/doz değiştiyse
+    // ya da hiç yoksa). Ortak sağlık bağlamına girip ilerleme yorumlarında kullanılır.
+    const nameChanged = med?.name !== patch.name || med?.dose !== patch.dose
+    if (s.apiKey && id != null && (nameChanged || !med?.ingredients)) {
+      void analyzeMedIngredients({ apiKey: s.apiKey, name: patch.name, kind: patch.kind, dose: patch.dose, model: s.model })
+        .then((txt) => updateMed(id!, { ingredients: txt, ingredientsAt: Date.now() }))
+        .catch(() => {})
+    }
     onClose()
   }
 

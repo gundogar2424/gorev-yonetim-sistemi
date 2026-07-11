@@ -1499,8 +1499,9 @@ export async function weeklyInsights(opts: {
 
   const system = `Sen "Diyet Koçu"sun. Kullanıcının verilerine bakıp KİŞİSEL bir haftalık içgörü raporu yaz. Format:
 1) "📌 Bu hafta seninle ilgili fark ettiklerim" başlığı altında 3-5 madde — her biri SOMUT ve kişisel (sayı/saat/yemek adıyla). Örn. "Öğle öğünlerinde tokluğun düşük (ort. 4/10), bu yüzden ikindi krizine giriyorsun."
-2) "🎯 Bu haftanın odağı" başlığı altında 1 net, ulaşılabilir hedef.
-Genel geçer öğüt VERME; sadece ELDEKİ veriden çıkanı söyle. Veri azsa dürüst ol ("henüz örüntü çıkacak kadar veri yok, şunları girmeye devam et"). Türkçe, güçlendirici, kısa. ${ctx.join(' ')}`
+2) "📈 İlerleme/gerileme" başlığı altında: kilo/ölçü/tahlil gidişatını NEDENLERİYLE bağla — YEDİKLERİ + aldığı VİTAMİN/TAKVİYE + İLAÇLARI (etken maddeleriyle) birlikte değerlendir. Örn. "Kilon 2 hafta düştü; omega-3 ve protein ağırlıklı öğünler + düzenli D vitamini bunu destekliyor" ya da "hafta sonu şekerli atıştırmalar ilerlemeyi yavaşlatmış". Elde veri varsa mutlaka bu bağı kur.
+3) "🎯 Bu haftanın odağı" başlığı altında 1 net, ulaşılabilir hedef.
+Genel geçer öğüt VERME; sadece ELDEKİ veriden çıkanı söyle. İlaç/vitamin etken madde bilgisi verildiyse yorumda kullan ama TEŞHİS/DOZ TAVSİYESİ verme. Veri azsa dürüst ol ("henüz örüntü çıkacak kadar veri yok, şunları girmeye devam et"). Türkçe, güçlendirici, kısa. ${ctx.join(' ')}`
 
   const client = await createClient(apiKey)
   try {
@@ -1665,6 +1666,47 @@ Kurallar:
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
     const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
     if (!text) throw new Error('Cevap üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
+// İLAÇ/VİTAMİN ETKEN MADDE ANALİZİ: adı (+doz) verilen ürünün etken maddelerini,
+// ne işe yaradığını, ilgili tahlil/belirtileri ve dikkat edilecekleri KISA, yapılandırılmış
+// çıkarır. Bu metin "ortak sağlık bağlamına" eklenir; böylece ilerleme/gerileme
+// yorumlarında yediklerle+ilaçlarla birlikte kullanılır. TEŞHİS/TEDAVİ DEĞİLDİR.
+export async function analyzeMedIngredients(opts: {
+  apiKey: string
+  name: string
+  kind?: 'ilac' | 'vitamin'
+  dose?: string
+  model?: string
+}): Promise<string> {
+  const { apiKey, name, kind, dose, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!name.trim()) throw new Error('Önce ilaç/vitamin adını gir.')
+
+  const system = `Sen bir eczacı/beslenme asistanısın. Sana bir ilaç ya da takviye/vitamin adı (ve varsa dozu) verilecek. KISA, yapılandırılmış ve GENEL bilgi ver. Şu başlıklarla, madde işaretli yaz (bilmiyorsan uydurma, "net değil" de):
+• Etken madde(ler): (ör. Omega-3 EPA/DHA; kolekalsiferol D3; menakinon K2…)
+• Ne işe yarar: (1-2 kısa madde)
+• İlgili tahlil/belirti: (hangi kan değeri/şikâyetle ilişkili — ör. D vitamini düzeyi, lipid profili)
+• Beslenmeyle ilişkisi: (aç/tok, yağla emilim, hangi besinlerle desteklenir)
+• Dikkat/etkileşim: (varsa genel uyarı)
+ÇOK ÖNEMLİ: Bu bir bilgilendirmedir, TEŞHİS/TEDAVİ/DOZ TAVSİYESİ DEĞİLDİR; doz ve etkileşim için doktor/eczacıya danışılmalı. Türkçe, abartısız, toplam ~120 kelime.`
+
+  const client = await createClient(apiKey)
+  const label = `${name.trim()}${dose?.trim() ? ` (${dose.trim()})` : ''}${kind === 'vitamin' ? ' — vitamin/takviye' : ''}`
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 500,
+      system,
+      messages: [{ role: 'user', content: `Ürün: ${label}\n\nEtken madde analizini çıkar.` }]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Analiz üretilemedi. Lütfen tekrar deneyin.')
     return text
   } catch (err) {
     throw friendlyError(err)

@@ -194,6 +194,16 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       return `${m.name} (${m.kind === 'vitamin' ? 'vitamin' : 'ilaç'}, ${rel}, ${gun}, saat ${m.times?.join('/') || '—'})`
     })
     L.push(`Düzenli kullandığı ilaç/vitaminler: ${defLines.join('; ')}.`)
+    // Etken madde analizleri (varsa): ilerleme/gerileme yorumlarinda yediklerle
+    // BIRLIKTE degerlendir (ornegin D vitamini + gunes, omega-3 + lipid profili).
+    const ingLines = activeMeds
+      .filter((m) => m.ingredients?.trim())
+      .map((m) => `• ${m.name}: ${m.ingredients!.trim().replace(/\s+/g, ' ')}`)
+    if (ingLines.length) {
+      L.push(
+        `İlaç/vitamin ETKEN MADDE bilgisi (yorumlarda beslenme ve ilerleme/gerileme ile birlikte kullan; teşhis/doz tavsiyesi verme):\n${ingLines.join('\n')}`
+      )
+    }
     // Bugun alinmamis dozlar
     const missing = todaysMeds
       .filter((m) => {

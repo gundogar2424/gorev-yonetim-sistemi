@@ -237,6 +237,8 @@ export interface MedDef {
   dose?: string // doz miktari metni (orn. "1 Tablet", "5 ml", "2 damla")
   startDate?: string // program baslangici YYYY-MM-DD (kür/tedavi suresi icin)
   endDate?: string // program bitisi YYYY-MM-DD (bos = suresiz)
+  ingredients?: string // AI etken madde analizi (etken maddeler, ne ise yarar, ilgili tahlil/belirti, dikkat) — ortak baglama girer
+  ingredientsAt?: number // analiz ne zaman uretildi (ms)
   note?: string
   createdAt: number
 }
