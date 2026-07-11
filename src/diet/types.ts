@@ -234,6 +234,7 @@ export interface MedDef {
   days?: number[] // haftanin gunleri 0=Paz..6=Cmt; bos/undefined = HER gun
   reminder: boolean // bu ilac icin bildirim kurulsun mu
   active: boolean // aktif mi (birakildiysa false)
+  brand?: string // marka/uretici (etken madde markaya gore degisebilir — analizde ozellikle dikkate alinir)
   dose?: string // doz miktari metni (orn. "1 Tablet", "5 ml", "2 damla")
   startDate?: string // program baslangici YYYY-MM-DD (kür/tedavi suresi icin)
   endDate?: string // program bitisi YYYY-MM-DD (bos = suresiz)

@@ -12,7 +12,9 @@ export interface UsageBucket {
 }
 export interface UsageData {
   total: UsageBucket
-  days: Record<string, UsageBucket> // 'YYYY-MM-DD' -> bucket
+  days: Record<string, UsageBucket> // 'YYYY-MM-DD' -> bucket (son 60 gun)
+  activeDays?: number // AI kullanilan toplam ayri gun sayisi (60 gun budansa da korunur)
+  since?: string // ilk kullanim tarihi 'YYYY-MM-DD'
 }
 
 // Model ailesine gore KABA fiyat ($/1M token). Net fatura icin Console.
@@ -56,11 +58,20 @@ export function recordUsage(inTok: number, outTok: number): void {
   try {
     const u = getUsage()
     const d = todayKey()
+    // Eski kayitlarda activeDays yoksa, bilinen gun sayisindan tohumla (bir kez)
+    if (u.activeDays == null) {
+      u.activeDays = Object.keys(u.days).length
+      const known = Object.keys(u.days).sort()
+      if (!u.since && known.length) u.since = known[0]
+    }
+    const isNewDay = !u.days[d]
     const day = u.days[d] ?? empty()
     day.in += inTok || 0
     day.out += outTok || 0
     day.calls += 1
     u.days[d] = day
+    if (isNewDay) u.activeDays += 1
+    if (!u.since) u.since = d
     u.total.in += inTok || 0
     u.total.out += outTok || 0
     u.total.calls += 1

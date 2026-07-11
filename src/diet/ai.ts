@@ -1681,13 +1681,14 @@ export async function analyzeMedIngredients(opts: {
   name: string
   kind?: 'ilac' | 'vitamin'
   dose?: string
+  brand?: string
   model?: string
 }): Promise<string> {
-  const { apiKey, name, kind, dose, model = DEFAULT_MODEL } = opts
+  const { apiKey, name, kind, dose, brand, model = DEFAULT_MODEL } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!name.trim()) throw new Error('Önce ilaç/vitamin adını gir.')
 
-  const system = `Sen bir eczacı/beslenme asistanısın. Sana bir ilaç ya da takviye/vitamin adı (ve varsa dozu) verilecek. KISA, yapılandırılmış ve GENEL bilgi ver. Şu başlıklarla, madde işaretli yaz (bilmiyorsan uydurma, "net değil" de):
+  const system = `Sen bir eczacı/beslenme asistanısın. Sana bir ilaç ya da takviye/vitamin adı, MARKASI (ve varsa dozu) verilecek. KISA, yapılandırılmış ve GENEL bilgi ver. MARKA ÖNEMLİ: aynı isimli ürünün farklı markalarında etken madde/oran/ek bileşenler DEĞİŞEBİLİR; verilen markaya GÖRE değerlendir. Şu başlıklarla, madde işaretli yaz (o markanın kesin formülünü bilmiyorsan UYDURMA, "bu marka için net değil, kutudaki içeriğe bak" de):
 • Etken madde(ler): (ör. Omega-3 EPA/DHA; kolekalsiferol D3; menakinon K2…)
 • Ne işe yarar: (1-2 kısa madde)
 • İlgili tahlil/belirti: (hangi kan değeri/şikâyetle ilişkili — ör. D vitamini düzeyi, lipid profili)
@@ -1696,7 +1697,7 @@ export async function analyzeMedIngredients(opts: {
 ÇOK ÖNEMLİ: Bu bir bilgilendirmedir, TEŞHİS/TEDAVİ/DOZ TAVSİYESİ DEĞİLDİR; doz ve etkileşim için doktor/eczacıya danışılmalı. Türkçe, abartısız, toplam ~120 kelime.`
 
   const client = await createClient(apiKey)
-  const label = `${name.trim()}${dose?.trim() ? ` (${dose.trim()})` : ''}${kind === 'vitamin' ? ' — vitamin/takviye' : ''}`
+  const label = `${brand?.trim() ? `Marka: ${brand.trim()} — ` : ''}${name.trim()}${dose?.trim() ? ` (${dose.trim()})` : ''}${kind === 'vitamin' ? ' — vitamin/takviye' : ''}`
   try {
     const response = await client.messages.create({
       model,

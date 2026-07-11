@@ -191,7 +191,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const defLines = activeMeds.map((m) => {
       const rel = m.relation === 'tok' ? 'tok' : m.relation === 'ac' ? 'aç' : 'farketmez'
       const gun = !m.days || !m.days.length ? 'her gün' : m.days.map((d) => ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d]).join(',')
-      return `${m.name} (${m.kind === 'vitamin' ? 'vitamin' : 'ilaç'}, ${rel}, ${gun}, saat ${m.times?.join('/') || '—'})`
+      return `${m.name}${m.brand ? ` [${m.brand}]` : ''} (${m.kind === 'vitamin' ? 'vitamin' : 'ilaç'}, ${rel}, ${gun}, saat ${m.times?.join('/') || '—'})`
     })
     L.push(`Düzenli kullandığı ilaç/vitaminler: ${defLines.join('; ')}.`)
     // Etken madde analizleri (varsa): ilerleme/gerileme yorumlarinda yediklerle

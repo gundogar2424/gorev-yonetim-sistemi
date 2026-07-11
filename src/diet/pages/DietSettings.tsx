@@ -543,16 +543,24 @@ function UsageCard({ model }: { model?: string }) {
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-xl bg-emerald-50 p-3">
           <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Bugün</p>
-          <p className="text-xl font-extrabold text-emerald-800">{fmt(bucketTokens(today))}</p>
-          <p className="text-[11px] text-emerald-700/80">token · {today.calls} işlem</p>
-          <p className="text-[11px] text-emerald-700/80">≈ ${estimateCostUsd(today, model).toFixed(3)}</p>
+          <p className="text-xl font-extrabold text-emerald-800">≈ ${estimateCostUsd(today, model).toFixed(3)}</p>
+          <p className="text-[11px] text-emerald-700/80">{fmt(bucketTokens(today))} token · {today.calls} işlem</p>
         </div>
         <div className="rounded-xl bg-slate-50 p-3">
           <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Toplam</p>
-          <p className="text-xl font-extrabold text-slate-800">{fmt(bucketTokens(u.total))}</p>
-          <p className="text-[11px] text-slate-500">token · {u.total.calls} işlem</p>
-          <p className="text-[11px] text-slate-500">≈ ${estimateCostUsd(u.total, model).toFixed(2)}</p>
+          <p className="text-xl font-extrabold text-slate-800">≈ ${estimateCostUsd(u.total, model).toFixed(2)}</p>
+          <p className="text-[11px] text-slate-500">{fmt(bucketTokens(u.total))} token · {u.total.calls} işlem</p>
         </div>
+      </div>
+
+      {/* Kullanim suresi: kac ayri gun + ilk kullanim */}
+      <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        <span>📅 <span className="font-bold">{u.activeDays ?? Object.keys(u.days).length}</span> gün kullanıldı</span>
+        {u.since && (
+          <span className="text-slate-400">
+            ilk: {new Date(u.since + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </span>
+        )}
       </div>
 
       <p className="text-[11px] text-slate-400">

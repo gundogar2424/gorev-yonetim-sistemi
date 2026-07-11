@@ -289,6 +289,7 @@ export default function Meds() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-slate-800 truncate">
                       {m.name}
+                      {m.brand ? <span className="text-brand-600 font-normal"> · {m.brand}</span> : ''}
                       {m.dose ? <span className="text-slate-400 font-normal"> · {m.dose}</span> : ''}
                       {m.active === false && <span className="text-[11px] text-slate-400"> (bırakıldı)</span>}
                     </p>
@@ -425,7 +426,7 @@ function MedIngredientInfo({ med, apiKey, model }: { med: MedDef; apiKey?: strin
     setErr('')
     setBusy(true)
     try {
-      const txt = await analyzeMedIngredients({ apiKey, name: med.name, kind: med.kind, dose: med.dose, model })
+      const txt = await analyzeMedIngredients({ apiKey, name: med.name, kind: med.kind, dose: med.dose, brand: med.brand, model })
       await updateMed(med.id, { ingredients: txt, ingredientsAt: Date.now() })
       setOpen(true)
     } catch (e) {
@@ -534,6 +535,7 @@ function DoseCard({
 // İlaç/vitamin ekle-düzenle formu (program)
 function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
   const [name, setName] = useState(med?.name ?? '')
+  const [brand, setBrand] = useState(med?.brand ?? '')
   const [dose, setDose] = useState(med?.dose ?? '')
   const [kind, setKind] = useState<MedDef['kind']>(med?.kind ?? 'ilac')
   const [relation, setRelation] = useState<MedDef['relation']>(med?.relation ?? 'tok')
@@ -555,6 +557,7 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
     const clean = times.filter((t) => /^\d{1,2}:\d{2}$/.test(t))
     const patch = {
       name: name.trim(),
+      brand: brand.trim() || undefined,
       dose: dose.trim() || undefined,
       kind,
       relation,
@@ -569,11 +572,11 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
     if (id != null) await updateMed(id, patch)
     else id = (await addMed(patch)) as number
     await applyNotifications(s) // bildirimleri yeniden kur
-    // Arka planda etken madde analizini üret (API anahtarı varsa, ad/doz değiştiyse
+    // Arka planda etken madde analizini üret (API anahtarı varsa; ad/marka/doz değiştiyse
     // ya da hiç yoksa). Ortak sağlık bağlamına girip ilerleme yorumlarında kullanılır.
-    const nameChanged = med?.name !== patch.name || med?.dose !== patch.dose
-    if (s.apiKey && id != null && (nameChanged || !med?.ingredients)) {
-      void analyzeMedIngredients({ apiKey: s.apiKey, name: patch.name, kind: patch.kind, dose: patch.dose, model: s.model })
+    const changed = med?.name !== patch.name || med?.brand !== patch.brand || med?.dose !== patch.dose
+    if (s.apiKey && id != null && (changed || !med?.ingredients)) {
+      void analyzeMedIngredients({ apiKey: s.apiKey, name: patch.name, kind: patch.kind, dose: patch.dose, brand: patch.brand, model: s.model })
         .then((txt) => updateMed(id!, { ingredients: txt, ingredientsAt: Date.now() }))
         .catch(() => {})
     }
@@ -588,6 +591,12 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         autoFocus
+      />
+      <input
+        className="field-input"
+        placeholder="Marka (örn. Solgar, Nutraxin) — etken madde markaya göre değişir"
+        value={brand}
+        onChange={(e) => setBrand(e.target.value)}
       />
       <input
         className="field-input"
