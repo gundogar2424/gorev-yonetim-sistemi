@@ -135,20 +135,7 @@ function CoachSummary({
       if (pct != null) adh.push(`${d.slice(5)}: %${pct}`)
     }
     if (adh.length) lines.push(`Günlük diyet başarısı: ${adh.join(', ')}.`)
-
-    // Toklugu dusuk ogunler (porsiyon yetersiz olabilir) -> ogun turune gore
-    const start = todayStr(new Date(Date.now() - (days - 1) * 86_400_000))
-    const low = entries.filter((e) => e.dateStr >= start && e.decision === 'ate' && e.satiety != null && e.satiety <= 4)
-    if (low.length) {
-      const byMeal = new Map<string, number>()
-      for (const e of low) {
-        const k = e.mealType ? mealLabel(e.mealType) : 'Diğer'
-        byMeal.set(k, (byMeal.get(k) ?? 0) + 1)
-      }
-      lines.push(
-        `Tokluğu düşük (≤4/10) öğünler: ${Array.from(byMeal.entries()).map(([k, n]) => `${k} x${n}`).join(', ')}.`
-      )
-    }
+    // (Tokluk/satiety özelliği kaldırıldı — artık kaydedilmiyor.)
     return lines.join('\n')
   }
 

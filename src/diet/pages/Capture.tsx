@@ -379,6 +379,7 @@ export default function Capture() {
     setPhase('idle')
     setPhoto('')
     setAnalysis(null)
+    setMealType(guessMeal())
     setAlsoMeal(undefined)
     setSavedDecision('none')
     setError('')

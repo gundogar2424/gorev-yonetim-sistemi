@@ -61,16 +61,24 @@ export default function DueMedGate() {
     const d = new Date(now)
     const dow = d.getDay()
     const nowMin = d.getHours() * 60 + d.getMinutes()
-    const todayLogs = logs.filter((l) => l.dateStr === today)
     const out: Due[] = []
     for (const m of meds) {
       if (!scheduledOn(m, today, dow)) continue
-      const times = (m.times || []).filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+      const times = [...(m.times || []).filter((t) => /^\d{1,2}:\d{2}$/.test(t))].sort()
+      // Bu ilacın bugünkü kayıtları — her kaydı BİR slota harca (çok dozlu ilaçta
+      // saatsiz 'alındı' kaydı TÜM dozları kapatmasın: sadece bir slotu doldursun).
+      const pool = logs.filter((l) => l.medId === m.id && l.dateStr === today)
       for (const time of times) {
         const [h, mi] = time.split(':').map(Number)
         const dueMin = h * 60 + mi
+        // Bu slota ait kaydı bul: önce tam saat, yoksa saatsiz 'alındı'
+        let idx = pool.findIndex((l) => l.time === time)
+        if (idx < 0) idx = pool.findIndex((l) => !l.time && (l.status ?? 'taken') === 'taken')
+        if (idx >= 0) {
+          pool.splice(idx, 1) // işaretlenmiş (alındı/atlandı) — bu slot kapandı
+          continue
+        }
         if (dueMin > nowMin) continue // vakti daha gelmedi
-        if (isMarked(todayLogs, m.id, time)) continue // alindi/atlandi isaretli
         if (getSnoozeUntil(today, m.id, time) > now) continue // ertelendi
         out.push({ med: m, time, dueMin })
       }
@@ -91,13 +99,6 @@ export default function DueMedGate() {
       dateStr={today}
       onDone={() => setBump((b) => b + 1)}
     />
-  )
-}
-
-// Bir doz o gun icin isaretlenmis mi (alindi ya da atlandi)
-function isMarked(todayLogs: MedLog[], medId: number | undefined, time: string): boolean {
-  return todayLogs.some(
-    (l) => l.medId === medId && (l.time === time || (!l.time && (l.status ?? 'taken') === 'taken'))
   )
 }
 

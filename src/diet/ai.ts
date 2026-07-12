@@ -522,8 +522,9 @@ export async function chatAboutPlan(opts: {
   model?: string
   userName?: string
   goal?: string
+  health?: string
 }): Promise<string> {
-  const { apiKey, dietPlan, history, model = DEFAULT_MODEL, userName, goal } = opts
+  const { apiKey, dietPlan, history, model = DEFAULT_MODEL, userName, goal, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!dietPlan.trim()) throw new Error('Önce Ayarlar/Menü bölümünden diyet listeni ekle.')
   if (!history.length) throw new Error('Bir soru yaz.')
@@ -532,9 +533,9 @@ export async function chatAboutPlan(opts: {
   const ctx: string[] = []
   if (userName) ctx.push(`Kullanıcı: ${userName}.`)
   if (goal) ctx.push(`Hedef: ${goal}.`)
-  const system = `Sen "Diyet Koçu"sun. Kullanıcının diyet/öğün listesi aşağıda. Sorularını YALNIZCA bu listeye göre yanıtla (örn. "öğlen ne var", "sıradaki öğünde ne var"). Şu anki zaman: ${now}. Türkçe, KISA ve net cevap ver. ${ctx.join(
+  const system = `Sen "Diyet Koçu"sun. Kullanıcının diyet/öğün listesi aşağıda. Sorularını YALNIZCA bu listeye göre yanıtla (örn. "öğlen ne var", "sıradaki öğünde ne var"). Şu anki zaman: ${now}. Sağlık bağlamı verildiyse (şeker, rahatsızlık, sevmediği/alerjik yiyecekler) ona AYKIRI öneri verme. Türkçe, KISA ve net cevap ver. ${ctx.join(
     ' '
-  )}\n\nDİYET LİSTESİ:\n${dietPlan.trim()}`
+  )}\n\nDİYET LİSTESİ:\n${dietPlan.trim()}${healthText(health)}`
 
   const client = await createClient(apiKey)
   try {

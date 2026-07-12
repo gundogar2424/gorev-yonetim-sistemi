@@ -15,6 +15,11 @@ const SUGAR_FASTING_ID = 305 // sabah aclik sekeri olcum hatirlatmasi
 const SMART_HUNGER_ID = 306 // ogrenilen aclik saatinden once proaktif ara ogun hatirlatmasi
 const MED_IDS_START = 310 // ilac/seker hapi hatirlatmalari 310..399 (her doz icin ana + tekrarlar)
 const MED_IDS_END = 399 // ilac bildirim ID ust siniri (401/402 tokluk/seker ile catismasin)
+const MED_SNOOZE_START = 410 // ilac ERTELEME tek-seferlik bildirimleri 410..489 (ana ilac araligiyla CAKISMAZ)
+const medSnoozeId = (medId?: number) => MED_SNOOZE_START + ((medId ?? 0) % 80)
+// Toplu iptalde KORUNACAK tek-seferlik bildirim ID'leri (tokluk 401, tok seker 402,
+// ilac erteleme 410..489). Bunlar applyNotifications/scheduleReminders'ta silinmemeli.
+const isPreservedOneShot = (id: number) => id === SATIETY_ID || id === SUGAR_POSTMEAL_ID || (id >= MED_SNOOZE_START && id < MED_SNOOZE_START + 80)
 const CHANNEL_ID = 'diyet-hatirlatici' // Android bildirim kanali (ses bu kanaldan ayarlanir)
 const MED_CHANNEL_ID = 'diyet-ilac-alarm' // ILAC icin AYRI, agresif kanal (max onem + titresim)
 const SATIETY_ID = 401 // ogun sonrasi tokluk hatirlatmasi (tek, en son ogune gore)
@@ -124,8 +129,11 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   if (!isNative()) return
   try {
     const pending = await LocalNotifications.getPending()
-    if (pending.notifications.length) {
-      await LocalNotifications.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) })
+    // Tek-seferlik bildirimleri (tokluk/tok şeker/ilaç ertelemesi) KORU; sadece
+    // tekrar eden planlıları temizle ki bekleyen bir kerelikler silinmesin.
+    const toCancel = pending.notifications.filter((n) => !isPreservedOneShot(n.id)).map((n) => ({ id: n.id }))
+    if (toCancel.length) {
+      await LocalNotifications.cancel({ notifications: toCancel })
     }
   } catch {
     // yok say
@@ -377,7 +385,7 @@ export async function scheduleMedSnooze(name: string, minutes: number, medId?: n
     await LocalNotifications.schedule({
       notifications: [
         {
-          id: 380 + ((medId ?? 0) % 10),
+          id: medSnoozeId(medId),
           channelId: MED_CHANNEL_ID,
           actionTypeId: 'MED',
           title: '⏰ İlaç hatırlatma (ertelendi)',
@@ -397,7 +405,7 @@ export async function scheduleMedSnooze(name: string, minutes: number, medId?: n
 export async function cancelMedSnooze(medId?: number): Promise<void> {
   if (!isNative()) return
   try {
-    await LocalNotifications.cancel({ notifications: [{ id: 380 + ((medId ?? 0) % 10) }] })
+    await LocalNotifications.cancel({ notifications: [{ id: medSnoozeId(medId) }] })
   } catch {
     // yok say
   }
@@ -430,8 +438,11 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   if (!isNative()) return
   try {
     const pending = await LocalNotifications.getPending()
-    if (pending.notifications.length) {
-      await LocalNotifications.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) })
+    // Tek-seferlik bildirimleri (tokluk/tok şeker/ilaç ertelemesi) KORU; sadece
+    // tekrar eden planlıları temizle ki bekleyen bir kerelikler silinmesin.
+    const toCancel = pending.notifications.filter((n) => !isPreservedOneShot(n.id)).map((n) => ({ id: n.id }))
+    if (toCancel.length) {
+      await LocalNotifications.cancel({ notifications: toCancel })
     }
   } catch {
     // yok say

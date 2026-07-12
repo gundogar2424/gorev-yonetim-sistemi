@@ -102,15 +102,9 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
       for (const e of items) {
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         const comp = e.compliancePercent >= 0 ? ` · listeye uyum %${e.compliancePercent}` : ''
-        const sat = e.satiety ? ` · tokluk ${e.satiety}/10` : ''
-        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}${sat}`)
+        const birlesik = e.alsoMeal ? ` · 🔗 ${mealLabel(e.mealType as never)}+${mealLabel(e.alsoMeal as never)} birleşik` : ''
+        lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}${birlesik}`)
       }
-    }
-    // Tokluk dusuk olan ogunler -> porsiyon uyarisi (diyetisyen icin)
-    const lowSat = entries.filter((e) => e.decision === 'ate' && e.satiety != null && e.satiety <= 4)
-    if (lowSat.length) {
-      lines.push('')
-      lines.push(`⚠️ ${lowSat.length} öğünde tokluk düşük (≤4/10) — porsiyon yetersiz olabilir.`)
     }
     lines.push('')
     const eaten = entries.filter((e) => e.decision === 'ate')
@@ -216,7 +210,7 @@ export function buildMealText(e: DietEntry, userName?: string): string {
   // Diyetisyene tekli gonderimde SADE: yalnizca urunun aciklamasi (+varsa
   // gramaji). Kalori/uyum/puan/degerlendirme yazma — yorumu diyetisyen yapar.
   const lines: string[] = []
-  lines.push(`🍽️ ${e.mealType ? mealLabel(e.mealType) : 'ÖĞÜN'}`)
+  lines.push(`🍽️ ${e.mealType ? mealLabel(e.mealType) : 'ÖĞÜN'}${e.alsoMeal ? ' + ' + mealLabel(e.alsoMeal) + ' (birleşik)' : ''}`)
   lines.push(`📅 ${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`)
   lines.push(SEP)
   lines.push(e.foodName)

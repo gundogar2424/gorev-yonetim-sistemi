@@ -113,7 +113,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   return lines.length ? lines : ['']
 }
 
-function measureLines(m: { weight?: number; waist?: number; navel?: number; fold?: number; hip?: number; chest?: number; arm?: number; leg?: number }): string {
+function measureLines(m: { weight?: number; navel?: number; fold?: number; hip?: number; chest?: number; arm?: number; leg?: number }): string {
   const p: string[] = []
   if (m.weight != null) p.push(`Kilo ${m.weight}kg`)
   if (m.arm != null) p.push(`Kol ${m.arm}cm`)
@@ -163,7 +163,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     mctx.font = 'bold 26px sans-serif'
     let lines = wrapText(mctx, p.e.foodName, nameMaxW)
     if (lines.length > 2) lines = [lines[0], truncate(mctx, lines.slice(1).join(' '), nameMaxW)]
-    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.satiety
+    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.alsoMeal
     const textH = lines.length * NAME_LH + 34 + (hasParts3 ? 26 : 0)
     const cardH = 28 + Math.max(PHOTO, textH)
     return { ...p, lines, hasParts3, cardH }
@@ -190,7 +190,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
   if (vitals.length) h += 48 + vitals.length * 30
   const hGroups = hungerRecs.length ? groupHungerByMeal(entries, checkins) : []
   if (hungerRecs.length) h += 48 + (hGroups.length + hungerRecs.length + 1) * 30 + 10
-  if (waterMl > 0) h += 44
+  if (waterMl > 0) h += 52 // "💧 Su" bloğu çizerken 52px kullanıyor (8+8+30+6)
   h += 50 // alt bilgi
 
   const logicalH = Math.max(h, 480)
@@ -331,11 +331,11 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
         const d = DEC_STYLE[e.decision] ?? DEC_STYLE.none
         drawChip(ctx, tx + ctx.measureText(meta).width + 14, ty - 14, d.t, d.bg, d.fg)
         ty += 32
-        // Uyum / tokluk
+        // Uyum + (varsa) birleşik öğün etiketi
         if (hasParts3) {
           const parts3: string[] = []
           if (e.compliancePercent >= 0) parts3.push(`✓ Uyum %${e.compliancePercent}`)
-          if (e.satiety) parts3.push(`🍽️ Tokluk ${e.satiety}/10`)
+          if (e.alsoMeal) parts3.push(`🔗 ${mealLabel(e.mealType)}+${mealLabel(e.alsoMeal)} birleşik`)
           ctx.fillStyle = '#475569'
           ctx.font = '18px sans-serif'
           ctx.fillText(parts3.join('   ·   '), tx, ty + 2)
@@ -568,7 +568,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     if (card.hasParts3) {
       const p3: string[] = []
       if (card.e.compliancePercent >= 0) p3.push(`✓ Uyum %${card.e.compliancePercent}`)
-      if (card.e.satiety) p3.push(`🍽️ Tokluk ${card.e.satiety}/10`)
+      if (card.e.alsoMeal) p3.push(`🔗 ${mealLabel(card.e.mealType)}+${mealLabel(card.e.alsoMeal)} birleşik`)
       ctx.fillStyle = '#475569'
       ctx.font = '19px sans-serif'
       ctx.fillText(p3.join('   ·   '), tx, ty + 4)
@@ -580,7 +580,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     mctx.font = `bold ${NAME_PX}px sans-serif`
     let lines = wrapText(mctx, p.e.foodName, nameMaxW)
     if (lines.length > 3) lines = [lines[0], lines[1], truncate(mctx, lines.slice(2).join(' '), nameMaxW)]
-    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.satiety
+    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.alsoMeal
     // Fotograf yuksekligi: tam genislikte gercek en-boy orani (tavan MAX_PHOTO_H)
     const aspect = p.img && p.img.width > 0 ? p.img.width / p.img.height : 0
     const photoH = p.img && aspect > 0 ? Math.min(Math.round(PHOTO_BOX_W / aspect), MAX_PHOTO_H) : NO_PHOTO_H
@@ -780,9 +780,14 @@ export async function buildDailyHealthImage(dateStr: string, userName?: string):
   const medRows: MedRow[] = []
   for (const m of meds.filter(schedOn)) {
     const times = (m.times || []).filter((t) => /^\d{1,2}:\d{2}$/.test(t))
-    for (const time of times) {
+    const slotTimes = times.length ? [...times].sort() : ['—'] // saati olmayan ilaç da bir slot alsın
+    for (const time of slotTimes) {
+      // Bu slota kayıt bul: önce tam saat, yoksa saatsiz, yoksa bu ilaca ait BAŞKA bir
+      // (kaymış saatli) kayıt — böylece 09:00'da alınan 08:00 dozu "alınmadı+alındı" diye
+      // iki kez çıkmaz, tek slota yerleşir.
       let log = medLogs.find((l) => l.medId === m.id && l.time === time && !used.has(l.id!))
-      if (!log) log = medLogs.find((l) => l.medId === m.id && !l.time && (l.status ?? 'taken') === 'taken' && !used.has(l.id!))
+      if (!log) log = medLogs.find((l) => l.medId === m.id && !l.time && !used.has(l.id!))
+      if (!log) log = medLogs.find((l) => l.medId === m.id && !used.has(l.id!))
       if (log) used.add(log.id!)
       medRows.push({ time, name: m.name, dose: m.dose, status: log ? log.status ?? 'taken' : 'missing' })
     }
@@ -927,6 +932,8 @@ export async function buildDailyHealthImage(dateStr: string, userName?: string):
           : r.status === 'skipped'
             ? { t: '✗ Atlandı', bg: '#f1f5f9', fg: '#64748b' }
             : { t: '— Alınmadı', bg: '#fef3c7', fg: '#92400e' }
+      // Rozet genişliğini drawChip'in KENDİ fontuyla (bold 15px) ölç ki sağa tam yaslansın
+      ctx.font = 'bold 15px sans-serif'
       const cw = ctx.measureText(st.t).width + 22
       drawChip(ctx, W - PAD - CPAD - cw, baseY - 21, st.t, st.bg, st.fg)
       ry += ROW
@@ -995,7 +1002,7 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   ctx.fill()
   ctx.fillStyle = '#ffffff'
   ctx.font = 'bold 36px sans-serif'
-  const mealTitle = (e.mealType ? mealLabel(e.mealType) : 'Öğün')
+  const mealTitle = (e.mealType ? mealLabel(e.mealType) : 'Öğün') + (e.alsoMeal ? ' + ' + mealLabel(e.alsoMeal) : '')
   ctx.fillText(`🍽️ ${mealTitle}`, PAD + 28, y + 50)
   const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
   const dateNice = new Date(e.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {

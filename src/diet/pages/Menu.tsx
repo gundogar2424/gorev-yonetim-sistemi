@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { readDietSettings, saveDietSettings } from '../db'
 import { chatAboutPlan, editPlan } from '../ai'
+import { buildHealthContext } from '../lib/context'
 
 export default function Menu() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -38,7 +39,8 @@ export default function Menu() {
         history,
         model: settings?.model,
         userName: settings?.userName,
-        goal: settings?.goal
+        goal: settings?.goal,
+        health: await buildHealthContext(settings)
       })
       setChat([...history, { role: 'assistant', text: answer }])
     } catch (err) {
