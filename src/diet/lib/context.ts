@@ -93,11 +93,37 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     L.push(
       `EN SON ÖLÇÜM (${last.dateStr} — kullanıcının GİRDİĞİ en güncel veri, bunu esas al): ${parts.join(' · ') || '—'}.${wNote} Toplam ${measurements.length} ölçüm kaydı var; "veri yok/tek nokta" deme.`
     )
+
+    // BİR ÖNCEKİ ÖLÇÜME GÖRE — net, TARİHLİ karşılaştırma (AI "önceki haftayı" 30 günlük
+    // eğilimin en eski değeriyle KARIŞTIRMASIN). Her ölçü için ayrı ayrı fark.
+    const MFIELDS: { k: 'weight' | 'arm' | 'chest' | 'fold' | 'navel' | 'hip' | 'leg'; l: string; u: string }[] = [
+      { k: 'weight', l: 'kilo', u: 'kg' },
+      { k: 'fold', l: 'bel kıvrımı', u: 'cm' },
+      { k: 'navel', l: 'göbek', u: 'cm' },
+      { k: 'hip', l: 'kalça', u: 'cm' },
+      { k: 'chest', l: 'göğüs', u: 'cm' },
+      { k: 'arm', l: 'kol', u: 'cm' },
+      { k: 'leg', l: 'bacak', u: 'cm' }
+    ]
+    if (measurements.length >= 2) {
+      const prev = measurements[measurements.length - 2]
+      const diffs = MFIELDS.filter((f) => typeof last[f.k] === 'number' && typeof prev[f.k] === 'number').map((f) => {
+        const d = fmt((last[f.k] as number) - (prev[f.k] as number))
+        return `${f.l} ${prev[f.k]}→${last[f.k]}${f.u} (${d > 0 ? '+' : ''}${d})`
+      })
+      if (diffs.length) {
+        L.push(
+          `BİR ÖNCEKİ ÖLÇÜME GÖRE DEĞİŞİM (${prev.dateStr} → ${last.dateStr} — yani "geçen ölçüme/haftaya göre"): ${diffs.join(' · ')}. ÖNEMLİ: "önceki hafta/önceki ölçüm" derken SADECE bu ${prev.dateStr} değerlerini kullan; daha eski kayıtlarla (30 günlük eğilimin başı) KARIŞTIRMA.`
+        )
+      }
+    }
   }
 
   // Kilo + TUM olcu egilimleri (son 30 gun) — "yagdan mi kastan mi" sorusu
   // icin ham veri: kilo sabitken bel/gobek inceliyorsa yag kaybi lehinedir.
   const m30 = measurements.filter((m) => m.dateStr >= since30)
+  const m30first = m30.length ? m30[0].dateStr : ''
+  const m30last = m30.length ? m30[m30.length - 1].dateStr : ''
   const trend = (key: keyof Measurement, label: string, unit: string): string | null => {
     const withVal = m30.filter((m) => typeof m[key] === 'number')
     if (withVal.length < 2) return null
@@ -118,7 +144,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   ].filter(Boolean)
   if (trends.length) {
     L.push(
-      `Son 30 gün ölçü eğilimi: ${trends.join(' · ')}. (Yorum ipucu: kilo sabit/az düşükken bel-göbek inceliyorsa yağ kaybı + kas korunumu olasıdır; kol/bacak inceliyor ama bel değişmiyorsa kas kaybına dikkat çek.)`
+      `Son ~30 GÜNLÜK ölçü eğilimi (EN ESKİ kayıt ${m30first} → EN SON ${m30last} arası, birden çok haftayı kapsar — "önceki hafta" DEĞİL): ${trends.join(' · ')}. (Yorum ipucu: kilo sabit/az düşükken bel-göbek inceliyorsa yağ kaybı + kas korunumu olasıdır; kol/bacak inceliyor ama bel değişmiyorsa kas kaybına dikkat çek.)`
     )
   }
 
@@ -359,4 +385,5 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
 
   return L.join('\n')
 }
+
 
