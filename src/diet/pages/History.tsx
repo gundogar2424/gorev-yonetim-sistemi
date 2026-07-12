@@ -171,7 +171,7 @@ export default function History() {
                       <p className="font-semibold text-slate-800 truncate">{e.foodName}</p>
                     </div>
                     <p className="text-xs text-slate-500">
-                      {e.mealType ? `${mealEmoji(e.mealType)} ${mealLabel(e.mealType)} · ` : ''}
+                      {e.mealType ? `${mealEmoji(e.mealType)} ${mealLabel(e.mealType)}${e.alsoMeal ? ' + ' + mealLabel(e.alsoMeal) + ' 🔗' : ''} · ` : ''}
                       {new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ~
                       {e.estimatedCalories} kcal
                     </p>

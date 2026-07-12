@@ -99,6 +99,7 @@ export default function Capture() {
   const [error, setError] = useState('')
   const [savedDecision, setSavedDecision] = useState<Decision>('none')
   const [mealType, setMealType] = useState<MealType>(guessMeal())
+  const [alsoMeal, setAlsoMeal] = useState<MealType | undefined>(undefined)
   const [note, setNote] = useState('') // kullanici duzeltmesi (result ekraninda)
   // Analiz oncesi koc ile NETLESTIRME sohbeti (foto uzerine konusma)
   const [clarifyChat, setClarifyChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
@@ -357,6 +358,7 @@ export default function Capture() {
       photo,
       decision,
       mealType,
+      alsoMeal: alsoMeal && alsoMeal !== mealType ? alsoMeal : undefined,
       createdAt,
       dateStr
     })
@@ -377,6 +379,7 @@ export default function Capture() {
     setPhase('idle')
     setPhoto('')
     setAnalysis(null)
+    setAlsoMeal(undefined)
     setSavedDecision('none')
     setError('')
     setNote('')
@@ -718,7 +721,10 @@ export default function Capture() {
                 {MEAL_OPTIONS.map((m) => (
                   <button
                     key={m.value}
-                    onClick={() => setMealType(m.value)}
+                    onClick={() => {
+                      setMealType(m.value)
+                      if (alsoMeal === m.value) setAlsoMeal(undefined)
+                    }}
                     className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
                       mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
                     }`}
@@ -727,6 +733,38 @@ export default function Capture() {
                   </button>
                 ))}
               </div>
+
+              {/* BIRLESIK OGUN: gec kalkinca 2 ogunu birlestir (or. kahvalti+ogle) */}
+              {!alsoMeal ? (
+                <button onClick={() => setAlsoMeal(mealType === 'kahvalti' ? 'ogle' : 'kahvalti')} className="text-xs text-emerald-700 underline">
+                  ＋ Bu öğünü başka bir öğünle birleştir (geç kalktım vb.)
+                </button>
+              ) : (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-emerald-700">Birleşik öğün — ikinci öğün:</p>
+                    <button onClick={() => setAlsoMeal(undefined)} className="text-[11px] text-slate-400 underline">
+                      birleştirmeyi kaldır
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MEAL_OPTIONS.filter((m) => m.value !== mealType).map((m) => (
+                      <button
+                        key={m.value}
+                        onClick={() => setAlsoMeal(m.value)}
+                        className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+                          alsoMeal === m.value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {m.emoji} {m.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Bu kayıt “{mealLabel(mealType)} + {mealLabel(alsoMeal)}” olarak sayılır; koç iki öğünü tek öğün gibi değerlendirir, “öğün atladın” demez.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Ne zaman yedim? — varsayilan "şimdi"; gecmis ogunu de girebilirsin */}
@@ -1405,7 +1443,7 @@ function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: str
   const TR: Record<string, string> = { resisted: 'vazgeçti', ate: 'yedi', none: 'karar yok' }
   for (const e of meals) {
     const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-    const mt = e.mealType ? mealLabel(e.mealType) + ' ' : ''
+    const mt = e.mealType ? mealLabel(e.mealType) + (e.alsoMeal ? '+' + mealLabel(e.alsoMeal) + ' (birleşik)' : '') + ' ' : ''
     lines.push(`- ${t} ${mt}${e.foodName} (~${e.estimatedCalories} kcal) — ${TR[e.decision] ?? ''}`)
   }
   if (exs.length) {

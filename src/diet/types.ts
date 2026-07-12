@@ -41,6 +41,7 @@ export interface DietEntry extends FoodAnalysis {
   photo: string // Kucultulmus base64 data URL
   decision: Decision // Kullanicinin karari
   mealType?: MealType // Hangi ogune ait (kahvalti/ogle/aksam/ara/gece/serbest)
+  alsoMeal?: MealType // BIRLESIK ogun: bu kayit ayni zamanda su ogunu de kapsiyor (gec kalkinca kahvalti+ogle gibi)
   satiety?: number // Yedikten ~yarim saat sonra TOKLUK 1-10 (1 ac kaldim, 10 fazla tok)
   satietySkipped?: boolean // Kullanici bu ogun icin tokluk sorusunu kapatti (sorma)
   createdAt: number // Zaman damgasi (ms)
