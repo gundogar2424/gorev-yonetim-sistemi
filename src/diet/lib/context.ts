@@ -193,6 +193,29 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       const kcal7 = ateAll.filter((e) => e.dateStr >= since7).reduce((s, e) => s + (e.estimatedCalories || 0), 0)
       L.push(`ÖĞÜN geçmişi: son 7 günde ${days7.size} gün kayıt, toplam ~${kcal7} kcal (günlük ort. ~${Math.round(kcal7 / days7.size)} kcal). Haftalık değerlendirmede bu eğilimi kullan.`)
     }
+
+    // TÜM ZAMAN (ilk kayıttan bugüne) genel tablo — koç haftayı değerlendirirken tüm
+    // yolculuğu da görsün; eski verilerde de işine yarayacak örüntü olabilir.
+    const allDates = new Set<string>()
+    entries.forEach((e) => allDates.add(e.dateStr))
+    const firstDate = [...entries.map((e) => e.dateStr), ...measurements.map((m) => m.dateStr), ...exercises.map((e) => e.dateStr)]
+      .filter(Boolean)
+      .sort()[0]
+    if (firstDate) {
+      const allAdh: number[] = []
+      for (const d of allDates) {
+        const p = dayAdherence(entries, d)
+        if (p != null) allAdh.push(p)
+      }
+      const bits: string[] = [`ilk kayıt ${firstDate}`, `${allDates.size} gün öğün kaydı`]
+      if (ateAll.length) bits.push(`toplam ${ateAll.length} öğün`)
+      if (allAdh.length) bits.push(`tüm zaman diyet başarısı ort. %${Math.round(allAdh.reduce((a, b) => a + b, 0) / allAdh.length)}`)
+      if (exercises.length)
+        bits.push(`${exercises.length} antrenman (${exercises.reduce((s, e) => s + (e.minutes || 0), 0)} dk, ~${exercises.reduce((s, e) => s + (e.kcal || 0), 0)} kcal)`)
+      L.push(
+        `BAŞLANGIÇTAN BUGÜNE GENEL: ${bits.join(' · ')}. Haftalık/ilerleme değerlendirmesinde SADECE bu haftaya değil, ilk kayıttan bugüne bu uzun vadeli tabloya da bak; eski verilerdeki örüntü/ilerlemeyi de kullan.`
+      )
+    }
   }
 
   // Bugunku durum: kalori, su, spor, son moral
