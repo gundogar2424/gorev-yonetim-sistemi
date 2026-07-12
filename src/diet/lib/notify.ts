@@ -2,7 +2,7 @@
 // web'de sessizce devre disidir (tarayici kapaliyken bildirim gonderemez).
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import type { Reminder, DietSettings, MedDef } from '../types'
+import type { Reminder, DietSettings, MedDef, MedLog } from '../types'
 import { dietDb } from '../db'
 
 // Bildirim kimlik araliklari (catismayi onlemek icin sabit)
@@ -13,8 +13,7 @@ const PLAN_ID = 303 // aksam "yarini planla"
 const REPORT_ID = 304 // aksam "raporu gonder" hatirlatmasi
 const SUGAR_FASTING_ID = 305 // sabah aclik sekeri olcum hatirlatmasi
 const SMART_HUNGER_ID = 306 // ogrenilen aclik saatinden once proaktif ara ogun hatirlatmasi
-const MED_IDS_START = 310 // ilac/seker hapi hatirlatmalari 310..399 (her doz icin ana + tekrarlar)
-const MED_IDS_END = 399 // ilac bildirim ID ust siniri (401/402 tokluk/seker ile catismasin)
+const MED_IDS_START = 310 // eski (legacy) medSchedule bildirimleri icin taban ID
 const MED_SNOOZE_START = 410 // ilac ERTELEME tek-seferlik bildirimleri 410..489 (ana ilac araligiyla CAKISMAZ)
 const medSnoozeId = (medId?: number) => MED_SNOOZE_START + ((medId ?? 0) % 80)
 // Toplu iptalde KORUNACAK tek-seferlik bildirim ID'leri (tokluk 401, tok seker 402,
@@ -301,32 +300,81 @@ function medNotifications(schedule: { time: string; name?: string }[]) {
 // (+10/+30 dk) TEKRAR YOK — cunku sistem alarmi iptal edilemedigi icin kullanici
 // "aldim/atla" dese bile tekrar tekrar geliyordu. Israrci hatirlatmayi uygulama
 // icindeki (DueMedGate) zorunlu pencere saglar; bildirim gunde bir kez calar.
-function medDefNotifications(meds: MedDef[]): unknown[] {
-  const out: unknown[] = []
-  let id = MED_IDS_START
+// Bir doz slotu icin TEK-SEFERLIK bildirim ID'si — MUTLAK gune dayali (gun-ofseti
+// degil ki gunler ilerledikce kaymasin). Boylece "aldim" deyince AYNI id ile iptal edilir.
+function medDoseId(medId: number | undefined, atMs: number, timeIndex: number): number {
+  const epochDay = Math.floor(atMs / 86_400_000)
+  return epochDay * 1000 + ((medId ?? 0) % 90) * 10 + (timeIndex % 10)
+}
+
+// Bir ilac belirli bir gune (aktif + bildirim acik + gun-of-week + program penceresi) denk mi
+function medScheduledOn(m: MedDef, dateStr: string, dow: number): boolean {
+  if (m.active === false || !m.reminder) return false
+  if (m.days && m.days.length && !m.days.includes(dow)) return false
+  if (m.startDate && dateStr < m.startDate) return false
+  if (m.endDate && dateStr > m.endDate) return false
+  return true
+}
+
+const MED_WINDOW_DAYS = 14 // önümüzdeki bu kadar gün için tek-seferlik doz hatırlatması kur
+
+// Tanimli ilac/vitaminlerden TEK-SEFERLIK bildirimler uretir: onumuzdeki MED_WINDOW_DAYS
+// gun icin her doz slotu ayri kurulur. HENUZ cevaplanmis (alindi/atlandi) ve gecmis
+// slotlar ATLANIR. Boylece "aldim" isaretlenen doz o gun BIR DAHA hatirlatilmaz.
+function medDefOneShots(meds: MedDef[], medLogs: MedLog[], nowMs: number): unknown[] {
+  const out: { at: Date; n: Record<string, unknown> }[] = []
   for (const m of meds) {
     const rel = m.relation === 'tok' ? ' (yemekten sonra)' : m.relation === 'ac' ? ' (aç karnına)' : ''
     const dozStr = m.dose ? ` — ${m.dose}` : ''
-    for (const t of m.times || []) {
-      if (!/^\d{1,2}:\d{2}$/.test((t || '').trim())) continue
-      const [h, mi] = t.split(':').map(Number)
-      const days = m.days && m.days.length ? m.days : [null as number | null]
-      for (const d of days) {
-        if (id > MED_IDS_END) return out
-        const on = d == null ? { hour: h, minute: mi } : { weekday: d + 1, hour: h, minute: mi }
+    const times = (m.times || []).filter((t) => /^\d{1,2}:\d{2}$/.test((t || '').trim()))
+    for (let off = 0; off < MED_WINDOW_DAYS; off++) {
+      const day = new Date(nowMs)
+      day.setHours(0, 0, 0, 0)
+      day.setDate(day.getDate() + off)
+      const dateStr = day.toLocaleDateString('en-CA')
+      if (!medScheduledOn(m, dateStr, day.getDay())) continue
+      times.forEach((t, ti) => {
+        const [h, mi] = t.split(':').map(Number)
+        const at = new Date(day)
+        at.setHours(h, mi, 0, 0)
+        if (at.getTime() <= nowMs) return // geçmiş vakit
+        // O güne ait bu doz zaten cevaplandıysa (alındı/atlandı) hatırlatma
+        const answered = medLogs.some((l) => l.medId === m.id && l.dateStr === dateStr && (l.time === t || !l.time))
+        if (answered) return
         out.push({
-          id: id++,
-          channelId: MED_CHANNEL_ID,
-          actionTypeId: 'MED',
-          title: m.kind === 'vitamin' ? '💊 Vitamin vakti' : '💊 İlaç vakti',
-          body: `${m.name}${rel}${dozStr} almayı unutma. Aldıysan “✓ Aldım”a dokun.`,
-          schedule: { on, repeats: true, allowWhileIdle: true },
-          extra: { route: '/ilaclarim', med: m.name, medId: m.id }
+          at,
+          n: {
+            id: medDoseId(m.id, at.getTime(), ti),
+            channelId: MED_CHANNEL_ID,
+            actionTypeId: 'MED',
+            title: m.kind === 'vitamin' ? '💊 Vitamin vakti' : '💊 İlaç vakti',
+            body: `${m.name}${rel}${dozStr} almayı unutma. Aldıysan “✓ Aldım”a dokun.`,
+            schedule: { at, allowWhileIdle: true },
+            extra: { route: '/ilaclarim', med: m.name, medId: m.id, time: t }
+          }
         })
-      }
+      })
     }
   }
-  return out
+  // En yakın vakitliler önce; Android bekleyen bildirim limitine karşı üst sınır
+  out.sort((a, b) => a.at.getTime() - b.at.getTime())
+  return out.slice(0, 400).map((o) => o.n)
+}
+
+// Bir ilac dozu cevaplaninca (alindi/atlandi) O GÜNÜN tek-seferlik hatirlatmasini iptal et
+// ki saat gelse bile bir daha calmasin.
+export async function cancelMedDoseReminder(med: MedDef, dateStr: string, time: string): Promise<void> {
+  if (!isNative() || !/^\d{1,2}:\d{2}$/.test(time)) return
+  try {
+    const times = (med.times || []).filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+    const ti = Math.max(0, times.indexOf(time))
+    const [h, mi] = time.split(':').map(Number)
+    const at = new Date(dateStr + 'T00:00:00')
+    at.setHours(h, mi, 0, 0)
+    await LocalNotifications.cancel({ notifications: [{ id: medDoseId(med.id, at.getTime(), ti) }] })
+  } catch {
+    // yok say
+  }
 }
 
 // Bir ogun yenince ~2 saat sonra "tok sekerini olc" bildirimi (tek seferlik).
@@ -356,16 +404,16 @@ export async function scheduleSugarReminder(minutes = 120): Promise<void> {
 // kaydedilir; bildirim uygulamayi soguk baslatsa bile olay teslim edilir.
 export async function initNotificationNavigation(
   go: (route: string) => void,
-  onMedTaken?: (name: string, medId?: number) => void
+  onMedTaken?: (name: string, medId?: number, time?: string) => void
 ): Promise<void> {
   if (!isNative()) return
   try {
     await ensureMedActionType()
     await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
-      const extra = event.notification?.extra as { route?: string; med?: string; medId?: number } | undefined
-      // Bildirimdeki "✓ Aldım" butonuna basildiysa ilaci kaydet, sayfaya gitme
+      const extra = event.notification?.extra as { route?: string; med?: string; medId?: number; time?: string } | undefined
+      // Bildirimdeki "✓ Aldım" butonuna basildiysa ilaci (o doz saatiyle) kaydet, sayfaya gitme
       if (event.actionId === 'MED_TAKEN') {
-        onMedTaken?.(extra?.med || 'İlaç', extra?.medId)
+        onMedTaken?.(extra?.med || 'İlaç', extra?.medId, extra?.time)
         return
       }
       go(extra?.route ?? '/')
@@ -480,7 +528,8 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
     await ensureMedActionType()
     await ensureMedChannel()
     await ensureExactAlarm() // ilac icin tam-zamanli alarm izni yoksa iste (gecikmesin)
-    notifications.push(...medDefNotifications(activeMeds))
+    const medLogs = await dietDb.medlogs.toArray()
+    notifications.push(...medDefOneShots(activeMeds, medLogs, Date.now()))
   } else {
     const medSchedule = settings.medSchedule?.length
       ? settings.medSchedule

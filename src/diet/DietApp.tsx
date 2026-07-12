@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
-import { initNotificationNavigation, cancelMedSnooze } from './lib/notify'
-import { addMedLog } from './db'
+import { initNotificationNavigation, cancelMedSnooze, applyNotifications } from './lib/notify'
+import { addMedLog, readDietSettings } from './db'
 import Capture from './pages/Capture'
 import History from './pages/History'
 import Track from './pages/Track'
@@ -94,8 +94,11 @@ export default function DietApp() {
     // Bildirimdeki "✓ Aldım"a basilinca ilaci otomatik kaydet (tanima bagli)
     void initNotificationNavigation(
       (route) => navigate(route),
-      (name, medId) => void addMedLog(name, undefined, { medId }).then(() => cancelMedSnooze(medId))
+      (name, medId, time) => void addMedLog(name, undefined, { medId, time }).then(() => cancelMedSnooze(medId))
     )
+    // İlaç doz hatırlatmalarını (tek-seferlik, gün gün) uygulama açılışında yeniden kur:
+    // pencereyi ileri taşır ve cevaplanan dozları atlar (aldığın doz bir daha çalmaz).
+    void readDietSettings().then((s) => applyNotifications(s))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
