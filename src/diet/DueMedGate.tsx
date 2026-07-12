@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { listMeds, listMedLogs, addMedLog } from './db'
 import { scheduleMedSnooze, cancelMedSnooze } from './lib/notify'
 import { todayStr } from './streak'
-import type { MedDef, MedLog } from './types'
+import type { MedDef } from './types'
 
 // Doz vakti gecmis ve HENUZ isaretlenmemis ilaclar icin ekrani kaplayan,
 // cevaplamadan gecilemeyen zorunlu hatirlatma penceresi (Pillo tarzi).
