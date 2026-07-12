@@ -14,6 +14,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const today = todayStr()
   const since30 = todayStr(new Date(Date.now() - 29 * 86_400_000))
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
+  const since7 = todayStr(new Date(Date.now() - 6 * 86_400_000))
 
   const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs] = await Promise.all([
     dietDb.entries.toArray(),
@@ -169,6 +170,31 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   }
   if (adhs.length) L.push(`Son 7 gün diyet başarısı ortalaması: %${Math.round(adhs.reduce((a, b) => a + b, 0) / adhs.length)}.`)
 
+  // HAFTALIK/AYLIK OZET — "bu haftayı/ilerlemeyi değerlendir" isteginde koc bunlari
+  // kullansin: spor gecmisi, ogun/kalori gecmisi (bugunle sinirli kalmasin).
+  {
+    const sum = (arr: typeof exercises) => ({
+      n: arr.length,
+      min: arr.reduce((s, e) => s + (e.minutes || 0), 0),
+      kcal: arr.reduce((s, e) => s + (e.kcal || 0), 0),
+      days: new Set(arr.map((e) => e.dateStr)).size
+    })
+    const ex7 = sum(exercises.filter((e) => e.dateStr >= since7))
+    const ex30 = sum(exercises.filter((e) => e.dateStr >= since30))
+    if (ex30.n) {
+      L.push(
+        `SPOR geçmişi: son 7 günde ${ex7.n} antrenman (${ex7.days} gün, ${ex7.min} dk, ~${ex7.kcal} kcal); son 30 günde ${ex30.n} antrenman (${ex30.days} gün, ${ex30.min} dk, ~${ex30.kcal} kcal). Haftalık değerlendirmede spor düzenini ve kalori yakımını dikkate al.`
+      )
+    }
+    // Ogun/kalori gecmisi (son 7 gun): gunluk ortalama alinan kalori
+    const ateAll = entries.filter((e) => e.decision === 'ate')
+    const days7 = new Set(ateAll.filter((e) => e.dateStr >= since7).map((e) => e.dateStr))
+    if (days7.size) {
+      const kcal7 = ateAll.filter((e) => e.dateStr >= since7).reduce((s, e) => s + (e.estimatedCalories || 0), 0)
+      L.push(`ÖĞÜN geçmişi: son 7 günde ${days7.size} gün kayıt, toplam ~${kcal7} kcal (günlük ort. ~${Math.round(kcal7 / days7.size)} kcal). Haftalık değerlendirmede bu eğilimi kullan.`)
+    }
+  }
+
   // Bugunku durum: kalori, su, spor, son moral
   const todays = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
   const kcal = todays.reduce((s, e) => s + (e.estimatedCalories || 0), 0)
@@ -310,3 +336,4 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
 
   return L.join('\n')
 }
+
