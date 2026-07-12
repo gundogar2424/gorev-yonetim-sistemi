@@ -33,10 +33,12 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
 
   const L: string[] = []
 
-  // SENI TANIYAN KALICI PROFIL (varsa) — en tepede, tum degerlendirmelerin temeli
+  // SENI TANIYAN KALICI PROFIL (varsa) — en tepede, tum degerlendirmelerin temeli.
+  // DIKKAT: profil ESKI olabilir; guncel sayilar (kilo/olcu/tarih) icin ASAGIDAKI
+  // taze verileri esas al — profildeki sayilari "en son" sanma.
   if (settings?.personalProfile?.trim()) {
     L.push(
-      `SENİ TANIYAN KİŞİSEL PROFİL (uygulamanın bu kullanıcı için çıkardığı kalıcı özet — önerilerini ve yorumlarını buna göre kişiselleştir, buradaki kurallara uy):\n${settings.personalProfile.trim()}`
+      `SENİ TANIYAN KİŞİSEL PROFİL (uygulamanın bu kullanıcı için ÖNCEDEN çıkardığı kalıcı özet — huy/tercih/örüntü için kullan). ÖNEMLİ: Bu profil ESKİ olabilir; GÜNCEL kilo/ölçü/tarih için AŞAĞIDAKI "EN SON ÖLÇÜM" ve "ölçü eğilimi" satırlarını esas al, profildeki sayıları en güncel sanma:\n${settings.personalProfile.trim()}`
     )
   }
 
@@ -54,7 +56,8 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   if (settings?.heightCm) prof.push(`boy ${settings.heightCm} cm`)
   const weights = measurements.filter((m) => typeof m.weight === 'number')
   const lastW = weights.length ? (weights[weights.length - 1].weight as number) : undefined
-  if (lastW) prof.push(`kilo ${lastW} kg`)
+  const lastWDate = weights.length ? weights[weights.length - 1].dateStr : undefined
+  if (lastW) prof.push(`kilo ${lastW} kg (${lastWDate})`)
   if (settings?.targetWeight) prof.push(`hedef kilo ${settings.targetWeight} kg`)
   if (prof.length) L.push(`Profil: ${prof.join(', ')}.`)
   if (settings?.conditions?.trim()) L.push(`Rahatsızlıklar: ${settings.conditions.trim()}.`)
@@ -66,6 +69,28 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   if (settings?.preferences?.trim()) {
     L.push(
       `KİŞİSEL ALIŞKANLIKLAR/TERCİHLER (analiz ve tahminlerde MUTLAKA bunları esas al, görselden aksini VARSAYMA): ${settings.preferences.trim()}. Örn. "kahveyi şekersiz içer" dendiyse kahveyi şekersiz say, kaloriyi ve şekeri ona göre hesapla.`
+    )
+  }
+
+  // EN SON ÖLÇÜM — net ve tarihli. AI'ın "güncel veri yok / tek nokta" yanılgısına
+  // düşmemesi için en başta, açıkça. (Profil eski olabilir; bu satır TAZE gerçektir.)
+  if (measurements.length) {
+    const last = measurements[measurements.length - 1]
+    const parts: string[] = []
+    if (typeof last.weight === 'number') parts.push(`kilo ${last.weight} kg`)
+    if (typeof last.arm === 'number') parts.push(`kol ${last.arm} cm`)
+    if (typeof last.chest === 'number') parts.push(`göğüs ${last.chest} cm`)
+    if (typeof last.fold === 'number') parts.push(`bel kıvrımı ${last.fold} cm`)
+    if (typeof last.navel === 'number') parts.push(`göbek ${last.navel} cm`)
+    if (typeof last.hip === 'number') parts.push(`kalça ${last.hip} cm`)
+    if (typeof last.leg === 'number') parts.push(`bacak ${last.leg} cm`)
+    const prevW = weights.length >= 2 ? (weights[weights.length - 2].weight as number) : undefined
+    const wNote =
+      prevW != null && typeof last.weight === 'number'
+        ? ` (bir önceki ${weights[weights.length - 2].dateStr}: ${prevW} kg → ${fmt((last.weight as number) - prevW) > 0 ? '+' : ''}${fmt((last.weight as number) - prevW)} kg)`
+        : ''
+    L.push(
+      `EN SON ÖLÇÜM (${last.dateStr} — kullanıcının GİRDİĞİ en güncel veri, bunu esas al): ${parts.join(' · ') || '—'}.${wNote} Toplam ${measurements.length} ölçüm kaydı var; "veri yok/tek nokta" deme.`
     )
   }
 
