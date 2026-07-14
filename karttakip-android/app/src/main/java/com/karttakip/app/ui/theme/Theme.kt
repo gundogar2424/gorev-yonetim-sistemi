@@ -7,19 +7,23 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val Blue = Color(0xFF3B82F6)
+private val Blue = Color(0xFF60A5FA)
 private val BlueDark = Color(0xFF2563EB)
-private val Slate900 = Color(0xFF0F172A)
-private val Slate800 = Color(0xFF1E293B)
+private val Slate950 = Color(0xFF0B1120)
+private val Slate900 = Color(0xFF111A2E)
+private val Slate800 = Color(0xFF1B2740)
 
 private val DarkColors = darkColorScheme(
     primary = Blue,
-    onPrimary = Color.White,
-    secondary = Color(0xFF22C55E),
-    background = Slate900,
-    surface = Slate800,
-    onBackground = Color(0xFFE2E8F0),
-    onSurface = Color(0xFFE2E8F0),
+    onPrimary = Color(0xFF07132A),
+    secondary = Color(0xFF34D399),
+    background = Slate950,
+    surface = Slate900,
+    surfaceVariant = Slate800,
+    onBackground = Color(0xFFF1F5F9),
+    onSurface = Color(0xFFF1F5F9),
+    onSurfaceVariant = Color(0xFFCBD5E1),
+    outline = Color(0xFF334155),
     error = Color(0xFFF87171)
 )
 
@@ -39,6 +43,7 @@ fun KartTakipTheme(
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
+        typography = AppTypography,
         content = content
     )
 }
