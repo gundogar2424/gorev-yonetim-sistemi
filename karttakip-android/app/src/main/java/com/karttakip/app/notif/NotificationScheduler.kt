@@ -17,6 +17,7 @@ import com.karttakip.app.R
 import com.karttakip.app.data.AppDatabase
 import com.karttakip.app.data.Card
 import com.karttakip.app.domain.CardCalc
+import com.karttakip.app.widget.KartWidgetProvider
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
 import java.time.LocalTime
@@ -89,6 +90,9 @@ object NotificationScheduler {
                 "${card.name} ekstresi bugün kesildi. Son ödeme: ${dateFmt.format(CardCalc.nextOccurrenceStrictAfter(card.dueDay, statement))}."
             )
         }
+
+        // Widget'i da tazele (kart eklendi/silindi/gun degisti).
+        KartWidgetProvider.updateAll(context)
     }
 
     private fun scheduleAt(
