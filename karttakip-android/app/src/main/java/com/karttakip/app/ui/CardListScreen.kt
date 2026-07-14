@@ -99,7 +99,11 @@ fun CardListScreen(
                 return@launch
             }
             vm.importCards(text) { n ->
-                val msg = if (n >= 0) "$n kart içe aktarıldı" else "Geçersiz yedek dosyası"
+                val msg = when {
+                    n > 0 -> "$n kart içe aktarıldı"
+                    n == 0 -> "Dosyada kart bulunamadı"
+                    else -> "Dosya okunamadı (biçim hatalı)"
+                }
                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
             }
         }
@@ -139,9 +143,8 @@ fun CardListScreen(
                             leadingIcon = { Icon(Icons.Default.Upload, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
-                                importLauncher.launch(
-                                    arrayOf("application/json", "application/octet-stream", "text/plain", "*/*")
-                                )
+                                // Tum dosyalar gorunsun (json bazen ozel mime ile gizli kaliyor)
+                                importLauncher.launch(arrayOf("*/*"))
                             }
                         )
                         DropdownMenuItem(

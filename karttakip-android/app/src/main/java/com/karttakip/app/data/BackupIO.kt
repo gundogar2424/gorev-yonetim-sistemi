@@ -18,8 +18,20 @@ object BackupIO {
     )
 
     fun parse(text: String): List<Card> {
-        val root = JSONObject(text)
-        val arr = root.optJSONArray("cards") ?: JSONArray()
+        // Dosya basindaki gorunmez isaretleri (BOM) ve bosluklari temizle.
+        val cleaned = text.trim().removePrefix("﻿").trim()
+
+        // Hem { "cards": [...] } hem de dogrudan [ ... ] bicimini kabul et.
+        val arr: JSONArray = if (cleaned.startsWith("[")) {
+            JSONArray(cleaned)
+        } else {
+            val root = JSONObject(cleaned)
+            root.optJSONArray("cards")
+                ?: root.optJSONArray("kartlar")
+                ?: root.optJSONArray("data")
+                ?: JSONArray()
+        }
+
         val out = ArrayList<Card>(arr.length())
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
