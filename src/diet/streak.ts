@@ -208,10 +208,10 @@ export function dayAdherence(entries: DietEntry[], dateStr: string): number | nu
 export const BAD_DAY_THRESHOLD = 50
 
 // Ust uste "temiz" gun serisi: bugunden geriye dogru sayar. Karar verilmemis/bos
-// gunler seriyi bozmaz (temiz sayilir). TEK bir kotu gun (basari <%50) seriyi
-// SIFIRLAMAZ — o gun sayilmaz ama seri devam eder ("kayma hakki"). Ancak UST USTE
-// 2 kotu gun olursa seri biter. Boylece uzun bir seri tek bir gunluk kayma yuzunden
-// silinmez, ama gercekten savrulunca (2+ gun) sifirlanir.
+// gunler seriyi bozmaz (temiz sayilir). Kotu gunler (basari <%50) sayilmaz ama seri
+// devam eder ("kayma hakki"): 1-2 kotu gun seriyi SIFIRLAMAZ; ancak UST USTE 3 kotu
+// gun olursa seri biter. Boylece uzun seri kisa savrulmalarda silinmez.
+const STREAK_TOLERANCE = 3 // ust uste bu kadar kotu gun olunca seri biter
 export function cleanDayStreak(entries: DietEntry[], today: string = todayStr()): number {
   if (!entries.length) return 0
   let firstDate = entries[0].dateStr
@@ -219,18 +219,18 @@ export function cleanDayStreak(entries: DietEntry[], today: string = todayStr())
 
   const base = new Date(today + 'T00:00:00').getTime()
   let streak = 0
-  let prevBad = false // bir onceki (daha yeni) gun kotu muydu
+  let badRun = 0 // ust uste kotu gun sayaci
   for (let i = 0; i < 3650; i++) {
     const d = todayStr(new Date(base - i * 86_400_000))
     if (d < firstDate) break // ilk kayittan oncesine gitme
     const pct = dayAdherence(entries, d)
     const bad = pct != null && pct < BAD_DAY_THRESHOLD
     if (bad) {
-      if (prevBad) break // ust uste 2 kotu gun -> seri biter
-      prevBad = true // izole kotu gun: seriyi bozma, bu gunu sayma
-      continue
+      badRun++
+      if (badRun >= STREAK_TOLERANCE) break // ust uste 3 kotu gun -> seri biter
+      continue // izole/kisa kotu gun: seriyi bozma, bu gunu sayma
     }
-    prevBad = false
+    badRun = 0
     streak++
   }
   return streak
