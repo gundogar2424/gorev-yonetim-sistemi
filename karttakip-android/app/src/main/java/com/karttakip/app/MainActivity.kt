@@ -1,8 +1,12 @@
 package com.karttakip.app
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -37,6 +41,9 @@ class MainActivity : ComponentActivity() {
             NotificationScheduler.scheduleAll(this)
         }
 
+        // Bildirimlerin dakikasinda gelmesi icin pil optimizasyonundan muafiyet iste.
+        requestBatteryExemption()
+
         setContent {
             KartTakipTheme {
                 Surface(
@@ -68,5 +75,26 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Uygulama her acildiginda alarmlari tazele (saat/gun degismis olabilir).
         NotificationScheduler.scheduleAll(this)
+    }
+
+    /**
+     * Pil optimizasyonundan muafiyet ister. Samsung/One UI arka plandaki
+     * uygulamalari agresif oldurdugu icin, bu izin olmadan tam-zamanli alarmlar
+     * gecikebilir. Zaten muafsa hicbir sey yapmaz (tekrar sormaz).
+     */
+    private fun requestBatteryExemption() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        val pm = getSystemService(PowerManager::class.java) ?: return
+        if (pm.isIgnoringBatteryOptimizations(packageName)) return
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:$packageName")
+                )
+            )
+        } catch (e: Exception) {
+            // Bazi cihazlarda bu ekran yok; sessizce gec.
+        }
     }
 }

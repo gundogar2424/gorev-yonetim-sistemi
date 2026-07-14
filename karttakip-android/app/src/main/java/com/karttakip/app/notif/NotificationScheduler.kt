@@ -1,9 +1,11 @@
 package com.karttakip.app.notif
 
 import android.app.AlarmManager
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.graphics.Color
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -52,6 +54,10 @@ object NotificationScheduler {
         ).apply {
             description = "Hesap kesim ve son odeme tarihi hatirlatmalari"
             enableVibration(true)
+            vibrationPattern = longArrayOf(0, 600, 300, 600, 300, 600)
+            enableLights(true)
+            lightColor = Color.RED
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         nm.createNotificationChannel(channel)
     }
@@ -142,10 +148,15 @@ object NotificationScheduler {
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVibrate(longArrayOf(0, 600, 300, 600, 300, 600))
             .setAutoCancel(true)
             .setContentIntent(contentPi)
+            // Ekrani uyandiran tam-ekran uyari (alarm gibi guclu)
+            .setFullScreenIntent(contentPi, true)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
