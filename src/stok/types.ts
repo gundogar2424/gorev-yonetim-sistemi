@@ -13,7 +13,13 @@ export interface Product {
   salePrice?: number // Satış fiyatı (₺) — opsiyonel
   lowStock?: number // Kritik stok eşiği; altına düşünce uyarı (opsiyonel)
   note?: string // Serbest not
-  photo?: string // Ürün fotoğrafı (küçültülmüş data URL)
+  photo?: string // Ürün fotoğrafı (küçültülmüş data URL) — elle çekilen
+  photoUrl?: string // Uzak fotoğraf adresi (siteden/katalogdan gelen; online gösterilir)
+  description?: string // Ürün açıklaması (katalogdan gelebilir)
+  // Aktif = "benim sattığım ürün". Katalogdan içe aktarılanlar önce pasif gelir;
+  // kullanıcının aktif listesiyle eşleşince aktif olur. Elle eklenen ürün aktiftir.
+  active?: boolean
+  source?: 'manual' | 'catalog' // Nereden geldi (elle mi, içe aktarma mı)
   createdAt: number
   updatedAt: number
 }
@@ -37,7 +43,8 @@ export interface StokSettings {
   currency?: string // Para birimi simgesi (varsayılan ₺)
 }
 
-// AI'ın PDF/görsel/metinden çıkardığı tek ürün (içe aktarma önizlemesi)
+// AI'ın veya yapıştırmanın PDF/görsel/site/metinden çıkardığı tek ürün
+// (içe aktarma önizlemesi — kullanıcı onaylayınca kataloğa eklenir)
 export interface ExtractedProduct {
   name: string
   company?: string
@@ -45,4 +52,9 @@ export interface ExtractedProduct {
   code?: string
   salePrice?: number
   buyPrice?: number
+  qty?: number
+  unit?: string
+  description?: string
+  photoUrl?: string // siteden gelen görsel adresi (varsa)
+  _selected?: boolean // önizlemede seçili mi (UI için)
 }

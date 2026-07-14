@@ -22,9 +22,12 @@ export default function Settings() {
   const importRef = useRef<HTMLInputElement>(null)
   const [theme, setTheme] = useState<ThemePref>(getThemePref())
   const [shopName, setShopName] = useState<string | null>(null)
+  const [apiKey, setApiKey] = useState<string | null>(null)
+  const [showKey, setShowKey] = useState(false)
 
-  // İlk yüklemede işletme adını ayarlardan al (henüz elle değiştirilmediyse)
+  // İlk yüklemede değerleri ayarlardan al (henüz elle değiştirilmediyse)
   const shopValue = shopName ?? settings?.shopName ?? ''
+  const keyValue = apiKey ?? settings?.apiKey ?? ''
 
   function pickTheme(p: ThemePref) {
     setTheme(p)
@@ -71,6 +74,36 @@ export default function Settings() {
               className={`${inputCls} mt-1`}
             />
           </label>
+        </Section>
+
+        <Section title="Yapay zeka (içe aktarma için)">
+          <label className="block">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Anthropic (Claude) API anahtarı</span>
+            <div className="relative mt-1">
+              <input
+                value={keyValue}
+                onChange={(e) => setApiKey(e.target.value)}
+                onBlur={() => saveStokSettings({ apiKey: keyValue.trim() })}
+                type={showKey ? 'text' : 'password'}
+                placeholder="sk-ant-..."
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                className={`${inputCls} pr-16`}
+              />
+              <button
+                onClick={() => setShowKey((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-indigo-600 dark:text-indigo-400 font-medium px-2 py-1"
+                type="button"
+              >
+                {showKey ? 'Gizle' : 'Göster'}
+              </button>
+            </div>
+          </label>
+          <p className="text-xs text-slate-400">
+            Site/PDF/fotoğraftan ürün okuma bu anahtarla çalışır. Anahtar yalnızca bu cihazda saklanır, hiçbir yere
+            gönderilmez. Diyet Koçu’nda kullandığınız anahtarın aynısı olabilir. Excel/metin yapıştırma anahtar gerektirmez.
+          </p>
         </Section>
 
         <Section title="Görünüm">

@@ -32,7 +32,14 @@ export function getProduct(id: number): Promise<Product | undefined> {
 
 export async function addProduct(p: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
   const now = Date.now()
-  const id = (await stokDb.products.add({ ...p, createdAt: now, updatedAt: now })) as number
+  // Elle eklenen ürün varsayılan olarak AKTİF (benim sattığım ürün)
+  const id = (await stokDb.products.add({
+    active: p.active ?? true,
+    source: p.source ?? 'manual',
+    ...p,
+    createdAt: now,
+    updatedAt: now
+  })) as number
   // İlk stok girişini hareket olarak da kaydet (0 değilse)
   if (p.qty) {
     await stokDb.moves.add({ productId: id, delta: p.qty, reason: 'giris', note: 'İlk kayıt', createdAt: now })
@@ -58,13 +65,73 @@ export async function addProductsMany(
       continue
     }
     seen.add(k)
-    const id = (await stokDb.products.add({ ...it, createdAt: now, updatedAt: now })) as number
+    const id = (await stokDb.products.add({
+      active: it.active ?? false,
+      source: it.source ?? 'catalog',
+      ...it,
+      createdAt: now,
+      updatedAt: now
+    })) as number
     if (it.qty) {
       await stokDb.moves.add({ productId: id, delta: it.qty, reason: 'giris', note: 'İçe aktarma', createdAt: now })
     }
     added++
   }
   return { added, skipped }
+}
+
+// Basit metin normalize (Türkçe uyumlu; eşleştirme için)
+function norm(s?: string): string {
+  return (s || '')
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i')
+    .replace(/ş/g, 's')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+// Kullanıcının "aktif sattığım ürünler" listesini (her satır bir ürün adı ya da
+// kodu) katalogla eşleştirir ve eşleşenleri AKTİF yapar. Eşleşme: kod birebir,
+// ya da ad birebir/içeriyor. Kaç ürünün aktifleştiğini ve eşleşmeyen satırları döner.
+export async function setActiveByList(text: string): Promise<{ matched: number; unmatched: string[] }> {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+  if (lines.length === 0) return { matched: 0, unmatched: [] }
+
+  const products = await stokDb.products.toArray()
+  const matchedIds = new Set<number>()
+  const unmatched: string[] = []
+
+  for (const line of lines) {
+    const nLine = norm(line)
+    const codeRaw = line.trim().toLocaleLowerCase('tr-TR')
+    // 1) Kod birebir eşleşme
+    let hit = products.find((p) => p.code && p.code.trim().toLocaleLowerCase('tr-TR') === codeRaw)
+    // 2) Ad birebir
+    if (!hit) hit = products.find((p) => norm(p.name) === nLine)
+    // 3) Ad içeriyor (iki yönlü)
+    if (!hit && nLine.length >= 3) {
+      hit = products.find((p) => {
+        const nName = norm(p.name)
+        return nName.includes(nLine) || nLine.includes(nName)
+      })
+    }
+    if (hit?.id != null) matchedIds.add(hit.id)
+    else unmatched.push(line)
+  }
+
+  const now = Date.now()
+  for (const id of matchedIds) {
+    await stokDb.products.update(id, { active: true, updatedAt: now })
+  }
+  return { matched: matchedIds.size, unmatched }
 }
 
 export async function updateProduct(id: number, patch: Partial<Product>) {

@@ -1,9 +1,11 @@
 import { NavLink, Route, Routes } from 'react-router-dom'
 import Products from './pages/Products'
 import ProductForm from './pages/ProductForm'
+import Import from './pages/Import'
+import ActiveList from './pages/ActiveList'
 import Settings from './pages/Settings'
 
-type IconName = 'box' | 'plus' | 'settings'
+type IconName = 'box' | 'plus' | 'download' | 'settings'
 function NavIcon({ name, className }: { name: IconName; className?: string }) {
   const common = {
     className,
@@ -31,6 +33,14 @@ function NavIcon({ name, className }: { name: IconName; className?: string }) {
           <line x1="8" y1="12" x2="16" y2="12" />
         </svg>
       )
+    case 'download':
+      return (
+        <svg {...common}>
+          <path d="M12 3v12" />
+          <polyline points="7 10 12 15 17 10" />
+          <path d="M5 21h14" />
+        </svg>
+      )
     case 'settings':
       return (
         <svg {...common}>
@@ -44,6 +54,7 @@ function NavIcon({ name, className }: { name: IconName; className?: string }) {
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Ürünler', icon: 'box', end: true },
   { to: '/ekle', label: 'Ekle', icon: 'plus', end: false },
+  { to: '/ice-aktar', label: 'İçe aktar', icon: 'download', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: 'settings', end: false }
 ]
 
@@ -55,12 +66,14 @@ export default function StokApp() {
           <Route path="/" element={<Products />} />
           <Route path="/ekle" element={<ProductForm />} />
           <Route path="/duzenle/:id" element={<ProductForm />} />
+          <Route path="/ice-aktar" element={<Import />} />
+          <Route path="/aktif" element={<ActiveList />} />
           <Route path="/ayarlar" element={<Settings />} />
         </Routes>
       </main>
 
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white/95 dark:bg-[#0f1626]/95 backdrop-blur border-t border-slate-100 dark:border-slate-800 rounded-t-2xl shadow-nav grid grid-cols-3 z-20"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white/95 dark:bg-[#0f1626]/95 backdrop-blur border-t border-slate-100 dark:border-slate-800 rounded-t-2xl shadow-nav grid grid-cols-4 z-20"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (

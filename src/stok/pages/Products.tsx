@@ -26,6 +26,13 @@ export default function Products() {
   const [q, setQ] = useState('')
   const [onlyLow, setOnlyLow] = useState(false)
   const [company, setCompany] = useState('')
+  const [view, setView] = useState<'aktif' | 'katalog' | 'tumu'>('tumu')
+
+  // active alanı olmayan eski/elle ürünler aktif sayılır
+  const isActive = (p: Product) => p.active !== false
+
+  // Katalog (pasif) ürün var mı? Yoksa aktif/katalog ayrımını göstermeye gerek yok.
+  const hasCatalog = useMemo(() => !!products?.some((p) => !isActive(p)), [products])
 
   // Firma filtresi için benzersiz firma listesi
   const companies = useMemo(() => {
@@ -38,6 +45,8 @@ export default function Products() {
     if (!products) return undefined
     const needle = q.trim().toLocaleLowerCase('tr-TR')
     return products.filter((p) => {
+      if (view === 'aktif' && !isActive(p)) return false
+      if (view === 'katalog' && isActive(p)) return false
       if (company && (p.company || '') !== company) return false
       if (onlyLow) {
         const th = p.lowStock ?? 0
@@ -48,7 +57,7 @@ export default function Products() {
         .filter(Boolean)
         .some((s) => String(s).toLocaleLowerCase('tr-TR').includes(needle))
     })
-  }, [products, q, onlyLow, company])
+  }, [products, q, onlyLow, company, view])
 
   const totalUnits = useMemo(() => (products ? products.reduce((s, p) => s + (p.qty || 0), 0) : 0), [products])
 
@@ -60,16 +69,47 @@ export default function Products() {
   return (
     <div>
       {/* Başlık + özet */}
-      <header className="px-4 pt-5 pb-3">
-        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
-          {settings?.shopName?.trim() || 'Stok Takip'}
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          {products == null
-            ? 'Yükleniyor…'
-            : `${products.length} çeşit ürün · toplam ${totalUnits} adet`}
-        </p>
+      <header className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            {settings?.shopName?.trim() || 'Stok Takip'}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {products == null ? 'Yükleniyor…' : `${products.length} çeşit ürün · toplam ${totalUnits} adet`}
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/aktif')}
+          className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
+        >
+          Aktif listem
+        </button>
       </header>
+
+      {/* Aktif / Katalog / Tümü — yalnızca katalog ürünü varsa göster */}
+      {hasCatalog && (
+        <div className="px-4 pb-2">
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
+            {([
+              { key: 'aktif', label: 'Sattıklarım' },
+              { key: 'katalog', label: 'Katalog' },
+              { key: 'tumu', label: 'Tümü' }
+            ] as const).map((o) => (
+              <button
+                key={o.key}
+                onClick={() => setView(o.key)}
+                className={`py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  view === o.key
+                    ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Arama */}
       <div className="px-4 space-y-2">
@@ -137,14 +177,19 @@ export default function Products() {
                   onClick={() => navigate(`/duzenle/${p.id}`)}
                   className="relative block aspect-square w-full"
                 >
-                  {p.photo ? (
-                    <img src={p.photo} alt={p.name} className="w-full h-full object-cover" />
+                  {p.photo || p.photoUrl ? (
+                    <img src={p.photo || p.photoUrl} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <Placeholder />
                   )}
                   {isLow(p) && (
                     <span className="absolute top-2 left-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500 text-white shadow">
                       {p.qty === 0 ? 'Bitti' : 'Azaldı'}
+                    </span>
+                  )}
+                  {!isActive(p) && (
+                    <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-700/80 text-white shadow">
+                      Katalog
                     </span>
                   )}
                 </button>

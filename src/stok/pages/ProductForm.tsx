@@ -37,6 +37,7 @@ export default function ProductForm() {
   const [lowStock, setLowStock] = useState('')
   const [note, setNote] = useState('')
   const [photo, setPhoto] = useState<string | undefined>(undefined)
+  const [active, setActive] = useState(true)
 
   useEffect(() => {
     if (editId == null) return
@@ -55,6 +56,7 @@ export default function ProductForm() {
         setLowStock(p.lowStock != null ? String(p.lowStock) : '')
         setNote(p.note || '')
         setPhoto(p.photo)
+        setActive(p.active !== false)
       }
       setLoading(false)
     })
@@ -100,7 +102,8 @@ export default function ProductForm() {
       buyPrice: num(buyPrice),
       lowStock: num(lowStock) != null ? Math.max(0, Math.round(num(lowStock)!)) : undefined,
       note: note.trim() || undefined,
-      photo
+      photo,
+      active
     }
     try {
       if (isEdit && editId != null) {
@@ -216,6 +219,14 @@ export default function ProductForm() {
         <Field label="Not">
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="opsiyonel" className={inputCls} />
         </Field>
+
+        <label className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Bu ürünü ben satıyorum (aktif)
+            <span className="block text-xs font-normal text-slate-400">Kapalıysa yalnızca "Katalog" listesinde görünür.</span>
+          </span>
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="h-5 w-5 accent-indigo-600" />
+        </label>
 
         <div className="flex gap-3 pt-1">
           <button
