@@ -2,13 +2,16 @@ package com.karttakip.app.data
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
+import java.time.YearMonth
 
 /**
  * Kart yedeklerini okuma/yazma.
  *
- * Iki formati da okur:
- *  - Eski "kart-defteri" yedegi: { cards: [{ bank, limit, avail, cutDate, dueDate, stmt, ... }] }
- *  - Bu uygulamanin kendi formati: { cards: [{ name, bank, statementDay, dueDay, limit, debt, ... }] }
+ * Okuyabildigi tarih bicimleri (her alan icin sirasiyla denenir):
+ *  - "statementEpochDay" / "dueEpochDay" (bu uygulamanin dis bicimi)
+ *  - "cutDate" / "dueDate" tam tarih metni "2026-08-14" (eski "kart-defteri" ve export)
+ *  - "statementDay" / "dueDay" ayin gunu (sadece gun) -> icinde bulunulan aya kurulur
  */
 object BackupIO {
 
@@ -18,10 +21,7 @@ object BackupIO {
     )
 
     fun parse(text: String): List<Card> {
-        // Dosya basindaki gorunmez isaretleri (BOM) ve bosluklari temizle.
         val cleaned = text.trim().removePrefix("﻿").trim()
-
-        // Hem { "cards": [...] } hem de dogrudan [ ... ] bicimini kabul et.
         val arr: JSONArray = if (cleaned.startsWith("[")) {
             JSONArray(cleaned)
         } else {
@@ -31,29 +31,23 @@ object BackupIO {
                 ?: root.optJSONArray("data")
                 ?: JSONArray()
         }
-
+        val today = LocalDate.now()
         val out = ArrayList<Card>(arr.length())
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
-            out.add(fromJson(o))
+            out.add(fromJson(o, today))
         }
         return out
     }
 
-    private fun fromJson(o: JSONObject): Card {
-        // Isim: yeni format "name", eski format "bank"
+    private fun fromJson(o: JSONObject, today: LocalDate): Card {
         val rawName = o.optString("name").ifBlank { o.optString("bank") }.ifBlank { "Kart" }
         val bank = if (o.has("name")) o.optString("bank") else ""
 
-        val statementDay =
-            if (o.has("statementDay")) o.optInt("statementDay", 1)
-            else dayOf(o.optString("cutDate"), 1)
-        val dueDay =
-            if (o.has("dueDay")) o.optInt("dueDay", 1)
-            else dayOf(o.optString("dueDate"), 1)
+        val statementEpochDay = anchorEpochDay(o, "statementEpochDay", "cutDate", "statementDay", today)
+        val dueEpochDay = anchorEpochDay(o, "dueEpochDay", "dueDate", "dueDay", today)
 
         val limit = o.optDouble("limit", 0.0)
-        // Borc onceligi: acik "debt" -> "stmt" (ekstre tutari) -> limit - avail (kullanilan)
         val debt = when {
             o.has("debt") -> o.optDouble("debt", 0.0)
             o.optDouble("stmt", 0.0) > 0.0 -> o.optDouble("stmt", 0.0)
@@ -68,8 +62,8 @@ object BackupIO {
         return Card(
             name = rawName.trim(),
             bank = bank.trim(),
-            statementDay = statementDay.coerceIn(1, 31),
-            dueDay = dueDay.coerceIn(1, 31),
+            statementEpochDay = statementEpochDay,
+            dueEpochDay = dueEpochDay,
             limit = limit.coerceAtLeast(0.0),
             debt = debt,
             colorArgb = color,
@@ -77,12 +71,37 @@ object BackupIO {
         )
     }
 
-    /** "2026-06-15" -> 15 ; "15" -> 15 ; bos/gecersiz -> fallback */
-    private fun dayOf(dateOrDay: String?, fallback: Int): Int {
-        if (dateOrDay.isNullOrBlank()) return fallback
-        val parts = dateOrDay.split("-", "/", ".")
-        val dayStr = if (parts.size >= 3) parts.last() else dateOrDay
-        return dayStr.trim().toIntOrNull()?.coerceIn(1, 31) ?: fallback
+    private fun anchorEpochDay(
+        o: JSONObject, epochKey: String, dateKey: String, dayKey: String, today: LocalDate
+    ): Long {
+        if (o.has(epochKey)) return o.optLong(epochKey, today.toEpochDay())
+        val ds = o.optString(dateKey)
+        if (ds.isNotBlank()) parseDate(ds)?.let { return it.toEpochDay() }
+        if (o.has(dayKey)) {
+            val day = o.optInt(dayKey, today.dayOfMonth)
+            return dateFromDay(day, today).toEpochDay()
+        }
+        return today.toEpochDay()
+    }
+
+    /** "2026-08-14" (veya "2026/8/14", tarih-saat ise ilk 10 hane) -> LocalDate */
+    private fun parseDate(s: String): LocalDate? {
+        val t = s.trim()
+        runCatching { return LocalDate.parse(t.take(10)) }
+        val parts = t.take(10).split("-", "/", ".").mapNotNull { it.trim().toIntOrNull() }
+        if (parts.size >= 3) {
+            val (y, m, d) = parts
+            return runCatching {
+                val ym = YearMonth.of(y, m.coerceIn(1, 12))
+                ym.atDay(d.coerceIn(1, ym.lengthOfMonth()))
+            }.getOrNull()
+        }
+        return null
+    }
+
+    private fun dateFromDay(day: Int, today: LocalDate): LocalDate {
+        val ym = YearMonth.from(today)
+        return ym.atDay(day.coerceIn(1, ym.lengthOfMonth()))
     }
 
     private fun pickColor(seed: String): Long {
@@ -97,17 +116,16 @@ object BackupIO {
                 JSONObject()
                     .put("name", c.name)
                     .put("bank", c.bank)
-                    .put("statementDay", c.statementDay)
-                    .put("dueDay", c.dueDay)
+                    .put("cutDate", LocalDate.ofEpochDay(c.statementEpochDay).toString())
+                    .put("dueDate", LocalDate.ofEpochDay(c.dueEpochDay).toString())
+                    .put("statementEpochDay", c.statementEpochDay)
+                    .put("dueEpochDay", c.dueEpochDay)
                     .put("limit", c.limit)
                     .put("debt", c.debt)
                     .put("colorArgb", c.colorArgb)
                     .put("remindDaysBefore", c.remindDaysBefore)
             )
         }
-        return JSONObject()
-            .put("app", "kart-takip")
-            .put("cards", arr)
-            .toString(2)
+        return JSONObject().put("app", "kart-takip").put("cards", arr).toString(2)
     }
 }

@@ -104,9 +104,9 @@ fun CardFormScreen(
                 existing = c
                 name = c.name
                 bank = c.bank
-                // Kayitli gunden, gelecekteki ilk tarihi goster.
-                statementDate = CardCalc.nextOccurrence(c.statementDay, today)
-                dueDate = CardCalc.nextOccurrence(c.dueDay, today)
+                // Kayitli tarihin gelecekteki ilk gorunumunu goster.
+                statementDate = CardCalc.nextStatement(c, today)
+                dueDate = CardCalc.nextDue(c, today)
                 limit = if (c.limit > 0) c.limit.toLong().toString() else ""
                 debt = if (c.debt > 0) c.debt.toLong().toString() else ""
                 remind = c.remindDaysBefore.toString()
@@ -255,20 +255,20 @@ fun CardFormScreen(
 
             Button(
                 onClick = {
-                    val sd = statementDate?.dayOfMonth
-                    val dd = dueDate?.dayOfMonth
+                    val sDate = statementDate
+                    val dDate = dueDate
                     when {
                         name.isBlank() -> error = "Kart adı gerekli."
-                        sd == null -> error = "Hesap kesim tarihini seç."
-                        dd == null -> error = "Son ödeme tarihini seç."
+                        sDate == null -> error = "Hesap kesim tarihini seç."
+                        dDate == null -> error = "Son ödeme tarihini seç."
                         else -> {
                             error = null
                             val card = Card(
                                 id = existing?.id ?: 0L,
                                 name = name.trim(),
                                 bank = bank.trim(),
-                                statementDay = sd,
-                                dueDay = dd,
+                                statementEpochDay = sDate.toEpochDay(),
+                                dueEpochDay = dDate.toEpochDay(),
                                 limit = limit.toDoubleOrNull() ?: 0.0,
                                 debt = debt.toDoubleOrNull() ?: 0.0,
                                 colorArgb = color,

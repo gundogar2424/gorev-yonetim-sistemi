@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Card::class], version = 1, exportSchema = false)
+@Database(entities = [Card::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
 
@@ -18,7 +18,11 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "karttakip.db"
-                ).build().also { INSTANCE = it }
+                )
+                    // Gun-tabanli eski semadan tarih-tabanli yeni semaya gecis;
+                    // veri az oldugu icin yeniden olusturulur (yedekten tekrar aktarilabilir).
+                    .fallbackToDestructiveMigration()
+                    .build().also { INSTANCE = it }
             }
     }
 }

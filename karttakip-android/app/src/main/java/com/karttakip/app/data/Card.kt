@@ -6,18 +6,20 @@ import androidx.room.PrimaryKey
 /**
  * Bir kredi karti.
  *
- * - [statementDay] : Hesap kesim gunu (ayin 1-31'i). Ekstre bu gun kapanir.
- * - [dueDay]       : Son odeme gunu (ayin 1-31'i).
+ * - [statementEpochDay] : Kullanicinin sectigi hesap kesim TARIHI (epoch-day).
+ * - [dueEpochDay]       : Kullanicinin sectigi son odeme TARIHI (epoch-day).
  *
- * Ay o gunu icermiyorsa (or. 31 Subat) hesaplamada ayin son gunune kirpilir.
+ * Tarihler referanstir; uygulama gununu koruyarak her ay ileri tasir
+ * (bkz. CardCalc.nextStatement / nextDue). Boylece kullanici "14 Agustos"
+ * secince ekranda 14 Agustos gorunur, gun gectikce bir sonraki aya kayar.
  */
 @Entity(tableName = "cards")
 data class Card(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val bank: String = "",
-    val statementDay: Int,
-    val dueDay: Int,
+    val statementEpochDay: Long,
+    val dueEpochDay: Long,
     val limit: Double = 0.0,
     val debt: Double = 0.0,
     val colorArgb: Long = 0xFF3B82F6,

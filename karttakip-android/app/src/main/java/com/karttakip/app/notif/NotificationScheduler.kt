@@ -93,7 +93,7 @@ object NotificationScheduler {
             scheduleAt(
                 context, am, reqCode(card.id, TYPE_STATEMENT), statement,
                 "${card.name}: ekstre kesildi",
-                "${card.name} ekstresi bugün kesildi. Son ödeme: ${dateFmt.format(CardCalc.nextOccurrenceStrictAfter(card.dueDay, statement))}."
+                "${card.name} ekstresi bugün kesildi. Son ödeme: ${dateFmt.format(CardCalc.nextOccurrenceStrictAfter(CardCalc.dueDayOfMonth(card), statement))}."
             )
         }
 
