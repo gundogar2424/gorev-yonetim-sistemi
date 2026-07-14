@@ -22,6 +22,18 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    // Sabit imza: her derlemede AYNI anahtar kullanilir; boylece guncellemeler
+    // eski surumun ustune sorunsuz kurulur (Android farkli imzali surumu
+    // guncelleme saymaz). Anahtar projede: app/debug.keystore
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
