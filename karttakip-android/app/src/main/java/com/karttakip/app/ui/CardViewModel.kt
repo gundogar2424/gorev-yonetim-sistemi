@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.karttakip.app.data.AppDatabase
+import com.karttakip.app.data.BackupIO
 import com.karttakip.app.data.Card
 import com.karttakip.app.notif.NotificationScheduler
 import kotlinx.coroutines.Dispatchers
@@ -35,4 +36,22 @@ class CardViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     suspend fun getById(id: Long): Card? = dao.getById(id)
+
+    /** Yedek metnini (JSON) okuyup kartlari ekler. onResult'a eklenen kart sayisini verir (hata -> -1). */
+    fun importCards(text: String, onResult: (Int) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = try {
+                val cards = BackupIO.parse(text)
+                cards.forEach { dao.upsert(it) }
+                NotificationScheduler.scheduleAll(getApplication())
+                cards.size
+            } catch (e: Exception) {
+                -1
+            }
+            launch(Dispatchers.Main) { onResult(count) }
+        }
+    }
+
+    /** Mevcut kartlari yedek JSON metnine cevirir. */
+    suspend fun exportJson(): String = BackupIO.toJson(dao.getAll())
 }

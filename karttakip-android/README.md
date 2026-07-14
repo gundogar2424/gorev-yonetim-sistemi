@@ -17,6 +17,8 @@ Kredi kartlarının **hesap kesim** ve **son ödeme** tarihlerini takip eden,
 | 🔔 **Gerçek bildirim** | Son ödemeden N gün önce, son ödeme günü ve ekstre kesim günü — AlarmManager tam-zamanlı alarm |
 | 💡 **Bugün hangi kart?** | Yeni harcama için **en uzun faizsiz süreyi** sağlayan kartı önerir |
 | ⚠️ **En yakın ödeme** | Borcu olan kartlar içinde son ödeme tarihi en yakın olanı öne çıkarır |
+| 🧩 **Ana ekran widget'i** | Uygulamayı açmadan en yakın ödemeyi ve bugün kullanılacak kartı gösterir |
+| 💾 **İçe/dışa aktar** | Kartları JSON yedeğinden yükle veya yedekle. Eski "kart-defteri" yedek formatı da okunur |
 | 📴 **Offline & yerel** | Tüm veri telefonda (Room/SQLite). Sunucu yok, internet gerekmez |
 
 ### "Bugün hangi kartı kullanayım?" mantığı
