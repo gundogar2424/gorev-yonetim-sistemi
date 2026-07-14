@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Kredi karti govdesi -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M28,40 h52 a4,4 0 0 1 4,4 v20 a4,4 0 0 1 -4,4 h-52 a4,4 0 0 1 -4,-4 v-20 a4,4 0 0 1 4,-4 z" />
+    <!-- Manyetik serit -->
+    <path android:fillColor="#0F172A" android:pathData="M24,47 h60 v6 h-60 z" />
+    <!-- Cip -->
+    <path android:fillColor="#FBBF24" android:pathData="M31,58 h10 v6 h-10 z" />
+</vector>

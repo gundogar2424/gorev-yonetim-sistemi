@@ -1,0 +1,71 @@
+name: Kart Takip APK Derle (native)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'karttakip-android/**'
+      - '.github/workflows/karttakip-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle kurulumu
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+
+      - name: Sabit debug imza anahtarı (güncellemeler üstüne kurulabilsin)
+        run: |
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
+
+      - name: APK derle (debug, sabit imza)
+        working-directory: karttakip-android
+        env:
+          APP_BUILD: ${{ github.run_number }}
+        run: gradle assembleDebug --no-daemon
+
+      - name: APK'yı yeniden adlandır
+        run: cp karttakip-android/app/build/outputs/apk/debug/app-debug.apk kart-takip.apk
+
+      - name: APK'yı ziple (Chrome APK indirme takılmasını atlatmak için)
+        run: zip -j kart-takip-apk.zip kart-takip.apk
+
+      - name: APK'yı artifact olarak yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: kart-takip-apk
+          path: kart-takip.apk
+
+      - name: Sürüm olarak yayınla (indirilebilir bağlantı)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: karttakip-latest
+          name: Kart Takip APK
+          body: |
+            En güncel Kart Takip (native Android) uygulaması.
+            İndir, telefonda aç, "bilinmeyen kaynaklara izin ver" diyip kur.
+
+            Chrome APK indirmede %100'de takılıyorsa kart-takip-apk.zip'i indir,
+            Dosyalarım'da çıkart, içindeki .apk'yı kur.
+          files: |
+            kart-takip.apk
+            kart-takip-apk.zip
+          make_latest: false
