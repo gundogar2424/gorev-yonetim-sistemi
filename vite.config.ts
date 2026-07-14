@@ -20,10 +20,12 @@ export default defineConfig({
       // Iki AYRI uygulama, iki ayri giris sayfasi:
       //  - index.html              -> Saha CRM (degismedi)
       //  - diyet.html / diyetkocu.html -> Diyet Kocu (bagimsiz program)
+      //  - stok.html               -> Stok Takip (bagimsiz program)
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         diyet: fileURLToPath(new URL('./diyet.html', import.meta.url)),
-        diyetkocu: fileURLToPath(new URL('./diyetkocu.html', import.meta.url))
+        diyetkocu: fileURLToPath(new URL('./diyetkocu.html', import.meta.url)),
+        stok: fileURLToPath(new URL('./stok.html', import.meta.url))
       }
     }
   },
