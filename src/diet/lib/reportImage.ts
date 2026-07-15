@@ -71,6 +71,25 @@ function drawContain(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: nu
   ctx.drawImage(img, x + (boxW - w) / 2, y + (boxH - h) / 2, w, h)
 }
 
+// "YENMEDİ" damgasi: fotografin ORTASINDAN capraz, kirmizi bant + beyaz yazi.
+// Vazgecilen (yenmeyen) ogun fotografina uygulanir; caller kirpma (clip) icinde cagirir.
+function drawNotEatenStamp(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.save()
+  ctx.translate(x + w / 2, y + h / 2)
+  ctx.rotate(-Math.atan2(h, w)) // kutunun kosegeni boyunca
+  const diag = Math.sqrt(w * w + h * h)
+  const fontPx = Math.max(34, Math.min(w, h) * 0.16)
+  const bandH = fontPx * 1.55
+  ctx.fillStyle = 'rgba(220,38,38,0.82)' // kirmizi yari saydam bant
+  ctx.fillRect(-diag / 2, -bandH / 2, diag, bandH)
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `bold ${Math.round(fontPx)}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('YENMEDİ ✕', 0, 2)
+  ctx.restore()
+}
+
 function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
   if (ctx.measureText(text).width <= maxW) return text
   let t = text
@@ -304,6 +323,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
           roundRectPath(ctx, ix, iy, PHOTO, PHOTO, 14)
           ctx.clip()
           drawCover(ctx, img, ix, iy, PHOTO)
+          if (e.decision === 'resisted') drawNotEatenStamp(ctx, ix, iy, PHOTO, PHOTO)
           ctx.restore()
         } else {
           fillRound(ctx, ix, iy, PHOTO, PHOTO, 14, '#eef2f6')
@@ -546,6 +566,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
       ctx.fillText('🍽️', px + boxW / 2, py + boxH / 2 + 28)
       ctx.textAlign = 'left'
     }
+    if (card.e.decision === 'resisted') drawNotEatenStamp(ctx, px, py, boxW, boxH) // yenmedi damgasi
     ctx.restore()
 
     // Aciklama (fotografin altinda)
@@ -1030,6 +1051,7 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
     ctx.fillText('🍽️', W / 2, y + PHOTO_H / 2 + 24)
     ctx.textAlign = 'left'
   }
+  if (e.decision === 'resisted') drawNotEatenStamp(ctx, PAD, y, contentW, PHOTO_H) // yenmedi damgasi
   ctx.restore()
   y += PHOTO_H + 18
 
