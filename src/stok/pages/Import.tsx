@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { readStokSettings, addProductsMany } from '../db'
 import { extractProducts, extractProductsFromChunks } from '../ai'
-import { fetchSiteContent } from '../lib/webfetch'
+import { fetchSiteContent, crawlSite } from '../lib/webfetch'
 import { parseProductPaste } from '../lib/parseImport'
 import { fileToCompressedDataUrl } from '../lib/image'
 import { extractPdfText, chunkText } from '../lib/pdf'
@@ -19,6 +19,8 @@ export default function Import() {
 
   const [method, setMethod] = useState<Method>('paste')
   const [url, setUrl] = useState('')
+  const [wide, setWide] = useState(true)
+  const [maxPages, setMaxPages] = useState('25')
   const [pasteText, setPasteText] = useState('')
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
@@ -37,13 +39,62 @@ export default function Import() {
   async function runLink() {
     setError('')
     setItems(null)
-    if (!url.trim()) return
+    const seeds = url
+      .split(/[\s\n]+/)
+      .map((u) => u.trim())
+      .filter(Boolean)
+    if (seeds.length === 0) return
     const apiKey = await needApiKey()
     if (!apiKey) return
     const s = await readStokSettings()
-    setBusy('Site indiriliyor…')
+
     try {
-      const fetched = await fetchSiteContent(url)
+      if (wide) {
+        // GENİŞ TARAMA: site içinde gez, tüm sayfaların metnini topla + PDF'leri oku
+        const limit = Math.max(1, Math.min(80, Number(maxPages) || 25))
+        setBusy('Site taranıyor…')
+        const crawl = await crawlSite(seeds, {
+          maxPages: limit,
+          onProgress: (done, max) => setBusy(`Site taranıyor… ${done}/${max} sayfa`)
+        })
+        const allText: string[] = [...crawl.texts]
+        // Rastlanan PDF kataloglarının da metnini çıkar
+        for (let i = 0; i < crawl.pdfDataUrls.length; i++) {
+          setBusy(`Katalog PDF okunuyor… ${i + 1}/${crawl.pdfDataUrls.length}`)
+          try {
+            const { text } = await extractPdfText(crawl.pdfDataUrls[i])
+            if (text.trim().length >= 60) allText.push(text)
+          } catch {
+            /* bu PDF atlansın */
+          }
+        }
+        const combined = allText.join('\n')
+        if (combined.trim().length < 60) {
+          setBusy('')
+          setError(
+            crawl.failed > 0
+              ? 'Sayfalar okunamadı (tarayıcıda CORS engeli olabilir; bu özellik kurulu uygulamada/APK daha güvenilir çalışır).'
+              : 'Taranan sayfalarda okunur içerik bulunamadı.'
+          )
+          return
+        }
+        const chunks = chunkText(combined, 6000)
+        const list = await extractProductsFromChunks({
+          apiKey,
+          model: s.model,
+          chunks,
+          onProgress: (c, t) => setBusy(`Ürünler okunuyor… bölüm ${c}/${t}`)
+        })
+        setItems(list)
+        if (list.length === 0)
+          setError(`${crawl.visited} sayfa tarandı ama ürün bulunamadı. Doğrudan ürün/katalog sayfasının linkini verin.`)
+        else setSavedMsg(`${crawl.visited} sayfa tarandı.`)
+        return
+      }
+
+      // TEK SAYFA (dar): yalnızca verilen ilk linki oku
+      setBusy('Site indiriliyor…')
+      const fetched = await fetchSiteContent(seeds[0])
       if (fetched.kind === 'fail') {
         setError(fetched.note || 'Site okunamadı.')
         setBusy('')
@@ -258,19 +309,41 @@ export default function Import() {
 
         {method === 'link' && (
           <div className="space-y-2">
-            <input
+            <textarea
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="örn. firma.com/urunler"
+              rows={3}
+              placeholder={'Firma sitesi ya da ürün/katalog sayfası linki.\nBirden fazla link için her satıra bir tane yaz.\n\nörn. firma.com/urunler'}
               className={inputCls}
               inputMode="url"
             />
+
+            {/* Geniş tarama ayarı */}
+            <label className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Geniş tarama
+                <span className="block text-xs font-normal text-slate-400">Site içindeki kategori/ürün sayfalarını da gez.</span>
+              </span>
+              <input type="checkbox" checked={wide} onChange={(e) => setWide(e.target.checked)} className="h-5 w-5 accent-indigo-600" />
+            </label>
+            {wide && (
+              <label className="flex items-center justify-between gap-3 px-1">
+                <span className="text-sm text-slate-600 dark:text-slate-300">En fazla sayfa</span>
+                <input
+                  value={maxPages}
+                  onChange={(e) => setMaxPages(e.target.value)}
+                  inputMode="numeric"
+                  className="w-20 px-2 py-1.5 text-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                />
+              </label>
+            )}
+
             <button onClick={runLink} className="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-medium active:scale-95">
-              Siteyi oku
+              {wide ? 'Siteyi geniş tara' : 'Siteyi oku'}
             </button>
             <p className="text-xs text-slate-400">
-              Not: Web sitesi okuma en güvenilir şekilde telefona kurulu uygulamada (APK) çalışır; tarayıcıda bazı siteler
-              güvenlik (CORS) nedeniyle engelleyebilir.
+              Not: Web tarama en güvenilir şekilde telefona kurulu uygulamada (APK) çalışır; tarayıcıda bazı siteler
+              güvenlik (CORS) nedeniyle engelleyebilir. Çok sayfa taramak biraz sürebilir ve daha çok yapay zeka kullanır.
             </p>
           </div>
         )}

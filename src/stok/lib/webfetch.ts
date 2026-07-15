@@ -56,6 +56,145 @@ function lowerHeaders(h: Record<string, string> | undefined): Record<string, str
   return out
 }
 
+// --- Geniş tarama için ham indirme (HTML linklerini de döndürür) ---
+interface RawFetch {
+  kind: 'html' | 'pdf' | 'fail'
+  html?: string
+  pdfDataUrl?: string
+  note?: string
+}
+
+function normUrl(rawUrl: string): string {
+  let url = rawUrl.trim()
+  if (!url) return ''
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+  return url
+}
+
+async function fetchRaw(url: string): Promise<RawFetch> {
+  const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+  const isPdfUrl = /\.pdf(\?|#|$)/i.test(url)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await CapacitorHttp.get({
+        url,
+        responseType: 'blob',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Android) StokTakip', Accept: '*/*' }
+      })
+      const headers = lowerHeaders(res.headers as Record<string, string>)
+      const ct = (headers['content-type'] || '').toLowerCase()
+      const b64 = typeof res.data === 'string' ? res.data : ''
+      if (!b64) return { kind: 'fail', note: 'indirilemedi' }
+      if (ct.includes('pdf') || isPdfUrl) return { kind: 'pdf', pdfDataUrl: `data:application/pdf;base64,${b64}` }
+      return { kind: 'html', html: b64ToUtf8(b64) }
+    } catch {
+      return { kind: 'fail', note: 'bağlantı hatası' }
+    }
+  }
+  try {
+    const r = await fetch(url)
+    const ct = (r.headers.get('content-type') || '').toLowerCase()
+    if (ct.includes('pdf') || isPdfUrl) {
+      const buf = await r.arrayBuffer()
+      return { kind: 'pdf', pdfDataUrl: `data:application/pdf;base64,${bufToB64(buf)}` }
+    }
+    return { kind: 'html', html: await r.text() }
+  } catch {
+    return { kind: 'fail', note: 'CORS/bağlantı engeli' }
+  }
+}
+
+// HTML'den aynı siteye ait (http) bağlantıları çıkarır; görsel/statik dosyaları eler.
+function extractLinks(html: string, baseUrl: string): string[] {
+  let origin = ''
+  try {
+    origin = new URL(baseUrl).origin
+  } catch {
+    return []
+  }
+  const out = new Set<string>()
+  const re = /href\s*=\s*["']([^"'#]+)["']/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html))) {
+    const href = m[1].trim()
+    if (!href || /^(mailto:|tel:|javascript:|data:)/i.test(href)) continue
+    let abs: string
+    try {
+      abs = new URL(href, baseUrl).href
+    } catch {
+      continue
+    }
+    // Yalnızca aynı site + http(s)
+    if (!abs.startsWith(origin)) continue
+    // Statik/görsel dosyaları atla (PDF hariç — o ayrı işlenir)
+    if (/\.(jpg|jpeg|png|gif|webp|svg|css|js|ico|woff2?|ttf|mp4|zip|rar|xml|json)(\?|#|$)/i.test(abs)) continue
+    out.add(abs.split('#')[0])
+  }
+  return Array.from(out)
+}
+
+// Ürün/kategori sayfası olma ihtimali yüksek linkleri öne al (geniş ama odaklı)
+const PRODUCT_HINT = /(urun|product|katalog|catalog|kategori|category|collection|koleksiyon|shop|magaza|store|item|p-|prod)/i
+
+export interface CrawlResult {
+  texts: string[] // taranan sayfaların metinleri
+  pdfDataUrls: string[] // rastlanan PDF'ler (metni çağıran tarafça çıkarılır)
+  visited: number
+  failed: number
+}
+
+// Verilen tohum linklerden başlayıp aynı site içinde gezerek (BFS) metin toplar.
+export async function crawlSite(
+  seeds: string[],
+  opts: { maxPages?: number; onProgress?: (done: number, max: number, url: string) => void } = {}
+): Promise<CrawlResult> {
+  const maxPages = Math.max(1, Math.min(80, opts.maxPages ?? 25))
+  const queue: string[] = []
+  const seen = new Set<string>()
+  for (const s of seeds.map(normUrl).filter(Boolean)) {
+    if (!seen.has(s)) {
+      seen.add(s)
+      queue.push(s)
+    }
+  }
+  const texts: string[] = []
+  const pdfDataUrls: string[] = []
+  let visited = 0
+  let failed = 0
+
+  while (queue.length > 0 && visited < maxPages) {
+    const url = queue.shift()!
+    visited++
+    opts.onProgress?.(visited, maxPages, url)
+    const raw = await fetchRaw(url)
+    if (raw.kind === 'fail') {
+      failed++
+      continue
+    }
+    if (raw.kind === 'pdf' && raw.pdfDataUrl) {
+      pdfDataUrls.push(raw.pdfDataUrl)
+      continue
+    }
+    if (raw.kind === 'html' && raw.html) {
+      const text = htmlToText(raw.html)
+      if (text.length >= 40) texts.push(text)
+      // Yeni linkleri kuyruğa ekle (kota dolmadıysa). Ürün/kategori linklerini öne al.
+      if (seen.size < maxPages * 4) {
+        const links = extractLinks(raw.html, url)
+        const prioritized = [...links.filter((l) => PRODUCT_HINT.test(l)), ...links.filter((l) => !PRODUCT_HINT.test(l))]
+        for (const l of prioritized) {
+          if (seen.size >= maxPages * 4) break
+          if (!seen.has(l)) {
+            seen.add(l)
+            queue.push(l)
+          }
+        }
+      }
+    }
+  }
+  return { texts, pdfDataUrls, visited, failed }
+}
+
 export async function fetchSiteContent(rawUrl: string): Promise<SiteFetch> {
   let url = rawUrl.trim()
   if (!url) return { kind: 'fail', note: 'Boş bağlantı.' }
