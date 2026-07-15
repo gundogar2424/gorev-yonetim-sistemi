@@ -4,6 +4,10 @@
 import type { ExtractedProduct } from './types'
 
 export const DEFAULT_MODEL = 'claude-opus-4-8'
+// Ürün çıkarma basit bir iş; varsayılan olarak UCUZ/HIZLI modeli kullanırız
+// (çok sayfalı geniş taramada maliyeti kat kat düşürür). Kullanıcı isterse
+// Ayarlar'daki modeli geçebilir.
+export const EXTRACT_MODEL = 'claude-haiku-4-5-20251001'
 
 async function createClient(apiKey: string) {
   const mod = await import('@anthropic-ai/sdk')
@@ -60,7 +64,7 @@ interface ExtractOptions {
 
 // İçerikten ürün listesi çıkarır. En az biri (text/pdf/image) verilmelidir.
 export async function extractProducts(opts: ExtractOptions): Promise<ExtractedProduct[]> {
-  const { apiKey, model = DEFAULT_MODEL, text, pdfDataUrl, imageDataUrl } = opts
+  const { apiKey, model = EXTRACT_MODEL, text, pdfDataUrl, imageDataUrl } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!text && !pdfDataUrl && !imageDataUrl) throw new Error('Okunacak bir içerik yok.')
 

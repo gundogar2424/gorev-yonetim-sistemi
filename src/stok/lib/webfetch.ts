@@ -148,7 +148,7 @@ export async function crawlSite(
   seeds: string[],
   opts: { maxPages?: number; onProgress?: (done: number, max: number, url: string) => void } = {}
 ): Promise<CrawlResult> {
-  const maxPages = Math.max(1, Math.min(80, opts.maxPages ?? 25))
+  const maxPages = Math.max(1, Math.min(300, opts.maxPages ?? 25))
   const queue: string[] = []
   const seen = new Set<string>()
   for (const s of seeds.map(normUrl).filter(Boolean)) {
@@ -193,6 +193,40 @@ export async function crawlSite(
     }
   }
   return { texts, pdfDataUrls, visited, failed }
+}
+
+// Çok sayfalı taramada token'ı düşürmek için: her sayfada tekrar eden
+// satırları (menü, başlık, footer, çerez metni…) eler; yalnızca sayfaya
+// özgü (ürün) satırları bırakır. Ayrıca genel tekrarları da temizler.
+export function mergePageTexts(texts: string[]): string {
+  if (texts.length <= 1) return texts.join('\n')
+  const norm = (l: string) => l.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ')
+  // Bir satır kaç FARKLI sayfada geçiyor?
+  const pageCount = new Map<string, number>()
+  const perPageLines = texts.map((t) =>
+    t
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length >= 2)
+  )
+  for (const lines of perPageLines) {
+    const uniqInPage = new Set(lines.map(norm))
+    for (const n of uniqInPage) pageCount.set(n, (pageCount.get(n) ?? 0) + 1)
+  }
+  // Sayfaların %40'ından fazlasında geçen satır = kalıp (boilerplate) → at.
+  const boilerThreshold = Math.max(2, Math.ceil(texts.length * 0.4))
+  const kept: string[] = []
+  const globalSeen = new Set<string>()
+  for (const lines of perPageLines) {
+    for (const l of lines) {
+      const n = norm(l)
+      if ((pageCount.get(n) ?? 0) >= boilerThreshold) continue // her sayfada var → menü/footer
+      if (globalSeen.has(n)) continue // tam tekrar
+      globalSeen.add(n)
+      kept.push(l)
+    }
+  }
+  return kept.join('\n')
 }
 
 export async function fetchSiteContent(rawUrl: string): Promise<SiteFetch> {

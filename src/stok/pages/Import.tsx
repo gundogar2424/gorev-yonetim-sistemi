@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { readStokSettings, addProductsMany } from '../db'
-import { extractProducts, extractProductsFromChunks } from '../ai'
-import { fetchSiteContent, crawlSite } from '../lib/webfetch'
+import { extractProducts, extractProductsFromChunks, EXTRACT_MODEL } from '../ai'
+import { fetchSiteContent, crawlSite, mergePageTexts } from '../lib/webfetch'
 import { parseProductPaste } from '../lib/parseImport'
 import { fileToCompressedDataUrl } from '../lib/image'
 import { extractPdfText, chunkText } from '../lib/pdf'
@@ -46,12 +46,11 @@ export default function Import() {
     if (seeds.length === 0) return
     const apiKey = await needApiKey()
     if (!apiKey) return
-    const s = await readStokSettings()
 
     try {
       if (wide) {
         // GENİŞ TARAMA: site içinde gez, tüm sayfaların metnini topla + PDF'leri oku
-        const limit = Math.max(1, Math.min(80, Number(maxPages) || 25))
+        const limit = Math.max(1, Math.min(300, Number(maxPages) || 25))
         setBusy('Site taranıyor…')
         const crawl = await crawlSite(seeds, {
           maxPages: limit,
@@ -68,7 +67,8 @@ export default function Import() {
             /* bu PDF atlansın */
           }
         }
-        const combined = allText.join('\n')
+        // Tekrarlayan menü/footer metnini ele — token'ı ciddi düşürür
+        const combined = mergePageTexts(allText)
         if (combined.trim().length < 60) {
           setBusy('')
           setError(
@@ -81,7 +81,7 @@ export default function Import() {
         const chunks = chunkText(combined, 6000)
         const list = await extractProductsFromChunks({
           apiKey,
-          model: s.model,
+          model: EXTRACT_MODEL,
           chunks,
           onProgress: (c, t) => setBusy(`Ürünler okunuyor… bölüm ${c}/${t}`)
         })
@@ -112,13 +112,13 @@ export default function Import() {
         const chunks = chunkText(text, 6000)
         list = await extractProductsFromChunks({
           apiKey,
-          model: s.model,
+          model: EXTRACT_MODEL,
           chunks,
           onProgress: (c, t) => setBusy(`Okunuyor… bölüm ${c}/${t}`)
         })
       } else {
         setBusy('Yapay zeka ürünleri okuyor…')
-        list = await extractProducts({ apiKey, model: s.model, text: fetched.text })
+        list = await extractProducts({ apiKey, model: EXTRACT_MODEL, text: fetched.text })
       }
       setItems(list)
       if (list.length === 0) setError('Bu sayfada ürün bulunamadı. Farklı bir bağlantı veya PDF katalog deneyin.')
@@ -137,7 +137,6 @@ export default function Import() {
     if (!file) return
     const apiKey = await needApiKey()
     if (!apiKey) return
-    const s = await readStokSettings()
     try {
       let list: ExtractedProduct[]
       if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
@@ -157,14 +156,14 @@ export default function Import() {
         const chunks = chunkText(text, 6000)
         list = await extractProductsFromChunks({
           apiKey,
-          model: s.model,
+          model: EXTRACT_MODEL,
           chunks,
           onProgress: (c, t) => setBusy(`Okunuyor… bölüm ${c}/${t}`)
         })
       } else {
         setBusy('Yapay zeka okuyor…')
         const dataUrl = await fileToCompressedDataUrl(file, 1600, 0.85)
-        list = await extractProducts({ apiKey, model: s.model, imageDataUrl: dataUrl })
+        list = await extractProducts({ apiKey, model: EXTRACT_MODEL, imageDataUrl: dataUrl })
       }
       setItems(list)
       if (list.length === 0) setError('İçerikte ürün bulunamadı.')
@@ -192,10 +191,9 @@ export default function Import() {
     if (!pasteText.trim()) return
     const apiKey = await needApiKey()
     if (!apiKey) return
-    const s = await readStokSettings()
     setBusy('Yapay zeka okuyor…')
     try {
-      const list = await extractProducts({ apiKey, model: s.model, text: pasteText })
+      const list = await extractProducts({ apiKey, model: EXTRACT_MODEL, text: pasteText })
       setItems(list)
       if (list.length === 0) setError('Ürün bulunamadı.')
     } catch (err) {
@@ -343,7 +341,8 @@ export default function Import() {
             </button>
             <p className="text-xs text-slate-400">
               Not: Web tarama en güvenilir şekilde telefona kurulu uygulamada (APK) çalışır; tarayıcıda bazı siteler
-              güvenlik (CORS) nedeniyle engelleyebilir. Çok sayfa taramak biraz sürebilir ve daha çok yapay zeka kullanır.
+              güvenlik (CORS) nedeniyle engelleyebilir. Yüksek sayfa sayısını rahat kullanın: tekrar eden menü/footer
+              metni atılır ve okuma için hızlı-ucuz model (Haiku) kullanılır; maliyet düşük tutulur.
             </p>
           </div>
         )}
