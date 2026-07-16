@@ -1,8 +1,13 @@
 package com.karttakip.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.karttakip.app.notif.NotificationScheduler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -157,6 +162,31 @@ fun CardListScreen(
                             onClick = {
                                 menuOpen = false
                                 exportLauncher.launch("kart-takip-yedek.json")
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Test bildirimi gönder") },
+                            leadingIcon = { Icon(Icons.Default.NotificationsActive, contentDescription = null) },
+                            onClick = {
+                                menuOpen = false
+                                val hasPerm = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                                    ContextCompat.checkSelfPermission(
+                                        context, Manifest.permission.POST_NOTIFICATIONS
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                if (!hasPerm) {
+                                    Toast.makeText(
+                                        context,
+                                        "Önce bildirim iznini aç: Ayarlar → Uygulamalar → Kart Takip → Bildirimler",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    NotificationScheduler.showNotification(
+                                        context, 999999,
+                                        "Kart Takip — test 🔔",
+                                        "Bildirimler çalışıyor! Gerçek hatırlatmalar kesim ve son ödeme günlerinde böyle gelir."
+                                    )
+                                    Toast.makeText(context, "Test bildirimi gönderildi", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         )
                     }
