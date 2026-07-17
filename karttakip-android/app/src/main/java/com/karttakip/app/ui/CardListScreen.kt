@@ -348,12 +348,13 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
     val nextStatement = CardCalc.nextStatement(card, today)
     val nextDue = CardCalc.nextDue(card, today)
     val daysToDue = CardCalc.daysUntil(nextDue, today)
+    val available = (card.limit - card.debt).coerceAtLeast(0.0)
     val base = Color(card.colorArgb)
 
     Box(
         Modifier
             .fillMaxWidth()
-            .height(150.dp)
+            .height(172.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.linearGradient(listOf(base, base.darken(0.55f))))
             .clickable(onClick = onClick)
@@ -378,15 +379,24 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                 )
             }
 
-            // Kart adi
-            Text(
-                card.name,
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Kart adi + kullanilabilir limit
+            Column {
+                Text(
+                    card.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (card.limit > 0) {
+                    Text(
+                        "Kullanılabilir ${money(available)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
 
             // Alt satir: son odeme + gun rozeti + borc
             Row(

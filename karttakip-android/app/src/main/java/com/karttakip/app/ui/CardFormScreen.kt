@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -89,7 +90,7 @@ fun CardFormScreen(
     var statementDate by remember { mutableStateOf<LocalDate?>(null) }
     var dueDate by remember { mutableStateOf<LocalDate?>(null) }
     var limit by remember { mutableStateOf("") }
-    var debt by remember { mutableStateOf("") }
+    var available by remember { mutableStateOf("") }   // kullanilabilir limit
     var remind by remember { mutableStateOf("3") }
     var color by remember { mutableStateOf(PRESET_COLORS.first()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -108,7 +109,7 @@ fun CardFormScreen(
                 statementDate = CardCalc.nextStatement(c, today)
                 dueDate = CardCalc.nextDue(c, today)
                 limit = if (c.limit > 0) c.limit.toLong().toString() else ""
-                debt = if (c.debt > 0) c.debt.toLong().toString() else ""
+                available = if (c.limit - c.debt > 0) (c.limit - c.debt).toLong().toString() else ""
                 remind = c.remindDaysBefore.toString()
                 color = c.colorArgb
             }
@@ -209,15 +210,25 @@ fun CardFormScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = limit, onValueChange = { limit = it.filter(Char::isDigit) },
-                    label = { Text("Limit (₺)") },
+                    label = { Text("Kart limiti (₺)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true, modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
-                    value = debt, onValueChange = { debt = it.filter(Char::isDigit) },
-                    label = { Text("Güncel borç (₺)") },
+                    value = available, onValueChange = { available = it.filter(Char::isDigit) },
+                    label = { Text("Kullanılabilir (₺)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true, modifier = Modifier.weight(1f)
+                )
+            }
+            run {
+                val lim = limit.toDoubleOrNull() ?: 0.0
+                val avl = available.toDoubleOrNull() ?: 0.0
+                val computedDebt = (lim - avl).coerceAtLeast(0.0)
+                Text(
+                    "Borç (otomatik): ${"%,.0f ₺".format(Locale("tr", "TR"), computedDebt)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -270,7 +281,8 @@ fun CardFormScreen(
                                 statementEpochDay = sDate.toEpochDay(),
                                 dueEpochDay = dDate.toEpochDay(),
                                 limit = limit.toDoubleOrNull() ?: 0.0,
-                                debt = debt.toDoubleOrNull() ?: 0.0,
+                                // Borc otomatik: limit - kullanilabilir
+                                debt = ((limit.toDoubleOrNull() ?: 0.0) - (available.toDoubleOrNull() ?: 0.0)).coerceAtLeast(0.0),
                                 colorArgb = color,
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3
                             )
@@ -286,6 +298,38 @@ fun CardFormScreen(
             }
 
             if (isEdit) {
+                // Bu ayki odemeyi yap: borc sifirlanir (kullanilabilir = tam limit),
+                // son odeme bir sonraki aya kayar.
+                Button(
+                    onClick = {
+                        val sDate = statementDate
+                        val dDate = dueDate
+                        if (name.isNotBlank() && sDate != null && dDate != null) {
+                            val paid = Card(
+                                id = existing?.id ?: 0L,
+                                name = name.trim(),
+                                bank = bank.trim(),
+                                statementEpochDay = sDate.toEpochDay(),
+                                dueEpochDay = dDate.plusMonths(1).toEpochDay(),
+                                limit = limit.toDoubleOrNull() ?: 0.0,
+                                debt = 0.0,
+                                colorArgb = color,
+                                remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3
+                            )
+                            vm.save(paid) { onBack() }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF16A34A),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text("Bu ayki ödemeyi yaptım")
+                }
+
                 OutlinedButton(
                     onClick = { existing?.let { c -> vm.delete(c) { onBack() } } },
                     modifier = Modifier.fillMaxWidth()
