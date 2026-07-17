@@ -778,13 +778,20 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
 // ---- GÜNLÜK SAĞLIK RAPORU (tek görsel): şeker/tansiyon + spor + ilaç/vitamin ----
 // Diyetisyene bir günün SAĞLIK verilerini tek seferde göndermek için. Token harcamaz.
 export async function buildDailyHealthImage(dateStr: string, userName?: string): Promise<Blob> {
-  const [vitals, exercises, waterRow, meds, medLogs] = await Promise.all([
+  const [vitals, exercises, waterRow, meds, medLogs, actRow] = await Promise.all([
     dietDb.vitals.where('dateStr').equals(dateStr).toArray(),
     dietDb.exercises.where('dateStr').equals(dateStr).toArray(),
     dietDb.water.where('dateStr').equals(dateStr).first(),
     dietDb.meds.toArray(),
-    dietDb.medlogs.where('dateStr').equals(dateStr).toArray()
+    dietDb.medlogs.where('dateStr').equals(dateStr).toArray(),
+    dietDb.steps.where('dateStr').equals(dateStr).first()
   ])
+  const actParts: string[] = []
+  if (actRow?.count) actParts.push(`👟 ${actRow.count.toLocaleString('tr-TR')} adım`)
+  if (actRow?.activeMin) actParts.push(`⏱️ ${actRow.activeMin} dk etkin`)
+  if (actRow?.activeKcal) actParts.push(`🔥 ${actRow.activeKcal} kcal aktivite`)
+  if (actRow?.burnedKcal) actParts.push(`🔋 ${actRow.burnedKcal} kcal toplam`)
+  if (actRow?.distanceKm) actParts.push(`📍 ${actRow.distanceKm} km`)
   const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
   vitals.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
   exercises.sort((a, b) => a.createdAt - b.createdAt)
@@ -844,10 +851,13 @@ export async function buildDailyHealthImage(dateStr: string, userName?: string):
 
   const vitCardH = vitals.length ? CPAD * 2 + vitals.length * ROW : 0
   const medCardH = medRows.length ? CPAD * 2 + medRows.length * ROW : 0
+  const actLines = actParts.length ? wrapText(mctx, actParts.join('   ·   '), W - 2 * PAD - 2 * CPAD) : []
+  const actCardH = actLines.length ? CPAD * 2 + actLines.length * 38 : 0
 
-  const hasAny = vitals.length || exB.length || medRows.length || waterMl > 0
+  const hasAny = vitals.length || exB.length || medRows.length || waterMl > 0 || actParts.length
   let content = 0
   if (vitals.length) content += TITLE_H + vitCardH + 22
+  if (actParts.length) content += TITLE_H + actCardH + 22
   if (exB.length) content += TITLE_H + exCardH + 22
   if (medRows.length) content += TITLE_H + medCardH + 22
   if (waterMl > 0) content += TITLE_H + 86 + 22
@@ -911,6 +921,20 @@ export async function buildDailyHealthImage(dateStr: string, userName?: string):
       ry += ROW
     }
     y += vitCardH + 22
+  }
+
+  // Aktivite (akıllı saatten): adım / etkin süre / kalori / mesafe
+  if (actParts.length) {
+    drawTitle('🏃 Aktivite (saatten)')
+    fillRound(ctx, PAD, y, W - 2 * PAD, actCardH, 18, '#ffffff')
+    let ry = y + CPAD
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 25px sans-serif'
+    for (const ln of actLines) {
+      ctx.fillText(ln, PAD + CPAD, ry + 30)
+      ry += 38
+    }
+    y += actCardH + 22
   }
 
   // Spor
@@ -1071,6 +1095,96 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   ctx.fillStyle = '#94a3b8'
   ctx.font = '20px sans-serif'
   ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 24)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
+  })
+}
+
+// ---- TEK TİP SAĞLIK raporu: SADECE şeker ya da SADECE tansiyon (ayrı ayrı gönderim) ----
+// Diyetisyene şekeri/tansiyonu tek başına, dönemli liste + ortalama olarak gönderir.
+export async function buildVitalReportImage(kind: 'seker' | 'tansiyon', days: number, userName?: string): Promise<Blob> {
+  const all = await dietDb.vitals.orderBy('createdAt').toArray()
+  const rows = all
+    .filter((v) => v.kind === kind && imgInLastDays(v.dateStr, days))
+    .sort((a, b) => (a.dateStr + a.time).localeCompare(b.dateStr + b.time))
+
+  const isSugar = kind === 'seker'
+  const accent = isSugar ? '#e11d48' : '#0ea5e9'
+  const title = isSugar ? '🩸 Şeker Raporu' : '🩺 Tansiyon Raporu'
+
+  const BANNER = 96
+  const ROW = 52
+  const CPAD = 22
+  const headH = 56 // ortalama satiri
+  const cardTop = PAD + BANNER + 20
+  const cardH = rows.length ? CPAD * 2 + headH + rows.length * ROW : 90
+  const logicalH = cardTop + cardH + 56
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#f6f8fa'
+  ctx.fillRect(0, 0, W, logicalH)
+
+  // Banner
+  const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
+  grad.addColorStop(0, isSugar ? '#be123c' : '#0369a1')
+  grad.addColorStop(1, accent)
+  roundRectPath(ctx, PAD, PAD, W - 2 * PAD, BANNER, 22)
+  ctx.fillStyle = grad
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 32px sans-serif'
+  ctx.fillText(title, PAD + 26, PAD + 46)
+  ctx.font = '19px sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.fillText(`${days ? `Son ${days} gün` : 'Tüm zamanlar'}${userName ? ` · ${userName}` : ''}`, PAD + 26, PAD + 76)
+
+  fillRound(ctx, PAD, cardTop, W - 2 * PAD, cardH, 22, '#ffffff')
+
+  if (!rows.length) {
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '20px sans-serif'
+    ctx.fillText(isSugar ? 'Bu aralıkta şeker ölçümü yok.' : 'Bu aralıkta tansiyon ölçümü yok.', PAD + 26, cardTop + 52)
+  } else {
+    let y = cardTop + CPAD + 34
+    // Ortalama
+    ctx.fillStyle = accent
+    ctx.font = 'bold 24px sans-serif'
+    if (isSugar) {
+      const avg = Math.round(rows.reduce((s, v) => s + (v.sugar || 0), 0) / rows.length)
+      ctx.fillText(`Ortalama şeker: ${avg} mg/dL  (${rows.length} ölçüm)`, PAD + CPAD, y)
+    } else {
+      const as = Math.round(rows.reduce((s, v) => s + (v.systolic || 0), 0) / rows.length)
+      const ad = Math.round(rows.reduce((s, v) => s + (v.diastolic || 0), 0) / rows.length)
+      ctx.fillText(`Ortalama tansiyon: ${as}/${ad}  (${rows.length} ölçüm)`, PAD + CPAD, y)
+    }
+    y += headH - 12
+    // Satirlar
+    for (const v of rows) {
+      const dt = new Date(v.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+      const baseY = y + 30
+      ctx.fillStyle = '#0f172a'
+      ctx.font = 'bold 24px sans-serif'
+      if (isSugar) {
+        const txt = `${dt} ${v.time || ''}  ·  ${v.sugar} mg/dL`
+        ctx.fillText(txt.trim(), PAD + CPAD, baseY)
+        if (v.sugarContext) {
+          const isTok = v.sugarContext.toLowerCase().startsWith('tok')
+          ctx.font = 'bold 15px sans-serif'
+          const cw = ctx.measureText(isTok ? '🍽️ Tok' : '🕐 Açlık').width + 22
+          drawChip(ctx, W - PAD - CPAD - cw, baseY - 21, isTok ? '🍽️ Tok' : '🕐 Açlık', isTok ? '#e0f2fe' : '#fef3c7', isTok ? '#075985' : '#92400e')
+        }
+      } else {
+        ctx.fillText(`${dt} ${v.time || ''}  ·  ${v.systolic}/${v.diastolic}${v.pulse ? `  · nabız ${v.pulse}` : ''}`.trim(), PAD + CPAD, baseY)
+      }
+      y += ROW
+    }
+  }
+
+  ctx.fillStyle = '#94a3b8'
+  ctx.font = '18px sans-serif'
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 22)
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')

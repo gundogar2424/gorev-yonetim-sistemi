@@ -429,6 +429,32 @@ export async function getStepsDay(dateStr: string): Promise<number> {
 export function listSteps(): Promise<Steps[]> {
   return dietDb.steps.orderBy('dateStr').toArray()
 }
+// Gunun aktivite verisini (adim + etkin sure + aktivite/toplam kalori + mesafe) upsert et.
+// Samsung Health vb.'den elle girilen degerleri saklar. Bos/0 alanlar temizlenir.
+export async function getStepsRow(dateStr: string): Promise<Steps | undefined> {
+  return dietDb.steps.where('dateStr').equals(dateStr).first()
+}
+export async function setActivityDay(
+  dateStr: string,
+  patch: { count?: number; activeMin?: number; activeKcal?: number; burnedKcal?: number; distanceKm?: number }
+) {
+  const clean = (n?: number) => (n != null && isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : undefined)
+  const data = {
+    count: Math.max(0, Math.round(patch.count ?? 0)),
+    activeMin: clean(patch.activeMin),
+    activeKcal: clean(patch.activeKcal),
+    burnedKcal: clean(patch.burnedKcal),
+    distanceKm: clean(patch.distanceKm)
+  }
+  const empty = !data.count && !data.activeMin && !data.activeKcal && !data.burnedKcal && !data.distanceKm
+  const row = await dietDb.steps.where('dateStr').equals(dateStr).first()
+  if (row?.id != null) {
+    if (empty) await dietDb.steps.delete(row.id)
+    else await dietDb.steps.update(row.id, data)
+  } else if (!empty) {
+    await dietDb.steps.add({ dateStr, createdAt: Date.now(), ...data })
+  }
+}
 // Bir gunun adim sayisini ayarla (0'a duserse kaydi siler)
 export async function setStepsDay(dateStr: string, count: number) {
   const c = Math.max(0, Math.round(count))

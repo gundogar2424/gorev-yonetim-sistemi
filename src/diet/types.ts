@@ -157,6 +157,10 @@ export interface Steps {
   id?: number
   dateStr: string // YYYY-MM-DD
   count: number // Adim sayisi
+  activeMin?: number // Etkin (aktif) sure — dakika (Samsung Health vb.)
+  activeKcal?: number // Aktivite kalorisi
+  burnedKcal?: number // Yakilan TOPLAM kalori (bazal + aktivite)
+  distanceKm?: number // Etkinken mesafe (km)
   createdAt: number
 }
 

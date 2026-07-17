@@ -16,7 +16,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
   const since7 = todayStr(new Date(Date.now() - 6 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -29,7 +29,8 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.medlogs.where('dateStr').equals(today).sortBy('createdAt'),
     dietDb.medlogs.orderBy('createdAt').toArray(),
     dietDb.checkins.toArray(),
-    dietDb.meds.toArray()
+    dietDb.meds.toArray(),
+    dietDb.steps.toArray()
   ])
 
   const L: string[] = []
@@ -252,6 +253,35 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       L.push(
         `BİRLEŞİK ÖĞÜNLER (son 14 gün — kullanıcı bu günlerde iki öğünü tek öğünde birleştirdi): ${list}. Bu günlerde ilgili iki öğünü TEK öğün gibi değerlendir, "kahvaltı/öğün atladın" deme.`
       )
+    }
+  }
+
+  // GÜNLÜK AKTİVİTE (akıllı saatten): bugünkü + son 7 gün ortalaması. Kalori dengesi
+  // ve hareket düzeyi yorumunda kullan (adım/etkin süre/aktivite-toplam kalori/mesafe).
+  if (stepsAll.length) {
+    const st = stepsAll.find((s) => s.dateStr === today)
+    if (st) {
+      const p: string[] = []
+      if (st.count) p.push(`${st.count} adım`)
+      if (st.activeMin) p.push(`${st.activeMin} dk etkin`)
+      if (st.activeKcal) p.push(`${st.activeKcal} kcal aktivite`)
+      if (st.burnedKcal) p.push(`${st.burnedKcal} kcal toplam yakım`)
+      if (st.distanceKm) p.push(`${st.distanceKm} km`)
+      if (p.length) L.push(`Bugünkü aktivite (saatten): ${p.join(' · ')}.`)
+    }
+    const last7 = stepsAll.filter((s) => s.dateStr >= since7)
+    if (last7.length) {
+      const avg = (sel: (s: (typeof last7)[number]) => number | undefined) => {
+        const vals = last7.map(sel).filter((n): n is number => typeof n === 'number' && n > 0)
+        return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0
+      }
+      const aSteps = avg((s) => s.count)
+      const aBurn = avg((s) => s.burnedKcal)
+      if (aSteps || aBurn) {
+        L.push(
+          `Son 7 gün aktivite ort.: ${aSteps ? `${aSteps} adım/gün` : ''}${aSteps && aBurn ? ', ' : ''}${aBurn ? `~${aBurn} kcal/gün yakım` : ''}. Kalori dengesi ve hareket düzeyini buna göre değerlendir.`
+        )
+      }
     }
   }
 

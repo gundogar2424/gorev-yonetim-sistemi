@@ -12,13 +12,15 @@ import {
   listVitals,
   addVital,
   deleteVital,
-  readDietSettings
+  readDietSettings,
+  getStepsRow,
+  setActivityDay
 } from '../db'
 import { analyzeMealSugar, quickMealSugarNote } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
 import { buildMeasurementsReport } from '../lib/report'
-import { buildMeasurementsImage, buildLatestMeasurementImage } from '../lib/reportImage'
+import { buildMeasurementsImage, buildLatestMeasurementImage, buildVitalReportImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { Measurement } from '../types'
 
@@ -99,6 +101,9 @@ export default function Track() {
 
         {tab === 'olcu' ? <MeasurePanel range={range} /> : <VitalPanel range={range} />}
 
+        {/* Günlük aktivite (Samsung Health vb.'den elle) — her iki sekmede de görünür */}
+        <ActivityPanel />
+
         {/* Yemek–seker baglanti analizi (yalnizca saglik sekmesinde) */}
         {tab === 'saglik' && <SugarMealInsight />}
 
@@ -106,6 +111,113 @@ export default function Track() {
         <SendMeasurements />
       </div>
     </div>
+  )
+}
+
+// Gunluk aktivite girisi (Samsung Health / akilli saatten elle): adim, etkin sure,
+// aktivite kalorisi, yakilan toplam kalori, mesafe. Sağlık bağlamına + raporlara girer.
+function ActivityPanel() {
+  const today = todayStr()
+  const row = useLiveQuery(() => getStepsRow(today), [today], undefined)
+  const [open, setOpen] = useState(false)
+  const [steps, setSteps] = useState('')
+  const [amin, setAmin] = useState('')
+  const [akcal, setAkcal] = useState('')
+  const [bkcal, setBkcal] = useState('')
+  const [dist, setDist] = useState('')
+  const [msg, setMsg] = useState('')
+  const [loaded, setLoaded] = useState(false)
+
+  // Kayitli degerleri forma yukle (bir kez, panel acilinca)
+  function edit() {
+    setSteps(row?.count ? String(row.count) : '')
+    setAmin(row?.activeMin ? String(row.activeMin) : '')
+    setAkcal(row?.activeKcal ? String(row.activeKcal) : '')
+    setBkcal(row?.burnedKcal ? String(row.burnedKcal) : '')
+    setDist(row?.distanceKm ? String(row.distanceKm) : '')
+    setLoaded(true)
+    setOpen(true)
+  }
+
+  async function save() {
+    const num = (s: string) => (s.trim() ? Number(s.replace(',', '.')) : undefined)
+    await setActivityDay(today, {
+      count: num(steps) ?? 0,
+      activeMin: num(amin),
+      activeKcal: num(akcal),
+      burnedKcal: num(bkcal),
+      distanceKm: num(dist)
+    })
+    setMsg('Kaydedildi 👍')
+    setOpen(false)
+    setTimeout(() => setMsg(''), 2500)
+  }
+
+  const has = !!(row?.count || row?.activeMin || row?.activeKcal || row?.burnedKcal || row?.distanceKm)
+
+  return (
+    <section className="card p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">🏃 Günlük Aktivite</h3>
+        {!open && (
+          <button onClick={edit} className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
+            {has ? '✏️ Düzenle' : '＋ Gir'}
+          </button>
+        )}
+      </div>
+
+      {!open ? (
+        has ? (
+          <p className="text-xs text-slate-500">
+            Bugün:
+            {row?.count ? ` ${row.count.toLocaleString('tr-TR')} adım` : ''}
+            {row?.activeMin ? ` · ${row.activeMin} dk etkin` : ''}
+            {row?.activeKcal ? ` · ${row.activeKcal} kcal aktivite` : ''}
+            {row?.burnedKcal ? ` · ${row.burnedKcal} kcal toplam` : ''}
+            {row?.distanceKm ? ` · ${row.distanceKm} km` : ''}
+          </p>
+        ) : (
+          <p className="text-xs text-slate-500">
+            Akıllı saatinden (Samsung Health vb.) bugünkü değerleri gir; koç ve raporlar bunları kullanır.
+          </p>
+        )
+      ) : (
+        <div className="space-y-2">
+          {!loaded && null}
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-[11px] text-slate-500">
+              👟 Adım
+              <input type="number" inputMode="numeric" className="num-input" value={steps} onChange={(e) => setSteps(e.target.value)} placeholder="16307" />
+            </label>
+            <label className="text-[11px] text-slate-500">
+              ⏱️ Etkin süre (dk)
+              <input type="number" inputMode="numeric" className="num-input" value={amin} onChange={(e) => setAmin(e.target.value)} placeholder="170" />
+            </label>
+            <label className="text-[11px] text-slate-500">
+              🔥 Aktivite kalorisi
+              <input type="number" inputMode="numeric" className="num-input" value={akcal} onChange={(e) => setAkcal(e.target.value)} placeholder="760" />
+            </label>
+            <label className="text-[11px] text-slate-500">
+              🔋 Yakılan toplam kcal
+              <input type="number" inputMode="numeric" className="num-input" value={bkcal} onChange={(e) => setBkcal(e.target.value)} placeholder="2802" />
+            </label>
+            <label className="text-[11px] text-slate-500 col-span-2">
+              📍 Mesafe (km)
+              <input type="number" inputMode="decimal" className="num-input" value={dist} onChange={(e) => setDist(e.target.value)} placeholder="12.08" />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setOpen(false)} className="btn bg-slate-200 text-slate-700 py-2">
+              Vazgeç
+            </button>
+            <button onClick={save} className="btn-primary py-2">
+              Kaydet
+            </button>
+          </div>
+        </div>
+      )}
+      {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
+    </section>
   )
 }
 
@@ -255,6 +367,23 @@ function SendMeasurements() {
     setTimeout(() => setMsg(''), 4000)
   }
 
+  // SADECE şeker ya da SADECE tansiyon raporunu ayrı gönder (seçili dönem)
+  async function sendVital(kind: 'seker' | 'tansiyon') {
+    setMsg('Görsel hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildVitalReportImage(kind, days, settings.userName)
+      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-rapor-${days || 'tum'}gun.png`)
+      if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Görsel gönderilemedi.')
+    } catch {
+      setMsg('Görsel oluşturulamadı.')
+    }
+    setTimeout(() => setMsg(''), 4000)
+  }
+
   return (
     <section className="card p-3 space-y-2">
       <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Ölçümleri Diyetisyene Gönder</h3>
@@ -286,6 +415,16 @@ function SendMeasurements() {
         </button>
         <button onClick={sendImage} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
           📸 Resimli Gönder
+        </button>
+      </div>
+
+      <p className="text-xs text-slate-500 pt-1">Ya da tek tek gönder (seçili dönem):</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => sendVital('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 whitespace-nowrap">
+          🩸 Sadece Şeker
+        </button>
+        <button onClick={() => sendVital('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 whitespace-nowrap">
+          🩺 Sadece Tansiyon
         </button>
       </div>
       {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
