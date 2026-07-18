@@ -89,6 +89,8 @@ fun CardListScreen(
     val best = CardCalc.bestCardToUse(cards, today)
     val urgent = CardCalc.mostUrgentPayment(cards, today)
     val totalDebt = cards.sumOf { it.debt }
+    val totalLimit = cards.sumOf { it.limit }
+    val totalAvailable = cards.sumOf { (it.limit - it.debt).coerceAtLeast(0.0) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -219,7 +221,14 @@ fun CardListScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { SummaryHeader(totalDebt = totalDebt, cardCount = cards.size) }
+            item {
+                SummaryHeader(
+                    totalDebt = totalDebt,
+                    totalLimit = totalLimit,
+                    totalAvailable = totalAvailable,
+                    cardCount = cards.size
+                )
+            }
 
             best?.let {
                 item {
@@ -267,7 +276,12 @@ fun CardListScreen(
 }
 
 @Composable
-private fun SummaryHeader(totalDebt: Double, cardCount: Int) {
+private fun SummaryHeader(
+    totalDebt: Double,
+    totalLimit: Double,
+    totalAvailable: Double,
+    cardCount: Int
+) {
     Column(Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp)) {
         Text(
             "Toplam borç",
@@ -280,10 +294,55 @@ private fun SummaryHeader(totalDebt: Double, cardCount: Int) {
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatChip(
+                label = "Toplam limit",
+                value = money(totalLimit),
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            StatChip(
+                label = "Kullanılabilir",
+                value = money(totalAvailable),
+                accent = Color(0xFF34D399),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(Modifier.height(6.dp))
         Text(
             "$cardCount kart",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun StatChip(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            color = accent,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
