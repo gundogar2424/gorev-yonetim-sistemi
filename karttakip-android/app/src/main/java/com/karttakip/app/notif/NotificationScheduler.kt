@@ -6,6 +6,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.graphics.Color
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.RingtoneManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -34,7 +37,8 @@ import java.util.Locale
  */
 object NotificationScheduler {
 
-    const val CHANNEL_ID = "karttakip_reminders"
+    // Alarm kanali (yeni id — kanal ayarlari ilk olusturuldugunda sabitlenir)
+    const val CHANNEL_ID = "karttakip_alarm"
     private val NOTIFY_TIME: LocalTime = LocalTime.of(10, 0) // sabah 10:00
     private val dateFmt = DateTimeFormatter.ofPattern("d MMMM EEEE", Locale("tr", "TR"))
 
@@ -47,17 +51,26 @@ object NotificationScheduler {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService<NotificationManager>() ?: return
         if (nm.getNotificationChannel(CHANNEL_ID) != null) return
+        // Alarm sesi (calar saat gibi), ALARM ses akisindan calsin -> yuksek ve
+        // sessiz modda bile duyulur.
+        val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val audioAttrs = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Kart hatirlatmalari",
+            "Kart alarmlari",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Hesap kesim ve son odeme tarihi hatirlatmalari"
+            description = "Hesap kesim ve son odeme tarihi alarmlari (calar tonu)"
             enableVibration(true)
-            vibrationPattern = longArrayOf(0, 600, 300, 600, 300, 600)
+            vibrationPattern = longArrayOf(0, 700, 400, 700, 400, 700, 400, 700)
             enableLights(true)
             lightColor = Color.RED
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setSound(alarmUri, audioAttrs)
         }
         nm.createNotificationChannel(channel)
     }
@@ -143,21 +156,28 @@ object NotificationScheduler {
             context, id, openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val notif = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .setVibrate(longArrayOf(0, 600, 300, 600, 300, 600))
+            .setSound(alarmSound, AudioManager.STREAM_ALARM)
+            .setVibrate(longArrayOf(0, 700, 400, 700, 400, 700, 400, 700))
+            .setLights(0xFFFF0000.toInt(), 500, 500)
             .setAutoCancel(true)
+            .setOngoing(true)
             .setContentIntent(contentPi)
-            // Ekrani uyandiran tam-ekran uyari (alarm gibi guclu)
+            // Ekrani uyandiran tam-ekran uyari (calar saat gibi)
             .setFullScreenIntent(contentPi, true)
             .build()
+
+        // Sen kapatana kadar calmaya devam etsin (alarm gibi).
+        notif.flags = notif.flags or Notification.FLAG_INSISTENT
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS)
