@@ -1101,8 +1101,9 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   })
 }
 
-// ---- AÇLIK GRAFİĞİ raporu: gün içi açlık (1-10) zaman çizgisi + öğün işaretleri ----
-// Diyetisyen, öğün ÖNCESİ/SONRASI açlığı hem grafikte hem listede görür. Token yok.
+// ---- AÇLIK TAKİBİ raporu: gün akışı (kronolojik) — sabahtan akşama saat sırasıyla ----
+// Açlık kayıtları ve öğünler TEK zaman çizelgesinde, BÜYÜK ve okunaklı satırlarla.
+// Diyetisyen "kahvaltıdan önce 8'di, sonra 3'e düştü, ara öğün şurada" akışını görür.
 export async function buildHungerImage(dateStr: string, userName?: string): Promise<Blob> {
   const [entries, checkins] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
@@ -1110,7 +1111,13 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
   ])
   const hunger = checkins.filter((c) => c.hunger != null).sort((a, b) => a.createdAt - b.createdAt)
   const meals = entries.filter((e) => e.decision === 'ate').sort((a, b) => a.createdAt - b.createdAt)
-  const groups = groupHungerByMeal(entries, checkins)
+
+  // Kronolojik akış: açlık kayıtları + öğünler tek listede, saat sırasıyla
+  type Ev = { at: number; kind: 'hunger'; val: number } | { at: number; kind: 'meal'; e: DietEntry }
+  const evs: Ev[] = [
+    ...hunger.map((c) => ({ at: c.createdAt, kind: 'hunger' as const, val: c.hunger! })),
+    ...meals.map((e) => ({ at: e.createdAt, kind: 'meal' as const, e }))
+  ].sort((a, b) => a.at - b.at)
 
   const dateNice = new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
     weekday: 'long',
@@ -1120,14 +1127,25 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
   })
 
   const BANNER = 96
-  const CHART_H = 320
-  const CPAD = 22
-  const ROW = 46
-  const listRows = groups.reduce((s, g) => s + 1 + g.recs.length, 0)
-  const listCardH = hunger.length ? CPAD * 2 + listRows * ROW + 40 : 0
-  const chartCardH = hunger.length ? CHART_H + 90 : 90
+  const CPAD = 24
+  const MEAL_ROW = 78 // ogun bandi (buyuk)
+  const HUNGER_ROW = 62 // aclik satiri (buyuk)
+  const AVG_H = 64
+  const mctx = document.createElement('canvas').getContext('2d')!
 
-  const logicalH = PAD + BANNER + 22 + chartCardH + 22 + listCardH + 56
+  // Ogun adi tek satira sigmazsa kisalt (buyuk fontla)
+  const nameMaxW = W - 2 * PAD - 2 * CPAD - 250
+  const mealName = (e: DietEntry) => {
+    mctx.font = 'bold 26px sans-serif'
+    let n = e.foodName || ''
+    while (n.length > 3 && mctx.measureText(n).width > nameMaxW) n = n.slice(0, -1)
+    return n === (e.foodName || '') ? n : n + '…'
+  }
+
+  const listH = evs.length
+    ? evs.reduce((s2, ev) => s2 + (ev.kind === 'meal' ? MEAL_ROW : HUNGER_ROW), 0) + CPAD * 2 + (hunger.length ? AVG_H : 0)
+    : 100
+  const logicalH = PAD + BANNER + 22 + listH + 56
   const { canvas, ctx } = hiDpiCanvas(W, logicalH)
   ctx.textBaseline = 'alphabetic'
   ctx.textAlign = 'left'
@@ -1143,116 +1161,55 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
   ctx.fill()
   ctx.fillStyle = '#ffffff'
   ctx.font = 'bold 32px sans-serif'
-  ctx.fillText('🍽️ Açlık Takibi (öğün öncesi/sonrası)', PAD + 26, PAD + 46)
+  ctx.fillText('🍽️ Açlık Takibi — Gün Akışı', PAD + 26, PAD + 46)
   ctx.font = '19px sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.92)'
-  ctx.fillText(dateNice + (userName ? ` · ${userName}` : ''), PAD + 26, PAD + 76)
+  ctx.fillText(dateNice + (userName ? ` · ${userName}` : '') + ' · 1 tok – 10 çok aç', PAD + 26, PAD + 76)
   let y = PAD + BANNER + 22
 
-  // GRAFİK kartı
-  fillRound(ctx, PAD, y, W - 2 * PAD, chartCardH, 20, '#ffffff')
-  if (!hunger.length) {
+  // Akış kartı
+  fillRound(ctx, PAD, y, W - 2 * PAD, listH, 20, '#ffffff')
+  if (!evs.length) {
     ctx.fillStyle = '#94a3b8'
-    ctx.font = '20px sans-serif'
-    ctx.fillText('Bu güne ait açlık kaydı yok.', PAD + CPAD, y + 52)
-    y += chartCardH + 22
+    ctx.font = '22px sans-serif'
+    ctx.fillText('Bu güne ait açlık/öğün kaydı yok.', PAD + CPAD, y + 58)
   } else {
-    const cx = PAD + CPAD + 30 // sol eksen etiketi payı
-    const cw = W - 2 * PAD - 2 * CPAD - 40
-    const cy = y + 40
-    const ch = CHART_H - 40
-    // Zaman aralığı: ilk-son olay (kayit+ogun), kenarlarda 30 dk pay
-    const times = [...hunger.map((c) => c.createdAt), ...meals.map((m) => m.createdAt)]
-    const t0 = Math.min(...times) - 30 * 60_000
-    const t1 = Math.max(...times) + 30 * 60_000
-    const px = (t: number) => cx + ((t - t0) / (t1 - t0)) * cw
-    const py = (h: number) => cy + ch - ((h - 1) / 9) * ch // 1 altta, 10 üstte
-
-    // Y ekseni çizgileri (1, 5, 10) + etiket
-    ctx.strokeStyle = '#e2e8f0'
-    ctx.lineWidth = 1
-    ctx.fillStyle = '#94a3b8'
-    ctx.font = '15px sans-serif'
-    for (const hv of [1, 5, 10]) {
-      const yy = py(hv)
-      ctx.beginPath()
-      ctx.moveTo(cx, yy)
-      ctx.lineTo(cx + cw, yy)
-      ctx.stroke()
-      ctx.fillText(String(hv), PAD + CPAD, yy + 5)
-    }
-    // Öğün işaretleri: dikey çizgi + emoji + saat
-    for (const m of meals) {
-      const xx = px(m.createdAt)
-      ctx.strokeStyle = '#10b981'
-      ctx.setLineDash([6, 5])
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(xx, cy - 6)
-      ctx.lineTo(xx, cy + ch)
-      ctx.stroke()
-      ctx.setLineDash([])
-      ctx.textAlign = 'center'
-      ctx.font = '20px sans-serif'
-      ctx.fillText(mealEmoji(m.mealType), xx, cy - 14)
-      ctx.fillStyle = '#059669'
-      ctx.font = 'bold 14px sans-serif'
-      ctx.fillText(new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }), xx, cy + ch + 22)
-      ctx.textAlign = 'left'
-      ctx.fillStyle = '#94a3b8'
-    }
-    // Açlık çizgisi + noktalar + değer etiketi
-    ctx.strokeStyle = '#7c3aed'
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    hunger.forEach((c, i) => {
-      const xx = px(c.createdAt)
-      const yy = py(c.hunger!)
-      if (i === 0) ctx.moveTo(xx, yy)
-      else ctx.lineTo(xx, yy)
-    })
-    ctx.stroke()
-    for (const c of hunger) {
-      const xx = px(c.createdAt)
-      const yy = py(c.hunger!)
-      ctx.fillStyle = (c.hunger || 0) >= 7 ? '#e11d48' : (c.hunger || 0) >= 5 ? '#f59e0b' : '#7c3aed'
-      ctx.beginPath()
-      ctx.arc(xx, yy, 7, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.font = 'bold 16px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText(String(c.hunger), xx, yy - 12)
-      ctx.textAlign = 'left'
-    }
-    // Alt açıklama
-    ctx.fillStyle = '#94a3b8'
-    ctx.font = '14px sans-serif'
-    ctx.fillText('1 = tok · 10 = çok aç · yeşil kesikli çizgiler öğünler', PAD + CPAD, y + chartCardH - 14)
-    y += chartCardH + 22
-  }
-
-  // LİSTE kartı: öğün öncesi/sonrası gruplu kayıtlar
-  if (hunger.length) {
-    fillRound(ctx, PAD, y, W - 2 * PAD, listCardH, 20, '#ffffff')
     let ry = y + CPAD
-    for (const g of groups) {
-      ctx.fillStyle = '#7c3aed'
-      ctx.font = 'bold 23px sans-serif'
-      ctx.fillText(`▸ ${g.label}`, PAD + CPAD, ry + 30)
-      ry += ROW
-      for (const c of g.recs) {
-        const t = new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    for (const ev of evs) {
+      const t = new Date(ev.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      if (ev.kind === 'meal') {
+        // ÖĞÜN bandı: renkli arka plan + saat + öğün adı + yemek
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, MEAL_ROW - 12, 14, '#ecfdf5')
+        ctx.fillStyle = '#065f46'
+        ctx.font = 'bold 30px sans-serif'
+        const label = `${mealEmoji(ev.e.mealType)} ${t}  ${(ev.e.mealType ? mealLabel(ev.e.mealType) : 'Öğün').toUpperCase()}${ev.e.alsoMeal ? ' + ' + mealLabel(ev.e.alsoMeal).toUpperCase() : ''}`
+        ctx.fillText(label, PAD + CPAD + 6, ry + 40)
+        ctx.fillStyle = '#0f766e'
+        ctx.font = 'bold 26px sans-serif'
+        ctx.fillText(mealName(ev.e), PAD + CPAD + 6, ry + MEAL_ROW - 8 - 2)
+        ry += MEAL_ROW
+      } else {
+        // AÇLIK satırı: saat + büyük değer (renkli)
+        const col = ev.val >= 7 ? '#e11d48' : ev.val >= 5 ? '#d97706' : '#7c3aed'
+        ctx.fillStyle = col
+        ctx.beginPath()
+        ctx.arc(PAD + CPAD + 12, ry + HUNGER_ROW / 2 - 4, 9, 0, Math.PI * 2)
+        ctx.fill()
         ctx.fillStyle = '#0f172a'
-        ctx.font = '23px sans-serif'
-        ctx.fillText(`      ${t}  ·  açlık ${c.hunger}/10${(c.hunger || 0) >= 7 ? '  🔴' : ''}`, PAD + CPAD, ry + 30)
-        ry += ROW
+        ctx.font = 'bold 28px sans-serif'
+        ctx.fillText(`${t}`, PAD + CPAD + 36, ry + HUNGER_ROW / 2 + 6)
+        ctx.fillStyle = col
+        ctx.fillText(`Açlık ${ev.val}/10${ev.val >= 7 ? '  🔴 çok aç' : ev.val <= 3 ? '  ✅ tok' : ''}`, PAD + CPAD + 150, ry + HUNGER_ROW / 2 + 6)
+        ry += HUNGER_ROW
       }
     }
-    ctx.fillStyle = '#7c3aed'
-    ctx.font = 'bold 21px sans-serif'
-    ctx.fillText(`Günün ortalama açlığı: ${hungerAvg(checkins)}/10`, PAD + CPAD, ry + 30)
-    y += listCardH + 22
+    if (hunger.length) {
+      ctx.fillStyle = '#7c3aed'
+      ctx.font = 'bold 26px sans-serif'
+      ctx.fillText(`Günün ortalama açlığı: ${hungerAvg(checkins)}/10`, PAD + CPAD, ry + 40)
+    }
   }
+  y += listH + 22
 
   ctx.fillStyle = '#94a3b8'
   ctx.font = '18px sans-serif'
@@ -1262,6 +1219,7 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
   })
 }
+
 
 // ---- TEK TİP SAĞLIK raporu: SADECE şeker ya da SADECE tansiyon (ayrı ayrı gönderim) ----
 // Diyetisyene şekeri/tansiyonu tek başına, dönemli liste + ortalama olarak gönderir.
