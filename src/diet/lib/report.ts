@@ -5,11 +5,14 @@ import { dayAdherence } from '../streak'
 import { mealLabel, MEAL_OPTIONS } from './meals'
 import type { DietEntry, CheckIn, MealType } from '../types'
 
-// Gun ici aclik kayitlarini, KENDINDEN ONCEKI ogune gore gruplar.
-// Boylece raporda "ust: ogun, alt: o ogunden sonraki aclik saatleri" gorunur.
+// Gun ici aclik kayitlarini OGUN ONCESI / SONRASI olarak etiketler.
+// Her kayit iki komsu ogune gore konumlanir: bir onceki ogunden SONRA, bir
+// sonraki ogunden ONCE. Boylece diyetisyen "kahvalti oncesi 8/10, kahvalti
+// sonrasi 3/10" gibi ogun bazli aclik seyrini gorur. Ogun saati degisse de
+// (gec kahvalti vb.) gercek kayit saatine gore dogru yere oturur.
 export interface HungerGroup {
-  label: string // orn. "Kahvaltı sonrası"
-  mtime: string // o ogunun saati (varsa)
+  label: string // orn. "🌅 Kahvaltı (09:30) öncesi" / "🌅 Kahvaltı (09:30) sonrası"
+  mtime: string // ilgili ogunun saati (varsa)
   recs: CheckIn[]
 }
 export function groupHungerByMeal(entries: DietEntry[], checkins: CheckIn[]): HungerGroup[] {
@@ -17,16 +20,38 @@ export function groupHungerByMeal(entries: DietEntry[], checkins: CheckIn[]): Hu
   const hunger = checkins.filter((c) => c.hunger != null).sort((a, b) => a.createdAt - b.createdAt)
   const byKey = new Map<string, HungerGroup>()
   const order: string[] = []
+  const mLabel = (m: DietEntry) => {
+    const t = new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    return `${mealLabel((m.mealType ?? 'serbest') as MealType)}${m.alsoMeal ? '+' + mealLabel(m.alsoMeal) : ''} (${t})`
+  }
   for (const c of hunger) {
-    let m: DietEntry | null = null
+    // Kayittan onceki son ogun (prev) ve sonraki ilk ogun (next)
+    let prev: DietEntry | null = null
+    let next: DietEntry | null = null
     for (const meal of meals) {
-      if (meal.createdAt <= c.createdAt) m = meal
-      else break
+      if (meal.createdAt <= c.createdAt) prev = meal
+      else {
+        next = meal
+        break
+      }
     }
-    const key = m ? `m${m.id ?? m.createdAt}` : 'before'
+    // Etiket: bir SONRAKI ogun varsa "X öncesi" (diyetisyen icin ogun oncesi aclik
+    // daha anlamli); yoksa son ogunden sonra -> "X sonrası"; hic ogun yoksa genel.
+    let key: string, label: string, mtime: string
+    if (next) {
+      key = `b${next.id ?? next.createdAt}`
+      label = `${mLabel(next)} ÖNCESİ`
+      mtime = ''
+    } else if (prev) {
+      key = `a${prev.id ?? prev.createdAt}`
+      label = `${mLabel(prev)} SONRASI`
+      mtime = ''
+    } else {
+      key = 'none'
+      label = 'Öğün kaydı yok (gün içi)'
+      mtime = ''
+    }
     if (!byKey.has(key)) {
-      const label = m ? `${mealLabel((m.mealType ?? 'serbest') as MealType)} sonrası` : 'Öğün öncesi (aç karnına)'
-      const mtime = m ? new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : ''
       byKey.set(key, { label, mtime, recs: [] })
       order.push(key)
     }
