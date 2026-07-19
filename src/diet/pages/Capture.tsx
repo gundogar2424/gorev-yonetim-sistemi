@@ -100,6 +100,7 @@ export default function Capture() {
   const [savedDecision, setSavedDecision] = useState<Decision>('none')
   const [mealType, setMealType] = useState<MealType>(guessMeal())
   const [alsoMeal, setAlsoMeal] = useState<MealType | undefined>(undefined)
+  const [alsoMeal2, setAlsoMeal2] = useState<MealType | undefined>(undefined)
   const [note, setNote] = useState('') // kullanici duzeltmesi (result ekraninda)
   // Analiz oncesi koc ile NETLESTIRME sohbeti (foto uzerine konusma)
   const [clarifyChat, setClarifyChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
@@ -359,6 +360,7 @@ export default function Capture() {
       decision,
       mealType,
       alsoMeal: alsoMeal && alsoMeal !== mealType ? alsoMeal : undefined,
+      alsoMeal2: alsoMeal2 && alsoMeal2 !== mealType && alsoMeal2 !== alsoMeal ? alsoMeal2 : undefined,
       createdAt,
       dateStr
     })
@@ -381,6 +383,7 @@ export default function Capture() {
     setAnalysis(null)
     setMealType(guessMeal())
     setAlsoMeal(undefined)
+    setAlsoMeal2(undefined)
     setSavedDecision('none')
     setError('')
     setNote('')
@@ -725,6 +728,7 @@ export default function Capture() {
                     onClick={() => {
                       setMealType(m.value)
                       if (alsoMeal === m.value) setAlsoMeal(undefined)
+                      if (alsoMeal2 === m.value) setAlsoMeal2(undefined)
                     }}
                     className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
                       mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
@@ -735,7 +739,7 @@ export default function Capture() {
                 ))}
               </div>
 
-              {/* BIRLESIK OGUN: gec kalkinca 2 ogunu birlestir (or. kahvalti+ogle) */}
+              {/* BIRLESIK OGUN: gec kalkinca 2-3 ogunu birlestir (or. kahvalti+ogle+ikindi) */}
               {!alsoMeal ? (
                 <button onClick={() => setAlsoMeal(mealType === 'kahvalti' ? 'ogle' : 'kahvalti')} className="text-xs text-emerald-700 underline">
                   ＋ Bu öğünü başka bir öğünle birleştir (geç kalktım vb.)
@@ -744,12 +748,18 @@ export default function Capture() {
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-bold text-emerald-700">Birleşik öğün — ikinci öğün:</p>
-                    <button onClick={() => setAlsoMeal(undefined)} className="text-[11px] text-slate-400 underline">
+                    <button
+                      onClick={() => {
+                        setAlsoMeal(undefined)
+                        setAlsoMeal2(undefined)
+                      }}
+                      className="text-[11px] text-slate-400 underline"
+                    >
                       birleştirmeyi kaldır
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {MEAL_OPTIONS.filter((m) => m.value !== mealType).map((m) => (
+                    {MEAL_OPTIONS.filter((m) => m.value !== mealType && m.value !== alsoMeal2).map((m) => (
                       <button
                         key={m.value}
                         onClick={() => setAlsoMeal(m.value)}
@@ -761,8 +771,44 @@ export default function Capture() {
                       </button>
                     ))}
                   </div>
+
+                  {/* ÜÇÜNCÜ öğün (opsiyonel) */}
+                  {!alsoMeal2 ? (
+                    <button
+                      onClick={() => {
+                        const free = MEAL_OPTIONS.find((m) => m.value !== mealType && m.value !== alsoMeal)
+                        if (free) setAlsoMeal2(free.value)
+                      }}
+                      className="text-[11px] text-emerald-700 underline"
+                    >
+                      ＋ Üçüncü öğünü de ekle
+                    </button>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-bold text-emerald-700">Üçüncü öğün:</p>
+                        <button onClick={() => setAlsoMeal2(undefined)} className="text-[11px] text-slate-400 underline">
+                          üçüncüyü kaldır
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {MEAL_OPTIONS.filter((m) => m.value !== mealType && m.value !== alsoMeal).map((m) => (
+                          <button
+                            key={m.value}
+                            onClick={() => setAlsoMeal2(m.value)}
+                            className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+                              alsoMeal2 === m.value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {m.emoji} {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
                   <p className="text-[10px] text-slate-400">
-                    Bu kayıt “{mealLabel(mealType)} + {mealLabel(alsoMeal)}” olarak sayılır; koç iki öğünü tek öğün gibi değerlendirir, “öğün atladın” demez.
+                    Bu kayıt “{mealLabel(mealType)} + {mealLabel(alsoMeal)}{alsoMeal2 ? ` + ${mealLabel(alsoMeal2)}` : ''}” olarak sayılır; koç bu öğünleri tek öğün gibi değerlendirir, “öğün atladın” demez.
                   </p>
                 </div>
               )}
@@ -1444,7 +1490,8 @@ function buildDaySummary(entries: DietEntry[], exercises: Exercise[], today: str
   const TR: Record<string, string> = { resisted: 'vazgeçti', ate: 'yedi', none: 'karar yok' }
   for (const e of meals) {
     const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-    const mt = e.mealType ? mealLabel(e.mealType) + (e.alsoMeal ? '+' + mealLabel(e.alsoMeal) + ' (birleşik)' : '') + ' ' : ''
+    const extra = [e.alsoMeal, e.alsoMeal2].filter(Boolean).map((m) => '+' + mealLabel(m as MealType)).join('')
+    const mt = e.mealType ? mealLabel(e.mealType) + (extra ? extra + ' (birleşik)' : '') + ' ' : ''
     lines.push(`- ${t} ${mt}${e.foodName} (~${e.estimatedCalories} kcal) — ${TR[e.decision] ?? ''}`)
   }
   if (exs.length) {

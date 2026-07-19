@@ -248,7 +248,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     if (combined.length) {
       const list = combined
         .slice(-8)
-        .map((e) => `${e.dateStr}: ${mealLabel(e.mealType)}+${mealLabel(e.alsoMeal)}`)
+        .map((e) => `${e.dateStr}: ${mealLabel(e.mealType)}${[e.alsoMeal, e.alsoMeal2].filter(Boolean).map((x) => '+' + mealLabel(x as never)).join('')}`)
         .join(' · ')
       L.push(
         `BİRLEŞİK ÖĞÜNLER (son 14 gün — kullanıcı bu günlerde iki öğünü tek öğünde birleştirdi): ${list}. Bu günlerde ilgili iki öğünü TEK öğün gibi değerlendir, "kahvaltı/öğün atladın" deme.`

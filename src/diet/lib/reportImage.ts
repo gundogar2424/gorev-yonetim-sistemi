@@ -182,7 +182,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
     mctx.font = 'bold 26px sans-serif'
     let lines = wrapText(mctx, p.e.foodName, nameMaxW)
     if (lines.length > 2) lines = [lines[0], truncate(mctx, lines.slice(1).join(' '), nameMaxW)]
-    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.alsoMeal
+    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.alsoMeal || !!p.e.alsoMeal2
     const textH = lines.length * NAME_LH + 34 + (hasParts3 ? 26 : 0)
     const cardH = 28 + Math.max(PHOTO, textH)
     return { ...p, lines, hasParts3, cardH }
@@ -355,7 +355,7 @@ export async function buildDailyImage(dateStr: string, userName?: string): Promi
         if (hasParts3) {
           const parts3: string[] = []
           if (e.compliancePercent >= 0) parts3.push(`✓ Uyum %${e.compliancePercent}`)
-          if (e.alsoMeal) parts3.push(`🔗 ${mealLabel(e.mealType)}+${mealLabel(e.alsoMeal)} birleşik`)
+          if (e.alsoMeal) parts3.push(`🔗 ${mealLabel(e.mealType)}${[e.alsoMeal, e.alsoMeal2].filter(Boolean).map((x) => '+' + mealLabel(x as never)).join('')} birleşik`)
           ctx.fillStyle = '#475569'
           ctx.font = '18px sans-serif'
           ctx.fillText(parts3.join('   ·   '), tx, ty + 2)
@@ -589,7 +589,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     if (card.hasParts3) {
       const p3: string[] = []
       if (card.e.compliancePercent >= 0) p3.push(`✓ Uyum %${card.e.compliancePercent}`)
-      if (card.e.alsoMeal) p3.push(`🔗 ${mealLabel(card.e.mealType)}+${mealLabel(card.e.alsoMeal)} birleşik`)
+      if (card.e.alsoMeal) p3.push(`🔗 ${mealLabel(card.e.mealType)}${[card.e.alsoMeal, card.e.alsoMeal2].filter(Boolean).map((x) => '+' + mealLabel(x as never)).join('')} birleşik`)
       ctx.fillStyle = '#475569'
       ctx.font = '19px sans-serif'
       ctx.fillText(p3.join('   ·   '), tx, ty + 4)
@@ -601,7 +601,7 @@ export async function buildDailyImageSet(dateStr: string, userName?: string): Pr
     mctx.font = `bold ${NAME_PX}px sans-serif`
     let lines = wrapText(mctx, p.e.foodName, nameMaxW)
     if (lines.length > 3) lines = [lines[0], lines[1], truncate(mctx, lines.slice(2).join(' '), nameMaxW)]
-    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.alsoMeal
+    const hasParts3 = p.e.compliancePercent >= 0 || !!p.e.alsoMeal || !!p.e.alsoMeal2
     // Fotograf yuksekligi: tam genislikte gercek en-boy orani (tavan MAX_PHOTO_H)
     const aspect = p.img && p.img.width > 0 ? p.img.width / p.img.height : 0
     const photoH = p.img && aspect > 0 ? Math.min(Math.round(PHOTO_BOX_W / aspect), MAX_PHOTO_H) : NO_PHOTO_H
@@ -1047,7 +1047,7 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   ctx.fill()
   ctx.fillStyle = '#ffffff'
   ctx.font = 'bold 36px sans-serif'
-  const mealTitle = (e.mealType ? mealLabel(e.mealType) : 'Öğün') + (e.alsoMeal ? ' + ' + mealLabel(e.alsoMeal) : '')
+  const mealTitle = (e.mealType ? mealLabel(e.mealType) : 'Öğün') + [e.alsoMeal, e.alsoMeal2].filter(Boolean).map((x) => ' + ' + mealLabel(x as never)).join('')
   ctx.fillText(`🍽️ ${mealTitle}`, PAD + 28, y + 50)
   const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
   const dateNice = new Date(e.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -1182,7 +1182,7 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
         fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, MEAL_ROW - 12, 14, '#ecfdf5')
         ctx.fillStyle = '#065f46'
         ctx.font = 'bold 30px sans-serif'
-        const label = `${mealEmoji(ev.e.mealType)} ${t}  ${(ev.e.mealType ? mealLabel(ev.e.mealType) : 'Öğün').toUpperCase()}${ev.e.alsoMeal ? ' + ' + mealLabel(ev.e.alsoMeal).toUpperCase() : ''}`
+        const label = `${mealEmoji(ev.e.mealType)} ${t}  ${(ev.e.mealType ? mealLabel(ev.e.mealType) : 'Öğün').toUpperCase()}${[ev.e.alsoMeal, ev.e.alsoMeal2].filter(Boolean).map((x) => ' + ' + mealLabel(x as never).toUpperCase()).join('')}`
         ctx.fillText(label, PAD + CPAD + 6, ry + 40)
         ctx.fillStyle = '#0f766e'
         ctx.font = 'bold 26px sans-serif'

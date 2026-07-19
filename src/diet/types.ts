@@ -42,6 +42,7 @@ export interface DietEntry extends FoodAnalysis {
   decision: Decision // Kullanicinin karari
   mealType?: MealType // Hangi ogune ait (kahvalti/ogle/aksam/ara/gece/serbest)
   alsoMeal?: MealType // BIRLESIK ogun: bu kayit ayni zamanda su ogunu de kapsiyor (gec kalkinca kahvalti+ogle gibi)
+  alsoMeal2?: MealType // BIRLESIK ogun (3.): kayit UCUNCU bir ogunu de kapsiyorsa (kahvalti+ogle+ikindi)
   createdAt: number // Zaman damgasi (ms)
   dateStr: string // Yerel tarih (YYYY-MM-DD)
   sharedAt?: number // Bu ogun diyetisyene tek tek gonderildiyse zaman damgasi

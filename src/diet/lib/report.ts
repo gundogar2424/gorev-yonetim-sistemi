@@ -22,7 +22,7 @@ export function groupHungerByMeal(entries: DietEntry[], checkins: CheckIn[]): Hu
   const order: string[] = []
   const mLabel = (m: DietEntry) => {
     const t = new Date(m.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-    return `${mealLabel((m.mealType ?? 'serbest') as MealType)}${m.alsoMeal ? '+' + mealLabel(m.alsoMeal) : ''} (${t})`
+    return `${mealLabel((m.mealType ?? 'serbest') as MealType)}${[m.alsoMeal, m.alsoMeal2].filter(Boolean).map((x) => '+' + mealLabel(x as MealType)).join('')} (${t})`
   }
   for (const c of hunger) {
     // Kayittan onceki son ogun (prev) ve sonraki ilk ogun (next)
@@ -127,7 +127,7 @@ export async function buildDailyReport(dateStr: string, userName?: string): Prom
       for (const e of items) {
         const t = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         const comp = e.compliancePercent >= 0 ? ` · listeye uyum %${e.compliancePercent}` : ''
-        const birlesik = e.alsoMeal ? ` · 🔗 ${mealLabel(e.mealType as never)}+${mealLabel(e.alsoMeal as never)} birleşik` : ''
+        const birlesik = e.alsoMeal ? ` · 🔗 ${mealLabel(e.mealType as never)}${[e.alsoMeal, e.alsoMeal2].filter(Boolean).map((x) => '+' + mealLabel(x as never)).join('')} birleşik` : ''
         lines.push(`   • ${t} — ${e.foodName} (~${e.estimatedCalories} kcal) — ${TR_DECISION[e.decision] ?? ''}${comp}${birlesik}`)
       }
     }
@@ -235,7 +235,7 @@ export function buildMealText(e: DietEntry, userName?: string): string {
   // Diyetisyene tekli gonderimde SADE: yalnizca urunun aciklamasi (+varsa
   // gramaji). Kalori/uyum/puan/degerlendirme yazma — yorumu diyetisyen yapar.
   const lines: string[] = []
-  lines.push(`🍽️ ${e.mealType ? mealLabel(e.mealType) : 'ÖĞÜN'}${e.alsoMeal ? ' + ' + mealLabel(e.alsoMeal) + ' (birleşik)' : ''}`)
+  lines.push(`🍽️ ${e.mealType ? mealLabel(e.mealType) : 'ÖĞÜN'}${[e.alsoMeal, e.alsoMeal2].filter(Boolean).map((x) => ' + ' + mealLabel(x as never)).join('')}${e.alsoMeal ? ' (birleşik)' : ''}`)
   lines.push(`📅 ${dateNice} · ${t}${userName ? ` · ${userName}` : ''}`)
   lines.push(SEP)
   lines.push(e.foodName)
