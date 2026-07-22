@@ -27,9 +27,10 @@ interface SyncSnapshot {
 
 // Union-by-createdAt tablolar (eksik olan eklenir)
 const UNION_TABLES = ['entries', 'measurements', 'vitals', 'exercises', 'checkins', 'cravings', 'labs', 'medlogs', 'shopping', 'products'] as const
-// Gunluk sayac tablolar: dateStr anahtar, "buyuk olan kazanir" alani
+// Gunluk sayac tablolar: dateStr anahtar, "buyuk olan kazanir" alani.
+// Su icin 'glasses' (her zaman dolu) — 'ml' bazi eski kayitlarda bos olabilir.
 const DAY_TABLES: { name: string; field: string }[] = [
-  { name: 'water', field: 'ml' },
+  { name: 'water', field: 'glasses' },
   { name: 'steps', field: 'count' },
   { name: 'sleep', field: 'hours' }
 ]
