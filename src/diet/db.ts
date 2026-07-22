@@ -392,10 +392,11 @@ export function listMeds(): Promise<MedDef[]> {
   return dietDb.meds.orderBy('createdAt').toArray()
 }
 export async function addMed(m: Omit<MedDef, 'id' | 'createdAt'>) {
-  return dietDb.meds.add({ ...m, createdAt: Date.now() })
+  const now = Date.now()
+  return dietDb.meds.add({ ...m, createdAt: now, updatedAt: now })
 }
 export async function updateMed(id: number, patch: Partial<MedDef>) {
-  await dietDb.meds.update(id, patch)
+  await dietDb.meds.update(id, { ...patch, updatedAt: Date.now() })
 }
 export async function deleteMed(id: number) {
   await dietDb.meds.delete(id)
@@ -539,9 +540,10 @@ export async function readDietSettings(): Promise<DietSettings> {
 // Ayarlari guncelle (yazma baglami — kayit yoksa olusturur, varsa gunceller)
 export async function saveDietSettings(patch: Partial<DietSettings>) {
   const s = await dietDb.settings.toCollection().first()
+  const stamped = { ...patch, updatedAt: Date.now() } // senkronda "yeni olan kazanir" icin
   if (s?.id != null) {
-    await dietDb.settings.update(s.id, patch)
+    await dietDb.settings.update(s.id, stamped)
   } else {
-    await dietDb.settings.add({ model: 'claude-opus-4-8', ...patch })
+    await dietDb.settings.add({ model: 'claude-opus-4-8', ...stamped })
   }
 }

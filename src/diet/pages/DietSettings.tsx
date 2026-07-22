@@ -9,6 +9,8 @@ import { buildBackupData, parseDietBackup, restoreDietBackup, clearOldPhotos } f
 import { saveJsonSmart } from '../lib/share'
 import { getUsage, resetUsage, todayUsage, bucketTokens, estimateCostUsd } from '../lib/usage'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
+import { syncNow } from '../lib/sync'
+import type { DietSettings as DietSettingsType } from '../types'
 
 export default function DietSettings() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -432,6 +434,9 @@ export default function DietSettings() {
           )}
         </section>
 
+        {/* Cihazlar arasi otomatik senkron */}
+        <SyncCard settings={settings} />
+
         {/* Yedekleme & yer acma */}
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme & Yer Açma</h2>
@@ -512,6 +517,65 @@ function ThemeSelector() {
 
 // Bu cihazda uygulamanin harcadigi token (Ayarlar). Kalan bakiye API'den
 // alinamaz; net kredi/fatura icin Anthropic Console'a yonlendirir.
+// Cihazlar arasi OTOMATIK senkron: telefon + web ayni GitHub hesabindaki OZEL
+// gist uzerinden birbirini gunceller. Anahtar sadece cihazda saklanir.
+function SyncCard({ settings }: { settings?: DietSettingsType }) {
+  const [token, setToken] = useState<string | null>(null) // null = kayitli degeri goster
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const shownToken = token ?? settings?.syncToken ?? ''
+  const hasToken = !!(settings?.syncToken || token)
+
+  async function saveTokenAndSync() {
+    setMsg('')
+    if (token != null) await saveDietSettings({ syncToken: token.trim() || undefined, syncGistId: undefined })
+    if (!(token ?? settings?.syncToken)?.trim()) {
+      setMsg('Anahtar kaydedildi (boş) — senkron kapalı.')
+      return
+    }
+    setBusy(true)
+    try {
+      const r = await syncNow()
+      setMsg(`✓ Senkron tamam${r.added ? ` — ${r.added} kayıt birleştirildi` : ' — her şey güncel'}.`)
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Senkron başarısız.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="card p-4 space-y-3">
+      <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">🔄 Cihazlar Arası Senkron</h2>
+      <p className="text-xs text-slate-500">
+        Telefon ve web sürümü birbirini otomatik günceller (veri, kendi GitHub hesabındaki <b>gizli</b> bir alanda tutulur).
+        İki cihazda da AYNI anahtarı gir; uygulama her açılışta eşitler. Fotoğraflar senkrona dahil değildir.
+      </p>
+      <input
+        type="password"
+        className="field-input"
+        placeholder="GitHub anahtarı (gist yetkili token)"
+        value={shownToken}
+        onChange={(e) => setToken(e.target.value)}
+      />
+      <p className="text-[11px] text-slate-400">
+        Anahtar almak için: github.com → Settings → Developer settings → Personal access tokens (classic) → Generate new token →
+        sadece <b>gist</b> yetkisini işaretle. Anahtar yalnızca bu cihazda saklanır.
+      </p>
+      <button onClick={saveTokenAndSync} disabled={busy} className="btn-primary w-full disabled:opacity-50">
+        {busy ? 'Eşitleniyor…' : hasToken ? '🔄 Şimdi Eşitle' : 'Kaydet ve Eşitle'}
+      </button>
+      {settings?.lastSyncAt && (
+        <p className="text-[11px] text-slate-400">
+          Son eşitleme: {new Date(settings.lastSyncAt).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        </p>
+      )}
+      {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
+    </section>
+  )
+}
+
 function UsageCard({ model, budget, budgetBase }: { model?: string; budget?: number; budgetBase?: number }) {
   const [tick, setTick] = useState(0)
   const u = getUsage() // her render'da taze oku (tick ile yenilenir)

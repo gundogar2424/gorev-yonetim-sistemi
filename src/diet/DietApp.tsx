@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { initNotificationNavigation, cancelMedSnooze, applyNotifications } from './lib/notify'
 import { addMedLog, readDietSettings } from './db'
+import { syncNow } from './lib/sync'
 import Capture from './pages/Capture'
 import History from './pages/History'
 import Track from './pages/Track'
@@ -99,6 +100,14 @@ export default function DietApp() {
     // İlaç doz hatırlatmalarını (tek-seferlik, gün gün) uygulama açılışında yeniden kur:
     // pencereyi ileri taşır ve cevaplanan dozları atlar (aldığın doz bir daha çalmaz).
     void readDietSettings().then((s) => applyNotifications(s))
+    // Cihazlar arası OTOMATİK senkron: anahtar girildiyse her açılışta sessizce eşitle
+    // (çek → birleştir → gönder). Hata olursa sessiz geç; Ayarlar'dan elle denenebilir.
+    const t = setTimeout(() => {
+      void readDietSettings().then((s) => {
+        if (s.syncToken?.trim()) syncNow().catch(() => {})
+      })
+    }, 2500)
+    return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

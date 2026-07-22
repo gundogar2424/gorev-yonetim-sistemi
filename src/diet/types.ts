@@ -243,6 +243,7 @@ export interface MedDef {
   endDate?: string // program bitisi YYYY-MM-DD (bos = suresiz)
   ingredients?: string // AI etken madde analizi (etken maddeler, ne ise yarar, ilgili tahlil/belirti, dikkat) — ortak baglama girer
   ingredientsAt?: number // analiz ne zaman uretildi (ms)
+  updatedAt?: number // son duzenleme zamani (senkronda yeni olan kazanir)
   note?: string
   createdAt: number
 }
@@ -276,6 +277,10 @@ export interface DietSettings {
   id?: number
   apiKey?: string // Anthropic API anahtari (yalnizca cihazda saklanir)
   model?: string // Kullanilacak model (varsayilan: claude-opus-4-8)
+  updatedAt?: number // ayarlarin son degisme zamani (senkron icin: yeni olan kazanir)
+  syncToken?: string // GitHub kisisel erisim anahtari (gist yetkisi) — cihazlar arasi senkron
+  syncGistId?: string // senkron verisinin tutuldugu OZEL gist'in id'si
+  lastSyncAt?: number // son basarili senkron zamani
   aiBudgetUsd?: number // kullanicinin yukledigi/ayirdigi kredi ($) — kalan bakiye TAHMINI icin
   aiBudgetSetCostUsd?: number // butce girildigi andaki toplam harcama ($) — kalan = butce - (guncel - bu)
   userName?: string // Kullanici adi (kisisellestirme icin)
