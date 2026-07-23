@@ -1380,14 +1380,14 @@ const SUGAR_MED_KEYS = [
   'metformin', 'glucophage', 'glifor', 'diaformin', 'gluformin', 'matofin', 'glukofen',
   // Sulfonilure
   'gliclazid', 'gliklazid', 'diamicron', 'glimepirid', 'amaryl', 'glibenclamid', 'glibenklamid', 'glipizid', 'glucovance',
-  // DPP-4
+  // DPP-4 (gliptinler + Turkiye jenerik markalari)
   'sitagliptin', 'januvia', 'janumet', 'vildagliptin', 'galvus', 'galvusmet', 'eucreas', 'linagliptin', 'trajenta',
-  'saxagliptin', 'onglyza', 'komboglyze', 'alogliptin',
-  // SGLT2
-  'dapagliflozin', 'forxiga', 'xigduo', 'empagliflozin', 'jardiance', 'synjardy', 'canagliflozin', 'invokana', 'ertugliflozin',
-  // GLP-1
+  'saxagliptin', 'onglyza', 'komboglyze', 'alogliptin', 'vidaplin', 'vipidia', 'vildy', 'gliptin',
+  // SGLT2 ('flozin' ile biten tum etken maddeler)
+  'dapagliflozin', 'forxiga', 'xigduo', 'empagliflozin', 'jardiance', 'synjardy', 'canagliflozin', 'invokana', 'ertugliflozin', 'flozin',
+  // GLP-1 ('glutid' ile biten tum etken maddeler)
   'liraglutid', 'victoza', 'saxenda', 'dulaglutid', 'trulicity', 'semaglutid', 'ozempic', 'rybelsus', 'wegovy',
-  'exenatid', 'byetta', 'bydureon',
+  'exenatid', 'byetta', 'bydureon', 'glutid',
   // Glinid / TZD / alfa-glukozidaz
   'repaglinid', 'novonorm', 'nateglinid', 'starlix', 'pioglitazon', 'actos', 'glustin', 'acarbose', 'akarboz', 'glucobay',
   // Insulin (tumu)
