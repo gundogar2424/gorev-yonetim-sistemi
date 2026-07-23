@@ -1391,10 +1391,10 @@ const SUGAR_MED_KEYS = [
   // Glinid / TZD / alfa-glukozidaz
   'repaglinid', 'novonorm', 'nateglinid', 'starlix', 'pioglitazon', 'actos', 'glustin', 'acarbose', 'akarboz', 'glucobay',
   // Insulin (tumu)
-  'insulin', 'lantus', 'levemir', 'toujeo', 'tresiba', 'novorapid', 'novomix', 'humalog', 'humulin', 'apidra', 'insuman',
-  'ryzodeg', 'xultophy',
-  // Terapotik terimler (etken madde analizinde gecebilir)
-  'kan sekeri', 'diyabet', 'glisemik', 'hipoglisem', 'antidiyabet', 'sglt', 'dpp-4', 'dpp4', 'glp-1', 'glp1', 'seker hapi'
+  'insulin', 'lantus', 'levemir', 'toujeo', 'tresiba', 'novorapid', 'novomix', 'humalog', 'humulin', 'apidra',
+  'insuman', 'ryzodeg', 'xultophy',
+  // Kullanicinin genel adlandirmasi
+  'seker hapi', 'seker ilaci', 'diyabet ilaci'
 ]
 function isSugarMed(text: string): boolean {
   const t = normTr(text)
@@ -1428,8 +1428,10 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
   const medLogs = isSugar
     ? (await dietDb.medlogs.where('dateStr').equals(lastDate).toArray()).filter((m) => {
         if (m.status === 'skipped') return false
+        // Yalnizca ilac ADI + MARKASINA bak (etken madde metnini tarama —
+        // tansiyon ilacinin aciklamasinda "diyabet" gecince yanlis eslesmesin)
         const def = m.medId != null ? defById.get(m.medId) : undefined
-        return isSugarMed(`${m.name} ${def?.brand ?? ''} ${def?.ingredients ?? ''}`)
+        return isSugarMed(`${m.name} ${def?.brand ?? ''}`)
       })
     : []
 
