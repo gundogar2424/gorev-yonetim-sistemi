@@ -97,6 +97,17 @@ export default function Meds() {
   const [comment, setComment] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [loggedId, setLoggedId] = useState<number | null>(null)
+
+  // "Şimdi aldım": ilacı o ANKİ saatle kaydet (planlı saat gerekmez; günde birden çok kez basılabilir).
+  // Rapor bu kaydı gerçek saatinde gösterir.
+  async function logNow(med: MedDef) {
+    await addMedLog(med.name, med.relation, { medId: med.id, kind: med.kind })
+    if (med.id != null) {
+      setLoggedId(med.id)
+      setTimeout(() => setLoggedId((v) => (v === med.id ? null : v)), 2500)
+    }
+  }
 
   const hasKey = !!settings?.apiKey
   const today = todayStr()
@@ -310,6 +321,16 @@ export default function Meds() {
                     🗑️
                   </button>
                 </div>
+                {m.active !== false && (
+                  <button
+                    onClick={() => logNow(m)}
+                    className={`mt-2 w-full text-sm font-semibold rounded-lg py-2 transition ${
+                      loggedId === m.id ? 'bg-emerald-100 text-emerald-700' : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                    }`}
+                  >
+                    {loggedId === m.id ? '✓ Şu an alındı olarak kaydedildi' : '💊 Şimdi aldım'}
+                  </button>
+                )}
                 <MedIngredientInfo med={m} apiKey={settings?.apiKey} model={settings?.model} />
               </div>
             )
