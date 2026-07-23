@@ -1213,12 +1213,14 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
         ry += bandH
       } else if (ev.kind === 'sugar') {
         // KAN ŞEKERİ satırı: kırmızı damla + saat + değer (mg/dL) + aç/tok
-        const fasting = ev.ctx === 'ac'
+        const ctxRaw = (ev.ctx ?? '').trim()
+        const isTok = ctxRaw.toLowerCase().startsWith('tok')
+        const fasting = !isTok // "tok" degilse aclik
         const hi = fasting ? 126 : 200
         const mid = fasting ? 100 : 140
         const col = ev.val >= hi ? '#dc2626' : ev.val >= mid ? '#d97706' : '#16a34a'
         const tag = ev.val >= hi ? '  ⚠️ yüksek' : ev.val < 70 ? '  ⚠️ düşük' : ''
-        const ctxLbl = ev.ctx === 'ac' ? ' · aç' : ev.ctx === 'tok' ? ' · tok' : ''
+        const ctxLbl = ctxRaw ? (isTok ? ' · tok' : ' · aç') : ''
         fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, SUGAR_ROW - 12, 16, '#fef2f2')
         ctx.fillStyle = '#0f172a'
         ctx.font = 'bold 32px sans-serif'
@@ -1455,12 +1457,14 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
       } else if (isSugar) {
         const v = ev.v
         const val = v.sugar || 0
-        const fasting = v.sugarContext === 'ac'
+        const ctxRaw = (v.sugarContext ?? '').trim()
+        const isTok = ctxRaw.toLowerCase().startsWith('tok')
+        const fasting = !isTok // "tok" degilse aclik
         const hi = fasting ? 126 : 200
         const mid = fasting ? 100 : 140
         const col = val >= hi ? '#dc2626' : val >= mid ? '#d97706' : '#16a34a'
         const tag = val >= hi ? '  ⚠️ yüksek' : val < 70 ? '  ⚠️ düşük' : ''
-        const ctxLbl = v.sugarContext === 'ac' ? ' · aç' : v.sugarContext === 'tok' ? ' · tok' : ''
+        const ctxLbl = ctxRaw ? (isTok ? ' · tok' : ' · aç') : ''
         fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, VITAL_ROW - 12, 16, '#fef2f2')
         ctx.fillStyle = '#0f172a'
         ctx.font = 'bold 32px sans-serif'
