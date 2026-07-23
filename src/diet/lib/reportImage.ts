@@ -1142,26 +1142,25 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
   })
 
   const BANNER = 96
-  const CPAD = 24
-  const MEAL_ROW = 78 // ogun bandi (buyuk)
-  const HUNGER_ROW = 62 // aclik satiri (buyuk)
-  const SUGAR_ROW = 62 // kan sekeri satiri (buyuk)
-  const AVG_H = 64
+  const CPAD = 26
+  const MEAL_HEAD = 54 // ogun basligi (saat + ogun adi) satiri
+  const NAME_LH = 40 // yemek adi satir yuksekligi (wrap ile alt satira gecer)
+  const HUNGER_ROW = 72 // aclik satiri (buyuk, tam okunakli)
+  const SUGAR_ROW = 72 // kan sekeri satiri (buyuk, tam okunakli)
+  const AVG_H = 70
   const mctx = document.createElement('canvas').getContext('2d')!
 
-  // Ogun adi tek satira sigmazsa kisalt (buyuk fontla)
-  const nameMaxW = W - 2 * PAD - 2 * CPAD - 250
-  const mealName = (e: DietEntry) => {
-    mctx.font = 'bold 26px sans-serif'
-    let n = e.foodName || ''
-    while (n.length > 3 && mctx.measureText(n).width > nameMaxW) n = n.slice(0, -1)
-    return n === (e.foodName || '') ? n : n + '…'
-  }
+  // Yemek adi TAM okunsun: kesme (…) yok — satira sigmazsa alt satira kayar (wrap)
+  const nameMaxW = W - 2 * PAD - 2 * CPAD - 12
+  mctx.font = 'bold 30px sans-serif'
+  const mealNameLines = (e: DietEntry) => wrapText(mctx, e.foodName || 'Öğün', nameMaxW)
 
-  const rowH = (ev: Ev) => (ev.kind === 'meal' ? MEAL_ROW : ev.kind === 'sugar' ? SUGAR_ROW : HUNGER_ROW)
+  // Her olayin yuksekligi (ogun = baslik + kac satir yemek adiysa o kadar)
+  const evHeight = (ev: Ev) =>
+    ev.kind === 'meal' ? MEAL_HEAD + mealNameLines(ev.e).length * NAME_LH + 22 : ev.kind === 'sugar' ? SUGAR_ROW : HUNGER_ROW
   const avgLines = (hunger.length ? 1 : 0) + (sugars.length ? 1 : 0)
   const listH = evs.length
-    ? evs.reduce((s2, ev) => s2 + rowH(ev), 0) + CPAD * 2 + avgLines * AVG_H
+    ? evs.reduce((s2, ev) => s2 + evHeight(ev), 0) + CPAD * 2 + avgLines * AVG_H
     : 100
   const logicalH = PAD + BANNER + 22 + listH + 56
   const { canvas, ctx } = hiDpiCanvas(W, logicalH)
@@ -1196,16 +1195,22 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
     for (const ev of evs) {
       const t = new Date(ev.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
       if (ev.kind === 'meal') {
-        // ÖĞÜN bandı: renkli arka plan + saat + öğün adı + yemek
-        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, MEAL_ROW - 12, 14, '#ecfdf5')
+        // ÖĞÜN bandı: yeşil arka plan + saat + ÖĞÜN ADI + (alt satırlarda) yenen yemek
+        const lines = mealNameLines(ev.e)
+        const bandH = MEAL_HEAD + lines.length * NAME_LH + 22
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, bandH - 12, 16, '#ecfdf5')
         ctx.fillStyle = '#065f46'
-        ctx.font = 'bold 30px sans-serif'
+        ctx.font = 'bold 32px sans-serif'
         const label = `${mealEmoji(ev.e.mealType)} ${t}  ${(ev.e.mealType ? mealLabel(ev.e.mealType) : 'Öğün').toUpperCase()}${[ev.e.alsoMeal, ev.e.alsoMeal2].filter(Boolean).map((x) => ' + ' + mealLabel(x as never).toUpperCase()).join('')}`
-        ctx.fillText(label, PAD + CPAD + 6, ry + 40)
+        ctx.fillText(label, PAD + CPAD + 6, ry + 44)
         ctx.fillStyle = '#0f766e'
-        ctx.font = 'bold 26px sans-serif'
-        ctx.fillText(mealName(ev.e), PAD + CPAD + 6, ry + MEAL_ROW - 8 - 2)
-        ry += MEAL_ROW
+        ctx.font = 'bold 30px sans-serif'
+        let ly = ry + MEAL_HEAD + 24
+        for (const ln of lines) {
+          ctx.fillText(ln, PAD + CPAD + 6, ly)
+          ly += NAME_LH
+        }
+        ry += bandH
       } else if (ev.kind === 'sugar') {
         // KAN ŞEKERİ satırı: kırmızı damla + saat + değer (mg/dL) + aç/tok
         const fasting = ev.ctx === 'ac'
@@ -1214,41 +1219,40 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
         const col = ev.val >= hi ? '#dc2626' : ev.val >= mid ? '#d97706' : '#16a34a'
         const tag = ev.val >= hi ? '  ⚠️ yüksek' : ev.val < 70 ? '  ⚠️ düşük' : ''
         const ctxLbl = ev.ctx === 'ac' ? ' · aç' : ev.ctx === 'tok' ? ' · tok' : ''
-        // kirmizi damla isareti
-        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, SUGAR_ROW - 12, 14, '#fef2f2')
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, SUGAR_ROW - 12, 16, '#fef2f2')
         ctx.fillStyle = '#0f172a'
-        ctx.font = 'bold 28px sans-serif'
-        ctx.fillText(`🩸 ${t}`, PAD + CPAD + 6, ry + SUGAR_ROW / 2 + 8)
+        ctx.font = 'bold 32px sans-serif'
+        ctx.fillText(`🩸 ${t}`, PAD + CPAD + 6, ry + SUGAR_ROW / 2 + 10)
         ctx.fillStyle = col
-        ctx.font = 'bold 28px sans-serif'
-        ctx.fillText(`Şeker ${ev.val} mg/dL${ctxLbl}${tag}`, PAD + CPAD + 170, ry + SUGAR_ROW / 2 + 8)
+        ctx.font = 'bold 32px sans-serif'
+        ctx.fillText(`Şeker ${ev.val} mg/dL${ctxLbl}${tag}`, PAD + CPAD + 190, ry + SUGAR_ROW / 2 + 10)
         ry += SUGAR_ROW
       } else {
-        // AÇLIK satırı: saat + büyük değer (renkli)
+        // AÇLIK satırı: renkli nokta + saat + büyük değer
         const col = ev.val >= 7 ? '#e11d48' : ev.val >= 5 ? '#d97706' : '#7c3aed'
         ctx.fillStyle = col
         ctx.beginPath()
-        ctx.arc(PAD + CPAD + 12, ry + HUNGER_ROW / 2 - 4, 9, 0, Math.PI * 2)
+        ctx.arc(PAD + CPAD + 14, ry + HUNGER_ROW / 2 - 2, 11, 0, Math.PI * 2)
         ctx.fill()
         ctx.fillStyle = '#0f172a'
-        ctx.font = 'bold 28px sans-serif'
-        ctx.fillText(`${t}`, PAD + CPAD + 36, ry + HUNGER_ROW / 2 + 6)
+        ctx.font = 'bold 32px sans-serif'
+        ctx.fillText(`${t}`, PAD + CPAD + 44, ry + HUNGER_ROW / 2 + 10)
         ctx.fillStyle = col
-        ctx.fillText(`Açlık ${ev.val}/10${ev.val >= 7 ? '  🔴 çok aç' : ev.val <= 3 ? '  ✅ tok' : ''}`, PAD + CPAD + 150, ry + HUNGER_ROW / 2 + 6)
+        ctx.fillText(`Açlık ${ev.val}/10${ev.val >= 7 ? '  🔴 çok aç' : ev.val <= 3 ? '  ✅ tok' : ''}`, PAD + CPAD + 180, ry + HUNGER_ROW / 2 + 10)
         ry += HUNGER_ROW
       }
     }
     if (hunger.length) {
       ctx.fillStyle = '#7c3aed'
-      ctx.font = 'bold 26px sans-serif'
-      ctx.fillText(`Günün ortalama açlığı: ${hungerAvg(checkins)}/10`, PAD + CPAD, ry + 40)
+      ctx.font = 'bold 28px sans-serif'
+      ctx.fillText(`Günün ortalama açlığı: ${hungerAvg(checkins)}/10`, PAD + CPAD, ry + 42)
       ry += AVG_H
     }
     if (sugars.length) {
       const savg = Math.round(sugars.reduce((s2, v) => s2 + (v.sugar || 0), 0) / sugars.length)
       ctx.fillStyle = '#dc2626'
-      ctx.font = 'bold 26px sans-serif'
-      ctx.fillText(`Günün ortalama şekeri: ${savg} mg/dL  (${sugars.length} ölçüm)`, PAD + CPAD, ry + 40)
+      ctx.font = 'bold 28px sans-serif'
+      ctx.fillText(`Günün ortalama şekeri: ${savg} mg/dL  (${sugars.length} ölçüm)`, PAD + CPAD, ry + 42)
       ry += AVG_H
     }
   }
