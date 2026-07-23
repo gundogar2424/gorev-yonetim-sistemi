@@ -1382,9 +1382,9 @@ const SUGAR_MED_KEYS = [
   'gliclazid', 'gliklazid', 'diamicron', 'glimepirid', 'amaryl', 'glibenclamid', 'glibenklamid', 'glipizid', 'glucovance',
   // DPP-4 (gliptinler + Turkiye jenerik markalari)
   'sitagliptin', 'januvia', 'janumet', 'vildagliptin', 'galvus', 'galvusmet', 'eucreas', 'linagliptin', 'trajenta',
-  'saxagliptin', 'onglyza', 'komboglyze', 'alogliptin', 'vidaplin', 'vipidia', 'vildy', 'gliptin',
+  'saxagliptin', 'onglyza', 'komboglyze', 'alogliptin', 'vidaptin', 'vidaplin', 'vipidia', 'vildy', 'gliptin',
   // SGLT2 ('flozin' ile biten tum etken maddeler)
-  'dapagliflozin', 'forxiga', 'xigduo', 'empagliflozin', 'jardiance', 'synjardy', 'canagliflozin', 'invokana', 'ertugliflozin', 'flozin',
+  'dapagliflozin', 'forxiga', 'forziga', 'xigduo', 'empagliflozin', 'jardiance', 'synjardy', 'canagliflozin', 'invokana', 'ertugliflozin', 'flozin',
   // GLP-1 ('glutid' ile biten tum etken maddeler)
   'liraglutid', 'victoza', 'saxenda', 'dulaglutid', 'trulicity', 'semaglutid', 'ozempic', 'rybelsus', 'wegovy',
   'exenatid', 'byetta', 'bydureon', 'glutid',
