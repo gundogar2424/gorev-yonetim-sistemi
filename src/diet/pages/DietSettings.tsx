@@ -441,7 +441,8 @@ export default function DietSettings() {
         <section className="card p-4 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme & Yer Açma</h2>
           <p className="text-xs text-slate-500">
-            Tüm verilerin ve API anahtarın tek dosyaya iner. Silmeden önce yedek al, yeniden kurunca geri yükle. (Yedek kişiseldir, paylaşma.)
+            Tüm verilerin ve API anahtarın tek dosyaya iner (hafif: <b>fotoğrafsız</b>, o yüzden çökmez). Kayıtların tam durur;
+            fotoğraflar cihazda/senkronda kalır. Silmeden önce yedek al, yeniden kurunca geri yükle. (Yedek kişiseldir, paylaşma.)
           </p>
           <button onClick={doBackup} className="btn-primary w-full">
             ⬇️ Yedeği İndir

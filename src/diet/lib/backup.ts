@@ -36,18 +36,24 @@ export async function buildBackupData(): Promise<DietBackup> {
   // API anahtari da yedege dahil edilir ki yeniden kurulumda tekrar girmek
   // gerekmesin. (Yedek dosyasi kisiseldir; baskasiyla paylasma.)
   const settings: DietSettings | null = settingsRow ? { ...settingsRow } : null
+  // FOTOGRAFSIZ HAFIF YEDEK: yemek/ilerleme fotograflari (buyuk base64) yedege
+  // ALINMAZ — boylece cok veride bile telefon hafizasi dolup COKMEZ. Kayitlarin
+  // kendisi (tarih, ogun, deger...) tam olarak durur; sadece foto alani bos gider.
+  // Not: fotograflar zaten her cihazda yerelde ve senkronda korunur.
+  const entriesLite = entries.map((e) => ({ ...e, photo: '' }))
+  const progressLite = progress.map((p) => ({ ...p, photo: '' }))
   return {
     app: 'diet-coach',
     version: 4,
     exportedAt: Date.now(),
-    entries,
+    entries: entriesLite,
     measurements,
     vitals,
     exercises,
     water,
     steps,
     sleep,
-    progress,
+    progress: progressLite,
     products,
     settings
   }
