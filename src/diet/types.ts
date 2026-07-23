@@ -105,7 +105,12 @@ export interface Exercise {
   dateStr: string // YYYY-MM-DD
   text: string // Ne yaptin? (orn. "30 dk yürüyüş")
   minutes?: number // Suresi (dk, istege bagli)
-  kcal?: number // Yakilan kalori (yapay zeka tahmini); yoksa kabaca hesaplanir
+  kcal?: number // Yakilan kalori (elle girilir ya da yapay zeka tahmini)
+  // Samsung Health / akilli saat verileri (elle girilir, istege bagli)
+  steps?: number // Adim sayisi (orn. 7360)
+  avgHr?: number // Ortalama nabiz (bpm)
+  cadence?: number // Tempo (adim/dk)
+  distanceKm?: number // Mesafe (km)
 }
 
 // "Ne Yesem?" onerisi: eldeki urunlerden gramajli ogun + makrolar

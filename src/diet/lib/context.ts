@@ -292,7 +292,24 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const exToday = exercises.filter((e) => e.dateStr === today)
   const bits = [`~${kcal} kcal alındı${settings?.calorieGoal ? ` (günlük hedef ${settings.calorieGoal})` : ''}`]
   if (waterMl > 0) bits.push(`${waterMl} ml su içildi`)
-  if (exToday.length) bits.push(`spor: ${exToday.map((e) => e.text).join(', ')}`)
+  if (exToday.length)
+    bits.push(
+      `spor: ${exToday
+        .map((e) => {
+          const d = [
+            e.minutes ? `${e.minutes} dk` : '',
+            e.distanceKm ? `${e.distanceKm} km` : '',
+            e.steps ? `${e.steps} adım` : '',
+            e.avgHr ? `${e.avgHr} bpm` : '',
+            e.cadence ? `${e.cadence} adım/dk` : '',
+            e.kcal ? `~${e.kcal} kcal` : ''
+          ]
+            .filter(Boolean)
+            .join(', ')
+          return d ? `${e.text} (${d})` : e.text
+        })
+        .join('; ')}`
+    )
   const lastMood = checkins.length ? checkins[checkins.length - 1] : undefined
   if (lastMood?.mood != null) bits.push(`son moral ${lastMood.mood}/10${lastMood.note ? ` ("${lastMood.note}")` : ''}`)
   L.push(`Bugün şu ana kadar: ${bits.join(' · ')}.`)

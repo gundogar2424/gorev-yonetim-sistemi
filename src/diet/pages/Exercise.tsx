@@ -13,6 +13,12 @@ export default function ExercisePage() {
   const measurements = useLiveQuery(() => listMeasurements(), [], [])
   const [text, setText] = useState('')
   const [minutes, setMinutes] = useState('')
+  // Samsung Health / saat verileri (elle, hepsi istege bagli)
+  const [kcalIn, setKcalIn] = useState('')
+  const [steps, setSteps] = useState('')
+  const [avgHr, setAvgHr] = useState('')
+  const [cadence, setCadence] = useState('')
+  const [distanceKm, setDistanceKm] = useState('')
   const [flash, setFlash] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -27,15 +33,36 @@ export default function ExercisePage() {
   const weekGoal = settings?.weeklyExerciseGoal && settings.weeklyExerciseGoal > 0 ? settings.weeklyExerciseGoal : 0
   const weekPct = weekGoal ? Math.min(100, Math.round((weekCount / weekGoal) * 100)) : 0
 
+  // "12,5" / "7.360" gibi girdileri sayiya cevir (nokta/virgul/bosluk toleransli)
+  function num(s: string): number | undefined {
+    const c = s.replace(/\./g, '').replace(',', '.').replace(/\s/g, '').trim()
+    if (!c) return undefined
+    const v = Number(c)
+    return Number.isFinite(v) ? v : undefined
+  }
+  function numDec(s: string): number | undefined {
+    const c = s.replace(',', '.').replace(/\s/g, '').trim()
+    if (!c) return undefined
+    const v = Number(c)
+    return Number.isFinite(v) ? v : undefined
+  }
+
   async function save() {
     const t = text.trim()
     if (!t) return
     const m = minutes.trim() ? Math.max(0, Math.round(Number(minutes))) : undefined
     const mins = Number.isFinite(m as number) ? m : undefined
 
-    // Yapay zeka ile yaklasik yakilan kaloriyi tahmin et (anahtar varsa)
-    let kcal: number | undefined
-    if (settings?.apiKey) {
+    const extra = {
+      steps: num(steps),
+      avgHr: num(avgHr),
+      cadence: num(cadence),
+      distanceKm: numDec(distanceKm)
+    }
+
+    // Kaloriyi ELLE girdiyse (saatten) onu kullan; yoksa yapay zeka tahmin etsin
+    let kcal = num(kcalIn)
+    if (kcal == null && settings?.apiKey) {
       setBusy(true)
       try {
         const weights = (measurements ?? [])
@@ -51,11 +78,16 @@ export default function ExercisePage() {
       }
     }
 
-    await addExercise(t, mins, kcal)
+    await addExercise(t, mins, kcal, extra)
     const gained = exercisePoints({ text: t, minutes: mins, createdAt: 0, dateStr: '' } as Exercise)
     setText('')
     setMinutes('')
-    setFlash(`Kaydedildi! +${gained} puan${kcal ? ` · ~${kcal} kcal yakıldı 🔥` : ''} 💪`)
+    setKcalIn('')
+    setSteps('')
+    setAvgHr('')
+    setCadence('')
+    setDistanceKm('')
+    setFlash(`Kaydedildi! +${gained} puan${kcal ? ` · ~${kcal} kcal 🔥` : ''} 💪`)
     setTimeout(() => setFlash(''), 4000)
   }
 
@@ -116,25 +148,86 @@ export default function ExercisePage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              className="field-input w-28"
-              placeholder="dk"
-              value={minutes}
-              onChange={(e) => setMinutes(e.target.value)}
-            />
-            <span className="text-sm text-slate-400 flex-1">Süre (dakika, isteğe bağlı)</span>
-            <button onClick={save} disabled={!text.trim() || busy} className="btn-primary px-5">
-              {busy ? 'Hesaplanıyor…' : 'Ekle'}
-            </button>
+          {/* Saat/Samsung Health verileri — hepsi isteğe bağlı, ne varsa gir */}
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className="text-xs text-slate-500">⏱️ Süre (dk)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="60"
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-slate-500">🔥 Kalori (kcal)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="611"
+                value={kcalIn}
+                onChange={(e) => setKcalIn(e.target.value)}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-slate-500">👟 Adım</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="field-input"
+                placeholder="7360"
+                value={steps}
+                onChange={(e) => setSteps(e.target.value)}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-slate-500">❤️ Ort. nabız (bpm)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="112"
+                value={avgHr}
+                onChange={(e) => setAvgHr(e.target.value)}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-slate-500">🦶 Tempo (adım/dk)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="field-input"
+                placeholder="135"
+                value={cadence}
+                onChange={(e) => setCadence(e.target.value)}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-slate-500">📏 Mesafe (km)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="field-input"
+                placeholder="4,2"
+                value={distanceKm}
+                onChange={(e) => setDistanceKm(e.target.value)}
+              />
+            </label>
           </div>
+          <button onClick={save} disabled={!text.trim() || busy} className="btn-primary w-full">
+            {busy ? 'Hesaplanıyor…' : 'Ekle'}
+          </button>
           {flash && <p className="text-sm font-semibold text-emerald-700">{flash}</p>}
           <p className="text-xs text-slate-400">
-            Her egzersiz +8 puan, süre uzadıkça +12'ye kadar bonus.
-            {settings?.apiKey ? ' Yakılan kaloriyi yapay zeka tahmin eder (küçük token).' : ''}
+            Sadece egzersiz adı yeter; saatteki değerleri (kalori, adım, nabız…) girersen aynen kaydedilir.
+            {settings?.apiKey ? ' Kalori boşsa yapay zeka tahmin eder (küçük token).' : ''}
           </p>
         </section>
 
@@ -185,8 +278,20 @@ export default function ExercisePage() {
                 <p className="text-xs text-slate-500">
                   {formatDate(ex.dateStr)}
                   {ex.minutes ? ` · ${ex.minutes} dk` : ''}
-                  {ex.kcal ? ` · ~${ex.kcal} kcal` : ''} · +{exercisePoints(ex)} puan
+                  {ex.kcal ? ` · 🔥 ${ex.kcal} kcal` : ''} · +{exercisePoints(ex)} puan
                 </p>
+                {(ex.steps || ex.avgHr || ex.cadence || ex.distanceKm) && (
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {[
+                      ex.distanceKm ? `📏 ${ex.distanceKm} km` : '',
+                      ex.steps ? `👟 ${ex.steps.toLocaleString('tr-TR')} adım` : '',
+                      ex.avgHr ? `❤️ ${ex.avgHr} bpm` : '',
+                      ex.cadence ? `🦶 ${ex.cadence} adım/dk` : ''
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                )}
               </div>
               <button onClick={() => remove(ex.id!)} className="text-slate-300 hover:text-rose-500 text-sm px-1">
                 🗑️
