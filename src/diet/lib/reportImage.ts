@@ -1438,11 +1438,14 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
   type Ev =
     | { at: number; kind: 'vital'; v: Vital }
     | { at: number; kind: 'meal'; e: DietEntry }
-    | { at: number; kind: 'med'; name: string; relation?: string }
+    | { at: number; kind: 'med'; name: string; relation?: string; dose?: string }
   const evs: Ev[] = [
     ...dayVitals.map((v) => ({ at: atOf(v.time, v.createdAt), kind: 'vital' as const, v })),
     ...meals.map((e) => ({ at: e.createdAt, kind: 'meal' as const, e })),
-    ...medLogs.map((m) => ({ at: atOf(m.time, m.createdAt), kind: 'med' as const, name: m.name, relation: m.relation }))
+    ...medLogs.map((m) => {
+      const def = m.medId != null ? defById.get(m.medId) : undefined
+      return { at: atOf(m.time, m.createdAt), kind: 'med' as const, name: m.name, relation: m.relation, dose: def?.dose }
+    })
   ].sort((a, b) => a.at - b.at)
 
   const dateNice = new Date(lastDate + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -1513,14 +1516,15 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
         }
         ry += bandH
       } else if (ev.kind === 'med') {
-        // İLAÇ satırı: mor bant + saat + ilaç adı (+ aç/tok ilişkisi)
+        // İLAÇ satırı: mor bant + saat + ilaç adı (+ doz + aç/tok ilişkisi)
         const rel = ev.relation === 'ac' ? ' · aç karnına' : ev.relation === 'tok' ? ' · tok (yemekle)' : ''
+        const dose = ev.dose ? ` · ${ev.dose}` : ''
         fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, VITAL_ROW - 12, 16, '#f5f3ff')
         ctx.fillStyle = '#0f172a'
         ctx.font = 'bold 32px sans-serif'
         ctx.fillText(`💊 ${t}`, PAD + CPAD + 6, ry + VITAL_ROW / 2 + 10)
         ctx.fillStyle = '#6d28d9'
-        ctx.fillText(`${ev.name}${rel}`, PAD + CPAD + 190, ry + VITAL_ROW / 2 + 10)
+        ctx.fillText(`${ev.name}${dose}${rel}`, PAD + CPAD + 190, ry + VITAL_ROW / 2 + 10)
         ry += VITAL_ROW
       } else if (isSugar) {
         const v = ev.v
