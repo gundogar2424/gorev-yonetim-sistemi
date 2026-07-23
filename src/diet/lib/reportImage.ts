@@ -1369,10 +1369,6 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
   const ofKind = allV.filter((v) => v.kind === kind && (isSugar ? v.sugar != null : v.systolic != null))
   const lastDate = ofKind.length ? ofKind[ofKind.length - 1].dateStr : new Date().toLocaleDateString('en-CA')
   const dayVitals = ofKind.filter((v) => v.dateStr === lastDate)
-  const meals = isSugar
-    ? (await dietDb.entries.where('dateStr').equals(lastDate).toArray()).filter((e) => e.decision === 'ate')
-    : []
-
   const atOf = (time: string | undefined, createdAt: number) => {
     if (time && /^\d{1,2}:\d{2}$/.test(time)) {
       const t = new Date(`${lastDate}T${time.padStart(5, '0')}:00`).getTime()
@@ -1381,10 +1377,22 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
     return createdAt
   }
 
-  type Ev = { at: number; kind: 'vital'; v: Vital } | { at: number; kind: 'meal'; e: DietEntry }
+  const meals = isSugar
+    ? (await dietDb.entries.where('dateStr').equals(lastDate).toArray()).filter((e) => e.decision === 'ate')
+    : []
+  // Sekerle iliskili ilaclar: o gun ALINAN ilaclar (vitamin haric), aldigin saatte
+  const medLogs = isSugar
+    ? (await dietDb.medlogs.where('dateStr').equals(lastDate).toArray()).filter((m) => m.status !== 'skipped' && m.kind !== 'vitamin')
+    : []
+
+  type Ev =
+    | { at: number; kind: 'vital'; v: Vital }
+    | { at: number; kind: 'meal'; e: DietEntry }
+    | { at: number; kind: 'med'; name: string; relation?: string }
   const evs: Ev[] = [
     ...dayVitals.map((v) => ({ at: atOf(v.time, v.createdAt), kind: 'vital' as const, v })),
-    ...meals.map((e) => ({ at: e.createdAt, kind: 'meal' as const, e }))
+    ...meals.map((e) => ({ at: e.createdAt, kind: 'meal' as const, e })),
+    ...medLogs.map((m) => ({ at: atOf(m.time, m.createdAt), kind: 'med' as const, name: m.name, relation: m.relation }))
   ].sort((a, b) => a.at - b.at)
 
   const dateNice = new Date(lastDate + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -1454,6 +1462,16 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
           ly += NAME_LH
         }
         ry += bandH
+      } else if (ev.kind === 'med') {
+        // İLAÇ satırı: mor bant + saat + ilaç adı (+ aç/tok ilişkisi)
+        const rel = ev.relation === 'ac' ? ' · aç karnına' : ev.relation === 'tok' ? ' · tok (yemekle)' : ''
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, VITAL_ROW - 12, 16, '#f5f3ff')
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 32px sans-serif'
+        ctx.fillText(`💊 ${t}`, PAD + CPAD + 6, ry + VITAL_ROW / 2 + 10)
+        ctx.fillStyle = '#6d28d9'
+        ctx.fillText(`${ev.name}${rel}`, PAD + CPAD + 190, ry + VITAL_ROW / 2 + 10)
+        ry += VITAL_ROW
       } else if (isSugar) {
         const v = ev.v
         const val = v.sugar || 0
