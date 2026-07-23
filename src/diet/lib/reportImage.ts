@@ -5,7 +5,7 @@ import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
 import { mealLabel, mealEmoji, MEAL_OPTIONS } from './meals'
 import { groupHungerByMeal, hungerAvg } from './report'
-import type { DietEntry } from '../types'
+import type { DietEntry, Vital } from '../types'
 
 const W = 820
 const PAD = 32
@@ -1348,6 +1348,156 @@ export async function buildVitalReportImage(kind: 'seker' | 'tansiyon', days: nu
       y += ROW
     }
   }
+
+  ctx.fillStyle = '#94a3b8'
+  ctx.font = '18px sans-serif'
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 22)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
+  })
+}
+
+// ---- SON GÜN tek-tip raporu: sadece o günün şekeri (ÖĞÜNLERLE) ya da tansiyonu ----
+// Şekerde: o günün şeker ölçümleri + öğünleri saat sırasıyla iç içe (Gün Akışı gibi).
+// Tansiyonda: o günün tansiyon ölçümleri saat sırasıyla (sade).
+export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userName?: string): Promise<Blob> {
+  const isSugar = kind === 'seker'
+  const allV = await dietDb.vitals.orderBy('createdAt').toArray()
+  const ofKind = allV.filter((v) => v.kind === kind && (isSugar ? v.sugar != null : v.systolic != null))
+  const lastDate = ofKind.length ? ofKind[ofKind.length - 1].dateStr : new Date().toLocaleDateString('en-CA')
+  const dayVitals = ofKind.filter((v) => v.dateStr === lastDate)
+  const meals = isSugar
+    ? (await dietDb.entries.where('dateStr').equals(lastDate).toArray()).filter((e) => e.decision === 'ate')
+    : []
+
+  const atOf = (time: string | undefined, createdAt: number) => {
+    if (time && /^\d{1,2}:\d{2}$/.test(time)) {
+      const t = new Date(`${lastDate}T${time.padStart(5, '0')}:00`).getTime()
+      if (!Number.isNaN(t)) return t
+    }
+    return createdAt
+  }
+
+  type Ev = { at: number; kind: 'vital'; v: Vital } | { at: number; kind: 'meal'; e: DietEntry }
+  const evs: Ev[] = [
+    ...dayVitals.map((v) => ({ at: atOf(v.time, v.createdAt), kind: 'vital' as const, v })),
+    ...meals.map((e) => ({ at: e.createdAt, kind: 'meal' as const, e }))
+  ].sort((a, b) => a.at - b.at)
+
+  const dateNice = new Date(lastDate + 'T00:00:00').toLocaleDateString('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+
+  const BANNER = 96
+  const CPAD = 26
+  const MEAL_HEAD = 54
+  const NAME_LH = 40
+  const VITAL_ROW = 72
+  const AVG_H = 70
+  const mctx = document.createElement('canvas').getContext('2d')!
+  const nameMaxW = W - 2 * PAD - 2 * CPAD - 12
+  mctx.font = 'bold 30px sans-serif'
+  const mealNameLines = (e: DietEntry) => wrapText(mctx, e.foodName || 'Öğün', nameMaxW)
+  const evHeight = (ev: Ev) => (ev.kind === 'meal' ? MEAL_HEAD + mealNameLines(ev.e).length * NAME_LH + 22 : VITAL_ROW)
+
+  const listH = evs.length ? evs.reduce((s2, ev) => s2 + evHeight(ev), 0) + CPAD * 2 + (dayVitals.length ? AVG_H : 0) : 100
+  const logicalH = PAD + BANNER + 22 + listH + 56
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#f6f8fa'
+  ctx.fillRect(0, 0, W, logicalH)
+
+  // Banner
+  const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
+  grad.addColorStop(0, isSugar ? '#be123c' : '#0369a1')
+  grad.addColorStop(1, isSugar ? '#e11d48' : '#0ea5e9')
+  roundRectPath(ctx, PAD, PAD, W - 2 * PAD, BANNER, 22)
+  ctx.fillStyle = grad
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 32px sans-serif'
+  ctx.fillText(isSugar ? '🩸 Son Günün Şekeri' : '🩺 Son Günün Tansiyonu', PAD + 26, PAD + 46)
+  ctx.font = '19px sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.fillText(dateNice + (userName ? ` · ${userName}` : '') + (isSugar ? ' · öğünlerle' : ''), PAD + 26, PAD + 76)
+  let y = PAD + BANNER + 22
+
+  fillRound(ctx, PAD, y, W - 2 * PAD, listH, 20, '#ffffff')
+  if (!evs.length) {
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '22px sans-serif'
+    ctx.fillText(isSugar ? 'Bu güne ait şeker/öğün kaydı yok.' : 'Bu güne ait tansiyon kaydı yok.', PAD + CPAD, y + 58)
+  } else {
+    let ry = y + CPAD
+    for (const ev of evs) {
+      const t = new Date(ev.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      if (ev.kind === 'meal') {
+        const lines = mealNameLines(ev.e)
+        const bandH = MEAL_HEAD + lines.length * NAME_LH + 22
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, bandH - 12, 16, '#ecfdf5')
+        ctx.fillStyle = '#065f46'
+        ctx.font = 'bold 32px sans-serif'
+        const label = `${mealEmoji(ev.e.mealType)} ${t}  ${(ev.e.mealType ? mealLabel(ev.e.mealType) : 'Öğün').toUpperCase()}${[ev.e.alsoMeal, ev.e.alsoMeal2].filter(Boolean).map((x) => ' + ' + mealLabel(x as never).toUpperCase()).join('')}`
+        ctx.fillText(label, PAD + CPAD + 6, ry + 44)
+        ctx.fillStyle = '#0f766e'
+        ctx.font = 'bold 30px sans-serif'
+        let ly = ry + MEAL_HEAD + 24
+        for (const ln of lines) {
+          ctx.fillText(ln, PAD + CPAD + 6, ly)
+          ly += NAME_LH
+        }
+        ry += bandH
+      } else if (isSugar) {
+        const v = ev.v
+        const val = v.sugar || 0
+        const fasting = v.sugarContext === 'ac'
+        const hi = fasting ? 126 : 200
+        const mid = fasting ? 100 : 140
+        const col = val >= hi ? '#dc2626' : val >= mid ? '#d97706' : '#16a34a'
+        const tag = val >= hi ? '  ⚠️ yüksek' : val < 70 ? '  ⚠️ düşük' : ''
+        const ctxLbl = v.sugarContext === 'ac' ? ' · aç' : v.sugarContext === 'tok' ? ' · tok' : ''
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, VITAL_ROW - 12, 16, '#fef2f2')
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 32px sans-serif'
+        ctx.fillText(`🩸 ${t}`, PAD + CPAD + 6, ry + VITAL_ROW / 2 + 10)
+        ctx.fillStyle = col
+        ctx.fillText(`Şeker ${val} mg/dL${ctxLbl}${tag}`, PAD + CPAD + 190, ry + VITAL_ROW / 2 + 10)
+        ry += VITAL_ROW
+      } else {
+        const v = ev.v
+        const sys = v.systolic || 0
+        const col = sys >= 140 || (v.diastolic || 0) >= 90 ? '#dc2626' : sys >= 130 ? '#d97706' : '#16a34a'
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, VITAL_ROW - 12, 16, '#f0f9ff')
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 32px sans-serif'
+        ctx.fillText(`🩺 ${t}`, PAD + CPAD + 6, ry + VITAL_ROW / 2 + 10)
+        ctx.fillStyle = col
+        ctx.fillText(`${v.systolic}/${v.diastolic}${v.pulse ? ` · nabız ${v.pulse}` : ''}`, PAD + CPAD + 190, ry + VITAL_ROW / 2 + 10)
+        ry += VITAL_ROW
+      }
+    }
+    if (dayVitals.length) {
+      if (isSugar) {
+        const avg = Math.round(dayVitals.reduce((s2, v) => s2 + (v.sugar || 0), 0) / dayVitals.length)
+        ctx.fillStyle = '#dc2626'
+        ctx.font = 'bold 28px sans-serif'
+        ctx.fillText(`Günün ortalama şekeri: ${avg} mg/dL  (${dayVitals.length} ölçüm)`, PAD + CPAD, ry + 42)
+      } else {
+        const as = Math.round(dayVitals.reduce((s2, v) => s2 + (v.systolic || 0), 0) / dayVitals.length)
+        const ad = Math.round(dayVitals.reduce((s2, v) => s2 + (v.diastolic || 0), 0) / dayVitals.length)
+        ctx.fillStyle = '#0369a1'
+        ctx.font = 'bold 28px sans-serif'
+        ctx.fillText(`Günün ortalama tansiyonu: ${as}/${ad}  (${dayVitals.length} ölçüm)`, PAD + CPAD, ry + 42)
+      }
+      ry += AVG_H
+    }
+  }
+  y += listH + 22
 
   ctx.fillStyle = '#94a3b8'
   ctx.font = '18px sans-serif'

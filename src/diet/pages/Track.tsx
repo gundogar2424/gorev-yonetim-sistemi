@@ -20,7 +20,7 @@ import { analyzeMealSugar, quickMealSugarNote } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
 import { buildMeasurementsReport } from '../lib/report'
-import { buildMeasurementsImage, buildLatestMeasurementImage, buildVitalReportImage } from '../lib/reportImage'
+import { buildMeasurementsImage, buildLatestMeasurementImage, buildVitalReportImage, buildLastDayVitalImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { Measurement } from '../types'
 
@@ -384,6 +384,23 @@ function SendMeasurements() {
     setTimeout(() => setMsg(''), 4000)
   }
 
+  // SADECE SON GÜNÜN şekeri (öğünlerle) ya da tansiyonu — ayrı ayrı gönder
+  async function sendVitalDay(kind: 'seker' | 'tansiyon') {
+    setMsg('Görsel hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildLastDayVitalImage(kind, settings.userName)
+      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-songun.png`)
+      if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Görsel gönderilemedi.')
+    } catch {
+      setMsg('Görsel oluşturulamadı.')
+    }
+    setTimeout(() => setMsg(''), 4000)
+  }
+
   return (
     <section className="card p-3 space-y-2">
       <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Ölçümleri Diyetisyene Gönder</h3>
@@ -425,6 +442,16 @@ function SendMeasurements() {
         </button>
         <button onClick={() => sendVital('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 whitespace-nowrap">
           🩺 Sadece Tansiyon
+        </button>
+      </div>
+
+      <p className="text-xs text-slate-500 pt-1">Ya da yalnızca SON GÜN (şeker öğünlerle birlikte):</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => sendVitalDay('seker')} className="btn bg-rose-100 text-rose-800 border border-rose-200 whitespace-nowrap">
+          🩸 Son Günün Şekeri
+        </button>
+        <button onClick={() => sendVitalDay('tansiyon')} className="btn bg-sky-100 text-sky-800 border border-sky-200 whitespace-nowrap">
+          🩺 Son Günün Tansiyonu
         </button>
       </div>
       {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
