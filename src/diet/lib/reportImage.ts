@@ -1360,6 +1360,47 @@ export async function buildVitalReportImage(kind: 'seker' | 'tansiyon', days: nu
   })
 }
 
+// Turkce karakterleri sadelestir (arama/eslesme icin)
+function normTr(s: string): string {
+  return s
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'i')
+    .replace(/ı/g, 'i')
+    .toLowerCase()
+    .replace(/ş/g, 's')
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ö/g, 'o')
+}
+// Diyabet / kan sekeri ile ilgili ilaclar (etken madde + yaygin marka + terapotik terimler).
+// Bir ilacin adi/markasi/etken-madde analizi bunlardan birini iceriyorsa "seker ilaci"dir.
+const SUGAR_MED_KEYS = [
+  // Biguanid
+  'metformin', 'glucophage', 'glifor', 'diaformin', 'gluformin', 'matofin', 'glukofen',
+  // Sulfonilure
+  'gliclazid', 'gliklazid', 'diamicron', 'glimepirid', 'amaryl', 'glibenclamid', 'glibenklamid', 'glipizid', 'glucovance',
+  // DPP-4
+  'sitagliptin', 'januvia', 'janumet', 'vildagliptin', 'galvus', 'galvusmet', 'eucreas', 'linagliptin', 'trajenta',
+  'saxagliptin', 'onglyza', 'komboglyze', 'alogliptin',
+  // SGLT2
+  'dapagliflozin', 'forxiga', 'xigduo', 'empagliflozin', 'jardiance', 'synjardy', 'canagliflozin', 'invokana', 'ertugliflozin',
+  // GLP-1
+  'liraglutid', 'victoza', 'saxenda', 'dulaglutid', 'trulicity', 'semaglutid', 'ozempic', 'rybelsus', 'wegovy',
+  'exenatid', 'byetta', 'bydureon',
+  // Glinid / TZD / alfa-glukozidaz
+  'repaglinid', 'novonorm', 'nateglinid', 'starlix', 'pioglitazon', 'actos', 'glustin', 'acarbose', 'akarboz', 'glucobay',
+  // Insulin (tumu)
+  'insulin', 'lantus', 'levemir', 'toujeo', 'tresiba', 'novorapid', 'novomix', 'humalog', 'humulin', 'apidra', 'insuman',
+  'ryzodeg', 'xultophy',
+  // Terapotik terimler (etken madde analizinde gecebilir)
+  'kan sekeri', 'diyabet', 'glisemik', 'hipoglisem', 'antidiyabet', 'sglt', 'dpp-4', 'dpp4', 'glp-1', 'glp1', 'seker hapi'
+]
+function isSugarMed(text: string): boolean {
+  const t = normTr(text)
+  return SUGAR_MED_KEYS.some((k) => t.includes(k))
+}
+
 // ---- SON GÜN tek-tip raporu: sadece o günün şekeri (ÖĞÜNLERLE) ya da tansiyonu ----
 // Şekerde: o günün şeker ölçümleri + öğünleri saat sırasıyla iç içe (Gün Akışı gibi).
 // Tansiyonda: o günün tansiyon ölçümleri saat sırasıyla (sade).
@@ -1380,9 +1421,16 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
   const meals = isSugar
     ? (await dietDb.entries.where('dateStr').equals(lastDate).toArray()).filter((e) => e.decision === 'ate')
     : []
-  // Sekerle iliskili ilaclar: o gun ALINAN ilaclar (vitamin haric), aldigin saatte
+  // SADECE seker/diyabet ilaclari: o gun ALINAN, adi/markasi/etken-maddesi diyabetle
+  // iliskili ilaclar — aldigin saatte. (Tansiyon ilaci, vitamin vb. seker raporuna girmez.)
+  const medDefs = isSugar ? await dietDb.meds.toArray() : []
+  const defById = new Map(medDefs.map((d) => [d.id, d]))
   const medLogs = isSugar
-    ? (await dietDb.medlogs.where('dateStr').equals(lastDate).toArray()).filter((m) => m.status !== 'skipped' && m.kind !== 'vitamin')
+    ? (await dietDb.medlogs.where('dateStr').equals(lastDate).toArray()).filter((m) => {
+        if (m.status === 'skipped') return false
+        const def = m.medId != null ? defById.get(m.medId) : undefined
+        return isSugarMed(`${m.name} ${def?.brand ?? ''} ${def?.ingredients ?? ''}`)
+      })
     : []
 
   type Ev =
