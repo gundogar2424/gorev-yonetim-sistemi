@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { listExercises, addExercise, deleteExercise, readDietSettings, listMeasurements } from '../db'
+import { listExercises, addExercise, deleteExercise, readDietSettings, listMeasurements, setActivityDay, getStepsRow } from '../db'
 import { buildHealthContext } from '../lib/context'
-import { estimateExerciseKcal } from '../ai'
+import { estimateExerciseKcal, extractActivityFromPhoto } from '../ai'
+import type { ActivityScan } from '../ai'
+import { fileToResizedDataUrl } from '../../lib/image'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
-import type { Exercise } from '../types'
+import type { DietSettings, Exercise } from '../types'
 
 export default function ExercisePage() {
   const exercises = useLiveQuery(() => listExercises(), [], [])
@@ -139,9 +141,12 @@ export default function ExercisePage() {
           </section>
         )}
 
+        {/* Fotoğraftan oku (Samsung Health ekran görüntüleri) */}
+        <PhotoScanCard settings={settings} />
+
         {/* Yeni egzersiz ekle */}
         <section className="card p-4 space-y-3">
-          <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">➕ Egzersiz Ekle</h3>
+          <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">➕ Egzersiz Ekle (elle)</h3>
           <textarea
             className="field-input min-h-[72px]"
             placeholder="Ne yaptın? Örn. 30 dk tempolu yürüyüş, 20 şınav…"
@@ -313,4 +318,168 @@ function formatDate(dateStr: string): string {
     day: 'numeric',
     month: 'long'
   })
+}
+
+const trNum = (n?: number | null) => (n != null ? n.toLocaleString('tr-TR') : '')
+
+// Fotoğraftan (Samsung Health ekran görüntüsü) veri okuma kartı.
+// İki foto: GÜNLÜK toplam adım + EGZERSİZ (yürüyüş). Egzersiz adımı günlükten düşülür.
+type Slot = { url?: string; scan?: ActivityScan; busy: boolean; err?: string }
+const emptySlot: Slot = { busy: false }
+
+function PhotoScanCard({ settings }: { settings: DietSettings | undefined }) {
+  const [daily, setDaily] = useState<Slot>(emptySlot)
+  const [ex, setEx] = useState<Slot>(emptySlot)
+  const [saving, setSaving] = useState(false)
+  const [flash, setFlash] = useState('')
+  const dailyInput = useRef<HTMLInputElement>(null)
+  const exInput = useRef<HTMLInputElement>(null)
+
+  const hasKey = !!settings?.apiKey?.trim()
+
+  async function pick(kind: 'daily' | 'ex', file?: File) {
+    if (!file) return
+    const set = kind === 'daily' ? setDaily : setEx
+    if (!hasKey) {
+      set({ busy: false, err: 'Fotoğraf okumak için Ayarlar’dan yapay zeka anahtarı gerekli.' })
+      return
+    }
+    let url = ''
+    try {
+      url = await fileToResizedDataUrl(file, 1400, 0.85)
+    } catch {
+      set({ busy: false, err: 'Resim okunamadı.' })
+      return
+    }
+    set({ url, busy: true })
+    try {
+      const scan = await extractActivityFromPhoto({ apiKey: settings!.apiKey!, dataUrl: url, model: settings?.model })
+      set({ url, scan, busy: false })
+    } catch (e) {
+      set({ url, busy: false, err: e instanceof Error ? e.message : 'Fotoğraf okunamadı.' })
+    }
+  }
+
+  const dSteps = daily.scan?.steps ?? undefined
+  const eSteps = ex.scan?.steps ?? undefined
+  const netSteps = dSteps != null ? Math.max(0, dSteps - (eSteps ?? 0)) : undefined
+  const canSave = (!!daily.scan || !!ex.scan) && !daily.busy && !ex.busy
+
+  async function save() {
+    setSaving(true)
+    try {
+      const today = new Date().toLocaleDateString('en-CA')
+      // 1) Egzersiz kaydı (yürüyüş vb.)
+      if (ex.scan) {
+        const s = ex.scan
+        await addExercise(s.activityName || 'Yürüyüş', s.minutes ?? undefined, s.kcal ?? undefined, {
+          steps: s.steps ?? undefined,
+          avgHr: s.avgHr ?? undefined,
+          cadence: s.cadence ?? undefined,
+          distanceKm: s.distanceKm ?? undefined
+        })
+      }
+      // 2) Günlük adım (egzersiz düşülmüş) + günün yakılan kalori/mesafesi
+      if (daily.scan) {
+        const cur = await getStepsRow(today)
+        await setActivityDay(today, {
+          count: netSteps ?? cur?.count,
+          activeMin: cur?.activeMin,
+          activeKcal: cur?.activeKcal,
+          burnedKcal: daily.scan.kcal ?? cur?.burnedKcal,
+          distanceKm: daily.scan.distanceKm ?? cur?.distanceKm
+        })
+      }
+      setDaily(emptySlot)
+      setEx(emptySlot)
+      const bits = [
+        ex.scan ? 'egzersiz eklendi' : '',
+        daily.scan ? `günlük adım ${trNum(netSteps ?? dSteps)}` : ''
+      ].filter(Boolean)
+      setFlash(`Kaydedildi! ${bits.join(' · ')} ✅`)
+      setTimeout(() => setFlash(''), 5000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const scanLine = (s?: ActivityScan) =>
+    s
+      ? [
+          s.minutes ? `⏱️ ${s.minutes} dk` : '',
+          s.steps ? `👟 ${trNum(s.steps)} adım` : '',
+          s.kcal ? `🔥 ${trNum(s.kcal)} kcal` : '',
+          s.avgHr ? `❤️ ${s.avgHr} bpm` : '',
+          s.cadence ? `🦶 ${s.cadence} adım/dk` : '',
+          s.distanceKm ? `📏 ${s.distanceKm} km` : ''
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : ''
+
+  return (
+    <section className="card p-4 space-y-3">
+      <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📷 Fotoğraftan Oku (Samsung Health)</h3>
+      <p className="text-xs text-slate-500 leading-relaxed">
+        İki ekran görüntüsü yükle: <b>günlük toplam adım</b> ve (varsa) <b>egzersiz/yürüyüş</b>. Yapay zeka değerleri kendi
+        okur; egzersiz adımı günlük toplamdan düşülür (çift saymayalım).
+      </p>
+
+      {!hasKey && (
+        <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-2">
+          ⚠️ Fotoğraf okumak için Ayarlar’dan yapay zeka anahtarını girmen gerekiyor.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        {/* GÜNLÜK ADIM */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-600">👟 Günlük toplam adım</p>
+          <input
+            ref={dailyInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => void pick('daily', e.target.files?.[0])}
+          />
+          <button onClick={() => dailyInput.current?.click()} disabled={!hasKey || daily.busy} className="btn-ghost w-full text-sm">
+            {daily.busy ? 'Okunuyor…' : daily.url ? 'Değiştir' : 'Fotoğraf seç'}
+          </button>
+          {daily.url && <img src={daily.url} alt="Günlük adım" className="w-full rounded-lg max-h-32 object-cover" />}
+          {daily.scan && <p className="text-[11px] text-slate-600 leading-snug">{scanLine(daily.scan) || 'Değer okunamadı'}</p>}
+          {daily.err && <p className="text-[11px] text-rose-600">{daily.err}</p>}
+        </div>
+
+        {/* EGZERSİZ */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-600">🚶 Egzersiz (yürüyüş)</p>
+          <input
+            ref={exInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => void pick('ex', e.target.files?.[0])}
+          />
+          <button onClick={() => exInput.current?.click()} disabled={!hasKey || ex.busy} className="btn-ghost w-full text-sm">
+            {ex.busy ? 'Okunuyor…' : ex.url ? 'Değiştir' : 'Fotoğraf seç'}
+          </button>
+          {ex.url && <img src={ex.url} alt="Egzersiz" className="w-full rounded-lg max-h-32 object-cover" />}
+          {ex.scan && <p className="text-[11px] text-slate-600 leading-snug">{scanLine(ex.scan) || 'Değer okunamadı'}</p>}
+          {ex.err && <p className="text-[11px] text-rose-600">{ex.err}</p>}
+        </div>
+      </div>
+
+      {/* Çıkarım özeti: günlük − egzersiz */}
+      {dSteps != null && eSteps != null && (
+        <div className="bg-indigo-50 rounded-lg p-2.5 text-sm text-indigo-900">
+          <b>{trNum(dSteps)}</b> günlük − <b>{trNum(eSteps)}</b> egzersiz = <b>{trNum(netSteps)}</b> adım (egzersiz dışı hareket)
+        </div>
+      )}
+
+      <button onClick={save} disabled={!canSave || saving} className="btn-primary w-full">
+        {saving ? 'Kaydediliyor…' : 'Kaydet'}
+      </button>
+      {flash && <p className="text-sm font-semibold text-emerald-700">{flash}</p>}
+    </section>
+  )
 }

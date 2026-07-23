@@ -1379,6 +1379,67 @@ export async function extractLabText(opts: {
   }
 }
 
+// Samsung Health / akilli saat ekran goruntusunden aktivite verilerini okur.
+// Ne varsa cikarir; gorunmeyeni null birakir. SADECE ilgili sayilar.
+export interface ActivityScan {
+  steps?: number | null // adim
+  kcal?: number | null // yakilan kalori
+  avgHr?: number | null // ortalama nabiz (bpm)
+  cadence?: number | null // tempo (adim/dk)
+  distanceKm?: number | null // mesafe (km)
+  minutes?: number | null // sure (dk)
+  activityName?: string | null // orn. "Yürüyüş"
+}
+export async function extractActivityFromPhoto(opts: { apiKey: string; dataUrl: string; model?: string }): Promise<ActivityScan> {
+  const { apiKey, dataUrl, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  const block = mediaBlock(dataUrl)
+  if (!block) throw new Error('Dosya okunamadı (yalnızca görsel).')
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 400,
+      system:
+        'Sen bir Samsung Health / akıllı saat ekran görüntüsü okuyucususun. Görseldeki sayısal değerleri çıkar ve SADECE geçerli JSON döndür (başka hiçbir metin yok): ' +
+        '{"steps":number|null,"kcal":number|null,"avgHr":number|null,"cadence":number|null,"distanceKm":number|null,"minutes":number|null,"activityName":string|null}. ' +
+        'Kurallar: Görünmeyen alanı null yap. Sayılardaki nokta binlik ayırıcıdır ("7.360" -> 7360). Ondalık için virgül olabilir ("4,2" -> 4.2). ' +
+        'Süre "SS:DD" ya da "SS:DD:ss" biçimindeyse toplam DAKİKAya çevir (ör. "53:06" -> 53, "1:05:00" -> 65). ' +
+        'kcal = yakılan kalori ("kal"). avgHr = ortalama kalp atışı/nabız (bpm). cadence = adım/dk. activityName = etkinlik adı (yoksa null). Uydurma yapma.',
+      messages: [
+        {
+          role: 'user',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          content: [block as any, { type: 'text', text: 'Bu ekran görüntüsündeki değerleri JSON olarak çıkar.' }]
+        }
+      ]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi. Farklı bir görsel deneyin.')
+    const raw = response.content
+      .map((b) => (b.type === 'text' ? b.text : ''))
+      .join('')
+      .trim()
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    // Yanit metinle sarilmis olabilir; ilk {...} blogunu ayikla
+    const jsonStr = cleaned.startsWith('{') ? cleaned : (cleaned.match(/\{[\s\S]*\}/)?.[0] ?? cleaned)
+    const obj = JSON.parse(jsonStr) as ActivityScan
+    // Sadece anlamli sayilari birak (0/negatif/NaN -> undefined)
+    const pos = (n: unknown) => (typeof n === 'number' && isFinite(n) && n > 0 ? n : undefined)
+    return {
+      steps: pos(obj.steps),
+      kcal: pos(obj.kcal),
+      avgHr: pos(obj.avgHr),
+      cadence: pos(obj.cadence),
+      distanceKm: pos(obj.distanceKm),
+      minutes: pos(obj.minutes),
+      activityName: typeof obj.activityName === 'string' && obj.activityName.trim() ? obj.activityName.trim() : undefined
+    }
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Kayitli tahlilleri sade bir dille yorumlar/karsilastirir (tibbi teshis koymaz)
 export async function analyzeLabs(opts: {
   apiKey: string
