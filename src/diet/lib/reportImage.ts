@@ -1105,18 +1105,33 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
 // Açlık kayıtları ve öğünler TEK zaman çizelgesinde, BÜYÜK ve okunaklı satırlarla.
 // Diyetisyen "kahvaltıdan önce 8'di, sonra 3'e düştü, ara öğün şurada" akışını görür.
 export async function buildHungerImage(dateStr: string, userName?: string): Promise<Blob> {
-  const [entries, checkins] = await Promise.all([
+  const [entries, checkins, vitals] = await Promise.all([
     dietDb.entries.where('dateStr').equals(dateStr).toArray(),
-    dietDb.checkins.where('dateStr').equals(dateStr).sortBy('createdAt')
+    dietDb.checkins.where('dateStr').equals(dateStr).sortBy('createdAt'),
+    dietDb.vitals.where('dateStr').equals(dateStr).toArray()
   ])
   const hunger = checkins.filter((c) => c.hunger != null).sort((a, b) => a.createdAt - b.createdAt)
   const meals = entries.filter((e) => e.decision === 'ate').sort((a, b) => a.createdAt - b.createdAt)
+  const sugars = vitals.filter((v) => v.kind === 'seker' && v.sugar != null)
 
-  // Kronolojik akış: açlık kayıtları + öğünler tek listede, saat sırasıyla
-  type Ev = { at: number; kind: 'hunger'; val: number } | { at: number; kind: 'meal'; e: DietEntry }
+  // Ölçümü GERÇEK saatine oturt: dateStr + time; olmazsa createdAt'e düş
+  const atOf = (dateS: string, time: string | undefined, createdAt: number) => {
+    if (time && /^\d{1,2}:\d{2}$/.test(time)) {
+      const t = new Date(`${dateS}T${time.padStart(5, '0')}:00`).getTime()
+      if (!Number.isNaN(t)) return t
+    }
+    return createdAt
+  }
+
+  // Kronolojik akış: açlık + öğün + kan şekeri tek listede, saat sırasıyla
+  type Ev =
+    | { at: number; kind: 'hunger'; val: number }
+    | { at: number; kind: 'meal'; e: DietEntry }
+    | { at: number; kind: 'sugar'; val: number; ctx?: string }
   const evs: Ev[] = [
     ...hunger.map((c) => ({ at: c.createdAt, kind: 'hunger' as const, val: c.hunger! })),
-    ...meals.map((e) => ({ at: e.createdAt, kind: 'meal' as const, e }))
+    ...meals.map((e) => ({ at: e.createdAt, kind: 'meal' as const, e })),
+    ...sugars.map((v) => ({ at: atOf(dateStr, v.time, v.createdAt), kind: 'sugar' as const, val: v.sugar!, ctx: v.sugarContext }))
   ].sort((a, b) => a.at - b.at)
 
   const dateNice = new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -1130,6 +1145,7 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
   const CPAD = 24
   const MEAL_ROW = 78 // ogun bandi (buyuk)
   const HUNGER_ROW = 62 // aclik satiri (buyuk)
+  const SUGAR_ROW = 62 // kan sekeri satiri (buyuk)
   const AVG_H = 64
   const mctx = document.createElement('canvas').getContext('2d')!
 
@@ -1142,8 +1158,10 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
     return n === (e.foodName || '') ? n : n + '…'
   }
 
+  const rowH = (ev: Ev) => (ev.kind === 'meal' ? MEAL_ROW : ev.kind === 'sugar' ? SUGAR_ROW : HUNGER_ROW)
+  const avgLines = (hunger.length ? 1 : 0) + (sugars.length ? 1 : 0)
   const listH = evs.length
-    ? evs.reduce((s2, ev) => s2 + (ev.kind === 'meal' ? MEAL_ROW : HUNGER_ROW), 0) + CPAD * 2 + (hunger.length ? AVG_H : 0)
+    ? evs.reduce((s2, ev) => s2 + rowH(ev), 0) + CPAD * 2 + avgLines * AVG_H
     : 100
   const logicalH = PAD + BANNER + 22 + listH + 56
   const { canvas, ctx } = hiDpiCanvas(W, logicalH)
@@ -1161,10 +1179,10 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
   ctx.fill()
   ctx.fillStyle = '#ffffff'
   ctx.font = 'bold 32px sans-serif'
-  ctx.fillText('🍽️ Açlık Takibi — Gün Akışı', PAD + 26, PAD + 46)
+  ctx.fillText('🍽️ Gün Akışı — açlık + öğün + şeker', PAD + 26, PAD + 46)
   ctx.font = '19px sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.92)'
-  ctx.fillText(dateNice + (userName ? ` · ${userName}` : '') + ' · 1 tok – 10 çok aç', PAD + 26, PAD + 76)
+  ctx.fillText(dateNice + (userName ? ` · ${userName}` : '') + ' · açlık 1 tok–10 aç · 🩸 mg/dL', PAD + 26, PAD + 76)
   let y = PAD + BANNER + 22
 
   // Akış kartı
@@ -1188,6 +1206,23 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
         ctx.font = 'bold 26px sans-serif'
         ctx.fillText(mealName(ev.e), PAD + CPAD + 6, ry + MEAL_ROW - 8 - 2)
         ry += MEAL_ROW
+      } else if (ev.kind === 'sugar') {
+        // KAN ŞEKERİ satırı: kırmızı damla + saat + değer (mg/dL) + aç/tok
+        const fasting = ev.ctx === 'ac'
+        const hi = fasting ? 126 : 200
+        const mid = fasting ? 100 : 140
+        const col = ev.val >= hi ? '#dc2626' : ev.val >= mid ? '#d97706' : '#16a34a'
+        const tag = ev.val >= hi ? '  ⚠️ yüksek' : ev.val < 70 ? '  ⚠️ düşük' : ''
+        const ctxLbl = ev.ctx === 'ac' ? ' · aç' : ev.ctx === 'tok' ? ' · tok' : ''
+        // kirmizi damla isareti
+        fillRound(ctx, PAD + 12, ry + 6, W - 2 * PAD - 24, SUGAR_ROW - 12, 14, '#fef2f2')
+        ctx.fillStyle = '#0f172a'
+        ctx.font = 'bold 28px sans-serif'
+        ctx.fillText(`🩸 ${t}`, PAD + CPAD + 6, ry + SUGAR_ROW / 2 + 8)
+        ctx.fillStyle = col
+        ctx.font = 'bold 28px sans-serif'
+        ctx.fillText(`Şeker ${ev.val} mg/dL${ctxLbl}${tag}`, PAD + CPAD + 170, ry + SUGAR_ROW / 2 + 8)
+        ry += SUGAR_ROW
       } else {
         // AÇLIK satırı: saat + büyük değer (renkli)
         const col = ev.val >= 7 ? '#e11d48' : ev.val >= 5 ? '#d97706' : '#7c3aed'
@@ -1207,6 +1242,14 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
       ctx.fillStyle = '#7c3aed'
       ctx.font = 'bold 26px sans-serif'
       ctx.fillText(`Günün ortalama açlığı: ${hungerAvg(checkins)}/10`, PAD + CPAD, ry + 40)
+      ry += AVG_H
+    }
+    if (sugars.length) {
+      const savg = Math.round(sugars.reduce((s2, v) => s2 + (v.sugar || 0), 0) / sugars.length)
+      ctx.fillStyle = '#dc2626'
+      ctx.font = 'bold 26px sans-serif'
+      ctx.fillText(`Günün ortalama şekeri: ${savg} mg/dL  (${sugars.length} ölçüm)`, PAD + CPAD, ry + 40)
+      ry += AVG_H
     }
   }
   y += listH + 22
