@@ -20,7 +20,7 @@ import { analyzeMealSugar, quickMealSugarNote } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
 import { buildMeasurementsReport } from '../lib/report'
-import { buildMeasurementsImage, buildLatestMeasurementImage, buildVitalReportImage, buildLastDayVitalImage } from '../lib/reportImage'
+import { buildMeasurementsImage, buildLatestMeasurementImage, buildVitalReportImage, buildLastDayVitalImage, buildVitalGraphImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { Measurement } from '../types'
 
@@ -38,9 +38,10 @@ const METRICS: { key: keyof Measurement; label: string; unit: string; color: str
 ]
 
 const RANGES = [
+  { days: 1, label: 'Günlük' },
   { days: 7, label: '7 gün' },
-  { days: 30, label: '30 gün' },
-  { days: 90, label: '90 gün' },
+  { days: 30, label: '1 ay' },
+  { days: 90, label: '3 ay' },
   { days: 0, label: 'Tümü' }
 ]
 
@@ -384,6 +385,23 @@ function SendMeasurements() {
     setTimeout(() => setMsg(''), 4000)
   }
 
+  // ŞEKER ya da TANSİYON GRAFİĞİ (seçili dönem) — ayrı ayrı gönder
+  async function sendVitalGraph(kind: 'seker' | 'tansiyon') {
+    setMsg('Grafik hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildVitalGraphImage(kind, days, settings.userName)
+      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-grafik-${days || 'tum'}gun.png`)
+      if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
+      else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
+      else if (res === 'cancelled') setMsg('')
+      else setMsg('Görsel gönderilemedi.')
+    } catch {
+      setMsg('Grafik oluşturulamadı.')
+    }
+    setTimeout(() => setMsg(''), 4000)
+  }
+
   // SADECE SON GÜNÜN şekeri (öğünlerle) ya da tansiyonu — ayrı ayrı gönder
   async function sendVitalDay(kind: 'seker' | 'tansiyon') {
     setMsg('Görsel hazırlanıyor…')
@@ -442,6 +460,16 @@ function SendMeasurements() {
         </button>
         <button onClick={() => sendVital('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 whitespace-nowrap">
           🩺 Sadece Tansiyon
+        </button>
+      </div>
+
+      <p className="text-xs text-slate-500 pt-1">Ya da GRAFİK gönder (seçili dönem — üstteki sekmeye göre):</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => sendVitalGraph('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 whitespace-nowrap">
+          📈 Şeker Grafiği
+        </button>
+        <button onClick={() => sendVitalGraph('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 whitespace-nowrap">
+          📈 Tansiyon Grafiği
         </button>
       </div>
 

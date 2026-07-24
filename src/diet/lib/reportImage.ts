@@ -1584,6 +1584,210 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
   })
 }
 
+// ---- ŞEKER / TANSİYON GRAFİĞİ (ayrı ayrı gönderilir; dönem: 1/7/30/90/tümü) ----
+// Okunakli cizgi grafik: eksen degerleri, referans cizgileri (hedef/yuksek),
+// tarih etiketleri, seriler (aclik/tok ya da sistol/diastol/nabiz) + legend.
+export async function buildVitalGraphImage(kind: 'seker' | 'tansiyon', days: number, userName?: string): Promise<Blob> {
+  const isSugar = kind === 'seker'
+  const all = await dietDb.vitals.orderBy('createdAt').toArray()
+  const rows = all
+    .filter((v) => v.kind === kind && imgInLastDays(v.dateStr, days) && (isSugar ? v.sugar != null : v.systolic != null))
+    .sort((a, b) => a.createdAt - b.createdAt)
+  const isTokFn = (v: Vital) => (v.sugarContext ?? '').toLowerCase().startsWith('tok')
+
+  type Pt = { t: number; y: number }
+  const series: { label: string; color: string; pts: Pt[] }[] = []
+  if (isSugar) {
+    const ac = rows.filter((v) => !isTokFn(v)).map((v) => ({ t: v.createdAt, y: v.sugar as number }))
+    const tok = rows.filter((v) => isTokFn(v)).map((v) => ({ t: v.createdAt, y: v.sugar as number }))
+    if (ac.length) series.push({ label: 'Açlık', color: '#d97706', pts: ac })
+    if (tok.length) series.push({ label: 'Tok', color: '#2563eb', pts: tok })
+  } else {
+    const sys = rows.map((v) => ({ t: v.createdAt, y: v.systolic as number }))
+    const dia = rows.filter((v) => v.diastolic != null).map((v) => ({ t: v.createdAt, y: v.diastolic as number }))
+    const pulse = rows.filter((v) => v.pulse != null).map((v) => ({ t: v.createdAt, y: v.pulse as number }))
+    if (sys.length) series.push({ label: 'Büyük (sistol)', color: '#dc2626', pts: sys })
+    if (dia.length) series.push({ label: 'Küçük (diastol)', color: '#2563eb', pts: dia })
+    if (pulse.length) series.push({ label: 'Nabız', color: '#94a3b8', pts: pulse })
+  }
+
+  const refs = isSugar
+    ? [
+        { y: 70, label: '70 düşük', color: '#f59e0b' },
+        { y: 100, label: '100 açlık hedef', color: '#10b981' },
+        { y: 140, label: '140 tok hedef', color: '#10b981' },
+        { y: 180, label: '180 yüksek', color: '#ef4444' }
+      ]
+    : [
+        { y: 120, label: '120 sistol', color: '#10b981' },
+        { y: 140, label: '140 yüksek', color: '#ef4444' },
+        { y: 80, label: '80 diastol', color: '#10b981' },
+        { y: 90, label: '90 yüksek', color: '#ef4444' }
+      ]
+
+  const accent = isSugar ? '#e11d48' : '#0ea5e9'
+  const title = isSugar ? '📈 Şeker Grafiği' : '📈 Tansiyon Grafiği'
+  const periodLabel = days === 1 ? 'Bugün' : days ? `Son ${days} gün` : 'Tüm zamanlar'
+
+  const BANNER = 96
+  const CPAD = 26
+  const CHART_H = 540
+  const mLeft = 82
+  const mRight = 30
+  const mTop = 78
+  const mBottom = 64
+  const chartTop = PAD + BANNER + 22
+  const statsH = 64
+  const logicalH = chartTop + CHART_H + statsH + 40
+
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+  ctx.fillStyle = '#f6f8fa'
+  ctx.fillRect(0, 0, W, logicalH)
+
+  // Banner
+  const grad = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
+  grad.addColorStop(0, isSugar ? '#be123c' : '#0369a1')
+  grad.addColorStop(1, accent)
+  roundRectPath(ctx, PAD, PAD, W - 2 * PAD, BANNER, 22)
+  ctx.fillStyle = grad
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 32px sans-serif'
+  ctx.fillText(title, PAD + 26, PAD + 46)
+  ctx.font = '19px sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.fillText(`${periodLabel}${userName ? ` · ${userName}` : ''} · ${isSugar ? 'mg/dL' : 'mmHg'}`, PAD + 26, PAD + 76)
+
+  fillRound(ctx, PAD, chartTop, W - 2 * PAD, CHART_H, 22, '#ffffff')
+
+  if (!rows.length) {
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '22px sans-serif'
+    ctx.fillText(isSugar ? 'Bu dönemde şeker ölçümü yok.' : 'Bu dönemde tansiyon ölçümü yok.', PAD + CPAD, chartTop + 60)
+  } else {
+    const plotX0 = PAD + mLeft
+    const plotX1 = W - PAD - mRight
+    const plotW = plotX1 - plotX0
+    const plotY0 = chartTop + mTop
+    const plotY1 = chartTop + CHART_H - mBottom
+    const plotH = plotY1 - plotY0
+
+    const allY = series.flatMap((s) => s.pts.map((p) => p.y)).concat(refs.map((r) => r.y))
+    let yLo = Math.floor((Math.min(...allY) - Math.max(8, (Math.max(...allY) - Math.min(...allY)) * 0.12)) / 10) * 10
+    let yHi = Math.ceil((Math.max(...allY) + Math.max(8, (Math.max(...allY) - Math.min(...allY)) * 0.12)) / 10) * 10
+    if (yHi - yLo < 20) yHi = yLo + 20
+    const allT = rows.map((r) => r.createdAt)
+    const tMin = Math.min(...allT)
+    const tMax = Math.max(...allT)
+    const xOf = (t: number) => (tMax === tMin ? plotX0 + plotW / 2 : plotX0 + ((t - tMin) / (tMax - tMin)) * plotW)
+    const yOf = (v: number) => plotY1 - ((v - yLo) / (yHi - yLo)) * plotH
+
+    // Yatay gridler + y etiketleri
+    const step = Math.max(10, Math.round((yHi - yLo) / 5 / 10) * 10)
+    ctx.font = '18px sans-serif'
+    for (let gv = Math.ceil(yLo / step) * step; gv <= yHi; gv += step) {
+      const gy = yOf(gv)
+      ctx.strokeStyle = '#eef2f7'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(plotX0, gy)
+      ctx.lineTo(plotX1, gy)
+      ctx.stroke()
+      ctx.fillStyle = '#94a3b8'
+      ctx.fillText(String(gv), PAD + 18, gy + 6)
+    }
+
+    // Referans cizgileri (kesikli, sagda etiketli)
+    ctx.setLineDash([7, 6])
+    ctx.lineWidth = 2
+    ctx.font = 'bold 15px sans-serif'
+    for (const r of refs) {
+      if (r.y < yLo || r.y > yHi) continue
+      const gy = yOf(r.y)
+      ctx.strokeStyle = r.color + '99'
+      ctx.beginPath()
+      ctx.moveTo(plotX0, gy)
+      ctx.lineTo(plotX1, gy)
+      ctx.stroke()
+      ctx.fillStyle = r.color
+      ctx.fillText(r.label, plotX1 - ctx.measureText(r.label).width, gy - 6)
+    }
+    ctx.setLineDash([])
+
+    // X ekseni tarih etiketleri
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '17px sans-serif'
+    const fmt = (t: number) =>
+      new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) +
+      (days === 1 ? ' ' + new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '')
+    const xticks = tMax === tMin ? [tMin] : [tMin, (tMin + tMax) / 2, tMax]
+    xticks.forEach((t, i) => {
+      const lbl = fmt(t)
+      const lw = ctx.measureText(lbl).width
+      let lx = xOf(t) - lw / 2
+      if (i === 0) lx = plotX0
+      if (i === xticks.length - 1) lx = plotX1 - lw
+      ctx.fillText(lbl, lx, plotY1 + 34)
+    })
+
+    // Seriler (cizgi + noktalar)
+    for (const s of series) {
+      ctx.strokeStyle = s.color
+      ctx.lineWidth = 4
+      ctx.beginPath()
+      s.pts.forEach((p, i) => (i === 0 ? ctx.moveTo(xOf(p.t), yOf(p.y)) : ctx.lineTo(xOf(p.t), yOf(p.y))))
+      ctx.stroke()
+      ctx.fillStyle = s.color
+      for (const p of s.pts) {
+        ctx.beginPath()
+        ctx.arc(xOf(p.t), yOf(p.y), 6, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+
+    // Legend (grafik ustu)
+    let lx = plotX0
+    ctx.font = 'bold 19px sans-serif'
+    for (const s of series) {
+      ctx.fillStyle = s.color
+      ctx.beginPath()
+      ctx.arc(lx + 8, chartTop + 42, 8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#334155'
+      ctx.fillText(s.label, lx + 24, chartTop + 48)
+      lx += 24 + ctx.measureText(s.label).width + 34
+    }
+  }
+
+  // Alt istatistik satiri
+  const statsY = chartTop + CHART_H + 42
+  ctx.font = 'bold 22px sans-serif'
+  ctx.fillStyle = accent
+  if (rows.length) {
+    if (isSugar) {
+      const vals = rows.map((v) => v.sugar as number)
+      const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
+      ctx.fillText(`Ortalama ${avg} · en düşük ${Math.min(...vals)} · en yüksek ${Math.max(...vals)} · ${vals.length} ölçüm`, PAD, statsY)
+    } else {
+      const sysV = rows.map((v) => v.systolic as number)
+      const diaV = rows.filter((v) => v.diastolic != null).map((v) => v.diastolic as number)
+      const asv = Math.round(sysV.reduce((a, b) => a + b, 0) / sysV.length)
+      const adv = diaV.length ? Math.round(diaV.reduce((a, b) => a + b, 0) / diaV.length) : 0
+      ctx.fillText(`Ortalama ${asv}/${adv} · en yüksek ${Math.max(...sysV)} · ${sysV.length} ölçüm`, PAD, statsY)
+    }
+  }
+
+  ctx.fillStyle = '#94a3b8'
+  ctx.font = '18px sans-serif'
+  ctx.fillText('Diyet Koçu uygulamasından gönderildi', PAD, logicalH - 12)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
+  })
+}
+
 // ---- Ölçüm GÖRSEL raporu (kilo grafiği + ölçü değişimi + şeker/tansiyon) ----
 const MEASURE_FIELDS_IMG: { key: 'weight' | 'navel' | 'fold' | 'hip' | 'chest' | 'arm' | 'leg'; label: string; unit: string; color: string }[] = [
   { key: 'weight', label: 'Kilo', unit: 'kg', color: '#059669' },
