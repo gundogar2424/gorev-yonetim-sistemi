@@ -1272,10 +1272,16 @@ export async function buildHungerImage(dateStr: string, userName?: string): Prom
 
 // ---- TEK TİP SAĞLIK raporu: SADECE şeker ya da SADECE tansiyon (ayrı ayrı gönderim) ----
 // Diyetisyene şekeri/tansiyonu tek başına, dönemli liste + ortalama olarak gönderir.
-export async function buildVitalReportImage(kind: 'seker' | 'tansiyon', days: number, userName?: string): Promise<Blob> {
+export async function buildVitalReportImage(
+  kind: 'seker' | 'tansiyon',
+  days: number,
+  userName?: string,
+  range?: { from: string; to: string }
+): Promise<Blob> {
+  const inSel = (ds: string) => (range ? ds >= range.from && ds <= range.to : imgInLastDays(ds, days))
   const all = await dietDb.vitals.orderBy('createdAt').toArray()
   const rows = all
-    .filter((v) => v.kind === kind && imgInLastDays(v.dateStr, days))
+    .filter((v) => v.kind === kind && inSel(v.dateStr))
     .sort((a, b) => (a.dateStr + a.time).localeCompare(b.dateStr + b.time))
 
   const isSugar = kind === 'seker'
@@ -1307,7 +1313,9 @@ export async function buildVitalReportImage(kind: 'seker' | 'tansiyon', days: nu
   ctx.fillText(title, PAD + 26, PAD + 46)
   ctx.font = '19px sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.92)'
-  ctx.fillText(`${days ? `Son ${days} gün` : 'Tüm zamanlar'}${userName ? ` · ${userName}` : ''}`, PAD + 26, PAD + 76)
+  const nD = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+  const periodLbl = range ? (range.from === range.to ? nD(range.from) : `${nD(range.from)} – ${nD(range.to)}`) : days ? `Son ${days} gün` : 'Tüm zamanlar'
+  ctx.fillText(`${periodLbl}${userName ? ` · ${userName}` : ''}`, PAD + 26, PAD + 76)
 
   fillRound(ctx, PAD, cardTop, W - 2 * PAD, cardH, 22, '#ffffff')
 
@@ -1404,11 +1412,12 @@ function isSugarMed(text: string): boolean {
 // ---- SON GÜN tek-tip raporu: sadece o günün şekeri (ÖĞÜNLERLE) ya da tansiyonu ----
 // Şekerde: o günün şeker ölçümleri + öğünleri saat sırasıyla iç içe (Gün Akışı gibi).
 // Tansiyonda: o günün tansiyon ölçümleri saat sırasıyla (sade).
-export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userName?: string): Promise<Blob> {
+export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userName?: string, dateStr?: string): Promise<Blob> {
   const isSugar = kind === 'seker'
   const allV = await dietDb.vitals.orderBy('createdAt').toArray()
   const ofKind = allV.filter((v) => v.kind === kind && (isSugar ? v.sugar != null : v.systolic != null))
-  const lastDate = ofKind.length ? ofKind[ofKind.length - 1].dateStr : new Date().toLocaleDateString('en-CA')
+  // Belirli bir gun secildiyse onu goster; yoksa son olcumun gunu
+  const lastDate = dateStr || (ofKind.length ? ofKind[ofKind.length - 1].dateStr : new Date().toLocaleDateString('en-CA'))
   const dayVitals = ofKind.filter((v) => v.dateStr === lastDate)
   const atOf = (time: string | undefined, createdAt: number) => {
     if (time && /^\d{1,2}:\d{2}$/.test(time)) {
@@ -1587,11 +1596,17 @@ export async function buildLastDayVitalImage(kind: 'seker' | 'tansiyon', userNam
 // ---- ŞEKER / TANSİYON GRAFİĞİ (ayrı ayrı gönderilir; dönem: 1/7/30/90/tümü) ----
 // Okunakli cizgi grafik: eksen degerleri, referans cizgileri (hedef/yuksek),
 // tarih etiketleri, seriler (aclik/tok ya da sistol/diastol/nabiz) + legend.
-export async function buildVitalGraphImage(kind: 'seker' | 'tansiyon', days: number, userName?: string): Promise<Blob> {
+export async function buildVitalGraphImage(
+  kind: 'seker' | 'tansiyon',
+  days: number,
+  userName?: string,
+  range?: { from: string; to: string }
+): Promise<Blob> {
   const isSugar = kind === 'seker'
+  const inSel = (ds: string) => (range ? ds >= range.from && ds <= range.to : imgInLastDays(ds, days))
   const all = await dietDb.vitals.orderBy('createdAt').toArray()
   const rows = all
-    .filter((v) => v.kind === kind && imgInLastDays(v.dateStr, days) && (isSugar ? v.sugar != null : v.systolic != null))
+    .filter((v) => v.kind === kind && inSel(v.dateStr) && (isSugar ? v.sugar != null : v.systolic != null))
     .sort((a, b) => a.createdAt - b.createdAt)
   const isTokFn = (v: Vital) => (v.sugarContext ?? '').toLowerCase().startsWith('tok')
 
@@ -1627,7 +1642,16 @@ export async function buildVitalGraphImage(kind: 'seker' | 'tansiyon', days: num
 
   const accent = isSugar ? '#e11d48' : '#0ea5e9'
   const title = isSugar ? '📈 Şeker Grafiği' : '📈 Tansiyon Grafiği'
-  const periodLabel = days === 1 ? 'Bugün' : days ? `Son ${days} gün` : 'Tüm zamanlar'
+  const niceD = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+  const periodLabel = range
+    ? range.from === range.to
+      ? niceD(range.from)
+      : `${niceD(range.from)} – ${niceD(range.to)}`
+    : days === 1
+      ? 'Bugün'
+      : days
+        ? `Son ${days} gün`
+        : 'Tüm zamanlar'
 
   const BANNER = 96
   const CPAD = 26

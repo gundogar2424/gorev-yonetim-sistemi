@@ -322,6 +322,12 @@ function SugarMealInsight() {
 function SendMeasurements() {
   const [days, setDays] = useState(30)
   const [msg, setMsg] = useState('')
+  // İsteğe bağlı tarih aralığı: doldurulursa dönem yerine bu aralık kullanılır
+  const [useRange, setUseRange] = useState(false)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  // Geçerli aralık (ikisi de doluysa). Tek gün için ikisini eşit seç.
+  const range = useRange && fromDate && toDate ? { from: fromDate <= toDate ? fromDate : toDate, to: fromDate <= toDate ? toDate : fromDate } : undefined
 
   async function sendText() {
     const settings = await readDietSettings()
@@ -373,8 +379,8 @@ function SendMeasurements() {
     setMsg('Görsel hazırlanıyor…')
     try {
       const settings = await readDietSettings()
-      const blob = await buildVitalReportImage(kind, days, settings.userName)
-      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-rapor-${days || 'tum'}gun.png`)
+      const blob = await buildVitalReportImage(kind, days, settings.userName, range)
+      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-rapor.png`)
       if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
       else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
       else if (res === 'cancelled') setMsg('')
@@ -390,8 +396,8 @@ function SendMeasurements() {
     setMsg('Grafik hazırlanıyor…')
     try {
       const settings = await readDietSettings()
-      const blob = await buildVitalGraphImage(kind, days, settings.userName)
-      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-grafik-${days || 'tum'}gun.png`)
+      const blob = await buildVitalGraphImage(kind, days, settings.userName, range)
+      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-grafik.png`)
       if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
       else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
       else if (res === 'cancelled') setMsg('')
@@ -407,8 +413,9 @@ function SendMeasurements() {
     setMsg('Görsel hazırlanıyor…')
     try {
       const settings = await readDietSettings()
-      const blob = await buildLastDayVitalImage(kind, settings.userName)
-      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-songun.png`)
+      // Tarih seçildiyse o günü, yoksa son ölçüm gününü göster
+      const blob = await buildLastDayVitalImage(kind, settings.userName, range?.from)
+      const res = await shareImageSmart(blob, `${kind === 'seker' ? 'seker' : 'tansiyon'}-gun.png`)
       if (res === 'shared') setMsg('Paylaşım menüsü açıldı — WhatsApp’ı seç.')
       else if (res === 'copied') setMsg('Görsel indirildi, diyetisyenine gönderebilirsin.')
       else if (res === 'cancelled') setMsg('')
@@ -435,15 +442,55 @@ function SendMeasurements() {
         {RANGES.map((r) => (
           <button
             key={r.days}
-            onClick={() => setDays(r.days)}
+            onClick={() => {
+              setDays(r.days)
+              setUseRange(false)
+            }}
             className={`flex-1 text-xs font-semibold rounded-lg py-1.5 ${
-              days === r.days ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+              !useRange && days === r.days ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
             }`}
           >
             {r.label}
           </button>
         ))}
       </div>
+
+      {/* Tarih seç / iki tarih arası */}
+      <button
+        onClick={() => setUseRange((v) => !v)}
+        className={`w-full text-xs font-semibold rounded-lg py-1.5 ${useRange ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}
+      >
+        📅 Tarih seç / iki tarih arası {useRange ? '▲' : '▼'}
+      </button>
+      {useRange && (
+        <div className="space-y-1.5 bg-slate-50 rounded-lg p-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 w-16">Başlangıç</span>
+            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="field-input flex-1 text-sm py-1" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 w-16">Bitiş</span>
+            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="field-input flex-1 text-sm py-1" />
+          </div>
+          <button
+            onClick={() => {
+              const t = new Date().toLocaleDateString('en-CA')
+              setFromDate(t)
+              setToDate(t)
+            }}
+            className="w-full text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg py-1.5"
+          >
+            Bugünü seç (tek gün)
+          </button>
+          <p className="text-[11px] text-slate-500">
+            {range
+              ? range.from === range.to
+                ? `Seçili: ${range.from} (tek gün)`
+                : `Seçili: ${range.from} → ${range.to}`
+              : 'İki tarihi de seç (tek gün için ikisini aynı yap).'}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2">
         <button onClick={sendText} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
           ✍️ Yazılı Gönder
