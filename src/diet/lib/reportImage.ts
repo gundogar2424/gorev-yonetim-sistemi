@@ -1626,20 +1626,6 @@ export async function buildVitalGraphImage(
     if (pulse.length) series.push({ label: 'Nabız', color: '#94a3b8', pts: pulse })
   }
 
-  const refs = isSugar
-    ? [
-        { y: 70, label: '70 düşük', color: '#f59e0b' },
-        { y: 100, label: '100 açlık hedef', color: '#10b981' },
-        { y: 140, label: '140 tok hedef', color: '#10b981' },
-        { y: 180, label: '180 yüksek', color: '#ef4444' }
-      ]
-    : [
-        { y: 120, label: '120 sistol', color: '#10b981' },
-        { y: 140, label: '140 yüksek', color: '#ef4444' },
-        { y: 80, label: '80 diastol', color: '#10b981' },
-        { y: 90, label: '90 yüksek', color: '#ef4444' }
-      ]
-
   const accent = isSugar ? '#e11d48' : '#0ea5e9'
   const title = isSugar ? '📈 Şeker Grafiği' : '📈 Tansiyon Grafiği'
   const niceD = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -1655,11 +1641,11 @@ export async function buildVitalGraphImage(
 
   const BANNER = 96
   const CPAD = 26
-  const CHART_H = 540
-  const mLeft = 82
-  const mRight = 30
-  const mTop = 78
-  const mBottom = 64
+  const CHART_H = 580
+  const mLeft = 78
+  const mRight = 34
+  const mTop = 100
+  const mBottom = 70
   const chartTop = PAD + BANNER + 22
   const statsH = 64
   const logicalH = chartTop + CHART_H + statsH + 40
@@ -1698,90 +1684,134 @@ export async function buildVitalGraphImage(
     const plotY1 = chartTop + CHART_H - mBottom
     const plotH = plotY1 - plotY0
 
-    const allY = series.flatMap((s) => s.pts.map((p) => p.y)).concat(refs.map((r) => r.y))
-    let yLo = Math.floor((Math.min(...allY) - Math.max(8, (Math.max(...allY) - Math.min(...allY)) * 0.12)) / 10) * 10
-    let yHi = Math.ceil((Math.max(...allY) + Math.max(8, (Math.max(...allY) - Math.min(...allY)) * 0.12)) / 10) * 10
-    if (yHi - yLo < 20) yHi = yLo + 20
+    // Y aralığı: hedef bandı + "yüksek" çizgisi de görünecek şekilde genişlet
+    const band = isSugar ? { lo: 70, hi: 140 } : { lo: 80, hi: 130 }
+    const hiLine = isSugar ? 180 : 140
+    const dataY = series.flatMap((s) => s.pts.map((p) => p.y))
+    let yLo = Math.min(...dataY, band.lo)
+    let yHi = Math.max(...dataY, hiLine)
+    const yp = Math.max(12, (yHi - yLo) * 0.14)
+    yLo = Math.floor((yLo - yp) / 10) * 10
+    yHi = Math.ceil((yHi + yp) / 10) * 10
+    if (yHi - yLo < 40) yHi = yLo + 40
     const allT = rows.map((r) => r.createdAt)
     const tMin = Math.min(...allT)
     const tMax = Math.max(...allT)
+    const single = days === 1 || (range && range.from === range.to) || tMax === tMin
     const xOf = (t: number) => (tMax === tMin ? plotX0 + plotW / 2 : plotX0 + ((t - tMin) / (tMax - tMin)) * plotW)
     const yOf = (v: number) => plotY1 - ((v - yLo) / (yHi - yLo)) * plotH
 
-    // Yatay gridler + y etiketleri
+    // 1) HEDEF BANDI (yeşil, hafif dolgulu) — göz direkt buraya odaklanır
+    const bTop = yOf(band.hi)
+    const bBot = yOf(band.lo)
+    ctx.fillStyle = 'rgba(16,185,129,0.12)'
+    ctx.fillRect(plotX0, bTop, plotW, bBot - bTop)
+    ctx.strokeStyle = 'rgba(16,185,129,0.5)'
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([6, 5])
+    for (const v of [band.lo, band.hi]) {
+      const gy = yOf(v)
+      ctx.beginPath()
+      ctx.moveTo(plotX0, gy)
+      ctx.lineTo(plotX1, gy)
+      ctx.stroke()
+    }
+    // "yüksek" sınır çizgisi (kırmızı)
+    ctx.strokeStyle = 'rgba(220,38,38,0.55)'
+    const hy = yOf(hiLine)
+    ctx.beginPath()
+    ctx.moveTo(plotX0, hy)
+    ctx.lineTo(plotX1, hy)
+    ctx.stroke()
+    ctx.setLineDash([])
+    // Bant / sınır etiketleri (sağ üstte)
+    ctx.font = 'bold 17px sans-serif'
+    ctx.fillStyle = '#059669'
+    const bandTxt = isSugar ? `🎯 hedef ${band.lo}–${band.hi}` : `🎯 normal ${band.lo}–${band.hi}`
+    ctx.fillText(bandTxt, plotX1 - ctx.measureText(bandTxt).width, bTop - 8)
+    ctx.fillStyle = '#dc2626'
+    ctx.fillText(`yüksek ${hiLine}`, plotX1 - ctx.measureText(`yüksek ${hiLine}`).width, hy - 8)
+
+    // 2) Yatay gridler + y ekseni değerleri
     const step = Math.max(10, Math.round((yHi - yLo) / 5 / 10) * 10)
-    ctx.font = '18px sans-serif'
+    ctx.font = 'bold 18px sans-serif'
     for (let gv = Math.ceil(yLo / step) * step; gv <= yHi; gv += step) {
       const gy = yOf(gv)
-      ctx.strokeStyle = '#eef2f7'
+      ctx.strokeStyle = '#f1f5f9'
       ctx.lineWidth = 1
       ctx.beginPath()
       ctx.moveTo(plotX0, gy)
       ctx.lineTo(plotX1, gy)
       ctx.stroke()
       ctx.fillStyle = '#94a3b8'
-      ctx.fillText(String(gv), PAD + 18, gy + 6)
+      ctx.fillText(String(gv), PAD + 12, gy + 6)
     }
 
-    // Referans cizgileri (kesikli, sagda etiketli)
-    ctx.setLineDash([7, 6])
-    ctx.lineWidth = 2
-    ctx.font = 'bold 15px sans-serif'
-    for (const r of refs) {
-      if (r.y < yLo || r.y > yHi) continue
-      const gy = yOf(r.y)
-      ctx.strokeStyle = r.color + '99'
-      ctx.beginPath()
-      ctx.moveTo(plotX0, gy)
-      ctx.lineTo(plotX1, gy)
-      ctx.stroke()
-      ctx.fillStyle = r.color
-      ctx.fillText(r.label, plotX1 - ctx.measureText(r.label).width, gy - 6)
-    }
-    ctx.setLineDash([])
-
-    // X ekseni tarih etiketleri
-    ctx.fillStyle = '#94a3b8'
-    ctx.font = '17px sans-serif'
+    // 3) X ekseni: tek günse saatler, çok günse tarihler (5 etiket)
+    ctx.fillStyle = '#475569'
+    ctx.font = '18px sans-serif'
     const fmt = (t: number) =>
-      new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) +
-      (days === 1 ? ' ' + new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '')
-    const xticks = tMax === tMin ? [tMin] : [tMin, (tMin + tMax) / 2, tMax]
-    xticks.forEach((t, i) => {
+      single
+        ? new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        : new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+    const nTick = tMax === tMin ? 1 : 4
+    for (let i = 0; i <= nTick; i++) {
+      const t = tMin + ((tMax - tMin) * i) / (nTick || 1)
       const lbl = fmt(t)
       const lw = ctx.measureText(lbl).width
-      let lx = xOf(t) - lw / 2
-      if (i === 0) lx = plotX0
-      if (i === xticks.length - 1) lx = plotX1 - lw
-      ctx.fillText(lbl, lx, plotY1 + 34)
-    })
+      let lx0 = xOf(t) - lw / 2
+      if (i === 0) lx0 = plotX0
+      if (i === nTick) lx0 = plotX1 - lw
+      ctx.fillText(lbl, lx0, plotY1 + 36)
+    }
 
-    // Seriler (cizgi + noktalar)
-    for (const s of series) {
+    // 4) Seriler: kalın çizgi + beyaz haleli büyük noktalar + DEĞER yazıları
+    series.forEach((s, si) => {
       ctx.strokeStyle = s.color
-      ctx.lineWidth = 4
+      ctx.lineWidth = 5
+      ctx.lineJoin = 'round'
       ctx.beginPath()
       s.pts.forEach((p, i) => (i === 0 ? ctx.moveTo(xOf(p.t), yOf(p.y)) : ctx.lineTo(xOf(p.t), yOf(p.y))))
       ctx.stroke()
-      ctx.fillStyle = s.color
       for (const p of s.pts) {
+        const px = xOf(p.t)
+        const py = yOf(p.y)
+        ctx.fillStyle = '#ffffff'
         ctx.beginPath()
-        ctx.arc(xOf(p.t), yOf(p.y), 6, 0, Math.PI * 2)
+        ctx.arc(px, py, 9, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = s.color
+        ctx.beginPath()
+        ctx.arc(px, py, 6, 0, Math.PI * 2)
         ctx.fill()
       }
-    }
+      // Değer yazıları (çok nokta varsa seyrelt; sistol üstte, diastol/tok altta)
+      const stride = Math.max(1, Math.ceil(s.pts.length / 16))
+      const below = si === 1 // 2. seri (tok / diastol) alta yazsın ki çakışmasın
+      ctx.font = 'bold 20px sans-serif'
+      ctx.fillStyle = s.color
+      s.pts.forEach((p, i) => {
+        if (i % stride !== 0 && i !== s.pts.length - 1) return
+        if (si >= 2) return // 3. seri (nabız) yazı yok, kalabalık olmasın
+        const px = xOf(p.t)
+        const py = yOf(p.y)
+        const txt = String(Math.round(p.y))
+        const tw = ctx.measureText(txt).width
+        ctx.fillText(txt, Math.max(plotX0, Math.min(plotX1 - tw, px - tw / 2)), below ? py + 30 : py - 16)
+      })
+    })
 
-    // Legend (grafik ustu)
+    // 5) Legend (grafik üstünde, büyük)
     let lx = plotX0
-    ctx.font = 'bold 19px sans-serif'
+    ctx.font = 'bold 21px sans-serif'
     for (const s of series) {
       ctx.fillStyle = s.color
       ctx.beginPath()
-      ctx.arc(lx + 8, chartTop + 42, 8, 0, Math.PI * 2)
+      ctx.arc(lx + 9, chartTop + 46, 9, 0, Math.PI * 2)
       ctx.fill()
       ctx.fillStyle = '#334155'
-      ctx.fillText(s.label, lx + 24, chartTop + 48)
-      lx += 24 + ctx.measureText(s.label).width + 34
+      ctx.fillText(s.label, lx + 26, chartTop + 53)
+      lx += 26 + ctx.measureText(s.label).width + 38
     }
   }
 
