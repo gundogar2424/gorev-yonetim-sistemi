@@ -18,7 +18,8 @@ import type {
   Craving,
   DayNote,
   MedLog,
-  MedDef
+  MedDef,
+  MealType
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -282,6 +283,38 @@ export async function addExercise(
 }
 export async function deleteExercise(id: number) {
   await dietDb.exercises.delete(id)
+}
+
+// HIZLI TASLAK ÖĞÜN: fotoğrafı hemen kaydeder (yapay zekaya sormadan). Sonra
+// Geçmiş'te "yapay zekayla düzelt" ile incelenip gerçek değerler doldurulur.
+export async function addDraftEntry(photo: string, mealType: MealType, createdAt?: number) {
+  const now = createdAt ?? Date.now()
+  await dietDb.entries.add({
+    foodFound: false,
+    foodName: '📷 İncelenecek öğün',
+    healthy: true,
+    riskLevel: 'düşük',
+    estimatedCalories: 0,
+    protein: 0,
+    carb: 0,
+    fat: 0,
+    dietScore: 0,
+    scoreReason: '',
+    harms: [],
+    motivations: [],
+    healthierAlternative: '',
+    verdict: 'Sonra yapay zekayla incelenecek',
+    compliancePercent: -1,
+    complianceNote: '',
+    cravingPortion: '',
+    cravingNote: '',
+    photo,
+    decision: 'ate',
+    mealType,
+    createdAt: now,
+    dateStr: new Date(now).toLocaleDateString('en-CA'),
+    pending: true
+  })
 }
 
 // ---- Gunluk su takibi ----

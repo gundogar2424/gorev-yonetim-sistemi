@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote } from '../db'
+import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -242,6 +242,20 @@ export default function Capture() {
     } finally {
       setClarifyBusy(false)
     }
+  }
+
+  // HIZLI KAYDET: soru sormadan, fotoğrafı hemen taslak olarak kaydet ve yola devam et.
+  // Yemeği bitirince Geçmiş'ten "yapay zekayla düzelt" ile incelenip değerler doldurulur.
+  async function quickSave() {
+    if (!photo) return
+    let createdAt = Date.now()
+    if (customWhen && whenStr) {
+      const d = new Date(whenStr)
+      if (!isNaN(d.getTime())) createdAt = d.getTime()
+    }
+    await addDraftEntry(photo, mealType, createdAt)
+    setSavedDecision('ate')
+    setPhase('saved')
   }
 
   // Onayla ve hesapla: konuşmayı + fotoğrafı birlikte gönderip kesin analizi al
@@ -608,6 +622,15 @@ export default function Capture() {
         {phase === 'converse' && (
           <div className="card p-4 space-y-3">
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-60 object-cover" />}
+
+            {/* HIZLI KAYDET: yemeğe hemen başla, sonra düzelt */}
+            <button onClick={quickSave} className="btn bg-amber-100 text-amber-800 border border-amber-200 w-full py-2.5 font-bold">
+              ⚡ Şimdi kaydet, sonra düzelt
+            </button>
+            <p className="text-[11px] text-slate-400 -mt-1">
+              Soru sormadan fotoğrafı kaydeder; yemeğini ye, sonra Geçmiş’ten “🧑‍🍳 Yapay zekayla düzelt” ile incelet.
+            </p>
+            <div className="border-t border-slate-100" />
 
             {/* Netlestirme sohbeti */}
             <div className="space-y-2">

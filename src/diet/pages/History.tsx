@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
+import { analyzeFood, analyzeFoodByText, mealClarifyChat } from '../ai'
+import { buildHealthContext } from '../lib/context'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
@@ -183,7 +185,7 @@ export default function History() {
             {items.map((e) => {
               const d = DECISION_LABEL[e.decision] ?? DECISION_LABEL.none
               return (
-                <div key={e.id} className="card p-3 flex gap-3 items-center">
+                <div key={e.id} className={`card p-3 flex gap-3 items-center ${e.pending ? 'ring-2 ring-amber-300' : ''}`}>
                   {e.photo ? (
                     <img src={e.photo} alt={e.foodName} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
                   ) : (
@@ -195,10 +197,15 @@ export default function History() {
                     </div>
                     <p className="text-xs text-slate-500">
                       {e.mealType ? `${mealEmoji(e.mealType)} ${mealLabel(e.mealType)}${[e.alsoMeal, e.alsoMeal2].filter(Boolean).map((m) => ' + ' + mealLabel(m as MealType)).join('')}${e.alsoMeal ? ' 🔗' : ''} · ` : ''}
-                      {new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ~
-                      {e.estimatedCalories} kcal
+                      {new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      {!e.pending ? ` · ~${e.estimatedCalories} kcal` : ''}
                     </p>
                     <div className="flex flex-wrap items-center gap-1 mt-1">
+                      {e.pending && (
+                        <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                          ⏳ İncelenmedi
+                        </span>
+                      )}
                       <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${d.cls}`}>
                         {d.text}
                       </span>
@@ -208,6 +215,7 @@ export default function History() {
                         </span>
                       )}
                     </div>
+                    <MealAiRefine e={e} />
                     <MealEdit e={e} />
                     <MealTimeEdit e={e} />
                     <MealShare e={e} />
@@ -230,6 +238,187 @@ export default function History() {
 function toLocalInput(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+// Kaydedilmis bir ogunu YAPAY ZEKA ile duzelt: fotografa bakip konusarak ya da
+// tek tusla incele; sonucu (ad/kalori/makro/uyum) kayda islenir.
+function MealAiRefine({ e }: { e: DietEntry }) {
+  const [open, setOpen] = useState(false)
+  const [chat, setChat] = useState<{ role: 'assistant' | 'user'; text: string }[]>([])
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [done, setDone] = useState('')
+
+  async function toggle() {
+    if (open) {
+      setOpen(false)
+      return
+    }
+    setOpen(true)
+    setErr('')
+    if (chat.length || !e.photo) return
+    // Foto varsa koç ilk gözlemini yapsın
+    setBusy(true)
+    try {
+      const s = await readDietSettings()
+      if (!s.apiKey) {
+        setErr('Fotoğrafı inceletmek için Ayarlar’dan yapay zeka anahtarı gerekli.')
+        return
+      }
+      const reply = await mealClarifyChat({
+        apiKey: s.apiKey,
+        photoDataUrl: e.photo,
+        history: [],
+        model: s.model,
+        userName: s.userName,
+        goal: s.goal,
+        dietPlan: s.dietPlan,
+        dietitianNotes: s.dietitianNotes,
+        health: await buildHealthContext(s)
+      })
+      setChat([{ role: 'assistant', text: reply }])
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : 'Bir hata oluştu.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function send() {
+    const q = input.trim()
+    if (!q || busy) return
+    const hist = [...chat, { role: 'user' as const, text: q }]
+    setChat(hist)
+    setInput('')
+    setBusy(true)
+    setErr('')
+    try {
+      const s = await readDietSettings()
+      const reply = await mealClarifyChat({
+        apiKey: s.apiKey!,
+        photoDataUrl: e.photo,
+        history: hist,
+        model: s.model,
+        userName: s.userName,
+        goal: s.goal,
+        dietPlan: s.dietPlan,
+        dietitianNotes: s.dietitianNotes,
+        health: await buildHealthContext(s)
+      })
+      setChat([...hist, { role: 'assistant', text: reply }])
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : 'Bir hata oluştu.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Konuşmayı (varsa) + fotoğrafı gönderip kesin analizi al ve kayda işle
+  async function apply() {
+    setBusy(true)
+    setErr('')
+    try {
+      const s = await readDietSettings()
+      if (!s.apiKey) {
+        setErr('Yapay zeka anahtarı gerekli.')
+        return
+      }
+      const transcript = chat.map((m) => `${m.role === 'assistant' ? 'Koç' : 'Ben'}: ${m.text}`).join('\n')
+      const note = transcript
+        ? `Bu öğün fotoğrafı için koçla yapılan netleştirme konuşması (analizini fotoğrafa VE bu konuşmada netleşen bilgilere göre yap):\n${transcript}`
+        : undefined
+      const result = e.photo
+        ? await analyzeFood({
+            apiKey: s.apiKey,
+            photoDataUrl: e.photo,
+            model: s.model,
+            userName: s.userName,
+            goal: s.goal,
+            dietPlan: s.dietPlan,
+            dietitianNotes: s.dietitianNotes,
+            note,
+            health: await buildHealthContext(s)
+          })
+        : await analyzeFoodByText({
+            apiKey: s.apiKey,
+            note: transcript || e.foodName,
+            model: s.model,
+            userName: s.userName,
+            goal: s.goal,
+            dietPlan: s.dietPlan,
+            dietitianNotes: s.dietitianNotes,
+            health: await buildHealthContext(s)
+          })
+      await dietDb.entries.update(e.id!, { ...result, pending: false })
+      setDone('Güncellendi ✓')
+      setOpen(false)
+      setTimeout(() => setDone(''), 3000)
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : 'Bir hata oluştu.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mt-1">
+      {!open ? (
+        <button
+          onClick={toggle}
+          className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+            e.pending ? 'bg-amber-500 text-white' : 'text-emerald-700 bg-emerald-50 border border-emerald-100'
+          }`}
+        >
+          🧑‍🍳 {e.pending ? 'Yapay zekayla incele' : 'Yapay zekayla düzelt'}
+        </button>
+      ) : (
+        <div className="space-y-2 bg-emerald-50/60 rounded-xl p-2 mt-1">
+          {chat.map((m, i) => (
+            <div
+              key={i}
+              className={`text-sm rounded-2xl px-3 py-2 whitespace-pre-wrap leading-relaxed ${
+                m.role === 'assistant' ? 'bg-white text-emerald-900' : 'bg-slate-100 text-slate-700 ml-6'
+              }`}
+            >
+              {m.role === 'assistant' ? '🧑‍🍳 ' : ''}
+              {m.text}
+            </div>
+          ))}
+          {busy && (
+            <div className="flex items-center gap-2 text-emerald-700 text-sm py-1">
+              <span className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full" />
+              <span>Koç bakıyor…</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              className="field-input flex-1 py-1 text-sm"
+              placeholder="Düzeltme yaz (örn. pilav yoktu)…"
+              value={input}
+              onChange={(ev) => setInput(ev.target.value)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Enter') void send()
+              }}
+            />
+            <button onClick={send} disabled={!input.trim() || busy} className="btn-primary px-3 py-1.5 text-sm disabled:opacity-50">
+              Gönder
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button onClick={apply} disabled={busy} className="text-xs font-bold bg-emerald-600 text-white rounded-full px-3 py-1 disabled:opacity-50">
+              ✓ İncele ve uygula
+            </button>
+            <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
+              kapat
+            </button>
+          </div>
+          {err && <p className="text-[11px] text-rose-600">{err}</p>}
+        </div>
+      )}
+      {done && <p className="text-[11px] text-emerald-700 font-semibold mt-1">{done}</p>}
+    </div>
+  )
 }
 
 // Kaydedilmis bir ogunu DUZENLE: ad, ogun, kalori, makrolar (gozden kacani duzelt).
