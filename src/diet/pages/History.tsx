@@ -9,7 +9,7 @@ import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
 import { buildDailyImage, buildDailyImageSet, buildMealImage, buildDailyHealthImage, buildHungerImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
-import type { DietEntry, MealType } from '../types'
+import type { DietEntry, FoodAnalysis, MealType } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
   resisted: { text: '💪 Vazgeçti', cls: 'bg-emerald-100 text-emerald-800' },
@@ -249,6 +249,7 @@ function MealAiRefine({ e }: { e: DietEntry }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [done, setDone] = useState('')
+  const [result, setResult] = useState<FoodAnalysis | null>(null) // hesap sonrası yapay zeka yorumu
 
   // Açmak/kapatmak BEDAVA — token harcamaz. Yapay zeka sadece sen bir tuşa
   // bastığında (koça baktır / gönder / incele ve uygula) çalışır.
@@ -362,8 +363,8 @@ function MealAiRefine({ e }: { e: DietEntry }) {
       }
       // Fotoğrafı KORU (analyzeFoodByText photo döndürmez); sadece değerleri güncelle
       await dietDb.entries.update(e.id!, { ...result, photo: e.photo, pending: false })
+      setResult(result) // yapay zekanın yorumunu ekranda göster (kapatma)
       setDone('Güncellendi ✓')
-      setOpen(false)
       setTimeout(() => setDone(''), 3000)
     } catch (x) {
       setErr(x instanceof Error ? x.message : 'Bir hata oluştu.')
@@ -385,57 +386,99 @@ function MealAiRefine({ e }: { e: DietEntry }) {
         </button>
       ) : (
         <div className="space-y-2 bg-emerald-50/60 rounded-xl p-2 mt-1">
-          {chat.length === 0 && !busy && (
+          {/* YAPAY ZEKA YORUMU (hesaptan sonra): puan, neden kırdı, zararlar, motive */}
+          {result && (
+            <div className="space-y-2 bg-white rounded-xl p-3 border border-emerald-100">
+              <p className="font-bold text-slate-800">{result.foodName}</p>
+              <p className="text-sm text-slate-600">
+                ~{result.estimatedCalories} kcal · P {result.protein} · K {result.carb} · Y {result.fat}
+                {result.dietScore > 0 ? ` · puan ${result.dietScore}/10` : ''}
+              </p>
+              {result.verdict && <p className="text-sm font-semibold text-slate-800 bg-slate-50 rounded-lg p-2">“{result.verdict}”</p>}
+              {result.dietScore > 0 && result.dietScore < 10 && result.scoreReason?.trim() && (
+                <p className="text-sm text-amber-800 leading-snug">
+                  <b>Neden tam puan değil:</b> {result.scoreReason}
+                </p>
+              )}
+              {result.harms?.length > 0 && (
+                <ul className="text-xs text-rose-700 list-disc list-inside space-y-0.5">
+                  {result.harms.map((h, i) => (
+                    <li key={i}>{h}</li>
+                  ))}
+                </ul>
+              )}
+              {result.motivations?.length > 0 && (
+                <ul className="text-xs text-emerald-700 list-disc list-inside space-y-0.5">
+                  {result.motivations.map((m, i) => (
+                    <li key={i}>{m}</li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setResult(null); setOpen(false) }} className="text-xs font-bold bg-emerald-600 text-white rounded-full px-4 py-1.5">
+                  Tamam
+                </button>
+                <button onClick={() => setResult(null)} className="text-xs font-semibold text-slate-500 px-2">
+                  tekrar düzelt
+                </button>
+              </div>
+            </div>
+          )}
+          {!result && chat.length === 0 && !busy && (
             <div className="text-[11px] text-slate-500 leading-relaxed">
               💡 <b>En az token:</b> ne yediğini kısaca yaz (örn. “menemen, beyaz peynir, 1 dilim ekmek”) → <b>📝 Yazıdan
               hesapla</b>. Fotoğraf kayıtta durur ama yapay zekaya gönderilmez. Fotoğraftan okutmak birkaç kat fazla token harcar.
             </div>
           )}
-          {chat.map((m, i) => (
-            <div
-              key={i}
-              className={`text-sm rounded-2xl px-3 py-2 whitespace-pre-wrap leading-relaxed ${
-                m.role === 'assistant' ? 'bg-white text-emerald-900' : 'bg-slate-100 text-slate-700 ml-6'
-              }`}
-            >
-              {m.role === 'assistant' ? '🧑‍🍳 ' : ''}
-              {m.text}
-            </div>
-          ))}
-          {busy && (
-            <div className="flex items-center gap-2 text-emerald-700 text-sm py-1">
-              <span className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full" />
-              <span>Koç bakıyor…</span>
-            </div>
+          {!result && (
+            <>
+              {chat.map((m, i) => (
+                <div
+                  key={i}
+                  className={`text-sm rounded-2xl px-3 py-2 whitespace-pre-wrap leading-relaxed ${
+                    m.role === 'assistant' ? 'bg-white text-emerald-900' : 'bg-slate-100 text-slate-700 ml-6'
+                  }`}
+                >
+                  {m.role === 'assistant' ? '🧑‍🍳 ' : ''}
+                  {m.text}
+                </div>
+              ))}
+              {busy && (
+                <div className="flex items-center gap-2 text-emerald-700 text-sm py-1">
+                  <span className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full" />
+                  <span>Koç bakıyor…</span>
+                </div>
+              )}
+              <input
+                className="field-input w-full py-1.5 text-sm"
+                placeholder="Ne yedin? örn. menemen, peynir, ekmek…"
+                value={input}
+                onChange={(ev) => setInput(ev.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => apply(false)} disabled={busy} className="text-xs font-bold bg-emerald-600 text-white rounded-lg px-3 py-2 disabled:opacity-50">
+                  📝 Yazıdan hesapla
+                  <span className="block text-[10px] font-normal opacity-90">az token</span>
+                </button>
+                <button onClick={() => apply(true)} disabled={busy || !e.photo} className="text-xs font-bold bg-slate-200 text-slate-700 rounded-lg px-3 py-2 disabled:opacity-50">
+                  📷 Fotoğraftan hesapla
+                  <span className="block text-[10px] font-normal opacity-80">çok token</span>
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={coachLook} disabled={busy || !e.photo} className="text-[11px] font-semibold text-emerald-700 bg-white border border-emerald-200 rounded-full px-2.5 py-1 disabled:opacity-50">
+                  🧑‍🍳 Koç fotoğrafa baksın (sorsun)
+                </button>
+                <button onClick={send} disabled={!input.trim() || busy} className="text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-full px-2.5 py-1 disabled:opacity-50">
+                  💬 Konuş
+                </button>
+                <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
+                  kapat
+                </button>
+              </div>
+              {err && <p className="text-[11px] text-rose-600">{err}</p>}
+            </>
           )}
-          <input
-            className="field-input w-full py-1.5 text-sm"
-            placeholder="Ne yedin? örn. menemen, peynir, ekmek…"
-            value={input}
-            onChange={(ev) => setInput(ev.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => apply(false)} disabled={busy} className="text-xs font-bold bg-emerald-600 text-white rounded-lg px-3 py-2 disabled:opacity-50">
-              📝 Yazıdan hesapla
-              <span className="block text-[10px] font-normal opacity-90">az token</span>
-            </button>
-            <button onClick={() => apply(true)} disabled={busy || !e.photo} className="text-xs font-bold bg-slate-200 text-slate-700 rounded-lg px-3 py-2 disabled:opacity-50">
-              📷 Fotoğraftan hesapla
-              <span className="block text-[10px] font-normal opacity-80">çok token</span>
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={coachLook} disabled={busy || !e.photo} className="text-[11px] font-semibold text-emerald-700 bg-white border border-emerald-200 rounded-full px-2.5 py-1 disabled:opacity-50">
-              🧑‍🍳 Koç fotoğrafa baksın (sorsun)
-            </button>
-            <button onClick={send} disabled={!input.trim() || busy} className="text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-full px-2.5 py-1 disabled:opacity-50">
-              💬 Konuş
-            </button>
-            <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
-              kapat
-            </button>
-          </div>
-          {err && <p className="text-[11px] text-rose-600">{err}</p>}
         </div>
       )}
       {done && <p className="text-[11px] text-emerald-700 font-semibold mt-1">{done}</p>}
@@ -448,6 +491,8 @@ function MealEdit({ e }: { e: DietEntry }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(e.foodName)
   const [meal, setMeal] = useState<MealType>(e.mealType ?? 'serbest')
+  const [also, setAlso] = useState<MealType | undefined>(e.alsoMeal)
+  const [also2, setAlso2] = useState<MealType | undefined>(e.alsoMeal2)
   const [kcal, setKcal] = useState(String(e.estimatedCalories ?? 0))
   const [p, setP] = useState(String(e.protein ?? 0))
   const [c, setC] = useState(String(e.carb ?? 0))
@@ -462,6 +507,8 @@ function MealEdit({ e }: { e: DietEntry }) {
     await dietDb.entries.update(e.id!, {
       foodName: name.trim() || e.foodName,
       mealType: meal,
+      alsoMeal: also && also !== meal ? also : undefined,
+      alsoMeal2: also2 && also2 !== meal && also2 !== also ? also2 : undefined,
       estimatedCalories: num(kcal),
       protein: num(p),
       carb: num(c),
@@ -488,7 +535,11 @@ function MealEdit({ e }: { e: DietEntry }) {
             {MEAL_OPTIONS.map((m) => (
               <button
                 key={m.value}
-                onClick={() => setMeal(m.value)}
+                onClick={() => {
+                  setMeal(m.value)
+                  if (also === m.value) setAlso(undefined)
+                  if (also2 === m.value) setAlso2(undefined)
+                }}
                 className={`text-[11px] font-semibold rounded-full px-2 py-1 ${
                   meal === m.value ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-600'
                 }`}
@@ -497,6 +548,57 @@ function MealEdit({ e }: { e: DietEntry }) {
               </button>
             ))}
           </div>
+
+          {/* Öğün BİRLEŞTİR (geç kalkınca kahvaltı+öğle gibi) — 3'e kadar */}
+          {!also ? (
+            <button
+              onClick={() => setAlso(MEAL_OPTIONS.find((m) => m.value !== meal)?.value)}
+              className="text-[11px] font-semibold text-teal-700 underline"
+            >
+              ＋ Başka öğünle birleştir
+            </button>
+          ) : (
+            <div className="space-y-1 bg-teal-50 rounded-lg p-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-teal-700">Birleştir:</span>
+                <button onClick={() => { setAlso(undefined); setAlso2(undefined) }} className="text-[10px] text-slate-400 underline">
+                  kaldır
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {MEAL_OPTIONS.filter((m) => m.value !== meal && m.value !== also2).map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => setAlso(m.value)}
+                    className={`text-[11px] font-semibold rounded-full px-2 py-1 ${also === m.value ? 'bg-teal-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
+                  >
+                    {m.emoji} {m.label}
+                  </button>
+                ))}
+              </div>
+              {!also2 ? (
+                <button
+                  onClick={() => setAlso2(MEAL_OPTIONS.find((m) => m.value !== meal && m.value !== also)?.value)}
+                  className="text-[11px] font-semibold text-teal-700 underline"
+                >
+                  ＋ Üçüncü öğünü de ekle
+                </button>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {MEAL_OPTIONS.filter((m) => m.value !== meal && m.value !== also).map((m) => (
+                    <button
+                      key={m.value}
+                      onClick={() => setAlso2(m.value)}
+                      className={`text-[11px] font-semibold rounded-full px-2 py-1 ${also2 === m.value ? 'bg-teal-600 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}
+                    >
+                      {m.emoji} {m.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-4 gap-1.5">
             <label className="text-[10px] text-slate-500">
               Kalori
