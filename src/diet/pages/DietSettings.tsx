@@ -163,14 +163,36 @@ export default function DietSettings() {
           </a>
 
           <div>
-            <label className="field-label">Model (isteğe bağlı)</label>
-            <input
-              className="field-input"
-              placeholder={DEFAULT_MODEL}
-              value={settings?.model ?? ''}
-              onChange={(e) => saveDietSettings({ model: e.target.value.trim() || DEFAULT_MODEL })}
-            />
-            <p className="text-[11px] text-slate-400 mt-1">Boş bırakırsan {DEFAULT_MODEL} kullanılır.</p>
+            <label className="field-label">Model (token maliyetini belirler)</label>
+            {(() => {
+              const cur = (settings?.model || DEFAULT_MODEL).toLowerCase()
+              const fam = cur.includes('haiku') ? 'haiku' : cur.includes('sonnet') ? 'sonnet' : 'opus'
+              const opts = [
+                { key: 'haiku', id: 'claude-haiku-4-5', label: '💰 Ekonomik', desc: 'Haiku · en ucuz (~5× ucuz)' },
+                { key: 'sonnet', id: 'claude-sonnet-5', label: '⚖️ Dengeli', desc: 'Sonnet · orta' },
+                { key: 'opus', id: DEFAULT_MODEL, label: '🧠 En akıllı', desc: 'Opus · en pahalı' }
+              ]
+              return (
+                <div className="grid grid-cols-3 gap-2">
+                  {opts.map((o) => (
+                    <button
+                      key={o.key}
+                      onClick={() => saveDietSettings({ model: o.id })}
+                      className={`rounded-xl p-2 text-center border ${
+                        fam === o.key ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-white border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <div className="text-sm font-bold">{o.label}</div>
+                      <div className="text-[10px] leading-tight text-slate-500 mt-0.5">{o.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              Token’dan tasarruf için <b>Ekonomik (Haiku)</b> günlük kullanım için genelde yeter. Zor bir yorum gerekince
+              geçici olarak Dengeli/En akıllı’ya alabilirsin.
+            </p>
           </div>
         </section>
 

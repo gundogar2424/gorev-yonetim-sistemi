@@ -18,8 +18,9 @@ export interface UsageData {
 }
 
 // Model ailesine gore KABA fiyat ($/1M token). Net fatura icin Console.
+// Guncel tarifeler: Opus 4.8 $5/$25, Sonnet $3/$15, Haiku 4.5 $1/$5.
 const PRICING: Record<'opus' | 'sonnet' | 'haiku', { in: number; out: number }> = {
-  opus: { in: 15, out: 75 },
+  opus: { in: 5, out: 25 },
   sonnet: { in: 3, out: 15 },
   haiku: { in: 1, out: 5 }
 }
