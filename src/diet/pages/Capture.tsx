@@ -182,14 +182,44 @@ export default function Capture() {
     } catch {
       // barkod yok / okunamadi -> yemek olarak devam
     }
-    // Hemen yorumlayıp sayı basma; önce KOÇ fotoğrafa bakıp kullanıcıyla
-    // konuşsun, emin olamadıklarını sorsun. Kullanıcı onaylayınca kalori/makro
-    // hesaplanır. İstenirse konuşmadan da direkt hesaplatılabilir.
+    // TOKEN TASARRUFU: fotoğrafı çekince OTOMATİK yapay zekaya GÖNDERME.
+    // Kullanıcı ne yediğini yazsın (ucuz + doğru); isterse fotoğraftan da
+    // okutabilir. Böylece her çekimde boşuna görüntü token'ı harcanmaz.
     setPhoto(dataUrl)
     setClarifyChat([])
     setClarifyInput('')
     setPhase('converse')
-    void startClarify(dataUrl)
+  }
+
+  // YAZIDAN hesapla: fotoğrafı GÖNDERMEDEN, kullanıcının yazdığı açıklamadan
+  // değerlendir. Fotoğraf kayıtta durmaya devam eder (diyetisyene gider).
+  async function analyzeFromText() {
+    const desc = clarifyInput.trim()
+    if (!desc) {
+      setError('Önce ne yediğini kısaca yaz (örn. süzme peynir 3 kaşık, 1 dilim ekmek).')
+      return
+    }
+    setError('')
+    setAnalysis(null)
+    setPhase('analyzing')
+    try {
+      const result = await analyzeFoodByText({
+        apiKey: settings!.apiKey!,
+        note: desc,
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        body: bodyContext(settings, measurements),
+        health: await buildHealthContext(settings)
+      })
+      setAnalysis(result)
+      setPhase('result')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setPhase('converse')
+    }
   }
 
   // Koç fotoğrafa bakıp ilk gözlemini + sorularını üretir (netleştirme başlar)
@@ -623,64 +653,75 @@ export default function Capture() {
           <div className="card p-4 space-y-3">
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-60 object-cover" />}
 
-            {/* HIZLI KAYDET: yemeğe hemen başla, sonra düzelt */}
+            {/* EN UCUZ + EN DOĞRU: ne yediğini yaz, metinden hesapla */}
+            <label className="text-xs font-semibold text-slate-600">Ne yedin? (yazınca hem ucuz hem doğru olur)</label>
+            <input
+              className="field-input"
+              placeholder="örn. süzme peynir 3 kaşık, 1 dilim esmer ekmek, 5 zeytin"
+              value={clarifyInput}
+              onChange={(e) => setClarifyInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !clarifyChat.length) void analyzeFromText()
+              }}
+            />
+            <button onClick={analyzeFromText} className="btn-primary w-full py-2.5 font-bold">
+              📝 Yazıdan hesapla · az token
+            </button>
+
+            {/* Alternatifler: fotoğraftan oku (çok token) ya da koç sorsun */}
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => analyze(photo, clarifyInput.trim())} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2 text-sm">
+                📷 Fotoğraftan hesapla
+              </button>
+              <button onClick={() => void startClarify(photo)} disabled={clarifyBusy} className="btn bg-slate-100 text-slate-600 py-2 text-sm disabled:opacity-50">
+                🧑‍🍳 Koç baksın
+              </button>
+            </div>
+
+            {/* Koç sohbeti (yalnızca "Koç baksın"a basınca) */}
+            {(clarifyChat.length > 0 || clarifyBusy) && (
+              <div className="space-y-2">
+                {clarifyChat.map((m, i) => (
+                  <div
+                    key={i}
+                    className={`text-sm rounded-2xl px-3 py-2 whitespace-pre-wrap leading-relaxed ${
+                      m.role === 'assistant' ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10' : 'bg-slate-100 text-slate-700 ml-6'
+                    }`}
+                  >
+                    {m.role === 'assistant' ? '🧑‍🍳 ' : ''}
+                    {m.text}
+                  </div>
+                ))}
+                {clarifyBusy && (
+                  <div className="flex items-center gap-2 text-emerald-700 text-sm py-1">
+                    <span className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full" />
+                    <span>Koç bakıyor…</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <button onClick={sendClarify} disabled={!clarifyInput.trim() || clarifyBusy} className="btn bg-white border border-slate-200 text-slate-700 px-3 py-2 text-sm disabled:opacity-50">
+                    Cevabı gönder
+                  </button>
+                  <button onClick={finalizeConversation} disabled={clarifyBusy} className="btn-primary flex-1 py-2 text-sm disabled:opacity-50">
+                    ✓ Onayla ve hesapla (fotoğraflı)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {error && <p className="text-xs text-rose-600">{error}</p>}
+            <div className="border-t border-slate-100" />
+
+            {/* HIZLI KAYDET + Vazgeç */}
             <button onClick={quickSave} className="btn bg-amber-100 text-amber-800 border border-amber-200 w-full py-2.5 font-bold">
               ⚡ Şimdi kaydet, sonra düzelt
             </button>
-            <p className="text-[11px] text-slate-400 -mt-1">
-              Soru sormadan fotoğrafı kaydeder; yemeğini ye, sonra Geçmiş’ten “🧑‍🍳 Yapay zekayla düzelt” ile incelet.
-            </p>
-            <div className="border-t border-slate-100" />
-
-            {/* Netlestirme sohbeti */}
-            <div className="space-y-2">
-              {clarifyChat.map((m, i) => (
-                <div
-                  key={i}
-                  className={`text-sm rounded-2xl px-3 py-2 whitespace-pre-wrap leading-relaxed ${
-                    m.role === 'assistant'
-                      ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10'
-                      : 'bg-slate-100 text-slate-700 ml-6'
-                  }`}
-                >
-                  {m.role === 'assistant' ? '🧑‍🍳 ' : ''}
-                  {m.text}
-                </div>
-              ))}
-              {clarifyBusy && (
-                <div className="flex items-center gap-2 text-emerald-700 text-sm py-1">
-                  <span className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full" />
-                  <span>Koç bakıyor…</span>
-                </div>
-              )}
-            </div>
-
-            {/* Cevap yaz */}
-            <div className="flex items-center gap-2">
-              <input
-                className="field-input flex-1"
-                placeholder="Koçun sorusunu yanıtla…"
-                value={clarifyInput}
-                onChange={(e) => setClarifyInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void sendClarify()
-                }}
-              />
-              <button onClick={sendClarify} disabled={!clarifyInput.trim() || clarifyBusy} className="btn-primary px-3 py-2 disabled:opacity-50">
-                Gönder
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={reset} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 py-2.5">
-                Vazgeç
-              </button>
-              <button onClick={finalizeConversation} disabled={clarifyBusy} className="btn-primary py-2.5 disabled:opacity-50">
-                ✓ Onayla ve hesapla
-              </button>
-            </div>
+            <button onClick={reset} className="btn bg-slate-100 text-slate-600 w-full py-2">
+              Vazgeç
+            </button>
             <p className="text-[11px] text-slate-400">
-              Koçun sorularını yanıtla; netleşince “Onayla ve hesapla”. Konuşmak istemezsen direkt de basabilirsin.
+              💡 En ucuz yol: ne yediğini yaz → “Yazıdan hesapla”. Fotoğraf kayıtta durur, diyetisyene gider; sadece yapay
+              zekaya gönderilmez. Fotoğraftan okutmak birkaç kat fazla token harcar.
             </p>
           </div>
         )}
