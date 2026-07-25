@@ -316,8 +316,9 @@ function MealAiRefine({ e }: { e: DietEntry }) {
     }
   }
 
-  // Konuşmayı (varsa) + fotoğrafı gönderip kesin analizi al ve kayda işle
-  async function apply() {
+  // Değerlendir ve kayda işle. useVision=false → SADECE YAZIDAN (fotoğraf
+  // gönderilmez, az token). useVision=true → fotoğrafı da gönderir (çok token).
+  async function apply(useVision: boolean) {
     setBusy(true)
     setErr('')
     try {
@@ -327,32 +328,40 @@ function MealAiRefine({ e }: { e: DietEntry }) {
         return
       }
       const transcript = chat.map((m) => `${m.role === 'assistant' ? 'Koç' : 'Ben'}: ${m.text}`).join('\n')
-      const note = transcript
-        ? `Bu öğün fotoğrafı için koçla yapılan netleştirme konuşması (analizini fotoğrafa VE bu konuşmada netleşen bilgilere göre yap):\n${transcript}`
-        : undefined
-      const result = e.photo
-        ? await analyzeFood({
-            apiKey: s.apiKey,
-            photoDataUrl: e.photo,
-            model: s.model,
-            userName: s.userName,
-            goal: s.goal,
-            dietPlan: s.dietPlan,
-            dietitianNotes: s.dietitianNotes,
-            note,
-            health: await buildHealthContext(s)
-          })
-        : await analyzeFoodByText({
-            apiKey: s.apiKey,
-            note: transcript || e.foodName,
-            model: s.model,
-            userName: s.userName,
-            goal: s.goal,
-            dietPlan: s.dietPlan,
-            dietitianNotes: s.dietitianNotes,
-            health: await buildHealthContext(s)
-          })
-      await dietDb.entries.update(e.id!, { ...result, pending: false })
+      const typed = input.trim()
+      const desc = [transcript, typed].filter(Boolean).join('\n')
+      let result
+      if (useVision && e.photo) {
+        result = await analyzeFood({
+          apiKey: s.apiKey,
+          photoDataUrl: e.photo,
+          model: s.model,
+          userName: s.userName,
+          goal: s.goal,
+          dietPlan: s.dietPlan,
+          dietitianNotes: s.dietitianNotes,
+          note: desc || undefined,
+          health: await buildHealthContext(s)
+        })
+      } else {
+        // Yazıdan değerlendir — fotoğraf GÖNDERİLMEZ (fotoğraf kayıtta durmaya devam eder)
+        if (!desc) {
+          setErr('Önce ne yediğini kısaca yaz (örn. menemen, peynir, ekmek).')
+          return
+        }
+        result = await analyzeFoodByText({
+          apiKey: s.apiKey,
+          note: desc,
+          model: s.model,
+          userName: s.userName,
+          goal: s.goal,
+          dietPlan: s.dietPlan,
+          dietitianNotes: s.dietitianNotes,
+          health: await buildHealthContext(s)
+        })
+      }
+      // Fotoğrafı KORU (analyzeFoodByText photo döndürmez); sadece değerleri güncelle
+      await dietDb.entries.update(e.id!, { ...result, photo: e.photo, pending: false })
       setDone('Güncellendi ✓')
       setOpen(false)
       setTimeout(() => setDone(''), 3000)
@@ -378,11 +387,8 @@ function MealAiRefine({ e }: { e: DietEntry }) {
         <div className="space-y-2 bg-emerald-50/60 rounded-xl p-2 mt-1">
           {chat.length === 0 && !busy && (
             <div className="text-[11px] text-slate-500 leading-relaxed">
-              En az token: düzeltmeni yaz → <b>✓ İncele ve uygula</b> (tek seferde inceler). İstersen önce koça fotoğrafa
-              baktır (her mesaj bir fotoğraf kadar token harcar).
-              <button onClick={coachLook} disabled={busy || !e.photo} className="mt-1 block text-xs font-semibold text-emerald-700 bg-white border border-emerald-200 rounded-full px-2.5 py-1">
-                🧑‍🍳 Koç fotoğrafa baksın
-              </button>
+              💡 <b>En az token:</b> ne yediğini kısaca yaz (örn. “menemen, beyaz peynir, 1 dilim ekmek”) → <b>📝 Yazıdan
+              hesapla</b>. Fotoğraf kayıtta durur ama yapay zekaya gönderilmez. Fotoğraftan okutmak birkaç kat fazla token harcar.
             </div>
           )}
           {chat.map((m, i) => (
@@ -402,23 +408,28 @@ function MealAiRefine({ e }: { e: DietEntry }) {
               <span>Koç bakıyor…</span>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              className="field-input flex-1 py-1 text-sm"
-              placeholder="Düzeltme yaz (örn. pilav yoktu)…"
-              value={input}
-              onChange={(ev) => setInput(ev.target.value)}
-              onKeyDown={(ev) => {
-                if (ev.key === 'Enter') void send()
-              }}
-            />
-            <button onClick={send} disabled={!input.trim() || busy} className="btn-primary px-3 py-1.5 text-sm disabled:opacity-50">
-              Gönder
+          <input
+            className="field-input w-full py-1.5 text-sm"
+            placeholder="Ne yedin? örn. menemen, peynir, ekmek…"
+            value={input}
+            onChange={(ev) => setInput(ev.target.value)}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => apply(false)} disabled={busy} className="text-xs font-bold bg-emerald-600 text-white rounded-lg px-3 py-2 disabled:opacity-50">
+              📝 Yazıdan hesapla
+              <span className="block text-[10px] font-normal opacity-90">az token</span>
+            </button>
+            <button onClick={() => apply(true)} disabled={busy || !e.photo} className="text-xs font-bold bg-slate-200 text-slate-700 rounded-lg px-3 py-2 disabled:opacity-50">
+              📷 Fotoğraftan hesapla
+              <span className="block text-[10px] font-normal opacity-80">çok token</span>
             </button>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button onClick={apply} disabled={busy} className="text-xs font-bold bg-emerald-600 text-white rounded-full px-3 py-1 disabled:opacity-50">
-              ✓ İncele ve uygula
+          <div className="flex items-center gap-2">
+            <button onClick={coachLook} disabled={busy || !e.photo} className="text-[11px] font-semibold text-emerald-700 bg-white border border-emerald-200 rounded-full px-2.5 py-1 disabled:opacity-50">
+              🧑‍🍳 Koç fotoğrafa baksın (sorsun)
+            </button>
+            <button onClick={send} disabled={!input.trim() || busy} className="text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-full px-2.5 py-1 disabled:opacity-50">
+              💬 Konuş
             </button>
             <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
               kapat
