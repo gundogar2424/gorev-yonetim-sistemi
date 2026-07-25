@@ -449,9 +449,9 @@ function MealAiRefine({ e }: { e: DietEntry }) {
                   <span>Koç bakıyor…</span>
                 </div>
               )}
-              <input
-                className="field-input w-full py-1.5 text-sm"
-                placeholder="Ne yedin? örn. menemen, peynir, ekmek…"
+              <textarea
+                className="field-input w-full min-h-[100px] text-base leading-relaxed"
+                placeholder="Ne yedin? örn. süzme peynir 3 kaşık, 1 dilim ekmek, 5 zeytin…"
                 value={input}
                 onChange={(ev) => setInput(ev.target.value)}
               />

@@ -655,14 +655,11 @@ export default function Capture() {
 
             {/* EN UCUZ + EN DOĞRU: ne yediğini yaz, metinden hesapla */}
             <label className="text-xs font-semibold text-slate-600">Ne yedin? (yazınca hem ucuz hem doğru olur)</label>
-            <input
-              className="field-input"
-              placeholder="örn. süzme peynir 3 kaşık, 1 dilim esmer ekmek, 5 zeytin"
+            <textarea
+              className="field-input min-h-[110px] text-base leading-relaxed"
+              placeholder="örn. süzme peynir 3 kaşık, 1 dilim esmer ekmek, 5 zeytin, 1 bardak çay şekersiz…"
               value={clarifyInput}
               onChange={(e) => setClarifyInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !clarifyChat.length) void analyzeFromText()
-              }}
             />
             <button onClick={analyzeFromText} className="btn-primary w-full py-2.5 font-bold">
               📝 Yazıdan hesapla · az token
