@@ -250,16 +250,18 @@ function MealAiRefine({ e }: { e: DietEntry }) {
   const [err, setErr] = useState('')
   const [done, setDone] = useState('')
 
-  async function toggle() {
-    if (open) {
-      setOpen(false)
-      return
-    }
-    setOpen(true)
+  // Açmak/kapatmak BEDAVA — token harcamaz. Yapay zeka sadece sen bir tuşa
+  // bastığında (koça baktır / gönder / incele ve uygula) çalışır.
+  function toggle() {
+    setOpen((v) => !v)
     setErr('')
-    if (chat.length || !e.photo) return
-    // Foto varsa koç ilk gözlemini yapsın
+  }
+
+  // İSTEĞE BAĞLI: koç fotoğrafa baksın, ilk gözlemini/sorusunu yazsın (1 foto token)
+  async function coachLook() {
+    if (busy || !e.photo) return
     setBusy(true)
+    setErr('')
     try {
       const s = await readDietSettings()
       if (!s.apiKey) {
@@ -374,6 +376,15 @@ function MealAiRefine({ e }: { e: DietEntry }) {
         </button>
       ) : (
         <div className="space-y-2 bg-emerald-50/60 rounded-xl p-2 mt-1">
+          {chat.length === 0 && !busy && (
+            <div className="text-[11px] text-slate-500 leading-relaxed">
+              En az token: düzeltmeni yaz → <b>✓ İncele ve uygula</b> (tek seferde inceler). İstersen önce koça fotoğrafa
+              baktır (her mesaj bir fotoğraf kadar token harcar).
+              <button onClick={coachLook} disabled={busy || !e.photo} className="mt-1 block text-xs font-semibold text-emerald-700 bg-white border border-emerald-200 rounded-full px-2.5 py-1">
+                🧑‍🍳 Koç fotoğrafa baksın
+              </button>
+            </div>
+          )}
           {chat.map((m, i) => (
             <div
               key={i}
