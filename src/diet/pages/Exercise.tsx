@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { listExercises, addExercise, deleteExercise, readDietSettings, listMeasurements, setActivityDay, getStepsRow } from '../db'
+import { takeSharedImage } from '../lib/shareIntent'
 import { buildHealthContext } from '../lib/context'
 import { estimateExerciseKcal, extractActivityFromPhoto } from '../ai'
 import type { ActivityScan } from '../ai'
@@ -25,6 +26,8 @@ export default function ExercisePage() {
   const [busy, setBusy] = useState(false)
   // Verinin ekleneceği gün (unutup ertesi gün eklenebilsin diye). Varsayılan bugün.
   const [day, setDay] = useState(todayStr())
+  // "Paylaş" menüsünden bu sayfaya bir resim geldiyse (Samsung Health) al ve otomatik okut
+  const [sharedImg] = useState(() => takeSharedImage())
 
   const list = exercises ?? []
   const totalPoints = list.reduce((sum, e) => sum + exercisePoints(e), 0)
@@ -163,7 +166,7 @@ export default function ExercisePage() {
         </section>
 
         {/* Fotoğraftan oku (Samsung Health ekran görüntüleri) */}
-        <PhotoScanCard settings={settings} day={day} />
+        <PhotoScanCard settings={settings} day={day} initialImage={sharedImg} />
 
         {/* Yeni egzersiz ekle */}
         <section className="card p-4 space-y-3">
@@ -348,7 +351,7 @@ const trNum = (n?: number | null) => (n != null ? n.toLocaleString('tr-TR') : ''
 type Slot = { url?: string; scan?: ActivityScan; busy: boolean; err?: string }
 const emptySlot: Slot = { busy: false }
 
-function PhotoScanCard({ settings, day }: { settings: DietSettings | undefined; day: string }) {
+function PhotoScanCard({ settings, day, initialImage }: { settings: DietSettings | undefined; day: string; initialImage?: string | null }) {
   const [daily, setDaily] = useState<Slot>(emptySlot)
   const [ex, setEx] = useState<Slot>(emptySlot)
   const [saving, setSaving] = useState(false)
@@ -357,6 +360,28 @@ function PhotoScanCard({ settings, day }: { settings: DietSettings | undefined; 
   const exInput = useRef<HTMLInputElement>(null)
 
   const hasKey = !!settings?.apiKey?.trim()
+
+  // Hazır bir data URL'i (paylaşımla gelen resim) doğrudan okur — dosya seçmeden.
+  async function scanUrl(kind: 'daily' | 'ex', url: string) {
+    const set = kind === 'daily' ? setDaily : setEx
+    if (!hasKey) {
+      set({ url, busy: false, err: 'Fotoğraf okumak için Ayarlar’dan yapay zeka anahtarı gerekli.' })
+      return
+    }
+    set({ url, busy: true })
+    try {
+      const scan = await extractActivityFromPhoto({ apiKey: settings!.apiKey!, dataUrl: url, model: settings?.model })
+      set({ url, scan, busy: false })
+    } catch (e) {
+      set({ url, busy: false, err: e instanceof Error ? e.message : 'Fotoğraf okunamadı.' })
+    }
+  }
+
+  // "Paylaş" menüsünden gelen resmi otomatik olarak günlük slotuna koy + oku
+  useEffect(() => {
+    if (initialImage) void scanUrl('daily', initialImage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialImage])
 
   async function pick(kind: 'daily' | 'ex', file?: File) {
     if (!file) return
@@ -372,13 +397,7 @@ function PhotoScanCard({ settings, day }: { settings: DietSettings | undefined; 
       set({ busy: false, err: 'Resim okunamadı.' })
       return
     }
-    set({ url, busy: true })
-    try {
-      const scan = await extractActivityFromPhoto({ apiKey: settings!.apiKey!, dataUrl: url, model: settings?.model })
-      set({ url, scan, busy: false })
-    } catch (e) {
-      set({ url, busy: false, err: e instanceof Error ? e.message : 'Fotoğraf okunamadı.' })
-    }
+    await scanUrl(kind, url)
   }
 
   const dSteps = daily.scan?.steps ?? undefined
