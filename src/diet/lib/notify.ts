@@ -499,8 +499,24 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
   const reminders = mergeReminders(settings.reminders)
   const notifications: unknown[] = []
 
+  // BUGÜN yenen öğünleri hatırlatma — birleşik öğünde alsoMeal/alsoMeal2 dahil.
+  // Örn. kahvaltı+öğle birleştirdiyse "öğle yemeğini yedin mi?" bir daha sormaz.
+  const today = new Date().toLocaleDateString('en-CA')
+  const eaten = new Set<string>()
+  try {
+    const todays = (await dietDb.entries.where('dateStr').equals(today).toArray()).filter((e) => e.decision === 'ate')
+    for (const e of todays) {
+      if (e.mealType) eaten.add(e.mealType)
+      if (e.alsoMeal) eaten.add(e.alsoMeal)
+      if (e.alsoMeal2) eaten.add(e.alsoMeal2)
+    }
+  } catch {
+    /* okunamazsa hepsini normal kur */
+  }
+
   for (const r of reminders) {
-    if (r.enabled) notifications.push(mealNotification({ ...r, lead: r.lead ?? 0 }))
+    // Hatırlatıcı id'si öğün tipiyle aynı (kahvalti/ogle/aksam...); yendiyse atla
+    if (r.enabled && !eaten.has(r.id)) notifications.push(mealNotification({ ...r, lead: r.lead ?? 0 }))
   }
   if (settings.waterReminderEnabled) notifications.push(...waterNotifications())
   if (settings.motivationReminderEnabled) {

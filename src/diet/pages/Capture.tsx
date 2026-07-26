@@ -7,7 +7,7 @@ import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDa
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
-import { scheduleSugarReminder } from '../lib/notify'
+import { scheduleSugarReminder, applyNotifications } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
 import { isBeverage } from '../lib/food'
@@ -291,6 +291,8 @@ export default function Capture() {
     await addDraftEntry(photo, mealType, createdAt)
     setSavedDecision('ate')
     setPhase('saved')
+    // Bu öğün artık kayıtlı — hatırlatıcıyı güncelle (yediysen bir daha sormasın)
+    void readDietSettings().then(applyNotifications)
   }
 
   // Onayla ve hesapla: konuşmayı + fotoğrafı birlikte gönderip kesin analizi al
@@ -418,6 +420,8 @@ export default function Capture() {
     })
     setSavedDecision(decision)
     setPhase('saved')
+    // Bu öğün artık kayıtlı — hatırlatıcıyı güncelle (yediysen bir daha sormasın)
+    if (decision === 'ate') void readDietSettings().then(applyNotifications)
     // Ana ogunlerden (kahvalti/ogle/aksam) ~2 saat sonra tok seker olcum
     // hatirlatmasi. Ara ogun/icecekte tetiklenmez. (Tokluk/"doydun mu"
     // hatirlatmasi kaldirildi — kullanici acligini istedigi zaman isaretliyor.)

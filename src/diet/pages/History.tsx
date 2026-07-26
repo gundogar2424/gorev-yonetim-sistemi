@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises } from '../db'
 import { analyzeFood, analyzeFoodByText, mealClarifyChat } from '../ai'
+import { applyNotifications } from '../lib/notify'
 import { buildHealthContext } from '../lib/context'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
@@ -521,6 +522,8 @@ function MealEdit({ e }: { e: DietEntry }) {
       fat: num(f)
     })
     setOpen(false)
+    // Öğün/birleştirme değişti — hatırlatıcıyı güncelle (yenen öğünü sormasın)
+    void readDietSettings().then(applyNotifications)
   }
 
   return (
