@@ -331,6 +331,10 @@ function MealAiRefine({ e }: { e: DietEntry }) {
       const transcript = chat.map((m) => `${m.role === 'assistant' ? 'Koç' : 'Ben'}: ${m.text}`).join('\n')
       const typed = input.trim()
       const desc = [transcript, typed].filter(Boolean).join('\n')
+      // Hangi öğün(ler)? Birleşikse uyum ona göre hesaplanır (öğün atladın demez)
+      const mealInfo = e.mealType
+        ? [e.mealType, e.alsoMeal, e.alsoMeal2].filter(Boolean).map((m) => mealLabel(m as MealType)).join(' + ')
+        : undefined
       let result
       if (useVision && e.photo) {
         result = await analyzeFood({
@@ -342,6 +346,7 @@ function MealAiRefine({ e }: { e: DietEntry }) {
           dietPlan: s.dietPlan,
           dietitianNotes: s.dietitianNotes,
           note: desc || undefined,
+          mealInfo,
           health: await buildHealthContext(s)
         })
       } else {
@@ -358,6 +363,7 @@ function MealAiRefine({ e }: { e: DietEntry }) {
           goal: s.goal,
           dietPlan: s.dietPlan,
           dietitianNotes: s.dietitianNotes,
+          mealInfo,
           health: await buildHealthContext(s)
         })
       }

@@ -191,6 +191,10 @@ export default function Capture() {
     setPhase('converse')
   }
 
+  // Hangi öğün(ler)? Birleşikse "Kahvaltı + Öğle" → uyum ona göre hesaplanır
+  const mealInfoStr = () =>
+    [mealType, alsoMeal, alsoMeal2].filter(Boolean).map((m) => mealLabel(m as MealType)).join(' + ') || undefined
+
   // YAZIDAN hesapla: fotoğrafı GÖNDERMEDEN, kullanıcının yazdığı açıklamadan
   // değerlendir. Fotoğraf kayıtta durmaya devam eder (diyetisyene gider).
   async function analyzeFromText() {
@@ -210,6 +214,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
+        mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
         health: await buildHealthContext(settings)
@@ -310,6 +315,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
+        mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         note: noteArg || undefined,
         body: bodyContext(settings, measurements),
@@ -340,6 +346,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
+        mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
         health: await buildHealthContext(settings)
@@ -374,6 +381,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
+        mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
         health: await buildHealthContext(settings)

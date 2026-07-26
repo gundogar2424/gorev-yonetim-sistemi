@@ -174,6 +174,13 @@ interface AnalyzeOptions {
   body?: string // Kisi bilgisi: boy/yas/cinsiyet/kilo (porsiyon-kalori icin baglam)
   dietitianNotes?: string // Diyetisyenin talimatlari — degerlendirmede mutlaka dikkate alinir
   health?: string // Ortak saglik akli baglami (tum veritabanindan ozet)
+  mealInfo?: string // Hangi ogun(ler)? orn. "Kahvaltı + Öğle" — uyum bu ogun(ler)e gore hesaplanir
+}
+
+// Ogun bilgisini (hangi ogun, birlesikse) uyum degerlendirmesi icin metne cevirir.
+function mealInfoText(info?: string): string {
+  if (!info?.trim()) return ''
+  return `\n\nBU ÖĞÜN: ${info.trim()}. Uyum yüzdesini (compliancePercent) SADECE diyet listendeki BU öğün(ler)e göre hesapla — tüm listeye ya da alakasız bir öğüne göre DEĞİL. Öğün BİRLEŞİKse (örn. "Kahvaltı + Öğle"), kişi geç kalkıp iki öğünü tek seferde yemiştir; bu kayıt o öğünlerin HEPSİNİ birden karşılar — "öğün eksik/atlandı/az" diye CEZALANDIRMA. Uyumu, birleşen öğünlerin listedeki içeriğinin TOPLAMINA göre birlikte değerlendir ve puanı ona göre ver.`
 }
 
 // Diyetisyen talimatlarini baglam metnine cevirir (varsa)
@@ -194,7 +201,7 @@ function healthText(h?: string): string {
 
 // Fotografi inceler ve yapilandirilmis sonucu dondurur
 export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
-  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body, dietitianNotes, health } = opts
+  const { apiKey, photoDataUrl, model = DEFAULT_MODEL, userName, goal, dietPlan, note, body, dietitianNotes, health, mealInfo } = opts
 
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   const img = splitDataUrl(photoDataUrl)
@@ -236,7 +243,7 @@ export async function analyzeFood(opts: AnalyzeOptions): Promise<FoodAnalysis> {
             },
             {
               type: 'text',
-              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir. ÖNEMLİ: Aşağıdaki bilgide yemeğin TAMAMININ yenmediği/bir kısmının bırakıldığı belirtiliyorsa (örn. "yarısını yedim", "üçte birini bıraktım", "birkaç kaşık yedim"), kaloriyi ve makroyu SADECE YENEN miktara göre hesapla, tabaktaki tümüne göre değil; foodName'de de ne kadar yendiğini belirt.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}${noteText}`
+              text: `Bu yemeği yemek üzereyim. Diyetimi bozmadan önce beni değerlendir. ÖNEMLİ: Aşağıdaki bilgide yemeğin TAMAMININ yenmediği/bir kısmının bırakıldığı belirtiliyorsa (örn. "yarısını yedim", "üçte birini bıraktım", "birkaç kaşık yedim"), kaloriyi ve makroyu SADECE YENEN miktara göre hesapla, tabaktaki tümüne göre değil; foodName'de de ne kadar yendiğini belirt.${contextText}${planText}${mealInfoText(mealInfo)}${dietitianText(dietitianNotes)}${healthText(health)}${noteText}`
             }
           ]
         }
@@ -350,8 +357,9 @@ export async function analyzeFoodByText(opts: {
   body?: string
   dietitianNotes?: string
   health?: string
+  mealInfo?: string // Hangi ogun(ler)? orn. "Kahvaltı + Öğle"
 }): Promise<FoodAnalysis> {
-  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan, body, dietitianNotes, health } = opts
+  const { apiKey, note, model = DEFAULT_MODEL, userName, goal, dietPlan, body, dietitianNotes, health, mealInfo } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!note.trim()) throw new Error('Yemeğin ne olduğunu yaz.')
 
@@ -373,7 +381,7 @@ export async function analyzeFoodByText(opts: {
       messages: [
         {
           role: 'user',
-          content: `Bu yemeği yemek üzereyim (fotoğraf yok, sana ben tarif ediyorum): "${note.trim()}". foodName ve kalori/miktarı bu tarife göre belirle. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${dietitianText(dietitianNotes)}${healthText(health)}`
+          content: `Bu yemeği yemek üzereyim (fotoğraf yok, sana ben tarif ediyorum): "${note.trim()}". foodName ve kalori/miktarı bu tarife göre belirle. Diyetimi bozmadan önce beni değerlendir.${contextText}${planText}${mealInfoText(mealInfo)}${dietitianText(dietitianNotes)}${healthText(health)}`
         }
       ],
       output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } }
