@@ -3,7 +3,7 @@ import type { MealType } from '../types'
 
 export const MEAL_OPTIONS: { value: MealType; label: string; emoji: string }[] = [
   { value: 'kahvalti', label: 'Kahvaltı', emoji: '🌅' },
-  { value: 'ara1', label: 'Öğleden önce ara', emoji: '🍎' },
+  { value: 'ara1', label: 'Sabah ara', emoji: '🍎' },
   { value: 'ogle', label: 'Öğle', emoji: '☀️' },
   { value: 'ikindi', label: 'Öğleden sonra ara', emoji: '🍵' },
   { value: 'aksam', label: 'Akşam', emoji: '🌇' },
@@ -13,7 +13,7 @@ export const MEAL_OPTIONS: { value: MealType; label: string; emoji: string }[] =
 
 export const MEAL_LABELS: Record<MealType, string> = {
   kahvalti: 'Kahvaltı',
-  ara1: 'Öğleden önce ara',
+  ara1: 'Sabah ara',
   ogle: 'Öğle',
   ikindi: 'Öğleden sonra ara',
   aksam: 'Akşam',

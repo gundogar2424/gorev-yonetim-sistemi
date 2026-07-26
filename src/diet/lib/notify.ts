@@ -32,7 +32,7 @@ export function isNative(): boolean {
 export function defaultReminders(): Reminder[] {
   return [
     { id: 'kahvalti', notifId: 101, label: 'Kahvaltı', time: '08:00', lead: 0, enabled: false },
-    { id: 'ara1', notifId: 102, label: 'Öğleden önce ara', time: '11:00', lead: 0, enabled: false },
+    { id: 'ara1', notifId: 102, label: 'Sabah ara', time: '10:30', lead: 0, enabled: false },
     { id: 'ogle', notifId: 103, label: 'Öğle yemeği', time: '13:00', lead: 0, enabled: false },
     { id: 'ikindi', notifId: 104, label: 'Öğleden sonra ara', time: '16:00', lead: 0, enabled: false },
     { id: 'aksam', notifId: 105, label: 'Akşam yemeği', time: '19:00', lead: 0, enabled: false },
