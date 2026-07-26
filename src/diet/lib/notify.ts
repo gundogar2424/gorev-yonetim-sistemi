@@ -400,8 +400,34 @@ export async function scheduleSugarReminder(minutes = 120): Promise<void> {
   }
 }
 
-// Bildirime TIKLANINCA ilgili sayfaya git. Uygulama acilisinda bir kez
-// kaydedilir; bildirim uygulamayi soguk baslatsa bile olay teslim edilir.
+// Bildirim tiklama olayi (sadelestirilmis). Soguk baslatmada React hazir
+// olana kadar burada BEKLETILIR (buffer), sonra islenir.
+type TapEvent = { actionId?: string; extra?: { route?: string; med?: string; medId?: number; time?: string } }
+let bufferedTaps: TapEvent[] = []
+let tapHandler: ((e: TapEvent) => void) | null = null
+let tapListenerPrimed = false
+
+// EN ERKEN kurulum: uygulama daha React'i render etmeden, bildirim tiklama
+// dinleyicisini kur. Bildirim uygulamayi KAPALIYKEN acarsa (soguk baslatma),
+// olay React yuklenmeden gelir; burada yakalanip biriktirilir, hazir olunca islenir.
+// main.tsx'ten cagrilir; boylece dinleyici mumkun olan en erken anda hazir olur.
+export async function primeNotificationTaps(): Promise<void> {
+  if (!isNative() || tapListenerPrimed) return
+  tapListenerPrimed = true
+  try {
+    await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+      const e: TapEvent = { actionId: event.actionId, extra: event.notification?.extra as TapEvent['extra'] }
+      if (tapHandler) tapHandler(e)
+      else bufferedTaps.push(e) // React henuz hazir degil: beklet
+    })
+  } catch {
+    // dinleyici kurulamazsa sessiz gec
+  }
+}
+
+// Bildirime TIKLANINCA ilgili sayfaya git. React (router) hazir olunca cagrilir;
+// once erken kurulumda birikmis tiklamalari (soguk baslatma) isler, sonra
+// gelecek tiklamalar icin canli isleyiciyi baglar.
 export async function initNotificationNavigation(
   go: (route: string) => void,
   onMedTaken?: (name: string, medId?: number, time?: string) => void
@@ -409,17 +435,25 @@ export async function initNotificationNavigation(
   if (!isNative()) return
   try {
     await ensureMedActionType()
-    await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
-      const extra = event.notification?.extra as { route?: string; med?: string; medId?: number; time?: string } | undefined
+    await primeNotificationTaps() // henuz kurulmadiysa kur (idempotent)
+
+    const handle = (e: TapEvent) => {
+      const extra = e.extra
       // Bildirimdeki "✓ Aldım" butonuna basildiysa ilaci (o doz saatiyle) kaydet, sayfaya gitme
-      if (event.actionId === 'MED_TAKEN') {
+      if (e.actionId === 'MED_TAKEN') {
         onMedTaken?.(extra?.med || 'İlaç', extra?.medId, extra?.time)
         return
       }
       go(extra?.route ?? '/')
-    })
+    }
+
+    // Once birikmis tiklamalari isle (soguk baslatma), sonra canli isleyiciyi bagla
+    const pending = bufferedTaps
+    bufferedTaps = []
+    tapHandler = handle
+    for (const e of pending) handle(e)
   } catch {
-    // dinleyici kurulamazsa sessiz gec
+    // sessiz gec
   }
 }
 

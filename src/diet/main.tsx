@@ -3,11 +3,17 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import DietApp from './DietApp'
 import { initTheme } from './lib/theme'
+import { primeNotificationTaps } from './lib/notify'
 // Tailwind/temel stiller CRM ile ayni dosyadan gelir (CRM'i degistirmez)
 import '../index.css'
 
 // Temayi (Otomatik/Açık/Koyu) uygula ve sistem degisimini dinle
 initTheme()
+
+// Bildirim tiklamasini EN ERKEN yakala: uygulama bildirimle KAPALIYKEN
+// acildiginda (soguk baslatma) olay, React yuklenmeden once gelir. Burada
+// dinleyiciyi hemen kurup olayi beklet; DietApp hazir olunca dogru sayfaya gider.
+void primeNotificationTaps()
 
 // Diyet Kocu: CRM'den TAMAMEN AYRI, kendi giris noktasi olan bagimsiz program.
 // Beyaz ekrana karsi: render bir hata verirse kullaniciya mesaj goster.
