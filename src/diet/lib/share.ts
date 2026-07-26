@@ -28,6 +28,26 @@ function isCancel(err: unknown): boolean {
   return m.includes('cancel') || m.includes('abort') || m.includes('dismiss')
 }
 
+// Dosya, paylasima HAZIR olana kadar bekle (boyutu > 0 olana dek). Bazi
+// cihazlarda writeFile hemen sonra dosya diske tam yazilmiyor; ilk paylasim
+// BOS gidiyordu. stat ile boyut dogrulanip beklenince ilk seferde de dolu gider.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function waitFileReady(Filesystem: any, path: string, directory: unknown, tries = 15): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const st = await Filesystem.stat({ path, directory })
+      if (st?.size && st.size > 0) {
+        // Bir tık daha bekle: FileProvider content:// URI'sinin de hazır olması için
+        await new Promise((r) => setTimeout(r, 60))
+        return
+      }
+    } catch {
+      /* dosya henüz görünmüyor — bekle ve tekrar dene */
+    }
+    await new Promise((r) => setTimeout(r, 80))
+  }
+}
+
 // ---- Yazili paylasim (WhatsApp vb.) ----
 export async function shareTextSmart(text: string): Promise<ShareResult> {
   if (isNative()) {
@@ -65,10 +85,9 @@ export async function shareImageSmart(blob: Blob, filename: string): Promise<Sha
       const { Share } = await import('@capacitor/share')
       const base64 = await blobToBase64(blob)
       await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache })
+      // Dosya diske TAM yazilana kadar bekle (ilk paylasimin bos gitmemesi icin)
+      await waitFileReady(Filesystem, filename, Directory.Cache)
       const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache })
-      // Dosyanin FileProvider uzerinden hazir olmasi icin minik bekleme (bazi
-      // cihazlarda ilk paylasimda dosya henuz erisilebilir olmuyordu).
-      await new Promise((r) => setTimeout(r, 120))
       // WhatsApp'ta tek dosyayi 'url' ile gondermek ilk denemede iliştirmiyordu;
       // coklu-dosya API'si (files[]) tek dosyada da daha guvenilir. title/text YOK.
       await Share.share({ files: [uri], dialogTitle: 'Diyetisyene gönder' })
@@ -106,6 +125,7 @@ export async function shareImagesSmart(items: { blob: Blob; filename: string }[]
       for (const it of items) {
         const base64 = await blobToBase64(it.blob)
         await Filesystem.writeFile({ path: it.filename, data: base64, directory: Directory.Cache })
+        await waitFileReady(Filesystem, it.filename, Directory.Cache)
         const { uri } = await Filesystem.getUri({ path: it.filename, directory: Directory.Cache })
         uris.push(uri)
       }
