@@ -114,6 +114,20 @@ export default function Capture() {
   const [chatBusy, setChatBusy] = useState(false)
   const [customWhen, setCustomWhen] = useState(false) // gecmis tarih/saate kaydet
   const [whenStr, setWhenStr] = useState('') // datetime-local degeri (gecmis ogun)
+  // Öğün listesinden "Ekle"ye basınca o öğün önceden seçili gelsin (guessMeal yerine)
+  const [pendingMeal, setPendingMeal] = useState<MealType | null>(null)
+  const addMenuRef = useRef<HTMLDivElement>(null)
+
+  // Öğün listesinden bir öğüne dokununca: o öğünü seç, ekleme menüsüne kaydır
+  function addForMeal(meal: MealType) {
+    setPendingMeal(meal)
+    setMealType(meal)
+    setAlsoMeal(undefined)
+    setAlsoMeal2(undefined)
+    setTextMode(false)
+    setPhase('idle')
+    setTimeout(() => addMenuRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60)
+  }
 
   const hasKey = !!settings?.apiKey
 
@@ -136,7 +150,8 @@ export default function Capture() {
         if (!photo.dataUrl) return
         setNote('')
         setEditing(false)
-        setMealType(guessMeal())
+        setMealType(pendingMeal ?? guessMeal())
+        setPendingMeal(null)
         await afterCapture(photo.dataUrl)
       } catch (err) {
         // Kullanici secimi iptal ettiyse hata gosterme
@@ -157,7 +172,8 @@ export default function Capture() {
     if (!file) return
     setNote('')
     setEditing(false)
-    setMealType(guessMeal()) // saate gore varsayilan ogun
+    setMealType(pendingMeal ?? guessMeal()) // öğün listesinden seçildiyse onu kullan
+    setPendingMeal(null)
     try {
       const dataUrl = await fileToResizedDataUrl(file, 1000, 0.85)
       await afterCapture(dataUrl)
@@ -336,7 +352,8 @@ export default function Capture() {
     if (!textNote.trim()) return
     setPhoto('') // fotograf yok
     setTextMode(false)
-    setMealType(guessMeal())
+    setMealType(pendingMeal ?? guessMeal()) // öğün listesinden seçildiyse koru
+    setPendingMeal(null)
     setError('')
     setAnalysis(null)
     setPhase('analyzing')
@@ -438,6 +455,7 @@ export default function Capture() {
     setPhoto('')
     setAnalysis(null)
     setMealType(guessMeal())
+    setPendingMeal(null)
     setAlsoMeal(undefined)
     setAlsoMeal2(undefined)
     setSavedDecision('none')
@@ -539,8 +557,8 @@ export default function Capture() {
         {/* Bugunku diyet basari yuzdesi */}
         <DailyScore entries={entries ?? []} />
 
-        {/* Bugunun ogunleri: girilmeyen (atlanan) ogunde yanip sonen kirmizi nokta */}
-        <TodaysMeals entries={entries ?? []} />
+        {/* Bugunun ogunleri: dokun->gir, girince gunluge gider; atlanan kirmizi yanar */}
+        <TodaysMeals entries={entries ?? []} onAdd={addForMeal} />
 
         {/* Kriz ani: canim cekiyor! */}
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -588,7 +606,13 @@ export default function Capture() {
 
         {/* Bos durum: TEK yapay zeka ekleme merkezi (foto/galeri/barkod/etiket/yazi) */}
         {phase === 'idle' && (
-          <div className="card p-5 space-y-3">
+          <div ref={addMenuRef} className="card p-5 space-y-3">
+            {/* Öğün listesinden bir öğün seçildiyse hangisini eklediğini göster */}
+            {pendingMeal && (
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-center text-sm font-bold text-emerald-800">
+                {mealLabel(pendingMeal)} ekleniyor
+              </div>
+            )}
             <div className="text-center space-y-1">
               <div className="text-5xl">📸</div>
               <p className="text-slate-600 text-sm">Ne eklemek istersin? Yapay zeka tanısın, karar vermene yardım etsin.</p>
@@ -2046,67 +2070,86 @@ function MacroBar({ label, grams, pct, color }: { label: string; grams: number; 
 
 // Yarim saat gecmis ama tokluk puani verilmemis "yedim" ogunleri sorar
 // Aksam kontrolu: bugun "sonra karar ver" denmis ogunleri sorar
-// Bugunun ana ogunleri: girilmeyen (foto/veri yok) ve saati gecmis ogunun
-// uzerinde YANIP SONEN kirmizi nokta gosterir. Boylece atlanan ogun goze carpar.
-const MAIN_MEALS_UI: { meal: MealType; label: string; icon: string; overdueHour: number }[] = [
-  { meal: 'kahvalti', label: 'Kahvaltı', icon: '🍳', overdueHour: 11 },
-  { meal: 'ogle', label: 'Öğle', icon: '🍽️', overdueHour: 15 },
-  { meal: 'aksam', label: 'Akşam', icon: '🌙', overdueHour: 22 }
+// Bugunun ogunleri (sirasiyla). Girilen ogun listeden cikar (gunluge/gecmise
+// gider). Girilmeyen ve saati gecmis ANA ogunun uzerinde yanip sonen kirmizi
+// nokta gosterilir. Bir satira dokununca o ogun secili sekilde ekleme baslar.
+const MEAL_SLOTS: { meal: MealType; label: string; icon: string; main: boolean; overdueHour: number }[] = [
+  { meal: 'kahvalti', label: 'Kahvaltı', icon: '🌅', main: true, overdueHour: 11 },
+  { meal: 'ara1', label: 'Ara öğün', icon: '🍎', main: false, overdueHour: 12 },
+  { meal: 'ogle', label: 'Öğle', icon: '☀️', main: true, overdueHour: 15 },
+  { meal: 'ikindi', label: 'İkindi', icon: '🍵', main: false, overdueHour: 17 },
+  { meal: 'aksam', label: 'Akşam', icon: '🌇', main: true, overdueHour: 22 },
+  { meal: 'gece', label: 'Gece', icon: '🌙', main: false, overdueHour: 23 }
 ]
 
-function TodaysMeals({ entries }: { entries: DietEntry[] }) {
+function TodaysMeals({ entries, onAdd }: { entries: DietEntry[]; onAdd: (m: MealType) => void }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today)
   const covered = new Set<MealType>()
   for (const e of todays) for (const m of [e.mealType, e.alsoMeal, e.alsoMeal2]) if (m) covered.add(m)
   const nowH = new Date().getHours()
 
+  const remaining = MEAL_SLOTS.filter((s) => !covered.has(s.meal))
+  const doneCount = MEAL_SLOTS.length - remaining.length
+
   return (
     <div className="card p-4">
-      <span className="section-title">🍴 Bugünün öğünleri</span>
-      <div className="grid grid-cols-3 gap-2 mt-3">
-        {MAIN_MEALS_UI.map(({ meal, label, icon, overdueHour }) => {
-          const done = covered.has(meal)
-          const overdue = !done && nowH >= overdueHour // girilmemis + saati gecmis
-          return (
-            <div
-              key={meal}
-              className={`relative rounded-xl p-3 text-center border ${
-                done
-                  ? 'bg-emerald-50 border-emerald-100'
-                  : overdue
-                    ? 'bg-rose-50 border-rose-200'
-                    : 'bg-slate-50 border-slate-100'
-              }`}
-            >
-              {/* Girilmeyen (atlanan) öğün: yanıp sönen kırmızı nokta */}
-              {overdue && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                  <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-rose-500" />
-                </span>
-              )}
-              <div className="text-2xl leading-none">{icon}</div>
-              <div
-                className={`text-xs font-bold mt-1 ${
-                  done ? 'text-emerald-700' : overdue ? 'text-rose-700' : 'text-slate-500'
-                }`}
-              >
-                {label}
-              </div>
-              <div className="text-[10px] mt-0.5 font-semibold">
-                {done ? (
-                  <span className="text-emerald-600">✓ girildi</span>
-                ) : overdue ? (
-                  <span className="text-rose-600">girilmedi</span>
-                ) : (
-                  <span className="text-slate-400">bekliyor</span>
-                )}
-              </div>
-            </div>
-          )
-        })}
+      <div className="flex items-center justify-between mb-2">
+        <span className="section-title">🍽️ Bugünün öğünleri</span>
+        <Link to="/gecmis" className="text-xs font-semibold text-slate-400">
+          Günlük ›
+        </Link>
       </div>
+
+      {remaining.length === 0 ? (
+        <p className="text-sm font-semibold text-emerald-700 py-1">Bugünün tüm öğünlerini girdin! 🎉</p>
+      ) : (
+        <>
+          <p className="text-[11px] text-slate-400 mb-2 leading-snug">
+            Dokun → öğünü gir; girince günlüğe gider. Girmediğin öğün kırmızı yanıp söner.
+          </p>
+          <div className="space-y-2">
+            {remaining.map(({ meal, label, icon, main, overdueHour }) => {
+              const missed = main && nowH >= overdueHour // atlanmis ana ogun
+              return (
+                <button
+                  key={meal}
+                  onClick={() => onAdd(meal)}
+                  className={`w-full flex items-center gap-3 rounded-xl p-3 border text-left transition active:scale-[0.99] ${
+                    missed ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-100'
+                  }`}
+                >
+                  <span className="relative text-2xl leading-none">
+                    {icon}
+                    {missed && (
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                        <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className={`block text-sm font-bold ${missed ? 'text-rose-700' : 'text-slate-700'}`}>{label}</span>
+                    <span className={`block text-[11px] ${missed ? 'text-rose-500' : 'text-slate-400'}`}>
+                      {missed ? 'girilmedi — dokun, ekle' : 'eklemek için dokun'}
+                    </span>
+                  </span>
+                  <span
+                    className={`text-xs font-bold rounded-lg px-2.5 py-1.5 flex-shrink-0 ${
+                      missed ? 'bg-rose-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
+                    }`}
+                  >
+                    ＋ Ekle
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {doneCount > 0 && (
+            <p className="text-[11px] text-slate-400 mt-2">{doneCount} öğün girildi, günlüğe eklendi ✓</p>
+          )}
+        </>
+      )}
     </div>
   )
 }
