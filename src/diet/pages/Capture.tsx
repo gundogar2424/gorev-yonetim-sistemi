@@ -539,6 +539,9 @@ export default function Capture() {
         {/* Bugunku diyet basari yuzdesi */}
         <DailyScore entries={entries ?? []} />
 
+        {/* Girilmeyen (atlanan) ana ogun icin tek satir kirmizi uyari */}
+        <MissedMealsAlert entries={entries ?? []} />
+
         {/* Kriz ani: canim cekiyor! */}
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
 
@@ -2042,6 +2045,39 @@ function MacroBar({ label, grams, pct, color }: { label: string; grams: number; 
 }
 
 // Yarim saat gecmis ama tokluk puani verilmemis "yedim" ogunleri sorar
+// Girilmeyen (foto/veri yok) ve saati gecmis ANA ogunler icin tek satir kirmizi
+// uyari. Ogun listesi DEGIL; sadece atlanan ogunu hatirlatan kucuk bir cizgi.
+// Ogun girilince (birlesik dahil) kaybolur.
+const ALERT_MAIN_MEALS: { meal: MealType; label: string; overdueHour: number }[] = [
+  { meal: 'kahvalti', label: 'Kahvaltı', overdueHour: 11 },
+  { meal: 'ogle', label: 'Öğle', overdueHour: 15 },
+  { meal: 'aksam', label: 'Akşam', overdueHour: 22 }
+]
+
+function MissedMealsAlert({ entries }: { entries: DietEntry[] }) {
+  const today = todayStr()
+  const todays = entries.filter((e) => e.dateStr === today)
+  const covered = new Set<MealType>()
+  for (const e of todays) for (const m of [e.mealType, e.alsoMeal, e.alsoMeal2]) if (m) covered.add(m)
+  const nowH = new Date().getHours()
+
+  const missed = ALERT_MAIN_MEALS.filter((m) => !covered.has(m.meal) && nowH >= m.overdueHour)
+  if (missed.length === 0) return null
+
+  return (
+    <div className="card p-3 bg-rose-50 border border-rose-200 flex items-center gap-3">
+      <span className="relative flex h-3 w-3 flex-shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+        <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
+      </span>
+      <p className="text-sm text-rose-800 leading-snug">
+        <span className="font-bold">Girmediğin öğün:</span> {missed.map((m) => m.label).join(', ')}
+        <span className="text-rose-500"> — girmezsen başarısız sayılır.</span>
+      </p>
+    </div>
+  )
+}
+
 // Aksam kontrolu: bugun "sonra karar ver" denmis ogunleri sorar
 function PendingCheckIn({ entries }: { entries: DietEntry[] }) {
   const today = todayStr()
