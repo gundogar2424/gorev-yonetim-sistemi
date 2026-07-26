@@ -59,6 +59,13 @@ jobs:
           sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
           sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
           echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion" "$v"
+          # send-intent eklentisi kendi build.gradle'ında compileSdk'i 35'e SABİTLİYOR
+          # (resmi Capacitor eklentileri gibi rootProject'ten okumuyor). AAR metadata
+          # kontrolü için onu da 36'ya çek.
+          p=node_modules/send-intent/android/build.gradle
+          sed -i -E "s/compileSdkVersion 35/compileSdkVersion 36/" "$p"
+          sed -i -E "s/targetSdkVersion 35/targetSdkVersion 36/" "$p"
+          echo "--- send-intent build.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion" "$p"
 
       - name: Kamera izni ekle (canlı barkod tarayıcı için)
         run: |
