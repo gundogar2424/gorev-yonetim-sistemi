@@ -2,7 +2,7 @@
 // web'de sessizce devre disidir (tarayici kapaliyken bildirim gonderemez).
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import type { Reminder, DietSettings, MedDef, MedLog } from '../types'
+import type { Reminder, DietSettings, MedDef, MedLog, MealType } from '../types'
 import { dietDb } from '../db'
 
 // Bildirim kimlik araliklari (catismayi onlemek icin sabit)
@@ -32,11 +32,11 @@ export function isNative(): boolean {
 export function defaultReminders(): Reminder[] {
   return [
     { id: 'kahvalti', notifId: 101, label: 'Kahvaltı', time: '08:00', lead: 0, enabled: false },
-    { id: 'ara1', notifId: 102, label: 'Ara öğün', time: '11:00', lead: 0, enabled: false },
+    { id: 'ara1', notifId: 102, label: 'Öğleden önce ara', time: '11:00', lead: 0, enabled: false },
     { id: 'ogle', notifId: 103, label: 'Öğle yemeği', time: '13:00', lead: 0, enabled: false },
-    { id: 'ikindi', notifId: 104, label: 'İkindi', time: '16:00', lead: 0, enabled: false },
+    { id: 'ikindi', notifId: 104, label: 'Öğleden sonra ara', time: '16:00', lead: 0, enabled: false },
     { id: 'aksam', notifId: 105, label: 'Akşam yemeği', time: '19:00', lead: 0, enabled: false },
-    { id: 'gece', notifId: 106, label: 'Gece ara öğün', time: '21:30', lead: 0, enabled: false }
+    { id: 'gece', notifId: 106, label: 'Gece ara', time: '21:30', lead: 0, enabled: false }
   ]
 }
 
@@ -47,6 +47,16 @@ export function mergeReminders(saved?: Reminder[]): Reminder[] {
   if (!saved?.length) return defaults
   const byId = new Map(saved.map((r) => [r.id, { ...r, lead: r.lead ?? 0 }]))
   return defaults.map((d) => byId.get(d.id) ?? d)
+}
+
+// Takip edilecek (kirmizi uyari + basari puani) ogunler: kullanicinin
+// Hatirlaticilar'da ACTIGI ogunler. Hicbiri acik degilse makul varsayilan:
+// 3 ana ogun (kahvalti/ogle/aksam).
+export function enabledMealTypes(settings?: DietSettings): MealType[] {
+  const on = mergeReminders(settings?.reminders)
+    .filter((r) => r.enabled)
+    .map((r) => r.id as MealType)
+  return on.length ? on : ['kahvalti', 'ogle', 'aksam']
 }
 
 // Android bildirim kanalini olustur (ses + titresim). Kullanici telefon

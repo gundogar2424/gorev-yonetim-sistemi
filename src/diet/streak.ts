@@ -211,6 +211,14 @@ function entryMeals(e: DietEntry): MealType[] {
   return [e.mealType, e.alsoMeal, e.alsoMeal2].filter(Boolean) as MealType[]
 }
 
+// Hangi ogunlerin takip edilecegi (atlanınca basarisiz sayilir): kullanicinin
+// Hatirlaticilar'da actigi ogunlere gore. null iken TRACKED_MEALS'in tamami.
+// Ayarlar yuklenince (Capture) setActiveMeals ile guncellenir.
+let activeMealSet: Set<MealType> | null = null
+export function setActiveMeals(meals: MealType[] | null | undefined): void {
+  activeMealSet = meals && meals.length ? new Set(meals) : null
+}
+
 // Bir gunun toplam diyet basari yuzdesi (o gunku kararlarin ortalamasi).
 // O gune ait karar verilmis kayit yoksa null doner.
 // ATLANAN OGUN CEZASI: o gun en az bir kayit varsa, girilmeyen (foto veya veri
@@ -230,6 +238,7 @@ export function dayAdherence(entries: DietEntry[], dateStr: string): number | nu
   const today = todayStr(now)
   const missed: number[] = []
   for (const { meal, overdueHour } of TRACKED_MEALS) {
+    if (activeMealSet && !activeMealSet.has(meal)) continue // takip edilmeyen öğün
     if (covered.has(meal)) continue
     if (dateStr > today) continue // gelecek gun (olmamali)
     if (dateStr === today && now.getHours() < overdueHour) continue // bugun: saati gelmemis ogunu cezalandirma

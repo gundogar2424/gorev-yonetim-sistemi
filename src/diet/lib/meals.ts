@@ -3,21 +3,21 @@ import type { MealType } from '../types'
 
 export const MEAL_OPTIONS: { value: MealType; label: string; emoji: string }[] = [
   { value: 'kahvalti', label: 'Kahvaltı', emoji: '🌅' },
-  { value: 'ara1', label: 'Ara öğün', emoji: '🍎' },
+  { value: 'ara1', label: 'Öğleden önce ara', emoji: '🍎' },
   { value: 'ogle', label: 'Öğle', emoji: '☀️' },
-  { value: 'ikindi', label: 'İkindi', emoji: '🍵' },
+  { value: 'ikindi', label: 'Öğleden sonra ara', emoji: '🍵' },
   { value: 'aksam', label: 'Akşam', emoji: '🌇' },
-  { value: 'gece', label: 'Gece ara öğün', emoji: '🌙' },
+  { value: 'gece', label: 'Gece ara', emoji: '🌙' },
   { value: 'serbest', label: 'Serbest öğün', emoji: '🎈' }
 ]
 
 export const MEAL_LABELS: Record<MealType, string> = {
   kahvalti: 'Kahvaltı',
-  ara1: 'Ara öğün',
+  ara1: 'Öğleden önce ara',
   ogle: 'Öğle',
-  ikindi: 'İkindi',
+  ikindi: 'Öğleden sonra ara',
   aksam: 'Akşam',
-  gece: 'Gece ara öğün',
+  gece: 'Gece ara',
   serbest: 'Serbest öğün'
 }
 

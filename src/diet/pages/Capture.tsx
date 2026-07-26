@@ -1,13 +1,13 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
-import { computeStats, todayStr, dayAdherence, TRACKED_MEALS } from '../streak'
+import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
-import { scheduleSugarReminder, applyNotifications } from '../lib/notify'
+import { scheduleSugarReminder, applyNotifications, enabledMealTypes } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
 import { isBeverage } from '../lib/food'
@@ -116,6 +116,14 @@ export default function Capture() {
   const [whenStr, setWhenStr] = useState('') // datetime-local degeri (gecmis ogun)
 
   const hasKey = !!settings?.apiKey
+
+  // Takip edilecek öğünler = Hatırlatıcılar'da açılan öğünler. Puanlama (streak)
+  // bu listeyi kullansın; ayar değişince güncellensin.
+  const trackedMeals = enabledMealTypes(settings)
+  useEffect(() => {
+    setActiveMeals(trackedMeals)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackedMeals.join(',')])
 
   // Fotograf sec: APK'da native Camera (galeri HEIC/buyuk fotograflari da JPEG'e
   // cevirir), web'de gizli <input type=file> kullanilir.
@@ -539,8 +547,8 @@ export default function Capture() {
         {/* Bugunku diyet basari yuzdesi */}
         <DailyScore entries={entries ?? []} />
 
-        {/* Girilmeyen (atlanan) ana ogun icin tek satir kirmizi uyari */}
-        <MissedMealsAlert entries={entries ?? []} />
+        {/* Girilmeyen (atlanan) takip edilen ogun icin tek satir kirmizi uyari */}
+        <MissedMealsAlert entries={entries ?? []} tracked={trackedMeals} />
 
         {/* Kriz ani: canim cekiyor! */}
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -2048,14 +2056,15 @@ function MacroBar({ label, grams, pct, color }: { label: string; grams: number; 
 // Girilmeyen (foto/veri yok) ve saati gecmis TAKIP EDILEN ogunler icin tek satir
 // kirmizi uyari. Ogun listesi DEGIL; sadece atlanan ogunu hatirlatan kucuk cizgi.
 // Ogun girilince (birlesik dahil) kaybolur. Ogun listesi streak.ts'ten paylasilir.
-function MissedMealsAlert({ entries }: { entries: DietEntry[] }) {
+function MissedMealsAlert({ entries, tracked }: { entries: DietEntry[]; tracked: MealType[] }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today)
   const covered = new Set<MealType>()
   for (const e of todays) for (const m of [e.mealType, e.alsoMeal, e.alsoMeal2]) if (m) covered.add(m)
   const nowH = new Date().getHours()
+  const trackedSet = new Set(tracked)
 
-  const missed = TRACKED_MEALS.filter((m) => !covered.has(m.meal) && nowH >= m.overdueHour)
+  const missed = TRACKED_MEALS.filter((m) => trackedSet.has(m.meal) && !covered.has(m.meal) && nowH >= m.overdueHour)
   if (missed.length === 0) return null
 
   return (
