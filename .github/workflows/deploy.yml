@@ -1,8 +1,9 @@
 name: GitHub Pages'e Yayinla
 
+# NOT: Otomatik web yayını KAPALI. Kullanıcı web'den veri girmekten vazgeçti;
+# yalnızca APK kullanılıyor. Site son yayınlanan halinde kalır. Gerekirse
+# Actions sekmesinden "Run workflow" ile elle tetiklenebilir.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
