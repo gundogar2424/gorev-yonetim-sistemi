@@ -193,14 +193,17 @@ export function entryScore(e: DietEntry): number | null {
   return null
 }
 
-// Ana ogunler: bir gunun "tam" sayilmasi icin beklenen ogunler. overdueHour, o
-// ogunun "atlandi" sayilmasi icin gecmesi gereken saat (grace payi birakir): bu
-// saat gectikten sonra o gun ogune ait hicbir kayit (foto/karar) yoksa ogun
-// basarisiz=0 sayilir.
-const MAIN_MEALS: { meal: MealType; overdueHour: number }[] = [
+// Takip edilen ogunler: bir gunun "tam" sayilmasi icin beklenen ogunler.
+// overdueHour, o ogunun "atlandi" sayilmasi icin gecmesi gereken saat (grace payi
+// birakir): bu saat gectikten sonra o gun ogune ait hicbir kayit (foto/karar)
+// yoksa ogun basarisiz=0 sayilir. (serbest ogun beklenmez, listede yok.)
+export const TRACKED_MEALS: { meal: MealType; overdueHour: number }[] = [
   { meal: 'kahvalti', overdueHour: 11 },
+  { meal: 'ara1', overdueHour: 12 },
   { meal: 'ogle', overdueHour: 15 },
-  { meal: 'aksam', overdueHour: 22 }
+  { meal: 'ikindi', overdueHour: 17 },
+  { meal: 'aksam', overdueHour: 22 },
+  { meal: 'gece', overdueHour: 23 }
 ]
 
 // Bir kaydin kapsadigi tum ogun tipleri (birlesik ogunler dahil).
@@ -226,7 +229,7 @@ export function dayAdherence(entries: DietEntry[], dateStr: string): number | nu
   const now = new Date()
   const today = todayStr(now)
   const missed: number[] = []
-  for (const { meal, overdueHour } of MAIN_MEALS) {
+  for (const { meal, overdueHour } of TRACKED_MEALS) {
     if (covered.has(meal)) continue
     if (dateStr > today) continue // gelecek gun (olmamali)
     if (dateStr === today && now.getHours() < overdueHour) continue // bugun: saati gelmemis ogunu cezalandirma

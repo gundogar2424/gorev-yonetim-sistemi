@@ -5,7 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
-import { computeStats, todayStr, dayAdherence } from '../streak'
+import { computeStats, todayStr, dayAdherence, TRACKED_MEALS } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { scheduleSugarReminder, applyNotifications } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
@@ -2045,15 +2045,9 @@ function MacroBar({ label, grams, pct, color }: { label: string; grams: number; 
 }
 
 // Yarim saat gecmis ama tokluk puani verilmemis "yedim" ogunleri sorar
-// Girilmeyen (foto/veri yok) ve saati gecmis ANA ogunler icin tek satir kirmizi
-// uyari. Ogun listesi DEGIL; sadece atlanan ogunu hatirlatan kucuk bir cizgi.
-// Ogun girilince (birlesik dahil) kaybolur.
-const ALERT_MAIN_MEALS: { meal: MealType; label: string; overdueHour: number }[] = [
-  { meal: 'kahvalti', label: 'Kahvaltı', overdueHour: 11 },
-  { meal: 'ogle', label: 'Öğle', overdueHour: 15 },
-  { meal: 'aksam', label: 'Akşam', overdueHour: 22 }
-]
-
+// Girilmeyen (foto/veri yok) ve saati gecmis TAKIP EDILEN ogunler icin tek satir
+// kirmizi uyari. Ogun listesi DEGIL; sadece atlanan ogunu hatirlatan kucuk cizgi.
+// Ogun girilince (birlesik dahil) kaybolur. Ogun listesi streak.ts'ten paylasilir.
 function MissedMealsAlert({ entries }: { entries: DietEntry[] }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today)
@@ -2061,7 +2055,7 @@ function MissedMealsAlert({ entries }: { entries: DietEntry[] }) {
   for (const e of todays) for (const m of [e.mealType, e.alsoMeal, e.alsoMeal2]) if (m) covered.add(m)
   const nowH = new Date().getHours()
 
-  const missed = ALERT_MAIN_MEALS.filter((m) => !covered.has(m.meal) && nowH >= m.overdueHour)
+  const missed = TRACKED_MEALS.filter((m) => !covered.has(m.meal) && nowH >= m.overdueHour)
   if (missed.length === 0) return null
 
   return (
@@ -2071,7 +2065,7 @@ function MissedMealsAlert({ entries }: { entries: DietEntry[] }) {
         <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
       </span>
       <p className="text-sm text-rose-800 leading-snug">
-        <span className="font-bold">Girmediğin öğün:</span> {missed.map((m) => m.label).join(', ')}
+        <span className="font-bold">Girmediğin öğün:</span> {missed.map((m) => mealLabel(m.meal)).join(', ')}
         <span className="text-rose-500"> — girmezsen başarısız sayılır.</span>
       </p>
     </div>
