@@ -26,6 +26,9 @@ export interface FoodAnalysis {
   // Diyet listesine uyum (liste yuklendiyse): 0-100, liste yoksa -1
   compliancePercent: number
   complianceNote: string // Neyin uydugu/uymadiginin kisa aciklamasi
+  // Makroyu listeye yaklastirmak icin SOMUT duzeltme onerisi (liste varsa ve
+  // sapma varsa): "su kadar ekle / su kadar azalt / az ye". Uygun/ liste yoksa "".
+  macroFix: string
   // Kontrollu kacamak: yemek saglıksızsa ve cok canı cektiyse, diyeti
   // tamamen bozmayacak makul bir miktar onerisi (saglikli yemekte bos "").
   cravingPortion: string // orn. "2 kare bitter çikolata (~20 g)"

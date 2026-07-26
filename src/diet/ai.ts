@@ -53,6 +53,7 @@ const OUTPUT_SCHEMA = {
     verdict: { type: 'string' },
     compliancePercent: { type: 'integer' },
     complianceNote: { type: 'string' },
+    macroFix: { type: 'string' },
     cravingPortion: { type: 'string' },
     cravingNote: { type: 'string' }
   },
@@ -73,6 +74,7 @@ const OUTPUT_SCHEMA = {
     'verdict',
     'compliancePercent',
     'complianceNote',
+    'macroFix',
     'cravingPortion',
     'cravingNote'
   ]
@@ -91,6 +93,8 @@ DİYET LİSTESİ KARŞILAŞTIRMASI (ÇOK ÖNEMLİ — birebir aynı yemek DEĞİ
 - Puanı yalnızca kalori/makro listedekinden BELİRGİN saparsa kır: çok daha kalorili/yağlı ya da çok az (eksik öğün), makro dengesi bozuk (ör. hep karbonhidrat, protein yok), veya listede hiç olmayan bir tür (tatlı/kızartma/şekerli içecek) eklenmişse.
 - compliancePercent = 0-100 tam sayı: 100 = kalori ve makro olarak listedeki öğüne çok yakın; 50 = kısmen sapmış; 0 = tamamen farklı/aykırı. complianceNote = TEK kısa cümleyle kalori/makro kıyasını ver (örn. "Listede öğle ~500 kcal / ~40g protein; bu öğün ~520 kcal / ~38g protein — çok uyumlu" veya "Bu ~300 kcal fazladan şeker, listede yok — uyumsuz").
 - Eğer diyet listesi VERİLMEDİYSE: compliancePercent = -1 ve complianceNote = "" (boş) bırak.
+
+MAKRO DÜZELTME ÖNERİSİ (macroFix): Diyet listesi VARSA ve öğün makro/kalori olarak listeden sapıyorsa, öğünü listenin makrolarına YAKLAŞTIRMAK için SOMUT ve UYGULANABİLİR bir düzeltme yaz — "şunu ekle, şunu azalt/çıkar, şunu daha az ye" gibi. Net miktar/porsiyon ver (örn. "1 avuç yeşillik ve 60 g haşlanmış tavuk ekle, pilavı yarıya indir → protein artar, karbonhidrat listene yaklaşır"). Kısa (1-2 cümle), pratik ve TEK seferde uygulanabilir olsun; makro mantığını kısaca belirt (hangi makro neden). Öğün zaten listeye uygunsa (compliancePercent yüksek), diyet listesi yoksa ya da görselde yemek yoksa macroFix = "" (boş) bırak.
 
 KONTROLLÜ KAÇAMAK (çok önemli):
 - Yemek sağlıksız/riskli ise, kullanıcıyı tamamen yasaklayıp pişman etmek yerine GERÇEKÇİ ol: bazen canı çok çeker. cravingPortion alanına, diyeti tamamen bozmayacak MAKUL ve ÖLÇÜLEBİLİR bir miktar öner — "şu kadar gram" veya "şu kadar parça/dilim/kare" gibi net olsun (örn. "2 kare bitter çikolata (~20 g)", "yarım dilim (~30 g)", "1 küçük avuç (~15 g)"). Miktar küçük ama tatmin edici olsun.

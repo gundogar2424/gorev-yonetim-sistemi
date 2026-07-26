@@ -396,6 +396,7 @@ function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
         verdict: s.reason || `Ne Yesem önerisi: ${s.title}`,
         compliancePercent: -1,
         complianceNote: '',
+        macroFix: '',
         cravingPortion: '',
         cravingNote: '',
         photo: '',

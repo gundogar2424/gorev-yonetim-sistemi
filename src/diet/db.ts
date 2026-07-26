@@ -307,6 +307,7 @@ export async function addDraftEntry(photo: string, mealType: MealType, createdAt
     verdict: 'Sonra yapay zekayla incelenecek',
     compliancePercent: -1,
     complianceNote: '',
+    macroFix: '',
     cravingPortion: '',
     cravingNote: '',
     photo,

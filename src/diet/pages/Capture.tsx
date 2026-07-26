@@ -2177,6 +2177,16 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
         {/* Diyet listesine uyum (yalnizca liste yuklendiyse, yani >= 0) */}
         {analysis.compliancePercent >= 0 && <ComplianceBar analysis={analysis} />}
 
+        {/* Makroyu listeye yaklastirmak icin somut duzeltme (ekle/azalt/az ye) */}
+        {analysis.macroFix?.trim() && (
+          <div className="bg-sky-50 rounded-xl p-3 border border-sky-100">
+            <p className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-1">
+              🎯 Listene yaklaştırmak için
+            </p>
+            <p className="text-sm text-sky-900 leading-snug">{analysis.macroFix}</p>
+          </div>
+        )}
+
         {/* Puani neden tam vermedi — nereden kirdi */}
         {analysis.dietScore > 0 && analysis.dietScore < 10 && analysis.scoreReason?.trim() && (
           <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">

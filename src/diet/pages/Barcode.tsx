@@ -291,6 +291,7 @@ export default function Barcode() {
       verdict: a ? a.verdict : `Protein ${vals.protein}g · Karb ${vals.carb}g · Yağ ${vals.fat}g`,
       compliancePercent: a ? a.compliancePercent : -1,
       complianceNote: a ? a.complianceNote : '',
+      macroFix: a ? a.macroFix : '',
       cravingPortion: a ? a.cravingPortion : '',
       cravingNote: a ? a.cravingNote : '',
       photo: '',
