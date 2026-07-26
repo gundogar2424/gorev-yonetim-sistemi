@@ -53,6 +53,13 @@ jobs:
       - name: Web varlıklarını senkronla
         run: npx cap sync android
 
+      - name: compileSdk 36'ya yükselt (send-intent eklentisi gerektiriyor)
+        run: |
+          v=android/variables.gradle
+          sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
+          sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
+          echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion" "$v"
+
       - name: Kamera izni ekle (canlı barkod tarayıcı için)
         run: |
           f=android/app/src/main/AndroidManifest.xml
