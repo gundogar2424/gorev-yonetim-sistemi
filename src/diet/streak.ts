@@ -1,5 +1,5 @@
 // Diyet serisi (streak), istatistikler ve rozet hesaplamalari.
-import type { DietEntry, Exercise, Water, Measurement, Steps, Sleep } from './types'
+import type { DietEntry, Exercise, Water, Measurement, Steps, Sleep, MealType } from './types'
 
 // Bir egzersiz kaydinin kazandirdigi puan: 8 taban + her 15 dk icin +2 (en cok +12)
 export function exercisePoints(ex: Exercise): number {
@@ -193,15 +193,48 @@ export function entryScore(e: DietEntry): number | null {
   return null
 }
 
+// Ana ogunler: bir gunun "tam" sayilmasi icin beklenen ogunler. overdueHour, o
+// ogunun "atlandi" sayilmasi icin gecmesi gereken saat (grace payi birakir): bu
+// saat gectikten sonra o gun ogune ait hicbir kayit (foto/karar) yoksa ogun
+// basarisiz=0 sayilir.
+const MAIN_MEALS: { meal: MealType; overdueHour: number }[] = [
+  { meal: 'kahvalti', overdueHour: 11 },
+  { meal: 'ogle', overdueHour: 15 },
+  { meal: 'aksam', overdueHour: 22 }
+]
+
+// Bir kaydin kapsadigi tum ogun tipleri (birlesik ogunler dahil).
+function entryMeals(e: DietEntry): MealType[] {
+  return [e.mealType, e.alsoMeal, e.alsoMeal2].filter(Boolean) as MealType[]
+}
+
 // Bir gunun toplam diyet basari yuzdesi (o gunku kararlarin ortalamasi).
 // O gune ait karar verilmis kayit yoksa null doner.
+// ATLANAN OGUN CEZASI: o gun en az bir kayit varsa, girilmeyen (foto veya veri
+// olmayan) ana ogunler — suresi gecmisse — basarisiz (0) olarak ortalamaya katilir.
+// Boylece "atladigim / girmedigim ogun" gunun basari yuzdesini dusurur. Hic
+// kaydi olmayan (uygulama kullanilmamis) gunler cezalandirilmaz (null doner).
 export function dayAdherence(entries: DietEntry[], dateStr: string): number | null {
-  const scores = entries
-    .filter((e) => e.dateStr === dateStr)
-    .map(entryScore)
-    .filter((s): s is number => s !== null)
+  const dayEntries = entries.filter((e) => e.dateStr === dateStr)
+  const scores = dayEntries.map(entryScore).filter((s): s is number => s !== null)
   if (scores.length === 0) return null
-  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+
+  // O gun kapsanan (foto veya karar girilmis) ana ogunler
+  const covered = new Set<MealType>()
+  for (const e of dayEntries) for (const m of entryMeals(e)) covered.add(m)
+
+  const now = new Date()
+  const today = todayStr(now)
+  const missed: number[] = []
+  for (const { meal, overdueHour } of MAIN_MEALS) {
+    if (covered.has(meal)) continue
+    if (dateStr > today) continue // gelecek gun (olmamali)
+    if (dateStr === today && now.getHours() < overdueHour) continue // bugun: saati gelmemis ogunu cezalandirma
+    missed.push(0) // suresi gecmis ama girilmemis ana ogun -> basarisiz
+  }
+
+  const all = scores.concat(missed)
+  return Math.round(all.reduce((a, b) => a + b, 0) / all.length)
 }
 
 // Bir gun "kotu" sayilir: o gunun diyet basari yuzdesi bu esigin altindaysa.
