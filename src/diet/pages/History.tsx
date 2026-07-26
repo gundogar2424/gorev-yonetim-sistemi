@@ -25,6 +25,7 @@ export default function History() {
   const stats = computeStats(entries ?? [], exercises ?? [])
   const [reportDate, setReportDate] = useState(todayStr())
   const [msg, setMsg] = useState('')
+  const [moreReports, setMoreReports] = useState(false) // ayrı/sağlık/açlık raporları gizli başlar
 
   async function remove(id: number) {
     if (!confirm('Bu kaydı silmek istiyor musunuz?')) return
@@ -142,24 +143,26 @@ export default function History() {
               📸 Tek Görsel
             </button>
           </div>
-          <button onClick={sendImageSet} className="btn bg-brand-600 text-white w-full whitespace-nowrap">
-            🖼️ Ayrı Gönder
+          {/* Diğer rapor türleri — gizli başlar, sadeleşsin diye */}
+          <button
+            onClick={() => setMoreReports((v) => !v)}
+            className="w-full text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg py-1.5"
+          >
+            📑 Diğer rapor türleri {moreReports ? '▲' : '▼'}
           </button>
-          <p className="text-[11px] text-slate-400">
-            Her öğün ve sağlık verisi için ayrı, büyük fotoğraflı görsel gönderir.
-          </p>
-          <button onClick={sendHealthImage} className="btn bg-sky-600 text-white w-full whitespace-nowrap">
-            🩺 Günlük Sağlık Raporu
-          </button>
-          <p className="text-[11px] text-slate-400">
-            Şeker/tansiyon + spor + ilaç/vitamin — hepsi tek görselde.
-          </p>
-          <button onClick={sendHungerImage} className="btn bg-violet-600 text-white w-full whitespace-nowrap">
-            🍽️ Açlık Grafiği
-          </button>
-          <p className="text-[11px] text-slate-400">
-            Gün içi açlık — öğün öncesi/sonrası gruplu + zaman grafiği. (Moral/his gönderilmez.)
-          </p>
+          {moreReports && (
+            <div className="space-y-2 bg-slate-50 rounded-lg p-2">
+              <button onClick={sendImageSet} className="btn bg-brand-600 text-white w-full text-sm whitespace-nowrap">
+                🖼️ Ayrı Gönder (her öğün ayrı foto)
+              </button>
+              <button onClick={sendHealthImage} className="btn bg-sky-600 text-white w-full text-sm whitespace-nowrap">
+                🩺 Günlük Sağlık Raporu (şeker/tansiyon/spor/ilaç)
+              </button>
+              <button onClick={sendHungerImage} className="btn bg-violet-600 text-white w-full text-sm whitespace-nowrap">
+                🍽️ Açlık Grafiği (gün akışı)
+              </button>
+            </div>
+          )}
           {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
         </section>
 

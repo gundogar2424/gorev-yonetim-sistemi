@@ -322,6 +322,7 @@ function SugarMealInsight() {
 function SendMeasurements() {
   const [days, setDays] = useState(30)
   const [msg, setMsg] = useState('')
+  const [showMore, setShowMore] = useState(false) // şeker/tansiyon özel gönderimler gizli başlar
   // İsteğe bağlı tarih aralığı: doldurulursa dönem yerine bu aralık kullanılır
   const [useRange, setUseRange] = useState(false)
   const [fromDate, setFromDate] = useState('')
@@ -500,35 +501,38 @@ function SendMeasurements() {
         </button>
       </div>
 
-      <p className="text-xs text-slate-500 pt-1">Ya da tek tek gönder (seçili dönem):</p>
-      <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => sendVital('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 whitespace-nowrap">
-          🩸 Sadece Şeker
-        </button>
-        <button onClick={() => sendVital('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 whitespace-nowrap">
-          🩺 Sadece Tansiyon
-        </button>
-      </div>
-
-      <p className="text-xs text-slate-500 pt-1">Ya da GRAFİK gönder (seçili dönem — üstteki sekmeye göre):</p>
-      <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => sendVitalGraph('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 whitespace-nowrap">
-          📈 Şeker Grafiği
-        </button>
-        <button onClick={() => sendVitalGraph('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 whitespace-nowrap">
-          📈 Tansiyon Grafiği
-        </button>
-      </div>
-
-      <p className="text-xs text-slate-500 pt-1">Ya da yalnızca SON GÜN (şeker öğünlerle birlikte):</p>
-      <div className="grid grid-cols-2 gap-2">
-        <button onClick={() => sendVitalDay('seker')} className="btn bg-rose-100 text-rose-800 border border-rose-200 whitespace-nowrap">
-          🩸 Son Günün Şekeri
-        </button>
-        <button onClick={() => sendVitalDay('tansiyon')} className="btn bg-sky-100 text-sky-800 border border-sky-200 whitespace-nowrap">
-          🩺 Son Günün Tansiyonu
-        </button>
-      </div>
+      {/* Şeker/tansiyonu AYRI göndermek isteyenler için — gizli başlar */}
+      <button
+        onClick={() => setShowMore((v) => !v)}
+        className="w-full text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg py-1.5"
+      >
+        🩸 Şeker / tansiyon ayrı gönder {showMore ? '▲' : '▼'}
+      </button>
+      {showMore && (
+        <div className="space-y-2 bg-slate-50 rounded-lg p-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => sendVital('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 text-sm whitespace-nowrap">
+              🩸 Şeker listesi
+            </button>
+            <button onClick={() => sendVital('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 text-sm whitespace-nowrap">
+              🩺 Tansiyon listesi
+            </button>
+            <button onClick={() => sendVitalGraph('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 text-sm whitespace-nowrap">
+              📈 Şeker grafiği
+            </button>
+            <button onClick={() => sendVitalGraph('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 text-sm whitespace-nowrap">
+              📈 Tansiyon grafiği
+            </button>
+            <button onClick={() => sendVitalDay('seker')} className="btn bg-rose-100 text-rose-800 border border-rose-200 text-sm whitespace-nowrap">
+              🩸 Son günün şekeri
+            </button>
+            <button onClick={() => sendVitalDay('tansiyon')} className="btn bg-sky-100 text-sky-800 border border-sky-200 text-sm whitespace-nowrap">
+              🩺 Son günün tansiyonu
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-400">Seçili döneme göre gönderir (üstteki sekme / tarih).</p>
+        </div>
+      )}
       {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
     </section>
   )
