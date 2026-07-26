@@ -270,7 +270,8 @@ export async function addExercise(
   text: string,
   minutes?: number,
   kcal?: number,
-  extra?: Pick<Exercise, 'steps' | 'avgHr' | 'cadence' | 'distanceKm'>
+  extra?: Pick<Exercise, 'steps' | 'avgHr' | 'cadence' | 'distanceKm'>,
+  dateStr?: string // hangi gune eklenecek (bos ise bugun)
 ) {
   await dietDb.exercises.add({
     text,
@@ -278,7 +279,7 @@ export async function addExercise(
     kcal,
     ...(extra || {}),
     createdAt: Date.now(),
-    dateStr: new Date().toLocaleDateString('en-CA')
+    dateStr: dateStr || new Date().toLocaleDateString('en-CA')
   })
 }
 export async function deleteExercise(id: number) {

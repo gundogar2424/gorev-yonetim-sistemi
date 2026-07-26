@@ -23,6 +23,8 @@ export default function ExercisePage() {
   const [distanceKm, setDistanceKm] = useState('')
   const [flash, setFlash] = useState('')
   const [busy, setBusy] = useState(false)
+  // Verinin ekleneceği gün (unutup ertesi gün eklenebilsin diye). Varsayılan bugün.
+  const [day, setDay] = useState(todayStr())
 
   const list = exercises ?? []
   const totalPoints = list.reduce((sum, e) => sum + exercisePoints(e), 0)
@@ -80,7 +82,7 @@ export default function ExercisePage() {
       }
     }
 
-    await addExercise(t, mins, kcal, extra)
+    await addExercise(t, mins, kcal, extra, day)
     const gained = exercisePoints({ text: t, minutes: mins, createdAt: 0, dateStr: '' } as Exercise)
     setText('')
     setMinutes('')
@@ -141,8 +143,27 @@ export default function ExercisePage() {
           </section>
         )}
 
+        {/* Hangi güne? — hem fotoğraftan hem elle eklenen veri bu güne yazılır */}
+        <section className="card p-4">
+          <label className="block">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">📅 Hangi güne ekleniyor?</span>
+            <input
+              type="date"
+              className="field-input mt-1"
+              value={day}
+              max={todayStr()}
+              onChange={(e) => setDay(e.target.value || todayStr())}
+            />
+          </label>
+          {day !== todayStr() && (
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-2 mt-2">
+              Bu veriler <b>{formatDate(day)}</b> gününe kaydedilecek (bugün değil).
+            </p>
+          )}
+        </section>
+
         {/* Fotoğraftan oku (Samsung Health ekran görüntüleri) */}
-        <PhotoScanCard settings={settings} />
+        <PhotoScanCard settings={settings} day={day} />
 
         {/* Yeni egzersiz ekle */}
         <section className="card p-4 space-y-3">
@@ -327,7 +348,7 @@ const trNum = (n?: number | null) => (n != null ? n.toLocaleString('tr-TR') : ''
 type Slot = { url?: string; scan?: ActivityScan; busy: boolean; err?: string }
 const emptySlot: Slot = { busy: false }
 
-function PhotoScanCard({ settings }: { settings: DietSettings | undefined }) {
+function PhotoScanCard({ settings, day }: { settings: DietSettings | undefined; day: string }) {
   const [daily, setDaily] = useState<Slot>(emptySlot)
   const [ex, setEx] = useState<Slot>(emptySlot)
   const [saving, setSaving] = useState(false)
@@ -368,7 +389,7 @@ function PhotoScanCard({ settings }: { settings: DietSettings | undefined }) {
   async function save() {
     setSaving(true)
     try {
-      const today = new Date().toLocaleDateString('en-CA')
+      const today = day // seçilen gün (varsayılan bugün)
       // 1) Egzersiz kaydı (yürüyüş vb.)
       if (ex.scan) {
         const s = ex.scan
@@ -377,7 +398,7 @@ function PhotoScanCard({ settings }: { settings: DietSettings | undefined }) {
           avgHr: s.avgHr ?? undefined,
           cadence: s.cadence ?? undefined,
           distanceKm: s.distanceKm ?? undefined
-        })
+        }, today)
       }
       // 2) Günlük adım (egzersiz düşülmüş) + günün yakılan kalori/mesafesi
       if (daily.scan) {
