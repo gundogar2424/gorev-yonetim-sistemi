@@ -539,6 +539,9 @@ export default function Capture() {
         {/* Bugunku diyet basari yuzdesi */}
         <DailyScore entries={entries ?? []} />
 
+        {/* Bugunun ogunleri: girilmeyen (atlanan) ogunde yanip sonen kirmizi nokta */}
+        <TodaysMeals entries={entries ?? []} />
+
         {/* Kriz ani: canim cekiyor! */}
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
 
@@ -2043,6 +2046,71 @@ function MacroBar({ label, grams, pct, color }: { label: string; grams: number; 
 
 // Yarim saat gecmis ama tokluk puani verilmemis "yedim" ogunleri sorar
 // Aksam kontrolu: bugun "sonra karar ver" denmis ogunleri sorar
+// Bugunun ana ogunleri: girilmeyen (foto/veri yok) ve saati gecmis ogunun
+// uzerinde YANIP SONEN kirmizi nokta gosterir. Boylece atlanan ogun goze carpar.
+const MAIN_MEALS_UI: { meal: MealType; label: string; icon: string; overdueHour: number }[] = [
+  { meal: 'kahvalti', label: 'Kahvaltı', icon: '🍳', overdueHour: 11 },
+  { meal: 'ogle', label: 'Öğle', icon: '🍽️', overdueHour: 15 },
+  { meal: 'aksam', label: 'Akşam', icon: '🌙', overdueHour: 22 }
+]
+
+function TodaysMeals({ entries }: { entries: DietEntry[] }) {
+  const today = todayStr()
+  const todays = entries.filter((e) => e.dateStr === today)
+  const covered = new Set<MealType>()
+  for (const e of todays) for (const m of [e.mealType, e.alsoMeal, e.alsoMeal2]) if (m) covered.add(m)
+  const nowH = new Date().getHours()
+
+  return (
+    <div className="card p-4">
+      <span className="section-title">🍴 Bugünün öğünleri</span>
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        {MAIN_MEALS_UI.map(({ meal, label, icon, overdueHour }) => {
+          const done = covered.has(meal)
+          const overdue = !done && nowH >= overdueHour // girilmemis + saati gecmis
+          return (
+            <div
+              key={meal}
+              className={`relative rounded-xl p-3 text-center border ${
+                done
+                  ? 'bg-emerald-50 border-emerald-100'
+                  : overdue
+                    ? 'bg-rose-50 border-rose-200'
+                    : 'bg-slate-50 border-slate-100'
+              }`}
+            >
+              {/* Girilmeyen (atlanan) öğün: yanıp sönen kırmızı nokta */}
+              {overdue && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-rose-500" />
+                </span>
+              )}
+              <div className="text-2xl leading-none">{icon}</div>
+              <div
+                className={`text-xs font-bold mt-1 ${
+                  done ? 'text-emerald-700' : overdue ? 'text-rose-700' : 'text-slate-500'
+                }`}
+              >
+                {label}
+              </div>
+              <div className="text-[10px] mt-0.5 font-semibold">
+                {done ? (
+                  <span className="text-emerald-600">✓ girildi</span>
+                ) : overdue ? (
+                  <span className="text-rose-600">girilmedi</span>
+                ) : (
+                  <span className="text-slate-400">bekliyor</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function PendingCheckIn({ entries }: { entries: DietEntry[] }) {
   const today = todayStr()
   const pending = entries.filter((e) => e.decision === 'none' && e.dateStr === today)
