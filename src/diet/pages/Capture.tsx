@@ -550,6 +550,9 @@ export default function Capture() {
         {/* Bugunku kalori takibi */}
         <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
 
+        {/* Bugun yapilan spor/yuruyus (ayri gosterilir, kaloriden dusulmez) */}
+        <ActivityCard exercises={exercises ?? []} />
+
         {/* Su takibi (ml) */}
         <WaterCard goalMl={settings?.waterGoal ? settings.waterGoal * 200 : 2500} />
 
@@ -1199,6 +1202,49 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Bugun yapilan spor/yuruyus (Samsung Health / elle) — AYRI gosterilir,
+// yenen kaloriden DUSULMEZ (kullanici ozellikle boyle istedi: bilgi amacli).
+function ActivityCard({ exercises }: { exercises: Exercise[] }) {
+  const today = todayStr()
+  const todays = exercises.filter((e) => e.dateStr === today)
+  if (todays.length === 0) return null // veri yoksa gosterme (sade kalsin)
+
+  const steps = todays.reduce((s, e) => s + (e.steps || 0), 0)
+  const kcal = todays.reduce((s, e) => s + (e.kcal || 0), 0)
+  const minutes = todays.reduce((s, e) => s + (e.minutes || 0), 0)
+  const distanceKm = todays.reduce((s, e) => s + (e.distanceKm || 0), 0)
+
+  const stats: { icon: string; val: string; label: string }[] = []
+  if (steps > 0) stats.push({ icon: '👣', val: steps.toLocaleString('tr-TR'), label: 'adım' })
+  if (distanceKm > 0) stats.push({ icon: '📍', val: `${distanceKm.toFixed(1)}`, label: 'km' })
+  if (minutes > 0) stats.push({ icon: '⏱️', val: `${minutes}`, label: 'dk' })
+  if (kcal > 0) stats.push({ icon: '🔥', val: `${kcal}`, label: 'kcal yakıldı' })
+  if (stats.length === 0) return null
+
+  return (
+    <div className="card p-4 bg-sky-50 border border-sky-100">
+      <div className="flex items-center justify-between mb-3">
+        <span className="section-title">🏃 Bugün hareket</span>
+        <Link to="/egzersiz" className="text-xs font-semibold text-sky-700">Detay ›</Link>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="text-2xl">{s.icon}</span>
+            <div className="leading-tight">
+              <div className="text-xl font-extrabold text-sky-800">{s.val}</div>
+              <div className="text-[11px] text-slate-500">{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[11px] text-slate-400 mt-3 leading-tight">
+        Bilgi amaçlı gösteriliyor; yediğin kaloriden düşülmez.
+      </p>
     </div>
   )
 }

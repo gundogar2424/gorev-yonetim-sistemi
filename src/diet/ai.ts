@@ -85,8 +85,11 @@ Görseldeki yemeği tanı ve şu kurallara göre değerlendir:
 - Yemek sağlıksız/yüksek kalorili ise (tatlı, kızartma, fast food, şekerli içecek vb.): Kullanıcıyı SAMİMİ ama KARARLI bir dille uyar. harms alanına bu yemeğin somut zararlarını yaz (kilo, kan şekeri, yağlanma, tokluk hissi vb.). motivations alanına onu vazgeçirecek, içini güçlendirecek motive edici sözler yaz.
 - Yemek sağlıklı ise (sebze, ızgara, salata, meyve vb.): healthy=true, riskLevel="düşük" ver ve motivations alanında kullanıcıyı TEBRİK ederek doğru seçim yaptığını söyle.
 
-DİYET LİSTESİ KARŞILAŞTIRMASI:
-- Eğer kullanıcı bir DİYET LİSTESİ verdiyse: çektiği yemeğin bu listeye ne kadar uyduğunu yüzde olarak değerlendir. compliancePercent = 0-100 arası bir tam sayı (100 = listeye birebir uygun bir öğün, 0 = listeye tamamen aykırı). complianceNote = neyin uyduğunu/uymadığını TEK kısa cümleyle açıkla (örn. "Listende öğle için ızgara tavuk+salata var, bu uygun" veya "Listende tatlı yok, bu öğün listene aykırı"). Uyum düşükse motivations sözlerini de buna göre kur.
+DİYET LİSTESİ KARŞILAŞTIRMASI (ÇOK ÖNEMLİ — birebir aynı yemek DEĞİL, MAKRO & KALORİ bazlı):
+- Uyumu, yemeğin adı/çeşidi listedekiyle birebir AYNI mı diye DEĞİL; KALORİ ve MAKRO (protein/karbonhidrat/yağ) olarak listedeki ilgili öğüne ne kadar YAKIN olduğuna göre değerlendir. Diyet dediğin şey makro ve kaloridir; bir diyetisyen gibi kıyasla.
+- Örn. listede "ızgara tavuk + salata" varsa ve kişi "ızgara köfte + salata" ya da "ızgara balık + salata" yediyse, kalori ve makro benzer olduğu için uyum YÜKSEK olmalı (isim farklı diye ceza YOK). Aynı şekilde listede "2 dilim tam buğday ekmek + peynir" varsa, kişi benzer kalori/makroda başka bir kahvaltı yaptıysa uyum yüksektir.
+- Puanı yalnızca kalori/makro listedekinden BELİRGİN saparsa kır: çok daha kalorili/yağlı ya da çok az (eksik öğün), makro dengesi bozuk (ör. hep karbonhidrat, protein yok), veya listede hiç olmayan bir tür (tatlı/kızartma/şekerli içecek) eklenmişse.
+- compliancePercent = 0-100 tam sayı: 100 = kalori ve makro olarak listedeki öğüne çok yakın; 50 = kısmen sapmış; 0 = tamamen farklı/aykırı. complianceNote = TEK kısa cümleyle kalori/makro kıyasını ver (örn. "Listede öğle ~500 kcal / ~40g protein; bu öğün ~520 kcal / ~38g protein — çok uyumlu" veya "Bu ~300 kcal fazladan şeker, listede yok — uyumsuz").
 - Eğer diyet listesi VERİLMEDİYSE: compliancePercent = -1 ve complianceNote = "" (boş) bırak.
 
 KONTROLLÜ KAÇAMAK (çok önemli):
@@ -104,7 +107,7 @@ TÜRK DİYETİSYEN/EV ÖLÇÜLERİ: Kullanıcı miktarı şu ölçülerle verebi
 
 MAKROLAR: Sadece kaloriyi değil, tahmini MAKRO besinleri de ver — protein, carb (karbonhidrat), fat (yağ); hepsi GRAM cinsinden tam sayı. Porsiyon büyüklüğüne göre gerçekçi tahmin et. Görselde yemek yoksa hepsi 0.
 
-DİYET PUANI: dietScore alanına bu yemeğe diyete uygunluk açısından 1-10 arası bir puan ver (10 = mükemmel/diyete tam uygun, 7-9 = iyi, 4-6 = idareli, 1-3 = kötü/diyeti bozar). Varsa diyet listesine uyumu ve sağlıklılığı birlikte değerlendir. Görselde yemek yoksa dietScore=0.
+DİYET PUANI: dietScore alanına bu yemeğe diyete uygunluk açısından 1-10 arası bir puan ver (10 = mükemmel/diyete tam uygun, 7-9 = iyi, 4-6 = idareli, 1-3 = kötü/diyeti bozar). Varsa diyet listesine uyumu (yukarıdaki MAKRO & KALORİ bazlı kıyas — birebir aynı yemek değil) ve sağlıklılığı birlikte değerlendir. Görselde yemek yoksa dietScore=0.
 
 PUANI NEREDEN KIRDIĞIN (çok önemli): scoreReason alanına puanı NEDEN tam vermediğini, yani puanı NEREDEN KIRDIĞINI kısa ve net yaz; böylece kullanıcı bir dahakine nelere dikkat edeceğini bilsin (örn. "Porsiyon biraz fazla ve kızartma olduğu için -2; yağ yüksek." veya "Listende beyaz ekmek yerine tam buğday var, o yüzden -1."). Madde madde değil, 1-2 kısa cümle. Puan 10 ise (mükemmelse) scoreReason="" (boş) bırak.
 
