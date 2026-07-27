@@ -249,7 +249,8 @@ function toLocalInput(d: Date): string {
 function MealAiRefine({ e }: { e: DietEntry }) {
   const [open, setOpen] = useState(false)
   const [chat, setChat] = useState<{ role: 'assistant' | 'user'; text: string }[]>([])
-  const [input, setInput] = useState('')
+  // Hızlı kaydederken yazdığın açıklama pre-fill gelsin (yeniden yazmana gerek yok)
+  const [input, setInput] = useState(e.draftNote ?? '')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [done, setDone] = useState('')

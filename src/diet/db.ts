@@ -288,11 +288,14 @@ export async function deleteExercise(id: number) {
 
 // HIZLI TASLAK ÖĞÜN: fotoğrafı hemen kaydeder (yapay zekaya sormadan). Sonra
 // Geçmiş'te "yapay zekayla düzelt" ile incelenip gerçek değerler doldurulur.
-export async function addDraftEntry(photo: string, mealType: MealType, createdAt?: number) {
+export async function addDraftEntry(photo: string, mealType: MealType, createdAt?: number, note?: string) {
   const now = createdAt ?? Date.now()
+  const desc = note?.trim()
   await dietDb.entries.add({
     foodFound: false,
-    foodName: '📷 İncelenecek öğün',
+    // Yazi girildiyse adi o olsun (yoksa "İncelenecek öğün")
+    foodName: desc ? desc.slice(0, 60) : '📷 İncelenecek öğün',
+    draftNote: desc || undefined,
     healthy: true,
     riskLevel: 'düşük',
     estimatedCalories: 0,

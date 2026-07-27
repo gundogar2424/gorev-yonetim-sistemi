@@ -50,6 +50,7 @@ export interface DietEntry extends FoodAnalysis {
   dateStr: string // Yerel tarih (YYYY-MM-DD)
   sharedAt?: number // Bu ogun diyetisyene tek tek gonderildiyse zaman damgasi
   pending?: boolean // Hizli kaydedildi, henuz yapay zekayla incelenmedi (sonra duzeltilecek)
+  draftNote?: string // Hizli kaydederken yazilan aciklama; Gecmis'te AI ile hesaplamak icin saklanir
 }
 
 // Vucut olcusu kaydi (belli bir tarihte). Tum olculer cm, kilo kg; hepsi istege bagli.

@@ -296,7 +296,7 @@ export default function Capture() {
       const d = new Date(whenStr)
       if (!isNaN(d.getTime())) createdAt = d.getTime()
     }
-    await addDraftEntry(photo, mealType, createdAt)
+    await addDraftEntry(photo, mealType, createdAt, clarifyInput.trim() || undefined)
     setSavedDecision('ate')
     setPhase('saved')
     // Bu öğün artık kayıtlı — hatırlatıcıyı güncelle (yediysen bir daha sormasın)
