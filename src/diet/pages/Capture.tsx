@@ -2183,27 +2183,33 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
   return (
     <button
       onClick={() => onPick(chosen)}
-      className="card p-4 w-full text-left bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 active:scale-[0.99] transition"
+      className="card p-5 w-full bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 active:scale-[0.99] transition flex flex-col items-center text-center"
     >
-      <div className="flex items-center gap-4">
-        <div className="text-4xl flex-shrink-0">{mealEmoji(chosen)}</div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-indigo-500 uppercase tracking-wide">Sıradaki öğün</p>
-          <p className="text-xl font-extrabold text-slate-800 leading-tight">{mealLabel(chosen)}</p>
-          <p className="text-sm font-semibold text-indigo-700 mt-0.5">
-            🕒 {next.time}
-            {tomorrow ? ' (yarın)' : ''} · {left}
+      <p className="text-xs font-bold text-indigo-500 uppercase tracking-wide">Sıradaki öğün</p>
+      <div className="text-5xl mt-1">{mealEmoji(chosen)}</div>
+      <p className="text-2xl font-extrabold text-slate-800 leading-tight mt-1">{mealLabel(chosen)}</p>
+      <p className="text-sm font-semibold text-indigo-700 mt-0.5">
+        🕒 {next.time}
+        {tomorrow ? ' (yarın)' : ''} · {left}
+      </p>
+
+      {/* ORTADA, BÜYÜK: diyet listende bu öğünde ne var */}
+      {planText ? (
+        <div className="mt-3 w-full bg-white rounded-xl p-4 border border-indigo-100">
+          <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide mb-1">🍽️ Listende bu öğün</p>
+          <p className="text-base text-slate-800 leading-relaxed font-medium">{planText}</p>
+        </div>
+      ) : (
+        <div className="mt-3 w-full bg-white/70 rounded-xl p-3 border border-indigo-100">
+          <p className="text-xs text-slate-500 leading-snug">
+            {settings?.dietPlan?.trim()
+              ? 'Diyet listen öğünlere bölünüyor… birazdan bu öğünde ne olduğu burada görünecek.'
+              : 'Diyet listeni yükle (Menüm) → her öğünde ne yenecek burada görünsün.'}
           </p>
         </div>
-        <span className="text-xs font-bold bg-indigo-600 text-white rounded-lg px-2.5 py-1.5 flex-shrink-0">＋ Ekle</span>
-      </div>
-      {/* Diyet listende bu öğünde ne var (liste yüklüyse) */}
-      {planText && (
-        <div className="mt-3 bg-white/70 rounded-xl p-3 border border-indigo-100">
-          <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide mb-1">🍽️ Listende bu öğün</p>
-          <p className="text-sm text-slate-700 leading-snug">{planText}</p>
-        </div>
       )}
+
+      <span className="mt-3 text-sm font-bold bg-indigo-600 text-white rounded-xl px-4 py-2">＋ Bu öğünü ekle</span>
     </button>
   )
 }
