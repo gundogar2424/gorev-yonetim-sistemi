@@ -7,9 +7,9 @@ import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDa
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
-import { scheduleSugarReminder, applyNotifications, enabledMealTypes } from '../lib/notify'
+import { scheduleSugarReminder, applyNotifications, enabledMealTypes, mergeReminders } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
-import { MEAL_OPTIONS, guessMeal, mealLabel } from '../lib/meals'
+import { MEAL_OPTIONS, guessMeal, mealLabel, mealEmoji } from '../lib/meals'
 import { isBeverage } from '../lib/food'
 import { decodeBarcodeFromImage } from '../lib/barcode'
 import { buildHealthContext } from '../lib/context'
@@ -549,6 +549,9 @@ export default function Capture() {
 
         {/* Girilmeyen (atlanan) takip edilen ogun icin tek satir kirmizi uyari */}
         <MissedMealsAlert entries={entries ?? []} tracked={trackedMeals} />
+
+        {/* Sıradaki öğün: saati/ne kadar kaldığı — öğün girildikçe sonrakine geçer */}
+        <NextMeal entries={entries ?? []} settings={settings} />
 
         {/* Kriz ani: canim cekiyor! */}
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -2077,6 +2080,71 @@ function MissedMealsAlert({ entries, tracked }: { entries: DietEntry[]; tracked:
         <span className="font-bold">Girmediğin öğün:</span> {missed.map((m) => mealLabel(m.meal)).join(', ')}
         <span className="text-rose-500"> — girmezsen başarısız sayılır.</span>
       </p>
+    </div>
+  )
+}
+
+// Sıradaki öğün: takip edilen (açık) öğünler içinde, saati gelmemiş ve henüz
+// girilmemiş İLK öğünü ana sayfada net gösterir + ne kadar kaldığını yazar.
+// Öğün girildikçe otomatik bir sonrakine geçer. Bugünküler bittiyse yarının ilki.
+function NextMeal({ entries, settings }: { entries: DietEntry[]; settings?: DietSettings }) {
+  const today = todayStr()
+  const todays = entries.filter((e) => e.dateStr === today)
+  const covered = new Set<MealType>()
+  for (const e of todays) for (const m of [e.mealType, e.alsoMeal, e.alsoMeal2]) if (m) covered.add(m)
+
+  const now = new Date()
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+
+  const all = mergeReminders(settings?.reminders)
+  const toRow = (r: { id: string; time: string }) => {
+    const [h, m] = r.time.split(':').map(Number)
+    return { meal: r.id as MealType, time: r.time, min: (h || 0) * 60 + (m || 0) }
+  }
+  let meals = all.filter((r) => r.enabled).map(toRow)
+  // Hiç hatırlatıcı açık değilse: 3 ana öğünün varsayılan saatleriyle göster
+  if (meals.length === 0) {
+    meals = all.filter((r) => r.id === 'kahvalti' || r.id === 'ogle' || r.id === 'aksam').map(toRow)
+  }
+  meals.sort((a, b) => a.min - b.min)
+
+  if (meals.length === 0) return null
+
+  // Bugün: saati gelmemiş ve girilmemiş ilk öğün
+  let next = meals.find((x) => x.min >= nowMin && !covered.has(x.meal))
+  let tomorrow = false
+  if (!next) {
+    next = meals[0] // bugünküler bitti → yarının ilki
+    tomorrow = true
+  }
+
+  // Ne kadar kaldı?
+  let diff = next.min - nowMin
+  if (tomorrow) diff += 1440
+  const hh = Math.floor(diff / 60)
+  const mm = diff % 60
+  const left =
+    tomorrow && next.min - nowMin < 0
+      ? `yarın ${next.time}`
+      : diff <= 0
+        ? 'vakti geldi'
+        : hh > 0
+          ? `${hh} sa ${mm} dk sonra`
+          : `${mm} dk sonra`
+
+  return (
+    <div className="card p-4 bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100">
+      <div className="flex items-center gap-4">
+        <div className="text-4xl flex-shrink-0">{mealEmoji(next.meal)}</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-indigo-500 uppercase tracking-wide">Sıradaki öğün</p>
+          <p className="text-xl font-extrabold text-slate-800 leading-tight">{mealLabel(next.meal)}</p>
+          <p className="text-sm font-semibold text-indigo-700 mt-0.5">
+            🕒 {next.time}
+            {tomorrow ? ' (yarın)' : ''} · {left}
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
