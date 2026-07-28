@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry } from '../db'
-import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat } from '../ai'
+import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry } from '../db'
+import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { scheduleSugarReminder, applyNotifications, enabledMealTypes, mergeReminders } from '../lib/notify'
@@ -124,6 +124,24 @@ export default function Capture() {
     setActiveMeals(trackedMeals)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackedMeals.join(',')])
+
+  // Diyet listesi yüklendiğinde/değiştiğinde: yapay zeka BİR KEZ öğünlere bölsün
+  // (kahvaltı/öğle/akşam/ara öğünler). Sonuç ayara kaydedilir; "Sıradaki öğün"de
+  // o öğünde ne yeneceği gösterilir. Aynı liste için tekrar bölmez (token tasarrufu).
+  const splitBusy = useRef(false)
+  useEffect(() => {
+    const plan = settings?.dietPlan?.trim()
+    if (!plan || !settings?.apiKey || splitBusy.current) return
+    if (settings.dietPlanMealsSrc === plan) return // bu liste zaten bölünmüş
+    splitBusy.current = true
+    void splitDietPlanMeals({ apiKey: settings.apiKey, dietPlan: plan, model: settings.model })
+      .then((meals) => saveDietSettings({ dietPlanMeals: meals as Partial<Record<MealType, string>>, dietPlanMealsSrc: plan }))
+      .catch(() => {})
+      .finally(() => {
+        splitBusy.current = false
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings?.dietPlan, settings?.apiKey, settings?.dietPlanMealsSrc])
 
   // "Sıradaki öğün" kartına dokununca: o öğünü önceden seç, ekleme menüsüne kaydır
   const [pendingMeal, setPendingMeal] = useState<MealType | null>(null)
@@ -2161,6 +2179,7 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
         : `${mm} dk sonra`
 
   const chosen = next.meal
+  const planText = settings?.dietPlanMeals?.[chosen]?.trim()
   return (
     <button
       onClick={() => onPick(chosen)}
@@ -2178,6 +2197,13 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
         </div>
         <span className="text-xs font-bold bg-indigo-600 text-white rounded-lg px-2.5 py-1.5 flex-shrink-0">＋ Ekle</span>
       </div>
+      {/* Diyet listende bu öğünde ne var (liste yüklüyse) */}
+      {planText && (
+        <div className="mt-3 bg-white/70 rounded-xl p-3 border border-indigo-100">
+          <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide mb-1">🍽️ Listende bu öğün</p>
+          <p className="text-sm text-slate-700 leading-snug">{planText}</p>
+        </div>
+      )}
     </button>
   )
 }

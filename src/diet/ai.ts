@@ -411,6 +411,53 @@ export async function analyzeFoodByText(opts: {
   }
 }
 
+// Diyet listesini OGUNLERE ayir (bir kez): her ogunde ne yenecegi kisa/okunakli.
+// Ana ekranda "Sıradaki öğün"de gosterilir. Liste degisince yeniden calisir.
+const DIET_SPLIT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    kahvalti: { type: 'string' },
+    ara1: { type: 'string' },
+    ogle: { type: 'string' },
+    ikindi: { type: 'string' },
+    aksam: { type: 'string' },
+    gece: { type: 'string' }
+  },
+  required: ['kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece']
+} as const
+
+export async function splitDietPlanMeals(opts: {
+  apiKey: string
+  dietPlan: string
+  model?: string
+}): Promise<Record<string, string>> {
+  const { apiKey, dietPlan, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!dietPlan.trim()) throw new Error('Diyet listesi boş.')
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1500,
+      system:
+        'Kullanıcının diyet listesini öğünlere ayıran bir asistansın. Her öğün için O ÖĞÜNDE YENECEK şeyleri KISA ve OKUNAKLI yaz (örn. "2 dilim tam buğday ekmek, süzme peynir, 5 zeytin, çay"). Listede o öğün belirtilmemişse o alanı "" (boş) bırak. Uydurma; sadece listede yazanı düzenle.',
+      messages: [
+        {
+          role: 'user',
+          content: `DİYET LİSTEM:\n${dietPlan.trim()}\n\nBunu şu öğünlere ayır ve her alana o öğünde ne yeneceğini kısa yaz (yoksa boş bırak): kahvalti=Kahvaltı, ara1=Sabah ara öğün, ogle=Öğle, ikindi=Öğleden sonra ara, aksam=Akşam, gece=Gece ara öğün.`
+        }
+      ],
+      output_config: { format: { type: 'json_schema', schema: DIET_SPLIT_SCHEMA } }
+    })
+    const raw = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    return JSON.parse(cleaned) as Record<string, string>
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Yemek sohbetinin yapilandirilmis ciktisi: cevap + (varsa) duzeltme.
 // Kullanici sohbette yemegi/miktari duzeltirse, puan/kalori burada guncellenir.
 const CHAT_SCHEMA = {

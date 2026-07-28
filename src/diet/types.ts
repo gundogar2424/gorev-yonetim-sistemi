@@ -302,6 +302,11 @@ export interface DietSettings {
   goal?: string // Diyet hedefi (yapay zekaya baglam olarak verilir)
   preferences?: string // Kisisel aliskanliklar/tercihler (orn. "kahveyi/cayi sekersiz icerim, tam bugday ekmek yerim") — HER analizde dikkate alinir
   dietPlan?: string // Kullanicinin diyet listesi (ogunler) — uyum karsilastirmasi icin
+  // Diyet listesinin ogunlere bolunmus hali (yapay zeka bir kez ayirir; ana ekranda
+  // "Sıradaki öğün"de o ogunde ne yenecegi gosterilir). dietPlanMealsSrc, bu bolmenin
+  // hangi diyet listesi metninden uretildigini tutar; liste degisince yeniden bolunur.
+  dietPlanMeals?: Partial<Record<MealType, string>>
+  dietPlanMealsSrc?: string
   reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)
   // Gunluk/haftalik hedefler (istege bagli; bos birakilirsa varsayilan kullanilir)
   waterGoal?: number // Gunluk su hedefi (bardak)
