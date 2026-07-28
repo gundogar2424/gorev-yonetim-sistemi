@@ -125,6 +125,19 @@ export default function Capture() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackedMeals.join(',')])
 
+  // "Sıradaki öğün" kartına dokununca: o öğünü önceden seç, ekleme menüsüne kaydır
+  const [pendingMeal, setPendingMeal] = useState<MealType | null>(null)
+  const addMenuRef = useRef<HTMLDivElement>(null)
+  function addForMeal(meal: MealType) {
+    setPendingMeal(meal)
+    setMealType(meal)
+    setAlsoMeal(undefined)
+    setAlsoMeal2(undefined)
+    setTextMode(false)
+    setPhase('idle')
+    setTimeout(() => addMenuRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60)
+  }
+
   // Fotograf sec: APK'da native Camera (galeri HEIC/buyuk fotograflari da JPEG'e
   // cevirir), web'de gizli <input type=file> kullanilir.
   async function pickPhoto(source: 'camera' | 'gallery') {
@@ -144,7 +157,8 @@ export default function Capture() {
         if (!photo.dataUrl) return
         setNote('')
         setEditing(false)
-        setMealType(guessMeal())
+        setMealType(pendingMeal ?? guessMeal())
+        setPendingMeal(null)
         await afterCapture(photo.dataUrl)
       } catch (err) {
         // Kullanici secimi iptal ettiyse hata gosterme
@@ -165,7 +179,8 @@ export default function Capture() {
     if (!file) return
     setNote('')
     setEditing(false)
-    setMealType(guessMeal()) // saate gore varsayilan ogun
+    setMealType(pendingMeal ?? guessMeal()) // sıradaki öğün kartından seçildiyse onu koru
+    setPendingMeal(null)
     try {
       const dataUrl = await fileToResizedDataUrl(file, 1000, 0.85)
       await afterCapture(dataUrl)
@@ -344,7 +359,8 @@ export default function Capture() {
     if (!textNote.trim()) return
     setPhoto('') // fotograf yok
     setTextMode(false)
-    setMealType(guessMeal())
+    setMealType(pendingMeal ?? guessMeal())
+    setPendingMeal(null)
     setError('')
     setAnalysis(null)
     setPhase('analyzing')
@@ -446,6 +462,7 @@ export default function Capture() {
     setPhoto('')
     setAnalysis(null)
     setMealType(guessMeal())
+    setPendingMeal(null)
     setAlsoMeal(undefined)
     setAlsoMeal2(undefined)
     setSavedDecision('none')
@@ -550,8 +567,8 @@ export default function Capture() {
         {/* Girilmeyen (atlanan) takip edilen ogun icin tek satir kirmizi uyari */}
         <MissedMealsAlert entries={entries ?? []} tracked={trackedMeals} />
 
-        {/* Sıradaki öğün: saati/ne kadar kaldığı — öğün girildikçe sonrakine geçer */}
-        <NextMeal entries={entries ?? []} settings={settings} />
+        {/* Sıradaki öğün: saati/ne kadar kaldığı; dokununca o öğünü eklemeye başlar */}
+        <NextMeal entries={entries ?? []} settings={settings} onPick={addForMeal} />
 
         {/* Kriz ani: canim cekiyor! */}
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -599,7 +616,12 @@ export default function Capture() {
 
         {/* Bos durum: TEK yapay zeka ekleme merkezi (foto/galeri/barkod/etiket/yazi) */}
         {phase === 'idle' && (
-          <div className="card p-5 space-y-3">
+          <div ref={addMenuRef} className="card p-5 space-y-3">
+            {pendingMeal && (
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 text-center text-sm font-bold text-indigo-800">
+                {mealLabel(pendingMeal)} ekleniyor
+              </div>
+            )}
             <div className="text-center space-y-1">
               <div className="text-5xl">📸</div>
               <p className="text-slate-600 text-sm">Ne eklemek istersin? Yapay zeka tanısın, karar vermene yardım etsin.</p>
@@ -1225,7 +1247,6 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
 function ActivityCard({ exercises }: { exercises: Exercise[] }) {
   const today = todayStr()
   const todays = exercises.filter((e) => e.dateStr === today)
-  if (todays.length === 0) return null // veri yoksa gosterme (sade kalsin)
 
   const steps = todays.reduce((s, e) => s + (e.steps || 0), 0)
   const kcal = todays.reduce((s, e) => s + (e.kcal || 0), 0)
@@ -1237,7 +1258,20 @@ function ActivityCard({ exercises }: { exercises: Exercise[] }) {
   if (distanceKm > 0) stats.push({ icon: '📍', val: `${distanceKm.toFixed(1)}`, label: 'km' })
   if (minutes > 0) stats.push({ icon: '⏱️', val: `${minutes}`, label: 'dk' })
   if (kcal > 0) stats.push({ icon: '🔥', val: `${kcal}`, label: 'kcal yakıldı' })
-  if (stats.length === 0) return null
+
+  // Bugün veri yoksa: kartı gizleme, ekleme yönlendirmesi göster (hep görünür)
+  if (stats.length === 0) {
+    return (
+      <Link to="/egzersiz" className="card p-4 bg-sky-50 border border-sky-100 flex items-center gap-3 active:scale-[0.99] transition">
+        <span className="text-3xl">🏃</span>
+        <div className="flex-1">
+          <p className="font-bold text-sky-800">Bugün hareket</p>
+          <p className="text-xs text-slate-500">Henüz veri yok — egzersiz/adım ekle ya da Samsung’dan içe aktar.</p>
+        </div>
+        <span className="text-sky-700 text-sm font-semibold">Ekle ›</span>
+      </Link>
+    )
+  }
 
   return (
     <div className="card p-4 bg-sky-50 border border-sky-100">
@@ -2084,10 +2118,10 @@ function MissedMealsAlert({ entries, tracked }: { entries: DietEntry[]; tracked:
   )
 }
 
-// Sıradaki öğün: takip edilen (açık) öğünler içinde, saati gelmemiş ve henüz
+// Sıradaki öğün: TÜM öğünler (ara öğünler dahil) içinde saati gelmemiş ve henüz
 // girilmemiş İLK öğünü ana sayfada net gösterir + ne kadar kaldığını yazar.
-// Öğün girildikçe otomatik bir sonrakine geçer. Bugünküler bittiyse yarının ilki.
-function NextMeal({ entries, settings }: { entries: DietEntry[]; settings?: DietSettings }) {
+// Karta dokununca o öğünü eklemeye başlar. Bugünküler bittiyse yarının ilki.
+function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; settings?: DietSettings; onPick: (m: MealType) => void }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today)
   const covered = new Set<MealType>()
@@ -2096,17 +2130,13 @@ function NextMeal({ entries, settings }: { entries: DietEntry[]; settings?: Diet
   const now = new Date()
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
-  const all = mergeReminders(settings?.reminders)
-  const toRow = (r: { id: string; time: string }) => {
-    const [h, m] = r.time.split(':').map(Number)
-    return { meal: r.id as MealType, time: r.time, min: (h || 0) * 60 + (m || 0) }
-  }
-  let meals = all.filter((r) => r.enabled).map(toRow)
-  // Hiç hatırlatıcı açık değilse: 3 ana öğünün varsayılan saatleriyle göster
-  if (meals.length === 0) {
-    meals = all.filter((r) => r.id === 'kahvalti' || r.id === 'ogle' || r.id === 'aksam').map(toRow)
-  }
-  meals.sort((a, b) => a.min - b.min)
+  // TÜM öğünleri kullan (ara öğünler de görünsün); saatleri Hatırlatıcılar'dan gelir
+  const meals = mergeReminders(settings?.reminders)
+    .map((r) => {
+      const [h, m] = r.time.split(':').map(Number)
+      return { meal: r.id as MealType, time: r.time, min: (h || 0) * 60 + (m || 0) }
+    })
+    .sort((a, b) => a.min - b.min)
 
   if (meals.length === 0) return null
 
@@ -2119,33 +2149,36 @@ function NextMeal({ entries, settings }: { entries: DietEntry[]; settings?: Diet
   }
 
   // Ne kadar kaldı?
-  let diff = next.min - nowMin
-  if (tomorrow) diff += 1440
+  const diff = (tomorrow ? next.min + 1440 : next.min) - nowMin
   const hh = Math.floor(diff / 60)
   const mm = diff % 60
-  const left =
-    tomorrow && next.min - nowMin < 0
-      ? `yarın ${next.time}`
-      : diff <= 0
-        ? 'vakti geldi'
-        : hh > 0
-          ? `${hh} sa ${mm} dk sonra`
-          : `${mm} dk sonra`
+  const left = tomorrow
+    ? `yarın ${next.time}`
+    : diff <= 0
+      ? 'vakti geldi'
+      : hh > 0
+        ? `${hh} sa ${mm} dk sonra`
+        : `${mm} dk sonra`
 
+  const chosen = next.meal
   return (
-    <div className="card p-4 bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100">
+    <button
+      onClick={() => onPick(chosen)}
+      className="card p-4 w-full text-left bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 active:scale-[0.99] transition"
+    >
       <div className="flex items-center gap-4">
-        <div className="text-4xl flex-shrink-0">{mealEmoji(next.meal)}</div>
+        <div className="text-4xl flex-shrink-0">{mealEmoji(chosen)}</div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-indigo-500 uppercase tracking-wide">Sıradaki öğün</p>
-          <p className="text-xl font-extrabold text-slate-800 leading-tight">{mealLabel(next.meal)}</p>
+          <p className="text-xl font-extrabold text-slate-800 leading-tight">{mealLabel(chosen)}</p>
           <p className="text-sm font-semibold text-indigo-700 mt-0.5">
             🕒 {next.time}
             {tomorrow ? ' (yarın)' : ''} · {left}
           </p>
         </div>
+        <span className="text-xs font-bold bg-indigo-600 text-white rounded-lg px-2.5 py-1.5 flex-shrink-0">＋ Ekle</span>
       </div>
-    </div>
+    </button>
   )
 }
 
