@@ -91,6 +91,7 @@ fun CardFormScreen(
     var dueDate by remember { mutableStateOf<LocalDate?>(null) }
     var limit by remember { mutableStateOf("") }
     var available by remember { mutableStateOf("") }   // kullanilabilir limit
+    var debt by remember { mutableStateOf("") }        // borc (limit - kullanilabilir)
     var remind by remember { mutableStateOf("3") }
     var color by remember { mutableStateOf(PRESET_COLORS.first()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -109,6 +110,7 @@ fun CardFormScreen(
                 statementDate = CardCalc.nextStatement(c, today)
                 dueDate = CardCalc.nextDue(c, today)
                 limit = if (c.limit > 0) c.limit.toLong().toString() else ""
+                debt = if (c.debt > 0) c.debt.toLong().toString() else ""
                 available = if (c.limit - c.debt > 0) (c.limit - c.debt).toLong().toString() else ""
                 remind = c.remindDaysBefore.toString()
                 color = c.colorArgb
@@ -207,30 +209,53 @@ fun CardFormScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            OutlinedTextField(
+                value = limit,
+                onValueChange = { v ->
+                    limit = v.filter(Char::isDigit)
+                    val l = limit.toDoubleOrNull() ?: 0.0
+                    if (l > 0) {
+                        // Limit degisince, dolu olan alandan digerini guncelle.
+                        if (available.isNotBlank()) {
+                            debt = (l - (available.toDoubleOrNull() ?: 0.0)).coerceAtLeast(0.0).toLong().toString()
+                        } else if (debt.isNotBlank()) {
+                            available = (l - (debt.toDoubleOrNull() ?: 0.0)).coerceAtLeast(0.0).toLong().toString()
+                        }
+                    }
+                },
+                label = { Text("Kart limiti (₺)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true, modifier = Modifier.fillMaxWidth()
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = limit, onValueChange = { limit = it.filter(Char::isDigit) },
-                    label = { Text("Kart limiti (₺)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true, modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = available, onValueChange = { available = it.filter(Char::isDigit) },
+                    value = available,
+                    onValueChange = { v ->
+                        available = v.filter(Char::isDigit)
+                        val l = limit.toDoubleOrNull() ?: 0.0
+                        if (l > 0) debt = (l - (available.toDoubleOrNull() ?: 0.0)).coerceAtLeast(0.0).toLong().toString()
+                    },
                     label = { Text("Kullanılabilir (₺)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true, modifier = Modifier.weight(1f)
                 )
-            }
-            run {
-                val lim = limit.toDoubleOrNull() ?: 0.0
-                val avl = available.toDoubleOrNull() ?: 0.0
-                val computedDebt = (lim - avl).coerceAtLeast(0.0)
-                Text(
-                    "Borç (otomatik): ${"%,.0f ₺".format(Locale("tr", "TR"), computedDebt)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                OutlinedTextField(
+                    value = debt,
+                    onValueChange = { v ->
+                        debt = v.filter(Char::isDigit)
+                        val l = limit.toDoubleOrNull() ?: 0.0
+                        if (l > 0) available = (l - (debt.toDoubleOrNull() ?: 0.0)).coerceAtLeast(0.0).toLong().toString()
+                    },
+                    label = { Text("Borç (₺)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true, modifier = Modifier.weight(1f)
                 )
             }
+            Text(
+                "İkisinden birini yaz; diğeri limitten otomatik dolar.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             OutlinedTextField(
                 value = remind, onValueChange = { remind = it.filter(Char::isDigit).take(2) },
@@ -281,8 +306,7 @@ fun CardFormScreen(
                                 statementEpochDay = sDate.toEpochDay(),
                                 dueEpochDay = dDate.toEpochDay(),
                                 limit = limit.toDoubleOrNull() ?: 0.0,
-                                // Borc otomatik: limit - kullanilabilir
-                                debt = ((limit.toDoubleOrNull() ?: 0.0) - (available.toDoubleOrNull() ?: 0.0)).coerceAtLeast(0.0),
+                                debt = debt.toDoubleOrNull() ?: 0.0,
                                 colorArgb = color,
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3
                             )
