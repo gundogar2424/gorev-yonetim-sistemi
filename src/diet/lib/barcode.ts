@@ -59,10 +59,55 @@ export async function decodeBarcodeFromImage(dataUrl: string): Promise<string | 
 
 // APK'da Google'in native barkod tarayicisi (ML Kit). Web kamerasindan
 // cok daha guvenilir okur. Native degilse null doner (web tarayiciya dusulur).
+// ANDROID NOTU: scan() "Google Barkod Tarayıcı modülü"nü ister; bu modül Google
+// Play Services üzerinden gelir ve bazı telefonlarda ilk kullanımda YÜKLÜ DEĞİLDİR.
+// O yüzden QR (kare kod) okunamaz. Aşağıda modül yoksa önce kurulur ve hazır
+// olana kadar beklenir; ancak ondan sonra taranır.
 export async function nativeScan(): Promise<string | null> {
   const { Capacitor } = await import('@capacitor/core')
   if (!Capacitor.isNativePlatform()) return null
   const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning')
+
+  try {
+    const mod = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable()
+    if (mod && (mod as { available?: boolean }).available === false) {
+      await new Promise<void>((resolve) => {
+        let done = false
+        let handle: { remove: () => void } | undefined
+        const finish = () => {
+          if (done) return
+          done = true
+          try {
+            handle?.remove()
+          } catch {
+            /* yok say */
+          }
+          resolve()
+        }
+        // Kurulum bitince (4=COMPLETED / 5=FAILED / 3=CANCELED) devam et
+        BarcodeScanner.addListener('googleBarcodeScannerModuleInstallProgress', (e) => {
+          const st = e.state as number
+          if (st === 4 || st === 5 || st === 3) finish() // COMPLETED / FAILED / CANCELED
+        })
+          .then((h) => {
+            handle = h
+            if (done) {
+              try {
+                h.remove()
+              } catch {
+                /* yok say */
+              }
+            }
+          })
+          .catch(() => {})
+        BarcodeScanner.installGoogleBarcodeScannerModule().catch(() => finish())
+        setTimeout(finish, 25000) // en fazla 25 sn bekle, takılıp kalmasın
+      })
+    }
+  } catch {
+    // modül API'si yoksa/başarısızsa yine de taramayı dene
+  }
+
   const { barcodes } = await BarcodeScanner.scan()
   return barcodes?.[0]?.rawValue ?? null
 }

@@ -33,6 +33,32 @@ function htmlToText(html: string): string {
   return s.slice(0, 12000)
 }
 
+// SPA (JavaScript ile yüklenen) menü sayfaları görünür metin bırakmaz; ama menü
+// verisi çoğu zaman sayfaya GÖMÜLÜ JSON'da olur (restoranlarda JSON-LD, ya da
+// Next.js __NEXT_DATA__). Buradan okunur metni (yemek adı/fiyat/açıklama) topla.
+function mineEmbeddedMenu(html: string): string {
+  const parts: string[] = []
+  const ld = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || []
+  for (const block of ld) parts.push(block.replace(/<[^>]+>/g, ' '))
+  const next = html.match(/<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i)
+  if (next?.[1]) parts.push(next[1])
+  const raw = parts.join('\n')
+  if (!raw.trim()) return ''
+  // JSON'daki okunur string değerlerini topla (link/hash/teknik alanları ele)
+  const found = raw.match(/"([^"\\]{2,90})"/g) || []
+  const seen = new Set<string>()
+  const words: string[] = []
+  for (const q of found) {
+    const w = q.slice(1, -1).trim()
+    if (!/[a-zA-ZğüşöçıİĞÜŞÖÇ]/.test(w)) continue // en az bir harf olsun
+    if (/^https?:|^\/|^#|^[0-9a-f]{8,}$|^[A-Z_]{4,}$/.test(w)) continue // url/hash/teknik anahtar
+    if (seen.has(w)) continue
+    seen.add(w)
+    words.push(w)
+  }
+  return words.join(' · ').slice(0, 10000)
+}
+
 // base64 -> UTF-8 metin
 function b64ToUtf8(b64: string): string {
   try {
@@ -85,9 +111,12 @@ export async function fetchMenuContent(rawUrl: string): Promise<MenuFetch> {
       if (ct.includes('pdf') || isPdfUrl) {
         return { kind: 'pdf', pdfDataUrl: `data:application/pdf;base64,${b64}` }
       }
-      const text = htmlToText(b64ToUtf8(b64))
+      const html = b64ToUtf8(b64)
+      const text = htmlToText(html)
       if (text.length < 40) {
-        return { kind: 'fail', note: 'Menü sayfası uygulama tabanlı olabilir; içerik okunamadı.' }
+        const mined = mineEmbeddedMenu(html) // SPA menüsü: gömülü JSON'dan dene
+        if (mined.length >= 60) return { kind: 'text', text: mined }
+        return { kind: 'fail', note: 'Menü sayfası uygulama tabanlı; içerik okunamadı. Menüyü fotoğraflayabilirsin.' }
       }
       return { kind: 'text', text }
     } catch {
@@ -103,8 +132,13 @@ export async function fetchMenuContent(rawUrl: string): Promise<MenuFetch> {
       const buf = await r.arrayBuffer()
       return { kind: 'pdf', pdfDataUrl: `data:application/pdf;base64,${bufToB64(buf)}` }
     }
-    const text = htmlToText(await r.text())
-    if (text.length < 40) return { kind: 'fail', note: 'İçerik okunamadı.' }
+    const html = await r.text()
+    const text = htmlToText(html)
+    if (text.length < 40) {
+      const mined = mineEmbeddedMenu(html)
+      if (mined.length >= 60) return { kind: 'text', text: mined }
+      return { kind: 'fail', note: 'İçerik okunamadı.' }
+    }
     return { kind: 'text', text }
   } catch {
     return { kind: 'fail', note: 'Tarayıcıda güvenlik engeli (CORS) olabilir; bu özellik uygulamada (APK) çalışır.' }
