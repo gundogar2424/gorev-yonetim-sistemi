@@ -1220,10 +1220,16 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
 
   return (
     <div className="card p-4">
+      {/* Baslik + formul (MyFitnessPal'daki gibi) */}
+      <div className="mb-3">
+        <span className="text-lg font-extrabold text-slate-800 dark:text-slate-100">Kaloriler</span>
+        <p className="text-[11px] text-slate-400 leading-tight">Kalan = Hedef − Yenen + Spor</p>
+      </div>
+
       <div className="flex items-center gap-4">
         {/* Kalori halkasi — ortada KALAN */}
-        <div className="relative flex-shrink-0" style={{ width: 120, height: 120 }}>
-          <svg width="120" height="120" className="-rotate-90">
+        <div className="relative flex-shrink-0" style={{ width: 130, height: 130 }}>
+          <svg width="130" height="130" viewBox="0 0 120 120" className="-rotate-90">
             <circle cx="60" cy="60" r={R} fill="none" strokeWidth="12" className="stroke-slate-100 dark:stroke-[#273248]" />
             {budget > 0 && (
               <circle
@@ -1241,58 +1247,60 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             {budget > 0 ? (
               <>
-                <span className={`text-[26px] leading-none font-extrabold ${over ? 'text-rose-600' : 'text-slate-800'}`}>
-                  {Math.abs(remaining)}
+                <span className={`text-[30px] leading-none font-extrabold ${over ? 'text-rose-600' : 'text-slate-800 dark:text-slate-100'}`}>
+                  {remaining.toLocaleString('tr-TR')}
                 </span>
-                <span className="text-[11px] text-slate-400 mt-1">{over ? 'kcal fazla' : 'kcal kaldı'}</span>
+                <span className="text-xs text-slate-400 mt-1 font-semibold">{over ? 'Fazla' : 'Kalan'}</span>
               </>
             ) : (
               <>
-                <span className="text-[26px] leading-none font-extrabold text-slate-800">{kcal}</span>
-                <span className="text-[11px] text-slate-400 mt-1">kcal bugün</span>
+                <span className="text-[30px] leading-none font-extrabold text-slate-800 dark:text-slate-100">{kcal}</span>
+                <span className="text-xs text-slate-400 mt-1 font-semibold">Yenen</span>
               </>
             )}
           </div>
         </div>
 
-        {/* MyFitnessPal ozeti: Hedef − Yenen + Spor = Kalan */}
-        <div className="flex-1 min-w-0">
-          <span className="section-title">🍽️ Kalori</span>
+        {/* Sag: bayrak / catal / ates dikey liste (MyFitnessPal legend) */}
+        <div className="flex-1 min-w-0 space-y-3">
           {budget > 0 ? (
-            <div className="mt-2 flex items-stretch text-center">
-              <div className="flex-1">
-                <div className="text-base font-extrabold text-slate-700">{target}</div>
-                <div className="text-[10px] text-slate-400 leading-tight">Hedef</div>
+            <>
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg leading-none mt-0.5">🚩</span>
+                <div className="leading-tight">
+                  <div className="text-[11px] text-slate-400">Temel Hedef</div>
+                  <div className="text-base font-extrabold text-slate-700 dark:text-slate-200">{target.toLocaleString('tr-TR')}</div>
+                </div>
               </div>
-              <div className="flex items-center text-slate-300 font-bold px-0.5">−</div>
-              <div className="flex-1">
-                <div className="text-base font-extrabold text-emerald-700">{kcal}</div>
-                <div className="text-[10px] text-slate-400 leading-tight">Yenen</div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg leading-none mt-0.5">🍴</span>
+                <div className="leading-tight">
+                  <div className="text-[11px] text-slate-400">Yenen</div>
+                  <div className="text-base font-extrabold text-emerald-700">{kcal.toLocaleString('tr-TR')}</div>
+                </div>
               </div>
-              <div className="flex items-center text-slate-300 font-bold px-0.5">+</div>
-              <div className="flex-1">
-                <div className="text-base font-extrabold text-sky-600">{exBurned}</div>
-                <div className="text-[10px] text-slate-400 leading-tight">Spor</div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg leading-none mt-0.5">🔥</span>
+                <div className="leading-tight">
+                  <div className="text-[11px] text-slate-400">Spor</div>
+                  <div className="text-base font-extrabold text-sky-600">{exBurned.toLocaleString('tr-TR')}</div>
+                </div>
               </div>
-              <div className="flex items-center text-slate-300 font-bold px-0.5">=</div>
-              <div className="flex-1">
-                <div className={`text-base font-extrabold ${over ? 'text-rose-600' : 'text-slate-900'}`}>{remaining}</div>
-                <div className="text-[10px] text-slate-400 leading-tight">Kalan</div>
-              </div>
-            </div>
+            </>
           ) : (
-            <p className="text-xs text-slate-400 mt-1">
-              Kalori hedefini Ayarlar’dan gir; halka MyFitnessPal gibi hedef − yenen + spor gösterir.
+            <p className="text-xs text-slate-400">
+              Kalori hedefini Ayarlar’dan gir; kart MyFitnessPal gibi Hedef − Yenen + Spor = Kalan gösterir.
             </p>
           )}
         </div>
       </div>
 
       {/* Makrolar */}
-      <div className="mt-3 space-y-2 pt-3 border-t border-slate-100 dark:border-[#273248]">
-        <MacroBar label="Protein" grams={protein} pct={share(protein, 4)} color="bg-rose-500" />
-        <MacroBar label="Karbonhidrat" grams={carb} pct={share(carb, 4)} color="bg-sky-500" />
-        <MacroBar label="Yağ" grams={fat} pct={share(fat, 9)} color="bg-amber-500" />
+      <div className="mt-4 space-y-2 pt-3 border-t border-slate-100 dark:border-[#273248]">
+        <span className="section-title">Makrolar</span>
+        <MacroBar label="Karbonhidrat" grams={carb} pct={share(carb, 4)} color="bg-teal-500" labelColor="text-teal-600" />
+        <MacroBar label="Yağ" grams={fat} pct={share(fat, 9)} color="bg-violet-500" labelColor="text-violet-600" />
+        <MacroBar label="Protein" grams={protein} pct={share(protein, 4)} color="bg-orange-500" labelColor="text-orange-600" />
         {kcal > 0 && macroKcal < kcal * 0.5 && (
           <p className="text-[11px] text-slate-400 leading-tight">
             Bazı öğünler makro bilgisi olmadan eklenmiş; yeni eklediklerinde dolacak.
@@ -2136,12 +2144,24 @@ export function RestaurantMenu({ settings }: { settings?: DietSettings }) {
 }
 
 // Tek makro satiri: ad, gram ve kalori payi cubugu
-function MacroBar({ label, grams, pct, color }: { label: string; grams: number; pct: number; color: string }) {
+function MacroBar({
+  label,
+  grams,
+  pct,
+  color,
+  labelColor
+}: {
+  label: string
+  grams: number
+  pct: number
+  color: string
+  labelColor?: string
+}) {
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-0.5">
-        <span className="text-slate-500">{label}</span>
-        <span className="font-bold text-slate-700">{grams} g</span>
+        <span className={`font-semibold ${labelColor ?? 'text-slate-500'}`}>{label}</span>
+        <span className="font-bold text-slate-700 dark:text-slate-200">{grams} g</span>
       </div>
       <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
