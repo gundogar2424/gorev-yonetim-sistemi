@@ -1214,9 +1214,11 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
   const C = 2 * Math.PI * R
   const dash = budget ? C * frac : 0
 
-  // Makro kalori paylari (P/C 4 kcal, F 9 kcal) -> cubuk orani
-  const macroKcal = protein * 4 + carb * 4 + fat * 9
-  const share = (g: number, perG: number) => (macroKcal > 0 ? Math.round(((g * perG) / macroKcal) * 100) : 0)
+  // Makro HEDEFLERI: MyFitnessPal gibi kalori hedefinden 50/30/20 (karb/yag/protein)
+  // Ornek: 2380 kcal -> 297g karb / 79g yag / 119g protein (MFP ile birebir)
+  const carbGoal = target ? Math.round((target * 0.5) / 4) : 0
+  const fatGoal = target ? Math.round((target * 0.3) / 9) : 0
+  const proteinGoal = target ? Math.round((target * 0.2) / 4) : 0
 
   return (
     <div className="card p-4">
@@ -1295,18 +1297,55 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
         </div>
       </div>
 
-      {/* Makrolar */}
-      <div className="mt-4 space-y-2 pt-3 border-t border-slate-100 dark:border-[#273248]">
+      {/* Makrolar — MyFitnessPal gibi 3 halka (karb/yag/protein) */}
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#273248]">
         <span className="section-title">Makrolar</span>
-        <MacroBar label="Karbonhidrat" grams={carb} pct={share(carb, 4)} color="bg-teal-500" labelColor="text-teal-600" />
-        <MacroBar label="Yağ" grams={fat} pct={share(fat, 9)} color="bg-violet-500" labelColor="text-violet-600" />
-        <MacroBar label="Protein" grams={protein} pct={share(protein, 4)} color="bg-orange-500" labelColor="text-orange-600" />
-        {kcal > 0 && macroKcal < kcal * 0.5 && (
-          <p className="text-[11px] text-slate-400 leading-tight">
-            Bazı öğünler makro bilgisi olmadan eklenmiş; yeni eklediklerinde dolacak.
-          </p>
-        )}
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <MacroRing label="Karbonhidrat" grams={carb} goalG={carbGoal} color="#14b8a6" />
+          <MacroRing label="Yağ" grams={fat} goalG={fatGoal} color="#8b5cf6" />
+          <MacroRing label="Protein" grams={protein} goalG={proteinGoal} color="#f97316" />
+        </div>
       </div>
+    </div>
+  )
+}
+
+// Tek makro halkasi (MyFitnessPal tarzi): ortada yenen gram, altinda /hedef,
+// altta "X g kaldi". Hedef yoksa (kalori hedefi girilmemis) sade gosterir.
+function MacroRing({ label, grams, goalG, color }: { label: string; grams: number; goalG: number; color: string }) {
+  const R = 34
+  const C = 2 * Math.PI * R
+  const frac = goalG > 0 ? Math.min(1, grams / goalG) : 0
+  const left = Math.max(0, goalG - grams)
+  return (
+    <div className="flex flex-col items-center text-center">
+      <span className="text-[13px] font-extrabold mb-1.5" style={{ color }}>
+        {label}
+      </span>
+      <div className="relative" style={{ width: 82, height: 82 }}>
+        <svg width="82" height="82" viewBox="0 0 82 82" className="-rotate-90">
+          <circle cx="41" cy="41" r={R} fill="none" strokeWidth="8" className="stroke-slate-100 dark:stroke-[#273248]" />
+          {goalG > 0 && (
+            <circle
+              cx="41"
+              cy="41"
+              r={R}
+              fill="none"
+              stroke={color}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${C * frac} ${C}`}
+            />
+          )}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-[19px] leading-none font-extrabold text-slate-800 dark:text-slate-100 tabular-nums">
+            {Math.round(grams)}
+          </span>
+          {goalG > 0 && <span className="text-[11px] text-slate-400 leading-none mt-0.5">/{goalG}g</span>}
+        </div>
+      </div>
+      <span className="text-[11px] text-slate-400 mt-1.5">{goalG > 0 ? `${left}g kaldı` : `${Math.round(grams)}g`}</span>
     </div>
   )
 }
@@ -2144,32 +2183,6 @@ export function RestaurantMenu({ settings }: { settings?: DietSettings }) {
 }
 
 // Tek makro satiri: ad, gram ve kalori payi cubugu
-function MacroBar({
-  label,
-  grams,
-  pct,
-  color,
-  labelColor
-}: {
-  label: string
-  grams: number
-  pct: number
-  color: string
-  labelColor?: string
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between text-xs mb-0.5">
-        <span className={`font-semibold ${labelColor ?? 'text-slate-500'}`}>{label}</span>
-        <span className="font-bold text-slate-700 dark:text-slate-200">{grams} g</span>
-      </div>
-      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  )
-}
-
 // Yarim saat gecmis ama tokluk puani verilmemis "yedim" ogunleri sorar
 // Girilmeyen (foto/veri yok) ve saati gecmis TAKIP EDILEN ogunler icin tek satir
 // kirmizi uyari. Ogun listesi DEGIL; sadece atlanan ogunu hatirlatan kucuk cizgi.
