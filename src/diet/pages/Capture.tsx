@@ -1301,9 +1301,10 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#273248]">
         <span className="section-title">Makrolar</span>
         <div className="mt-2 grid grid-cols-3 gap-2">
-          <MacroRing label="Karbonhidrat" grams={carb} goalG={carbGoal} color="#14b8a6" />
-          <MacroRing label="Yağ" grams={fat} goalG={fatGoal} color="#8b5cf6" />
-          <MacroRing label="Protein" grams={protein} goalG={proteinGoal} color="#f97316" />
+          {/* MyFitnessPal'in tam makro renkleri: turkuaz / lavanta mor / amber turuncu */}
+          <MacroRing label="Karbonhidrat" grams={carb} goalG={carbGoal} color="#2dd4bf" />
+          <MacroRing label="Yağ" grams={fat} goalG={fatGoal} color="#a78bfa" />
+          <MacroRing label="Protein" grams={protein} goalG={proteinGoal} color="#f5a623" />
         </div>
       </div>
     </div>
