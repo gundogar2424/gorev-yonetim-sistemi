@@ -597,7 +597,7 @@ export default function Capture() {
         </div>
 
         {/* Bugunku kalori takibi */}
-        <CalorieCard entries={entries ?? []} goal={settings?.calorieGoal} />
+        <CalorieCard entries={entries ?? []} exercises={exercises ?? []} goal={settings?.calorieGoal} />
 
         {/* Bugun yapilan spor/yuruyus (ayri gosterilir, kaloriden dusulmez) */}
         <ActivityCard exercises={exercises ?? []} />
@@ -1188,7 +1188,9 @@ function DailyScore({ entries }: { entries: DietEntry[] }) {
 }
 
 // Bugun YENEN ogunlerin kalori HALKASI + makro (protein/karb/yag) dagilimi.
-function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number }) {
+// MyFitnessPal mantigi: Kalan = Hedef − Yenen + Spor. Yani yapilan spor günlük
+// kalori bütçesine EKLENİR (yenen kaloriyi karşılar), ayrıca ayrı da gösterilir.
+function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exercises: Exercise[]; goal?: number }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
   const kcal = todays.reduce((s, e) => s + (e.estimatedCalories || 0), 0)
@@ -1196,15 +1198,21 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
   const carb = todays.reduce((s, e) => s + (e.carb || 0), 0)
   const fat = todays.reduce((s, e) => s + (e.fat || 0), 0)
 
+  // Bugun yakilan spor kalorisi (Samsung Health / elle)
+  const exBurned = exercises.filter((e) => e.dateStr === today).reduce((s, e) => s + (e.kcal || 0), 0)
+
   const target = goal && goal > 0 ? goal : 0
-  const frac = target ? Math.min(1, kcal / target) : 0
-  const over = target > 0 && kcal > target
-  const ringColor = over ? '#e11d48' : frac >= 0.8 ? '#f59e0b' : '#059669'
+  // MyFitnessPal: gunluk butce = hedef + spor; kalan = butce − yenen
+  const budget = target + exBurned
+  const remaining = budget - kcal
+  const frac = budget ? Math.min(1, kcal / budget) : 0
+  const over = budget > 0 && kcal > budget
+  const ringColor = over ? '#e11d48' : frac >= 0.85 ? '#f59e0b' : '#059669'
 
   // Halka (SVG)
   const R = 50
   const C = 2 * Math.PI * R
-  const dash = target ? C * frac : 0
+  const dash = budget ? C * frac : 0
 
   // Makro kalori paylari (P/C 4 kcal, F 9 kcal) -> cubuk orani
   const macroKcal = protein * 4 + carb * 4 + fat * 9
@@ -1213,11 +1221,11 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
   return (
     <div className="card p-4">
       <div className="flex items-center gap-4">
-        {/* Kalori halkasi */}
+        {/* Kalori halkasi — ortada KALAN */}
         <div className="relative flex-shrink-0" style={{ width: 120, height: 120 }}>
           <svg width="120" height="120" className="-rotate-90">
             <circle cx="60" cy="60" r={R} fill="none" strokeWidth="12" className="stroke-slate-100 dark:stroke-[#273248]" />
-            {target > 0 && (
+            {budget > 0 && (
               <circle
                 cx="60"
                 cy="60"
@@ -1231,37 +1239,72 @@ function CalorieCard({ entries, goal }: { entries: DietEntry[]; goal?: number })
             )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-[28px] leading-none font-extrabold ${over ? 'text-rose-600' : 'text-slate-800'}`}>{kcal}</span>
-            <span className="text-[11px] text-slate-400 mt-1">{target > 0 ? `/ ${target} kcal` : 'kcal bugün'}</span>
+            {budget > 0 ? (
+              <>
+                <span className={`text-[26px] leading-none font-extrabold ${over ? 'text-rose-600' : 'text-slate-800'}`}>
+                  {Math.abs(remaining)}
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1">{over ? 'kcal fazla' : 'kcal kaldı'}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-[26px] leading-none font-extrabold text-slate-800">{kcal}</span>
+                <span className="text-[11px] text-slate-400 mt-1">kcal bugün</span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Makrolar */}
-        <div className="flex-1 min-w-0 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="section-title">🍽️ Bugün</span>
-            {target > 0 && (
-              <span className={`text-xs font-semibold ${over ? 'text-rose-600' : 'text-emerald-700'}`}>
-                {over ? `+${kcal - target} kcal` : `${target - kcal} kcal kaldı`}
-              </span>
-            )}
-          </div>
-          <MacroBar label="Protein" grams={protein} pct={share(protein, 4)} color="bg-rose-500" />
-          <MacroBar label="Karbonhidrat" grams={carb} pct={share(carb, 4)} color="bg-sky-500" />
-          <MacroBar label="Yağ" grams={fat} pct={share(fat, 9)} color="bg-amber-500" />
-          {kcal > 0 && macroKcal < kcal * 0.5 && (
-            <p className="text-[11px] text-slate-400 leading-tight">
-              Bazı öğünler makro bilgisi olmadan eklenmiş; yeni eklediklerinde dolacak.
+        {/* MyFitnessPal ozeti: Hedef − Yenen + Spor = Kalan */}
+        <div className="flex-1 min-w-0">
+          <span className="section-title">🍽️ Kalori</span>
+          {budget > 0 ? (
+            <div className="mt-2 flex items-stretch text-center">
+              <div className="flex-1">
+                <div className="text-base font-extrabold text-slate-700">{target}</div>
+                <div className="text-[10px] text-slate-400 leading-tight">Hedef</div>
+              </div>
+              <div className="flex items-center text-slate-300 font-bold px-0.5">−</div>
+              <div className="flex-1">
+                <div className="text-base font-extrabold text-emerald-700">{kcal}</div>
+                <div className="text-[10px] text-slate-400 leading-tight">Yenen</div>
+              </div>
+              <div className="flex items-center text-slate-300 font-bold px-0.5">+</div>
+              <div className="flex-1">
+                <div className="text-base font-extrabold text-sky-600">{exBurned}</div>
+                <div className="text-[10px] text-slate-400 leading-tight">Spor</div>
+              </div>
+              <div className="flex items-center text-slate-300 font-bold px-0.5">=</div>
+              <div className="flex-1">
+                <div className={`text-base font-extrabold ${over ? 'text-rose-600' : 'text-slate-900'}`}>{remaining}</div>
+                <div className="text-[10px] text-slate-400 leading-tight">Kalan</div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 mt-1">
+              Kalori hedefini Ayarlar’dan gir; halka MyFitnessPal gibi hedef − yenen + spor gösterir.
             </p>
           )}
         </div>
+      </div>
+
+      {/* Makrolar */}
+      <div className="mt-3 space-y-2 pt-3 border-t border-slate-100 dark:border-[#273248]">
+        <MacroBar label="Protein" grams={protein} pct={share(protein, 4)} color="bg-rose-500" />
+        <MacroBar label="Karbonhidrat" grams={carb} pct={share(carb, 4)} color="bg-sky-500" />
+        <MacroBar label="Yağ" grams={fat} pct={share(fat, 9)} color="bg-amber-500" />
+        {kcal > 0 && macroKcal < kcal * 0.5 && (
+          <p className="text-[11px] text-slate-400 leading-tight">
+            Bazı öğünler makro bilgisi olmadan eklenmiş; yeni eklediklerinde dolacak.
+          </p>
+        )}
       </div>
     </div>
   )
 }
 
-// Bugun yapilan spor/yuruyus (Samsung Health / elle) — AYRI gosterilir,
-// yenen kaloriden DUSULMEZ (kullanici ozellikle boyle istedi: bilgi amacli).
+// Bugun yapilan spor/yuruyus (Samsung Health / elle) — hem ayri gosterilir
+// hem de MyFitnessPal gibi gunluk kalori butcesine EKLENIR (CalorieCard'da).
 function ActivityCard({ exercises }: { exercises: Exercise[] }) {
   const today = todayStr()
   const todays = exercises.filter((e) => e.dateStr === today)
@@ -1309,7 +1352,7 @@ function ActivityCard({ exercises }: { exercises: Exercise[] }) {
         ))}
       </div>
       <p className="text-[11px] text-slate-400 mt-3 leading-tight">
-        Bilgi amaçlı gösteriliyor; yediğin kaloriden düşülmez.
+        Yakılan kalori günlük bütçene eklenir (MyFitnessPal gibi): yukarıdaki halkada Kalan’a yansır.
       </p>
     </div>
   )
