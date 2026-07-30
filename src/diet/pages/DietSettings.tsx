@@ -65,7 +65,7 @@ export default function DietSettings() {
       const b = await buildBackupData()
       const stamp = new Date().toISOString().slice(0, 10)
       const res = await saveJsonSmart(JSON.stringify(b), `diyet-yedek-${stamp}.json`)
-      const ozet = `${b.entries.length} öğün, ${b.measurements.length} ölçü, ${b.vitals.length} sağlık`
+      const ozet = `${b.entries.length} öğün, ${b.measurements.length} ölçü, ${b.vitals.length} sağlık, ${b.labs?.length ?? 0} tahlil, ${b.meds?.length ?? 0} ilaç`
       if (res === 'shared') flash(`Yedek hazır (${ozet}) — kaydet/gönder menüsünü kullan.`)
       else if (res === 'copied') flash(`Yedek indirildi (${ozet}).`)
       else if (res === 'cancelled') flash('')
@@ -88,7 +88,9 @@ export default function DietSettings() {
         ? 'replace'
         : 'merge'
       const res = await restoreDietBackup(b, mode)
-      flash(`Geri yüklendi: ${res.entries} öğün, ${res.measurements} ölçü, ${res.vitals} sağlık.`)
+      flash(
+        `Geri yüklendi: ${res.entries} öğün, ${res.measurements} ölçü, ${res.vitals} sağlık, ${res.labs} tahlil, ${res.meds} ilaç, ${res.medlogs} doz kaydı.`
+      )
     } catch (err) {
       flash(err instanceof Error ? err.message : 'Geri yükleme başarısız.')
     }

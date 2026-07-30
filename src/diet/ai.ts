@@ -951,95 +951,6 @@ Kurallar:
   }
 }
 
-// Egzersizden YAKILAN KALORIYI yapay zeka ile tahmin eder (kucuk, metin).
-const BURN_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  properties: { kcal: { type: 'integer' }, note: { type: 'string' } },
-  required: ['kcal', 'note']
-} as const
-
-export async function estimateExerciseKcal(opts: {
-  apiKey: string
-  text: string
-  minutes?: number
-  weightKg?: number
-  model?: string
-  health?: string
-}): Promise<{ kcal: number; note: string }> {
-  const { apiKey, text, minutes, weightKg, model = DEFAULT_MODEL, health } = opts
-  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
-  if (!text.trim()) throw new Error('Egzersizi yaz.')
-
-  const parts: string[] = [`Egzersiz: "${text.trim()}".`]
-  if (minutes) parts.push(`Süre: ${minutes} dakika.`)
-  if (weightKg) parts.push(`Kişinin kilosu: ${weightKg} kg.`)
-
-  const client = await createClient(apiKey)
-  try {
-    const response = await client.messages.create({
-      model,
-      max_tokens: 400,
-      system:
-        'Sen bir spor/beslenme asistanısın. Verilen egzersizi (tür, süre, kilo) değerlendirip YAKLAŞIK YAKILAN KALORİYİ tahmin et. kcal alanına tam sayı yaz. Süre verilmemişse egzersiz türünden makul bir süre varsay. note alanına çok kısa (tek cümle) bir açıklama yaz (örn. "30 dk tempolu yürüyüş ~150 kcal"); kişinin sağlık durumu (şeker/tansiyon/rahatsızlık) verildiyse ve alakalıysa çok kısa bir uyarı/öneri ekleyebilirsin. Türkçe.',
-      messages: [{ role: 'user', content: parts.join(' ') + ` Yaklaşık kaç kalori yakılmıştır?${healthText(health)}` }],
-      output_config: { format: { type: 'json_schema', schema: BURN_SCHEMA } }
-    })
-    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
-    const raw = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
-    const obj = JSON.parse(cleaned) as { kcal: number; note: string }
-    return { kcal: Math.max(0, Math.round(obj.kcal || 0)), note: obj.note || '' }
-  } catch (err) {
-    throw friendlyError(err)
-  }
-}
-
-// Gunu degerlendirme sohbeti ("Z raporu"): bugunku ozet baglam olarak
-// verilir, kullanici "bugun niye boyle" gibi konusur. Sadece metin -> az token.
-export async function chatAboutDay(opts: {
-  apiKey: string
-  daySummary: string
-  history: { role: 'user' | 'assistant'; text: string }[]
-  model?: string
-  userName?: string
-  goal?: string
-  dietPlan?: string
-  dietitianNotes?: string
-  health?: string
-}): Promise<string> {
-  const { apiKey, daySummary, history, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
-  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
-  if (!history.length) throw new Error('Bir şey yaz.')
-
-  const ctx: string[] = []
-  if (userName) ctx.push(`Kullanıcı: ${userName}.`)
-  if (goal) ctx.push(`Hedef: ${goal}.`)
-  if (dietitianNotes?.trim()) ctx.push(`Diyetisyenin talimatları (dikkate al): ${dietitianNotes.trim()}.`)
-  if (dietPlan?.trim()) ctx.push(`Diyet listesi:\n${dietPlan.trim()}`)
-
-  const system = `Sen "Diyet Koçu"sun ve gün sonunda kullanıcıya ESPRİLİ bir "Z RAPORU" kesiyorsun — tıpkı kasadaki gün sonu yazar kasa raporu gibi, ama diyet versiyonu. Üslubun: hafif muzip, tatlı-iğneleyici ama asla kırıcı değil; esnaf ağzıyla espri yapabilirsin ("kasa açığı", "ciro", "iade yok", "fiş kesildi" gibi kasa/POS terimlerini diyete uyarlayarak). Kullanıcı ilk kez "Z raporu" istediğinde kısa bir rapor formatı kur: birkaç satırda günün dökümü (öğün cirosu, vazgeçiş karı, kriz zayiatı, su/spor durumu) + tek cümlelik esprili kapanış + yarın için 1 somut öneri. Sonraki sorularda normal sohbet et ama esprili tonu koru. KISA yaz (rapor 5-8 kısa satır, sohbet 1-4 cümle). Rakamları bugünün verilerinden al, uydurma. Suçlayıcı olma; güldürerek motive et. ${ctx.join(' ')}
-
-BUGÜNÜN ÖZETİ:
-${daySummary}${healthText(health)}`
-
-  const client = await createClient(apiKey)
-  try {
-    const response = await client.messages.create({
-      model,
-      max_tokens: 700,
-      system,
-      messages: history.map((m) => ({ role: m.role, content: m.text }))
-    })
-    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
-    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
-    if (!text) throw new Error('Cevap üretilemedi.')
-    return text
-  } catch (err) {
-    throw friendlyError(err)
-  }
-}
-
 // TEK KOC SOHBETI: ana ekrandaki tek sohbet kutusu. Menu sorulari, yarin
 // plani, Z raporu, gun degerlendirmesi, beslenme sorulari — hepsi burada.
 export async function coachChat(opts: {
@@ -1818,8 +1729,9 @@ export async function analyzeMedIngredients(opts: {
   dose?: string
   brand?: string
   model?: string
+  health?: string // Ortak saglik akli baglami (tahlil/seker/tansiyon/diger ilaclar)
 }): Promise<string> {
-  const { apiKey, name, kind, dose, brand, model = DEFAULT_MODEL } = opts
+  const { apiKey, name, kind, dose, brand, model = DEFAULT_MODEL, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!name.trim()) throw new Error('Önce ilaç/vitamin adını gir.')
 
@@ -1829,7 +1741,8 @@ export async function analyzeMedIngredients(opts: {
 • İlgili tahlil/belirti: (hangi kan değeri/şikâyetle ilişkili — ör. D vitamini düzeyi, lipid profili)
 • Beslenmeyle ilişkisi: (aç/tok, yağla emilim, hangi besinlerle desteklenir)
 • Dikkat/etkileşim: (varsa genel uyarı)
-ÇOK ÖNEMLİ: Bu bir bilgilendirmedir, TEŞHİS/TEDAVİ/DOZ TAVSİYESİ DEĞİLDİR; doz ve etkileşim için doktor/eczacıya danışılmalı. Türkçe, abartısız, toplam ~120 kelime.`
+ÇOK ÖNEMLİ: Bu bir bilgilendirmedir, TEŞHİS/TEDAVİ/DOZ TAVSİYESİ DEĞİLDİR; doz ve etkileşim için doktor/eczacıya danışılmalı. Türkçe, abartısız, toplam ~120 kelime.
+KİŞİYE GÖRE YAZ: Aşağıda kişinin sağlık verisi (tahlilleri, şeker/tansiyon ölçümleri, kullandığı DİĞER ilaç/vitaminler, rahatsızlıkları) verildiyse, "İlgili tahlil/belirti" ve "Dikkat/etkileşim" başlıklarını genel geçer değil ONA GÖRE yaz: ilgili tahlil değeri elindeyse son sonucunu ve tarihini an (örn. "son D vitaminin 18 — düşük"), aldığı diğer ürünlerle bilinen bir etkileşim/çakışma varsa kısaca belirt. Veride karşılığı yoksa uydurma, genel bilgi ver.${healthText(health)}`
 
   const client = await createClient(apiKey)
   const label = `${brand?.trim() ? `Marka: ${brand.trim()} — ` : ''}${name.trim()}${dose?.trim() ? ` (${dose.trim()})` : ''}${kind === 'vitamin' ? ' — vitamin/takviye' : ''}`

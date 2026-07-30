@@ -16,7 +16,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
   const since7 = todayStr(new Date(Date.now() - 6 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll, waterAll, sleepAll] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll, waterAll, sleepAll, shoppingAll] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -32,7 +32,8 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.meds.toArray(),
     dietDb.steps.toArray(),
     dietDb.water.toArray(),
-    dietDb.sleep.toArray()
+    dietDb.sleep.toArray(),
+    dietDb.shopping.toArray()
   ])
 
   const L: string[] = []
@@ -505,6 +506,21 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       return `[${lb.dateStr}] ${lb.title || 'Tahlil'}: ${body}`
     })
     L.push(`Son tahlil(ler) (özet; ilaç/rahatsızlıkla birlikte değerlendir):\n${bits.join('\n')}`)
+  }
+
+  // ALISVERIS LISTESI: evde neyin var/neyin eksik oldugunu gosterir. "Ne yesem",
+  // menu ve oneri modulleri var olan urunlerden oneri yapsin, olmayani istemesin.
+  if (shoppingAll.length) {
+    const pending = shoppingAll.filter((s) => !s.done).map((s) => s.text.trim()).filter(Boolean).slice(0, 25)
+    // Son 7 gunde isaretlenenler ~ eve yeni girmis urunler
+    const since = Date.now() - 7 * 86_400_000
+    const bought = shoppingAll
+      .filter((s) => s.done && s.createdAt >= since)
+      .map((s) => s.text.trim())
+      .filter(Boolean)
+      .slice(0, 20)
+    if (bought.length) L.push(`Son günlerde alışverişte işaretlediği (evde olması muhtemel) ürünler: ${bought.join(', ')}.`)
+    if (pending.length) L.push(`Alışveriş listesinde HENÜZ ALINMAMIŞ ürünler (bunları "evde var" sayma): ${pending.join(', ')}.`)
   }
 
   return L.join('\n')

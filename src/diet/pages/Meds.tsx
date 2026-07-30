@@ -448,7 +448,10 @@ function MedIngredientInfo({ med, apiKey, model }: { med: MedDef; apiKey?: strin
     setErr('')
     setBusy(true)
     try {
-      const txt = await analyzeMedIngredients({ apiKey, name: med.name, kind: med.kind, dose: med.dose, brand: med.brand, model })
+      // Ortak sağlık aklını ver: etken madde yorumu kişinin tahlil/şeker/tansiyon
+      // ve DİĞER ilaçlarını görerek yazılsın (genel geçer bilgi yerine).
+      const health = await buildHealthContext(await readDietSettings())
+      const txt = await analyzeMedIngredients({ apiKey, name: med.name, kind: med.kind, dose: med.dose, brand: med.brand, model, health })
       await updateMed(med.id, { ingredients: txt, ingredientsAt: Date.now() })
       setOpen(true)
     } catch (e) {
@@ -598,7 +601,10 @@ function MedForm({ med, onClose }: { med?: MedDef; onClose: () => void }) {
     // ya da hiç yoksa). Ortak sağlık bağlamına girip ilerleme yorumlarında kullanılır.
     const changed = med?.name !== patch.name || med?.brand !== patch.brand || med?.dose !== patch.dose
     if (s.apiKey && id != null && (changed || !med?.ingredients)) {
-      void analyzeMedIngredients({ apiKey: s.apiKey, name: patch.name, kind: patch.kind, dose: patch.dose, brand: patch.brand, model: s.model })
+      void buildHealthContext(s)
+        .then((health) =>
+          analyzeMedIngredients({ apiKey: s.apiKey!, name: patch.name, kind: patch.kind, dose: patch.dose, brand: patch.brand, model: s.model, health })
+        )
         .then((txt) => updateMed(id!, { ingredients: txt, ingredientsAt: Date.now() }))
         .catch(() => {})
     }

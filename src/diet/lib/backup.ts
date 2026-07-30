@@ -1,8 +1,29 @@
 // Diyet Kocu verisinin yedeklenmesi / geri yuklenmesi ve yer acma islemleri.
 // Tum veri tek bir JSON dosyasina indirilir; istenince geri yuklenir.
 import { dietDb } from '../db'
-import type { DietEntry, Measurement, Vital, DietSettings, Exercise, Water, Steps, Sleep, ProgressPhoto, SavedProduct } from '../types'
+import type {
+  DietEntry,
+  Measurement,
+  Vital,
+  DietSettings,
+  Exercise,
+  Water,
+  Steps,
+  Sleep,
+  ProgressPhoto,
+  SavedProduct,
+  Lab,
+  ShoppingItem,
+  CheckIn,
+  Craving,
+  DayNote,
+  MedLog,
+  MedDef
+} from '../types'
 
+// Yedek surum 5: tahlil, ilac tanimlari/kayitlari, check-in, kriz, gun notu ve
+// alisveris listesi de yedege girer. Eski (v4) yedeklerde bu alanlar YOKTUR;
+// geri yuklerken hepsi istege bagli okunur, eksikse o tablo atlanir.
 interface DietBackup {
   app: 'diet-coach'
   version: number
@@ -16,12 +37,38 @@ interface DietBackup {
   sleep: Sleep[]
   progress: ProgressPhoto[]
   products: SavedProduct[]
+  // v5'te eklendi (eski yedeklerde bulunmaz)
+  labs?: Lab[]
+  shopping?: ShoppingItem[]
+  checkins?: CheckIn[]
+  cravings?: Craving[]
+  daynotes?: DayNote[]
+  medlogs?: MedLog[]
+  meds?: MedDef[]
   settings: DietSettings | null
 }
 
 // Tum diyet verisini topla (yedek nesnesi)
 export async function buildBackupData(): Promise<DietBackup> {
-  const [entries, measurements, vitals, exercises, water, steps, sleep, progress, products, settingsRow] = await Promise.all([
+  const [
+    entries,
+    measurements,
+    vitals,
+    exercises,
+    water,
+    steps,
+    sleep,
+    progress,
+    products,
+    labs,
+    shopping,
+    checkins,
+    cravings,
+    daynotes,
+    medlogs,
+    meds,
+    settingsRow
+  ] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.toArray(),
     dietDb.vitals.toArray(),
@@ -31,6 +78,13 @@ export async function buildBackupData(): Promise<DietBackup> {
     dietDb.sleep.toArray(),
     dietDb.progress.toArray(),
     dietDb.products.toArray(),
+    dietDb.labs.toArray(),
+    dietDb.shopping.toArray(),
+    dietDb.checkins.toArray(),
+    dietDb.cravings.toArray(),
+    dietDb.daynotes.toArray(),
+    dietDb.medlogs.toArray(),
+    dietDb.meds.toArray(),
     dietDb.settings.toCollection().first()
   ])
   // API anahtari da yedege dahil edilir ki yeniden kurulumda tekrar girmek
@@ -44,7 +98,7 @@ export async function buildBackupData(): Promise<DietBackup> {
   const progressLite = progress.map((p) => ({ ...p, photo: '' }))
   return {
     app: 'diet-coach',
-    version: 4,
+    version: 5,
     exportedAt: Date.now(),
     entries: entriesLite,
     measurements,
@@ -55,6 +109,13 @@ export async function buildBackupData(): Promise<DietBackup> {
     sleep,
     progress: progressLite,
     products,
+    labs,
+    shopping,
+    checkins,
+    cravings,
+    daynotes,
+    medlogs,
+    meds,
     settings
   }
 }
@@ -96,6 +157,16 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
     await dietDb.sleep.clear()
     await dietDb.progress.clear()
     await dietDb.products.clear()
+    // v5 tablolari: SADECE yedekte varsa temizle. Eski (v4) bir yedek "replace"
+    // ile geri yuklenirse tahlil/ilac/kriz kayitlarini SILMEYELIM — yedekte
+    // karsiligi yok, silersek geri gelmez.
+    if (b.labs) await dietDb.labs.clear()
+    if (b.shopping) await dietDb.shopping.clear()
+    if (b.checkins) await dietDb.checkins.clear()
+    if (b.cravings) await dietDb.cravings.clear()
+    if (b.daynotes) await dietDb.daynotes.clear()
+    if (b.medlogs) await dietDb.medlogs.clear()
+    if (b.meds) await dietDb.meds.clear()
   }
   // id catismasini onlemek icin id'leri dusurerek ekle
   const strip = <T extends { id?: number }>(arr: T[]) => arr.map(({ id: _id, ...rest }) => rest)
@@ -108,6 +179,42 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
   if (b.sleep?.length) await dietDb.sleep.bulkAdd(strip(b.sleep) as Sleep[])
   if (b.progress?.length) await dietDb.progress.bulkAdd(strip(b.progress) as ProgressPhoto[])
   if (b.products?.length) await dietDb.products.bulkAdd(strip(b.products) as SavedProduct[])
+  if (b.labs?.length) await dietDb.labs.bulkAdd(strip(b.labs) as Lab[])
+  if (b.shopping?.length) await dietDb.shopping.bulkAdd(strip(b.shopping) as ShoppingItem[])
+  if (b.checkins?.length) await dietDb.checkins.bulkAdd(strip(b.checkins) as CheckIn[])
+  if (b.cravings?.length) await dietDb.cravings.bulkAdd(strip(b.cravings) as Craving[])
+  if (b.daynotes?.length) await dietDb.daynotes.bulkAdd(strip(b.daynotes) as DayNote[])
+
+  // ILAC TANIMLARI + ALIM KAYITLARI birlikte gelir. Kayittaki medId, tanimin
+  // id'sine baglidir; eklerken id'ler yeniden uretildigi icin bag KOPAR.
+  // O yuzden eski id -> yeni id eslemesi cikarilip kayitlara islenir.
+  const medIdMap = new Map<number, number>()
+  if (b.meds?.length) {
+    const existing = await dietDb.meds.toArray()
+    // Ayni ilac zaten varsa (createdAt kimligi) tekrar ekleme — yoksa cift
+    // bildirim kurulur. Bu, senkronun kullandigi kimlik kuralinin aynisi.
+    const byCreated = new Map(existing.map((m) => [m.createdAt, m.id!]))
+    for (const m of b.meds) {
+      const oldId = m.id
+      const already = byCreated.get(m.createdAt)
+      if (already != null) {
+        if (oldId != null) medIdMap.set(oldId, already)
+        continue
+      }
+      const { id: _id, ...rest } = m
+      const newId = (await dietDb.meds.add(rest as MedDef)) as number
+      if (oldId != null) medIdMap.set(oldId, newId)
+    }
+  }
+  if (b.medlogs?.length) {
+    await dietDb.medlogs.bulkAdd(
+      b.medlogs.map(({ id: _id, ...rest }) => ({
+        ...rest,
+        medId: rest.medId != null ? medIdMap.get(rest.medId) : undefined
+      })) as MedLog[]
+    )
+  }
+
   // Ayarlar (apiKey haric) yedekte varsa, mevcut ayara isle
   if (b.settings) {
     const cur = await dietDb.settings.toCollection().first()
@@ -124,7 +231,14 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
     water: b.water?.length ?? 0,
     steps: b.steps?.length ?? 0,
     sleep: b.sleep?.length ?? 0,
-    progress: b.progress?.length ?? 0
+    progress: b.progress?.length ?? 0,
+    labs: b.labs?.length ?? 0,
+    shopping: b.shopping?.length ?? 0,
+    checkins: b.checkins?.length ?? 0,
+    cravings: b.cravings?.length ?? 0,
+    daynotes: b.daynotes?.length ?? 0,
+    medlogs: b.medlogs?.length ?? 0,
+    meds: b.meds?.length ?? 0
   }
 }
 
