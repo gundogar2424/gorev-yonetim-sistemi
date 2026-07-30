@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { listExercises, addExercise, deleteExercise, readDietSettings, listMeasurements, setActivityDay, getStepsRow } from '../db'
+import { listExercises, addExercise, deleteExercise, readDietSettings, listMeasurements, setActivityDay, getStepsRow, replaceHealthExercises } from '../db'
 import { takeSharedImage } from '../lib/shareIntent'
 import { buildHealthContext } from '../lib/context'
+import { healthAvailable, requestHealthPerms, importHealthDay, openHealthConnectStore, HEALTH_TAG } from '../lib/health'
 import { estimateExerciseKcal, extractActivityFromPhoto } from '../ai'
 import type { ActivityScan } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
@@ -164,6 +165,9 @@ export default function ExercisePage() {
             </p>
           )}
         </section>
+
+        {/* Health Connect'ten OTOMATIK al (Samsung Health verisi) */}
+        <HealthConnectCard day={day} />
 
         {/* Fotoğraftan oku (Samsung Health ekran görüntüleri) */}
         <PhotoScanCard settings={settings} day={day} initialImage={sharedImg} />
@@ -345,6 +349,106 @@ function formatDate(dateStr: string): string {
 }
 
 const trNum = (n?: number | null) => (n != null ? n.toLocaleString('tr-TR') : '')
+
+// HEALTH CONNECT: Samsung Health verisini OTOMATIK okur (adım/mesafe/kalori +
+// antrenmanlar, nabızla). Samsung Health → Health Connect'e yazar, biz oradan
+// okuruz. Yalnızca APK'da çalışır; web'de kart gizlenir.
+function HealthConnectCard({ day }: { day: string }) {
+  const [state, setState] = useState<'checking' | 'ready' | 'unavailable' | 'web'>('checking')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const { Capacitor } = await import('@capacitor/core')
+      if (!Capacitor.isNativePlatform()) {
+        if (alive) setState('web')
+        return
+      }
+      const ok = await healthAvailable()
+      if (alive) setState(ok ? 'ready' : 'unavailable')
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Web'de hiç gösterme (özellik sadece uygulamada var).
+  if (state === 'web') return null
+
+  async function pull() {
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      await requestHealthPerms() // izin ekranını açar (ilk sefer)
+      const data = await importHealthDay(day)
+      if (!data) {
+        setErr('Veri okunamadı. Health Connect izinlerini kontrol et.')
+        return
+      }
+      // Günlük toplamlar (adım/mesafe/kalori) → adım kaydına yaz
+      await setActivityDay(day, {
+        count: data.steps,
+        activeKcal: data.activeKcal,
+        burnedKcal: data.totalKcal,
+        distanceKm: data.distanceKm
+      })
+      // Antrenmanlar → egzersiz kayıtları (aynı günün eski Health kayıtları silinir)
+      await replaceHealthExercises(day, HEALTH_TAG, data.workouts)
+
+      const parts: string[] = []
+      if (data.steps) parts.push(`${data.steps.toLocaleString('tr-TR')} adım`)
+      if (data.distanceKm) parts.push(`${data.distanceKm} km`)
+      if (data.totalKcal) parts.push(`~${data.totalKcal} kcal`)
+      if (data.workouts.length) parts.push(`${data.workouts.length} antrenman`)
+      setMsg(parts.length ? `Alındı: ${parts.join(' · ')}.` : 'Bu gün için Health Connect’te veri bulunamadı.')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'İçe aktarma başarısız.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="card p-4 bg-gradient-to-br from-sky-50 to-teal-50 border-sky-100 space-y-2">
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">⌚</span>
+        <div className="flex-1">
+          <p className="font-bold text-slate-800">Samsung Health’ten otomatik al</p>
+          <p className="text-xs text-slate-500">
+            Adım, mesafe, kalori ve antrenmanları (nabızla) Health Connect üzerinden {formatDate(day)} gününe çeker.
+          </p>
+        </div>
+      </div>
+
+      {state === 'unavailable' ? (
+        <div className="text-xs text-slate-600 space-y-2">
+          <p>
+            Telefonunda <b>Health Connect</b> bulunamadı. Samsung Health verisi buradan gelir; önce Health Connect’i
+            kurup Samsung Health’i ona bağlaman gerekir.
+          </p>
+          <button onClick={() => openHealthConnectStore()} className="btn-secondary w-full">
+            Health Connect’i Play Store’da aç
+          </button>
+        </div>
+      ) : (
+        <button onClick={pull} disabled={busy || state === 'checking'} className="btn-primary w-full">
+          {busy ? 'Alınıyor…' : state === 'checking' ? 'Kontrol ediliyor…' : '⌚ Health Connect’ten al'}
+        </button>
+      )}
+
+      {msg && <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg p-2">{msg}</p>}
+      {err && <p className="text-xs text-rose-700 bg-rose-50 rounded-lg p-2">{err}</p>}
+      <p className="text-[11px] text-slate-400 leading-tight">
+        İlk seferde Health Connect izin ekranı açılır; <b>Etkinlik</b> (adım/antrenman) ve <b>Hayati bulgular</b> (nabız)
+        izinlerini ver. Veri Samsung Health’in Health Connect’e yazdığı kadarıyla gelir.
+      </p>
+    </section>
+  )
+}
 
 // Fotoğraftan (Samsung Health ekran görüntüsü) veri okuma kartı.
 // İki foto: GÜNLÜK toplam adım + EGZERSİZ (yürüyüş). Egzersiz adımı günlükten düşülür.

@@ -286,6 +286,31 @@ export async function deleteExercise(id: number) {
   await dietDb.exercises.delete(id)
 }
 
+// HEALTH CONNECT: bir gunun Health'ten gelen antrenmanlarini yaz. Ayni gunun
+// daha once Health'ten alinmis (text'inde `tag` gecen) kayitlarini ONCE siler ki
+// tekrar ice aktarınca CIFT olmasin. Elle eklenen egzersizlere dokunmaz.
+export async function replaceHealthExercises(
+  dateStr: string,
+  tag: string,
+  workouts: { text: string; minutes?: number; kcal?: number; avgHr?: number; distanceKm?: number; steps?: number }[]
+): Promise<void> {
+  const existing = await dietDb.exercises.where('dateStr').equals(dateStr).toArray()
+  const stale = existing.filter((e) => (e.text || '').includes(tag) && e.id != null).map((e) => e.id as number)
+  if (stale.length) await dietDb.exercises.bulkDelete(stale)
+  for (const w of workouts) {
+    await dietDb.exercises.add({
+      text: w.text,
+      minutes: w.minutes,
+      kcal: w.kcal,
+      avgHr: w.avgHr,
+      distanceKm: w.distanceKm,
+      steps: w.steps,
+      createdAt: Date.now(),
+      dateStr
+    })
+  }
+}
+
 // HIZLI TASLAK ÖĞÜN: fotoğrafı hemen kaydeder (yapay zekaya sormadan). Sonra
 // Geçmiş'te "yapay zekayla düzelt" ile incelenip gerçek değerler doldurulur.
 export async function addDraftEntry(photo: string, mealType: MealType, createdAt?: number, note?: string) {

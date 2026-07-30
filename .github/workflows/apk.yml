@@ -58,7 +58,9 @@ jobs:
           v=android/variables.gradle
           sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
           sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
-          echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion" "$v"
+          # capacitor-health (Health Connect) minSdk 26 ister; app'i de 26'ya cek
+          sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 26/" "$v"
+          echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" "$v"
           # send-intent eklentisi kendi build.gradle'ında compileSdk'i 35'e SABİTLİYOR
           # (resmi Capacitor eklentileri gibi rootProject'ten okumuyor). AAR metadata
           # kontrolü için onu da 36'ya çek.
@@ -82,6 +84,17 @@ jobs:
           # verilir ve alarmlarin Doze/uyku modunda bile zamaninda calmasini saglar.
           grep -q 'USE_EXACT_ALARM' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
           echo "--- manifest ---"; grep -E "uses-permission|uses-feature|mlkit|action.SEND|mimeType" "$f" || true
+
+      - name: Health Connect manifesti (Samsung Health verisini otomatik almak için)
+        run: |
+          f=android/app/src/main/AndroidManifest.xml
+          # Sağlık izinleri eklentinin kendi manifestinden merge ile gelir. Buraya
+          # Health Connect'i görebilmek için <queries> + izin-gerekçe ekranı eklenir.
+          grep -q 'com.google.android.apps.healthdata' "$f" || sed -i 's#</manifest>#    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>#' "$f"
+          # İzin gerekçe ekranı (Health Connect gizlilik bağlantısı buraya gider) +
+          # Android 14+ "izin kullanımı" ekranı. Aktivite sınıfı eklentiden gelir.
+          grep -q 'PermissionsRationaleActivity' "$f" || perl -0pi -e 's#(\s*</application>)#\n            <activity android:name="com.fit_up.health.capacitor.PermissionsRationaleActivity" android:exported="true">\n                <intent-filter>\n                    <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />\n                </intent-filter>\n            </activity>\n            <activity-alias android:name="ViewPermissionUsageActivity" android:exported="true" android:targetActivity="com.fit_up.health.capacitor.PermissionsRationaleActivity" android:permission="android.permission.START_VIEW_PERMISSION_USAGE">\n                <intent-filter>\n                    <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />\n                    <category android:name="android.intent.category.HEALTH_PERMISSIONS" />\n                </intent-filter>\n            </activity-alias>$1#' "$f"
+          echo "--- health manifest ---"; grep -E "healthdata|PermissionsRationale|VIEW_PERMISSION_USAGE|health.READ" "$f" || true
 
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
         run: |
