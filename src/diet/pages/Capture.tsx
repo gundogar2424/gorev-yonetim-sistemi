@@ -1254,9 +1254,13 @@ function JourneyLine({ entries, measurements }: { entries: DietEntry[]; measurem
 
   const nice = start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
   return (
-    <p className="text-[12px] text-slate-400 mt-2 pt-2.5 border-t border-slate-100 dark:border-[#2f3240]">
-      Diyetin {day}. günü · {nice} tarihinde başladın
-    </p>
+    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-[#2f3240] flex items-baseline justify-between gap-2">
+      <div className="min-w-0">
+        <span className="text-[15px] font-semibold text-slate-900 dark:text-[#e0e1e6] tabular-nums">{day}. gün</span>
+        <span className="text-[13px] text-slate-500"> · diyetteki toplam günün</span>
+      </div>
+      <span className="text-[12px] text-slate-400 flex-shrink-0">{nice}</span>
+    </div>
   )
 }
 
