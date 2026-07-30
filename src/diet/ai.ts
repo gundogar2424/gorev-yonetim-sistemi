@@ -7,21 +7,60 @@ import { recordUsage } from './lib/usage'
 
 export const DEFAULT_MODEL = 'claude-opus-5'
 
+// TOKEN TASARRUFU — iki merkezi ayar (asagidaki sarmalayicida uygulanir).
+//
+// 1) DUSUNME DERINLIGI (effort). Claude Opus 5'te düşünme VARSAYILAN OLARAK
+//    AÇIKTIR ve derinlik varsayilani "high"dir. Düşünme çıktı tokeni olarak
+//    faturalanir (girdinin 5 katı fiyat), yani hic dokunmazsak her cagri en
+//    pahali ayarda calisir. Bu uygulamanin isleri (porsiyon tahmini, kisa koc
+//    metni) "medium"da fazlasiyla iyi sonuc verir; kucuk isler "low".
+// 2) İSTEM ÖNBELLEĞİ (prompt caching). Ayni uzun sistem metni her cagrida
+//    bastan gonderiliyordu. Onbellekten okunan token, normal girdinin ~%10'u
+//    fiyatina gelir. Yazma bir defaligina ~1,25 kat; 5 dakika icinde IKINCI
+//    cagrida basa bas, sonrasi kar. Kisa metinlerde onbellek zaten devreye
+//    girmedigi (ve bosuna yazma bedeli odenmesin) icin uzunluk esigi koyduk.
+type Effort = 'low' | 'medium' | 'high'
+export const DEFAULT_EFFORT: Effort = 'medium'
+
+// Onbellege alinmaya deger sistem metni esigi. Onbellek en az ~512 token'lik
+// bir on ek ister; Turkce metinde ~1.500 karakter civari. Esigi guvenli
+// tarafta tutuyoruz ki kisa istemlerde bosuna yazma bedeli odemeyelim.
+const CACHE_MIN_CHARS = 2000
+
 // SDK'yi geç (lazy) yukle ve istemciyi olustur. messages.create sarmalanir:
 // her cevaptan gelen token kullanimi merkezi olarak kaydedilir (Ayarlar'da
-// gosterilir). Boylece 17 ayri cagriya dokunmadan tek yerden sayilir.
+// gosterilir) ve yukaridaki iki tasarruf ayari uygulanir. Boylece 27 ayri
+// cagriya dokunmadan tek yerden yonetilir.
 async function createClient(apiKey: string) {
   const mod = await import('@anthropic-ai/sdk')
   const Anthropic = mod.default
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
   const origCreate = client.messages.create.bind(client.messages)
   client.messages.create = ((params: unknown, options?: unknown) => {
+    const p = params as Record<string, unknown>
+
+    // Cagiran acikca belirtmediyse dusunme derinligini kis
+    if (p && typeof p === 'object' && !p.output_config) {
+      p.output_config = { effort: DEFAULT_EFFORT }
+    }
+    // Uzun sistem metnini onbellege al (duz metinse blok haline getir)
+    if (p && typeof p === 'object' && typeof p.system === 'string' && p.system.length >= CACHE_MIN_CHARS) {
+      p.system = [{ type: 'text', text: p.system, cache_control: { type: 'ephemeral' } }]
+    }
+
     const ret = origCreate(params as never, options as never)
     // Sadece normal (stream olmayan) yanitlarda usage vardir
     Promise.resolve(ret as unknown)
       .then((res) => {
-        const u = (res as { usage?: { input_tokens?: number; output_tokens?: number } })?.usage
-        if (u) recordUsage(u.input_tokens ?? 0, u.output_tokens ?? 0)
+        const u = (res as { usage?: UsageFields })?.usage
+        // Onbellekten OKUNAN token da girdi sayilir (ucuz olsa da bedava degil);
+        // yazilan token da girdidir. Ikisini de sayaca ekliyoruz, yoksa
+        // Ayarlar'daki kullanim onbellek acildiktan sonra oldugundan az gorunur.
+        if (u) {
+          const inTok =
+            (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0)
+          recordUsage(inTok, u.output_tokens ?? 0)
+        }
       })
       .catch(() => {
         /* hata zaten cagirana gider; burada yok say */
@@ -29,6 +68,13 @@ async function createClient(apiKey: string) {
     return ret
   }) as typeof client.messages.create
   return client
+}
+
+interface UsageFields {
+  input_tokens?: number
+  output_tokens?: number
+  cache_read_input_tokens?: number
+  cache_creation_input_tokens?: number
 }
 
 // Yapay zekanin dolduracagi yapilandirilmis cikti semasi (JSON Schema).

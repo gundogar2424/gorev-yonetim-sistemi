@@ -18,19 +18,26 @@ export interface UsageData {
 }
 
 // Model ailesine gore KABA fiyat ($/1M token). Net fatura icin Console.
-// Guncel tarifeler: Opus 4.8 $5/$25, Sonnet $3/$15, Haiku 4.5 $1/$5.
-const PRICING: Record<'opus' | 'sonnet' | 'haiku', { in: number; out: number }> = {
+// Guncel tarifeler: Fable 5 $10/$50, Opus 5 $5/$25, Sonnet 5 $3/$15,
+// Haiku 4.5 $1/$5. NOT: Fable eksikti ve Opus fiyatina dusuyordu — maliyet
+// tahmini iki kat DUSUK cikiyordu.
+const PRICING: Record<'fable' | 'opus' | 'sonnet' | 'haiku', { in: number; out: number }> = {
+  fable: { in: 10, out: 50 },
   opus: { in: 5, out: 25 },
   sonnet: { in: 3, out: 15 },
   haiku: { in: 1, out: 5 }
 }
 
-// Model adindan fiyat ailesini sec (bilinmiyorsa Opus — ust sinir)
+// Model adindan fiyat ailesini sec (bilinmiyorsa Fable — UST SINIR).
+// Bilinmeyen modeli en pahali tarifeden saymak, tahminin gercek faturanin
+// altinda kalmasindan iyidir.
 function priceFor(model?: string): { in: number; out: number } {
   const m = (model || '').toLowerCase()
   if (m.includes('haiku')) return PRICING.haiku
   if (m.includes('sonnet')) return PRICING.sonnet
-  return PRICING.opus
+  if (m.includes('opus')) return PRICING.opus
+  if (m.includes('fable') || m.includes('mythos')) return PRICING.fable
+  return PRICING.fable
 }
 
 function todayKey(): string {
