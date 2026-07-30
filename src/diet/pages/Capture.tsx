@@ -536,7 +536,10 @@ export default function Capture() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        health: await buildHealthContext(settings)
+        // Bu sohbet TEK bir öğün hakkında: 30 günlük ölçü eğilimi, uyku/su/kafein
+        // değerlendirmesi ve haftalık spor dökümü burada işe yaramıyor. 'food'
+        // kapsamı tercihleri, tahlilleri, şekeri, ilaçları ve bugünkü alımı korur.
+        health: await buildHealthContext(settings, 'food')
       })
       // Kullanici sohbette yemegi/miktari duzelttiyse puani/kaloriyi/makroyu guncelle
       if (res.correction.changed) {
