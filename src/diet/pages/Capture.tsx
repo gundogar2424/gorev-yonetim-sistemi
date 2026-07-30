@@ -568,20 +568,26 @@ export default function Capture() {
     <div>
       <DietHeader title="Diyet Koçu" subtitle="Yemeden önce çek, kararını ver" />
 
-      <div className="p-3 space-y-4">
-        {/* Seri kartim */}
-        <div className="card p-5">
+      {/* Yan bosluk MFP'yle ayni: kart kenari ekrandan ~%5 iceride (12px degil
+          16px). Kartlar arasi bosluk da bir tik daralttildi — sayfa daha
+          derli toplu, daha az "kaba" duruyor. */}
+      <div className="px-4 pt-1 pb-3 space-y-3">
+        {/* Seri kartim — TEK buyuk rakam. Once 38px seri + 22px puan yan yana
+            duruyordu; iki buyuk rakam ayni kartta yarisinca kaba goruunuyordu. */}
+        <div className="card p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="stat-label">Diyet serin</p>
               <p className="mt-1 flex items-baseline gap-1.5">
-                <span className="stat-num text-[38px] leading-none">{stats.streak}</span>
-                <span className="text-[15px] font-medium text-slate-500">gün</span>
+                <span className="stat-num text-[28px] leading-none">{stats.streak}</span>
+                <span className="text-[14px] font-medium text-slate-500">gün</span>
               </p>
             </div>
             <div className="text-right flex-shrink-0">
               <p className="stat-label">Puan</p>
-              <p className="stat-num text-[22px] leading-none mt-1.5">{stats.points.toLocaleString('tr-TR')}</p>
+              <p className="text-[16px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums leading-none mt-1.5">
+                {stats.points.toLocaleString('tr-TR')}
+              </p>
             </div>
           </div>
           <p className="text-[13px] text-slate-500 mt-3 leading-relaxed">
@@ -1142,38 +1148,47 @@ function WeightGoal({ measurements, target, start, height }: { measurements: Mea
 
   return (
     <div className="card p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      {/* Baslik satiri: BMI rozeti alta alindi. Once basligin yanindaydi,
+          uzun oldugu icin ("BMI 33.1 · obez") satiri kirip duzeni bozuyordu. */}
+      <div className="flex items-center justify-between gap-2">
         <span className="section-title">Kilo hedefin</span>
-        <div className="flex items-center gap-2">
-          {bmi != null && <span className={`chip ${bmiCls}`}>BMI {bmi} · {bmiCat}</span>}
-          <span className="text-xs font-semibold text-slate-500">{base} → {target} kg</span>
-        </div>
+        <span className="text-[12px] font-medium text-slate-500 flex-shrink-0">{base} → {target} kg</span>
       </div>
 
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-3xl font-extrabold text-slate-800">{current}<span className="text-base font-bold text-slate-400"> kg</span></p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {lost > 0 ? `Başlangıçtan beri ${lost} kg verdin 🎉` : lost < 0 ? `Başlangıca göre ${Math.abs(lost)} kg arttı` : 'Henüz değişim yok'}
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          {/* TEK buyuk rakam: guncel kilo. "hedefe kaldi" artik parlak mavi
+              24px degil, sakin bir yardimci satir. */}
+          <p className="text-[26px] font-bold tracking-tight text-slate-900 dark:text-[#e0e1e6] tabular-nums leading-none">
+            {current}
+            <span className="text-[14px] font-semibold text-slate-400"> kg</span>
+          </p>
+          <p className="text-[12px] text-slate-500 mt-1.5">
+            {lost > 0 ? `Başlangıçtan beri ${lost} kg verdin` : lost < 0 ? `Başlangıca göre ${Math.abs(lost)} kg arttı` : 'Henüz değişim yok'}
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           {reached ? (
-            <span className="chip bg-brand-100 text-brand-800">Hedefe ulaştın! 🏆</span>
+            <span className="chip bg-brand-100 text-brand-800">Hedefe ulaştın</span>
           ) : (
             <>
-              <p className="text-2xl font-extrabold text-brand-600">{remaining} kg</p>
-              <p className="text-xs text-slate-500">hedefe kaldı</p>
+              <p className="text-[15px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums leading-none">
+                {remaining} kg
+              </p>
+              <p className="text-[12px] text-slate-500 mt-1">hedefe kaldı</p>
             </>
           )}
         </div>
       </div>
 
       <div>
-        <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
           <div className="h-full bg-brand-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
-        <p className="text-[11px] text-slate-400 mt-1 text-right">%{pct} tamamlandı</p>
+        <div className="flex items-center justify-between mt-1.5">
+          {bmi != null && <span className={`chip ${bmiCls}`}>BMI {bmi} · {bmiCat}</span>}
+          <span className="text-[11px] text-slate-400 ml-auto">%{pct} tamamlandı</span>
+        </div>
       </div>
     </div>
   )
@@ -1184,23 +1199,26 @@ function DailyScore({ entries }: { entries: DietEntry[] }) {
   const pct = dayAdherence(entries, todayStr())
   if (pct == null) return null // bugun karar verilmis kayit yoksa gosterme
 
+  // Kartin TAMAMINI yesile/kirmiziya boyamak yerine rengi yalnizca RAKAM ve
+  // CUBUKTA tutuyoruz; zemin diger kartlarla ayni kaliyor. Tonlu zemin +
+  // buyuk renkli rakam + emojili cumle bir arada kaba goruunuyordu.
   const theme =
     pct >= 80
-      ? { bar: 'bg-emerald-500', text: 'text-emerald-700', soft: 'bg-emerald-50 border-emerald-100', msg: 'Harika gidiyorsun! 🌟' }
+      ? { bar: 'bg-emerald-500', text: 'text-emerald-600', msg: 'Harika gidiyorsun.' }
       : pct >= 50
-        ? { bar: 'bg-amber-500', text: 'text-amber-700', soft: 'bg-amber-50 border-amber-100', msg: 'Fena değil, biraz daha dikkat. 💪' }
-        : { bar: 'bg-rose-500', text: 'text-rose-700', soft: 'bg-rose-50 border-rose-100', msg: 'Bugün zor geçti, yarın telafi. 🌅' }
+        ? { bar: 'bg-amber-500', text: 'text-amber-600', msg: 'Fena değil, biraz daha dikkat.' }
+        : { bar: 'bg-rose-500', text: 'text-rose-500', msg: 'Bugün zor geçti, yarın telafi.' }
 
   return (
-    <div className={`card p-4 border ${theme.soft}`}>
-      <div className="flex items-end justify-between">
+    <div className="card p-4">
+      <div className="flex items-end justify-between gap-2">
         <span className="section-title">Bugünkü diyet başarın</span>
-        <span className={`text-3xl font-extrabold ${theme.text}`}>%{pct}</span>
+        <span className={`text-[22px] font-bold tabular-nums leading-none ${theme.text}`}>%{pct}</span>
       </div>
-      <div className="h-2.5 w-full bg-white rounded-full overflow-hidden mt-2 border border-slate-100">
+      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mt-2.5">
         <div className={`h-full ${theme.bar} rounded-full transition-all`} style={{ width: `${pct}%` }} />
       </div>
-      <p className={`text-sm font-semibold mt-2 ${theme.text}`}>{theme.msg}</p>
+      <p className="text-[13px] text-slate-500 mt-2">{theme.msg}</p>
     </div>
   )
 }
@@ -1298,9 +1316,16 @@ function Carousel({ pages }: { pages: ReactNode[] }) {
 
   return (
     <div>
-      <div ref={ref} onScroll={onScroll} className="flex items-stretch gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar">
+      {/* Kaydirma alani SAGDAN ekran kenarina tasar (-mr-4): MFP'de de kart
+          soldan icerideyken sonraki kartin ucu sag kenardan kesilir. Sayfa
+          dolgusu icinde kalsaydi komsu kart ortada asili gibi duruyordu. */}
+      <div
+        ref={ref}
+        onScroll={onScroll}
+        className="-mr-4 flex items-stretch gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar"
+      >
         {pages.map((p, i) => (
-          <div key={i} className="snap-center shrink-0 w-[89%]">
+          <div key={i} className="snap-start shrink-0 w-[89%] last:mr-4">
             {p}
           </div>
         ))}
