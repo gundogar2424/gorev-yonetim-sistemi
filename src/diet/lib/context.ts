@@ -16,7 +16,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
   const since7 = todayStr(new Date(Date.now() - 6 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll, waterAll] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -30,7 +30,8 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.medlogs.orderBy('createdAt').toArray(),
     dietDb.checkins.toArray(),
     dietDb.meds.toArray(),
-    dietDb.steps.toArray()
+    dietDb.steps.toArray(),
+    dietDb.water.toArray()
   ])
 
   const L: string[] = []
@@ -313,6 +314,42 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const lastMood = checkins.length ? checkins[checkins.length - 1] : undefined
   if (lastMood?.mood != null) bits.push(`son moral ${lastMood.mood}/10${lastMood.note ? ` ("${lastMood.note}")` : ''}`)
   L.push(`Bugün şu ana kadar: ${bits.join(' · ')}.`)
+
+  // SU (genel saglik icin temel): bugunku alim hedefe gore + son 7 gun ortalamasi.
+  // PROAKTIF: yetersizse gun icinde suyu ARTIRMASINI net soyle (koc/analiz/checkup
+  // her yerde). Kafein ve egzersizle su ihtiyacini iliskilendir.
+  {
+    const mlOf = (w?: { ml?: number; glasses?: number }) => (w ? (w.ml != null ? w.ml : (w.glasses || 0) * 200) : 0)
+    const goalMl = settings?.waterGoal ? settings.waterGoal * 200 : 2500
+    const todayMl = mlOf(waterRow)
+    let sum7 = 0
+    for (let i = 0; i < 7; i++) {
+      const d = todayStr(new Date(Date.now() - i * 86_400_000))
+      sum7 += mlOf(waterAll.find((w) => w.dateStr === d))
+    }
+    const avg7 = Math.round(sum7 / 7)
+    const pctToday = goalMl ? Math.round((todayMl / goalMl) * 100) : 0
+    const low = todayMl < goalMl * 0.6 || todayMl < 1500
+    L.push(
+      `SU DURUMU (genel sağlık için ÖNEMLİ): bugün ${todayMl} ml içildi (hedef ${goalMl} ml, %${pctToday}); son 7 gün ort. ~${avg7} ml/gün. ` +
+        (low
+          ? `Su BUGÜN YETERSİZ görünüyor — gün içinde suyu ARTIRMASINI net ama nazikçe söyle (ör. "bir sonraki saat başlarında birer bardak su iç"). `
+          : `Su bugün iyi gidiyor, kısaca takdir edebilirsin. `) +
+        `Az su; kabızlık, baş ağrısı, yorgunluk, koyu idrar ve tokluk hissinde azalmayla bağlantılıdır. Kafein (kahve/çay) ve egzersiz su ihtiyacını ARTIRIR — bunları birlikte yorumla.`
+    )
+  }
+
+  // KAHVE/KAFEIN: bugunku kafeinli icecek sayisi. Uyku/tansiyon/su ile iliskilendir.
+  {
+    const isCaffeine = (n?: string) =>
+      !!n && /kahve|espresso|latte|cappuccino|americano|mocha|nescafe|filtre|çay(?!dan)|matcha|enerji ?i[çc]ece/i.test(n)
+    const coffeeToday = entries.filter((e) => e.dateStr === today && e.decision === 'ate' && isCaffeine(e.foodName)).length
+    if (coffeeToday > 0) {
+      L.push(
+        `KAHVE/KAFEİN: bugün ~${coffeeToday} kafeinli içecek (kahve/çay vb.). Kafein idrar söktürür (su ihtiyacını artırır) ve fazlası uykuyu, kalp çarpıntısını, tansiyonu ve kan şekeri dalgalanmasını etkileyebilir. Çoksa (≥3-4) öğleden sonra/akşam azaltmasını ve yanında su içmesini öner; tansiyon/şeker verisiyle birlikte değerlendir.`
+      )
+    }
+  }
 
   // Bugunku ACLIK kayitlari (moralden AYRI boyut) — ogun/aktivite ile bag kur.
   // Ornek: "14:00 açlık 8/10" ama son ogun 11:00 ise porsiyon/protein yetersiz.
