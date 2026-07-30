@@ -569,23 +569,24 @@ export default function Capture() {
 
       <div className="p-3 space-y-4">
         {/* Seri kartim */}
-        <div className="card p-4 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-0">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-emerald-50 text-xs uppercase tracking-wide">Diyet serin</p>
-              <p className="text-4xl font-extrabold mt-1">
-                {stats.streak} <span className="text-lg font-semibold">gün</span>
+        <div className="card p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="stat-label">Diyet serin</p>
+              <p className="mt-1 flex items-baseline gap-1.5">
+                <span className="stat-num text-[38px] leading-none">{stats.streak}</span>
+                <span className="text-[15px] font-medium text-slate-500">gün</span>
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-emerald-50 text-xs uppercase tracking-wide">Puan</p>
-              <p className="text-2xl font-extrabold mt-1">⭐ {stats.points}</p>
+            <div className="text-right flex-shrink-0">
+              <p className="stat-label">Puan</p>
+              <p className="stat-num text-[22px] leading-none mt-1.5">{stats.points.toLocaleString('tr-TR')}</p>
             </div>
           </div>
-          <p className="text-emerald-50 text-sm mt-1">
+          <p className="text-[13px] text-slate-500 mt-3 leading-relaxed">
             {stats.streak === 0
-              ? 'Bugün temiz bir başlangıç yap! 💪'
-              : `${stats.streak} gündür diyetini bozmadın. Devam! 🔥`}
+              ? 'Bugün temiz bir başlangıç yap.'
+              : `${stats.streak} gündür diyetini bozmadın — devam.`}
           </p>
         </div>
 
@@ -605,8 +606,10 @@ export default function Capture() {
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
 
         {/* Gunluk motivasyon sozu */}
-        <div className="card p-3 bg-amber-50 border-amber-100 text-amber-900 text-sm font-medium text-center">
-          “{quoteOfDay(todayStr())}”
+        <div className="card p-4">
+          <p className="text-[14px] leading-relaxed text-slate-600 text-center italic">
+            “{quoteOfDay(todayStr())}”
+          </p>
         </div>
 
         {/* Bugunku kalori takibi */}
@@ -1220,10 +1223,11 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
   const remaining = budget - kcal
   const frac = budget ? Math.min(1, kcal / budget) : 0
   const over = budget > 0 && kcal > budget
-  const ringColor = over ? '#e11d48' : frac >= 0.85 ? '#f59e0b' : '#059669'
+  // Marka mavisi normal, butceye yaklasinca amber, asinca kirmizi.
+  const ringColor = over ? '#e11d48' : frac >= 0.85 ? '#f5a623' : '#1a6dff'
 
-  // Halka (SVG)
-  const R = 50
+  // Halka (SVG) — daha ince cizgi, daha genis yaricap: sakin ve modern
+  const R = 52
   const C = 2 * Math.PI * R
   const dash = budget ? C * frac : 0
 
@@ -1234,84 +1238,61 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
   const proteinGoal = target ? Math.round((target * 0.2) / 4) : 0
 
   return (
-    <div className="card p-4">
-      {/* Baslik + formul (MyFitnessPal'daki gibi) */}
-      <div className="mb-3">
-        <span className="text-lg font-extrabold text-slate-800 dark:text-slate-100">Kaloriler</span>
-        <p className="text-[11px] text-slate-400 leading-tight">Kalan = Hedef − Yenen + Spor</p>
+    <div className="card p-5">
+      {/* Baslik + formul. Emoji YOK — baslik tipografiyle tasiniyor. */}
+      <div className="mb-4">
+        <h2 className="text-[17px] font-semibold text-slate-900 leading-tight">Kaloriler</h2>
+        <p className="text-[12px] text-slate-500 mt-0.5">Kalan = Hedef − Yenen + Spor</p>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-5">
         {/* Kalori halkasi — ortada KALAN */}
-        <div className="relative flex-shrink-0" style={{ width: 130, height: 130 }}>
-          <svg width="130" height="130" viewBox="0 0 120 120" className="-rotate-90">
-            <circle cx="60" cy="60" r={R} fill="none" strokeWidth="12" className="stroke-slate-100 dark:stroke-[#273248]" />
+        <div className="relative flex-shrink-0" style={{ width: 128, height: 128 }}>
+          <svg width="128" height="128" viewBox="0 0 128 128" className="-rotate-90">
+            <circle cx="64" cy="64" r={R} fill="none" strokeWidth="9" className="stroke-slate-100 dark:stroke-[#232a33]" />
             {budget > 0 && (
               <circle
-                cx="60"
-                cy="60"
+                cx="64"
+                cy="64"
                 r={R}
                 fill="none"
                 stroke={ringColor}
-                strokeWidth="12"
+                strokeWidth="9"
                 strokeLinecap="round"
                 strokeDasharray={`${dash} ${C}`}
+                style={{ transition: 'stroke-dasharray .4s ease' }}
               />
             )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            {budget > 0 ? (
-              <>
-                <span className={`text-[30px] leading-none font-extrabold ${over ? 'text-rose-600' : 'text-slate-800 dark:text-slate-100'}`}>
-                  {remaining.toLocaleString('tr-TR')}
-                </span>
-                <span className="text-xs text-slate-400 mt-1 font-semibold">{over ? 'Fazla' : 'Kalan'}</span>
-              </>
-            ) : (
-              <>
-                <span className="text-[30px] leading-none font-extrabold text-slate-800 dark:text-slate-100">{kcal}</span>
-                <span className="text-xs text-slate-400 mt-1 font-semibold">Yenen</span>
-              </>
-            )}
+            <span className={`text-[32px] leading-none font-bold tracking-tight tabular-nums ${over ? 'text-rose-600' : 'text-slate-900'}`}>
+              {budget > 0 ? Math.abs(remaining).toLocaleString('tr-TR') : kcal.toLocaleString('tr-TR')}
+            </span>
+            <span className="text-[12px] text-slate-500 mt-1.5">
+              {budget > 0 ? (over ? 'fazla' : 'kalan') : 'yenen'}
+            </span>
           </div>
         </div>
 
-        {/* Sag: bayrak / catal / ates dikey liste (MyFitnessPal legend) */}
-        <div className="flex-1 min-w-0 space-y-3">
+        {/* Sag: hizali istatistik listesi. Emoji yerine renk gostergesi —
+            veriyi emoji ile etiketlemek amator duruyordu. */}
+        <div className="flex-1 min-w-0">
           {budget > 0 ? (
-            <>
-              <div className="flex items-start gap-2.5">
-                <span className="text-lg leading-none mt-0.5">🚩</span>
-                <div className="leading-tight">
-                  <div className="text-[11px] text-slate-400">Temel Hedef</div>
-                  <div className="text-base font-extrabold text-slate-700 dark:text-slate-200">{target.toLocaleString('tr-TR')}</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="text-lg leading-none mt-0.5">🍴</span>
-                <div className="leading-tight">
-                  <div className="text-[11px] text-slate-400">Yenen</div>
-                  <div className="text-base font-extrabold text-emerald-700">{kcal.toLocaleString('tr-TR')}</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="text-lg leading-none mt-0.5">🔥</span>
-                <div className="leading-tight">
-                  <div className="text-[11px] text-slate-400">Spor</div>
-                  <div className="text-base font-extrabold text-sky-600">{exBurned.toLocaleString('tr-TR')}</div>
-                </div>
-              </div>
-            </>
+            <div className="divide-y divide-slate-100 dark:divide-[#232a33]">
+              <StatRow color="#94a3b8" label="Hedef" value={target} />
+              <StatRow color="#1a6dff" label="Yenen" value={kcal} />
+              <StatRow color="#16a34a" label="Spor" value={exBurned} />
+            </div>
           ) : (
-            <p className="text-xs text-slate-400">
-              Kalori hedefini Ayarlar’dan gir; kart MyFitnessPal gibi Hedef − Yenen + Spor = Kalan gösterir.
+            <p className="text-[13px] text-slate-500 leading-relaxed">
+              Kalori hedefini Ayarlar’dan girdiğinde burada hedef, yenen, spor ve kalan birlikte görünür.
             </p>
           )}
         </div>
       </div>
 
       {/* Makrolar — MyFitnessPal gibi 3 halka (karb/yag/protein) */}
-      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#273248]">
+      <div className="mt-5 pt-4 border-t border-slate-100 dark:border-[#232a33]">
         <span className="section-title">Makrolar</span>
         <div className="mt-2 grid grid-cols-3 gap-2">
           {/* MyFitnessPal'in tam makro renkleri: turkuaz / lavanta mor / amber turuncu */}
@@ -1324,42 +1305,55 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
   )
 }
 
+// Kalori kartindaki tek satir: renk gostergesi + etiket (sol), rakam (sag).
+// Rakamlar tabular-nums ile hizali — tablo gibi okunur, profesyonel durur.
+function StatRow({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="flex items-center gap-2.5 min-w-0">
+        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+        <span className="text-[13px] text-slate-600 truncate">{label}</span>
+      </span>
+      <span className="text-[15px] font-semibold text-slate-900 tabular-nums">{value.toLocaleString('tr-TR')}</span>
+    </div>
+  )
+}
+
 // Tek makro halkasi (MyFitnessPal tarzi): ortada yenen gram, altinda /hedef,
 // altta "X g kaldi". Hedef yoksa (kalori hedefi girilmemis) sade gosterir.
 function MacroRing({ label, grams, goalG, color }: { label: string; grams: number; goalG: number; color: string }) {
-  const R = 34
+  const R = 33
   const C = 2 * Math.PI * R
   const frac = goalG > 0 ? Math.min(1, grams / goalG) : 0
   const left = Math.max(0, goalG - grams)
   return (
     <div className="flex flex-col items-center text-center">
-      <span className="text-[13px] font-extrabold mb-1.5" style={{ color }}>
-        {label}
-      </span>
-      <div className="relative" style={{ width: 82, height: 82 }}>
-        <svg width="82" height="82" viewBox="0 0 82 82" className="-rotate-90">
-          <circle cx="41" cy="41" r={R} fill="none" strokeWidth="8" className="stroke-slate-100 dark:stroke-[#273248]" />
+      {/* Etiket notr gri — renk yalnizca halkada. Uc farkli renkte kalin
+          baslik yan yana durunca gurultulu goruunuyordu. */}
+      <span className="text-[12px] font-medium text-slate-600 mb-2">{label}</span>
+      <div className="relative" style={{ width: 78, height: 78 }}>
+        <svg width="78" height="78" viewBox="0 0 78 78" className="-rotate-90">
+          <circle cx="39" cy="39" r={R} fill="none" strokeWidth="6" className="stroke-slate-100 dark:stroke-[#232a33]" />
           {goalG > 0 && (
             <circle
-              cx="41"
-              cy="41"
+              cx="39"
+              cy="39"
               r={R}
               fill="none"
               stroke={color}
-              strokeWidth="8"
+              strokeWidth="6"
               strokeLinecap="round"
               strokeDasharray={`${C * frac} ${C}`}
+              style={{ transition: 'stroke-dasharray .4s ease' }}
             />
           )}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[19px] leading-none font-extrabold text-slate-800 dark:text-slate-100 tabular-nums">
-            {Math.round(grams)}
-          </span>
-          {goalG > 0 && <span className="text-[11px] text-slate-400 leading-none mt-0.5">/{goalG}g</span>}
+          <span className="text-[18px] leading-none font-semibold text-slate-900 tabular-nums">{Math.round(grams)}</span>
+          {goalG > 0 && <span className="text-[11px] text-slate-500 leading-none mt-1">/{goalG}g</span>}
         </div>
       </div>
-      <span className="text-[11px] text-slate-400 mt-1.5">{goalG > 0 ? `${left}g kaldı` : `${Math.round(grams)}g`}</span>
+      <span className="text-[11px] text-slate-500 mt-2">{goalG > 0 ? `${left} g kaldı` : `${Math.round(grams)} g`}</span>
     </div>
   )
 }
@@ -1385,45 +1379,44 @@ function ActivityCard({ exercises }: { exercises: Exercise[] }) {
   const distanceKm = dayRow?.distanceKm || exDist
   const kcal = dayRow?.burnedKcal || dayRow?.activeKcal || exKcal
 
-  const stats: { icon: string; val: string; label: string }[] = []
-  if (steps > 0) stats.push({ icon: '👣', val: steps.toLocaleString('tr-TR'), label: 'adım' })
-  if (distanceKm > 0) stats.push({ icon: '📍', val: `${distanceKm.toFixed(1)}`, label: 'km' })
-  if (minutes > 0) stats.push({ icon: '⏱️', val: `${minutes}`, label: 'dk' })
-  if (kcal > 0) stats.push({ icon: '🔥', val: `${kcal}`, label: 'kcal yakıldı' })
+  const stats: { val: string; label: string }[] = []
+  if (steps > 0) stats.push({ val: steps.toLocaleString('tr-TR'), label: 'adım' })
+  if (distanceKm > 0) stats.push({ val: `${distanceKm.toFixed(1)}`, label: 'kilometre' })
+  if (minutes > 0) stats.push({ val: `${minutes}`, label: 'dakika' })
+  if (kcal > 0) stats.push({ val: `${kcal}`, label: 'kcal yakıldı' })
 
   // Bugün veri yoksa: kartı gizleme, ekleme yönlendirmesi göster (hep görünür)
   if (stats.length === 0) {
     return (
-      <Link to="/egzersiz" className="card p-4 bg-sky-50 border border-sky-100 flex items-center gap-3 active:scale-[0.99] transition">
-        <span className="text-3xl">🏃</span>
-        <div className="flex-1">
-          <p className="font-bold text-sky-800">Bugün hareket</p>
-          <p className="text-xs text-slate-500">Henüz veri yok — egzersiz/adım ekle ya da Samsung’dan içe aktar.</p>
+      <Link to="/egzersiz" className="card p-4 flex items-center gap-3 active:scale-[0.995] transition">
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-semibold text-slate-900">Bugün hareket</p>
+          <p className="text-[13px] text-slate-500 mt-0.5 leading-relaxed">
+            Henüz veri yok. Samsung Health’ten otomatik alabilirsin.
+          </p>
         </div>
-        <span className="text-sky-700 text-sm font-semibold">Ekle ›</span>
+        <span className="text-[13px] font-semibold text-brand-600 flex-shrink-0">Ekle</span>
       </Link>
     )
   }
 
   return (
-    <div className="card p-4 bg-sky-50 border border-sky-100">
-      <div className="flex items-center justify-between mb-3">
-        <span className="section-title">🏃 Bugün hareket</span>
-        <Link to="/egzersiz" className="text-xs font-semibold text-sky-700">Detay ›</Link>
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <span className="section-title">Bugün hareket</span>
+        <Link to="/egzersiz" className="text-[13px] font-semibold text-brand-600">Detay</Link>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      {/* Rakam odakli izgara: emoji yok, deger buyuk, etiket kucuk ve gri */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
         {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="text-2xl">{s.icon}</span>
-            <div className="leading-tight">
-              <div className="text-xl font-extrabold text-sky-800">{s.val}</div>
-              <div className="text-[11px] text-slate-500">{s.label}</div>
-            </div>
+          <div key={i}>
+            <div className="stat-num text-[22px] leading-none">{s.val}</div>
+            <div className="stat-label mt-1.5">{s.label}</div>
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-slate-400 mt-3 leading-tight">
-        Yakılan kalori günlük bütçene eklenir (MyFitnessPal gibi): yukarıdaki halkada Kalan’a yansır.
+      <p className="text-[12px] text-slate-500 mt-4 pt-4 border-t border-slate-100 dark:border-[#232a33] leading-relaxed">
+        Yakılan kalori günlük bütçene eklenir; yukarıdaki halkada “kalan”a yansır.
       </p>
     </div>
   )
@@ -2297,35 +2290,39 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
   const chosen = next.meal
   const planText = settings?.dietPlanMeals?.[chosen]?.trim()
   return (
-    <button
-      onClick={() => onPick(chosen)}
-      className="card p-5 w-full bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-100 active:scale-[0.99] transition flex flex-col items-center text-center"
-    >
-      <p className="text-xs font-bold text-indigo-500 uppercase tracking-wide">Sıradaki öğün</p>
-      <div className="text-5xl mt-1">{mealEmoji(chosen)}</div>
-      <p className="text-2xl font-extrabold text-slate-800 leading-tight mt-1">{mealLabel(chosen)}</p>
-      <p className="text-sm font-semibold text-indigo-700 mt-0.5">
-        🕒 {next.time}
-        {tomorrow ? ' (yarın)' : ''} · {left}
-      </p>
+    <button onClick={() => onPick(chosen)} className="card p-5 w-full text-left active:scale-[0.995] transition">
+      {/* Ust satir: etiket + saat. Emoji ogun simgesi olarak kucuk ve yardimci. */}
+      <div className="flex items-center justify-between gap-3">
+        <span className="section-title">Sıradaki öğün</span>
+        <span className="text-[12px] text-slate-500 tabular-nums">
+          {next.time}
+          {tomorrow ? ' · yarın' : ''}
+        </span>
+      </div>
 
-      {/* ORTADA, BÜYÜK: diyet listende bu öğünde ne var */}
+      <div className="flex items-center gap-3 mt-2.5">
+        <span className="text-[28px] leading-none">{mealEmoji(chosen)}</span>
+        <div className="min-w-0">
+          <p className="text-[22px] font-bold text-slate-900 leading-tight tracking-tight">{mealLabel(chosen)}</p>
+          <p className="text-[13px] text-slate-500 mt-0.5">{left}</p>
+        </div>
+      </div>
+
+      {/* Diyet listende bu ogunde ne var */}
       {planText ? (
-        <div className="mt-3 w-full bg-white rounded-xl p-4 border border-indigo-100">
-          <p className="text-[11px] font-bold text-indigo-500 uppercase tracking-wide mb-1">🍽️ Listende bu öğün</p>
-          <p className="text-base text-slate-800 leading-relaxed font-medium">{planText}</p>
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#232a33]">
+          <p className="stat-label mb-1.5">Listende bu öğün</p>
+          <p className="text-[15px] text-slate-800 leading-relaxed">{planText}</p>
         </div>
       ) : (
-        <div className="mt-3 w-full bg-white/70 rounded-xl p-3 border border-indigo-100">
-          <p className="text-xs text-slate-500 leading-snug">
-            {settings?.dietPlan?.trim()
-              ? 'Diyet listen öğünlere bölünüyor… birazdan bu öğünde ne olduğu burada görünecek.'
-              : 'Diyet listeni yükle (Menüm) → her öğünde ne yenecek burada görünsün.'}
-          </p>
-        </div>
+        <p className="mt-4 pt-4 border-t border-slate-100 dark:border-[#232a33] text-[13px] text-slate-500 leading-relaxed">
+          {settings?.dietPlan?.trim()
+            ? 'Diyet listen öğünlere bölünüyor; birazdan bu öğünde ne olduğu burada görünecek.'
+            : 'Diyet listeni yükle (Menüm) — her öğünde ne yeneceği burada görünsün.'}
+        </p>
       )}
 
-      <span className="mt-3 text-sm font-bold bg-indigo-600 text-white rounded-xl px-4 py-2">＋ Bu öğünü ekle</span>
+      <span className="btn-primary w-full mt-4">Bu öğünü ekle</span>
     </button>
   )
 }

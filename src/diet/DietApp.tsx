@@ -140,21 +140,21 @@ export default function DietApp() {
       {/* Alt gezinme cubugu (mobil icin sabit). Sistem tuslarinin ustunde kalsin diye
           alttan guvenli alan (safe-area) kadar bosluk eklenir. */}
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white/95 dark:bg-[#0f1626]/95 backdrop-blur border-t border-slate-100 rounded-t-2xl shadow-nav grid grid-cols-5 z-20"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white/95 dark:bg-[#12161d]/95 backdrop-blur border-t border-slate-200/80 grid grid-cols-5 z-20"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
-          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-1">
+          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1">
             {({ isActive }) => (
               <>
+                {/* Hap seklinde arka plan yok: MFP'de aktiflik sadece RENK ve
+                    kalinlikla belli edilir; bu daha sakin ve profesyonel durur. */}
+                <NavIcon name={t.icon} className={`h-[22px] w-[22px] ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
                 <span
-                  className={`flex items-center justify-center h-8 w-12 rounded-full transition-colors ${
-                    isActive ? 'bg-brand-50' : ''
+                  className={`text-[11px] leading-none ${
+                    isActive ? 'text-brand-600 font-semibold' : 'text-slate-500 font-medium'
                   }`}
                 >
-                  <NavIcon name={t.icon} className={`h-6 w-6 ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
-                </span>
-                <span className={`text-[11px] leading-none ${isActive ? 'text-brand-700 font-semibold' : 'text-slate-400'}`}>
                   {t.label}
                 </span>
               </>

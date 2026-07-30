@@ -604,7 +604,7 @@ function UsageCard({ model, budget, budgetBase }: { model?: string; budget?: num
   const u = getUsage() // her render'da taze oku (tick ile yenilenir)
   const today = todayUsage()
   const fmt = (n: number) => n.toLocaleString('tr-TR')
-  const m = (model || 'claude-opus-4-8').toLowerCase()
+  const m = (model || 'claude-opus-5').toLowerCase()
   const priceLabel = m.includes('haiku') ? 'Haiku' : m.includes('sonnet') ? 'Sonnet' : 'Opus'
 
   // Kalan bakiye TAHMINI: butce girildigi andaki harcamadan bu yana harcanani dus

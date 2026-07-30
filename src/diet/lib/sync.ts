@@ -223,7 +223,7 @@ export async function syncNow(): Promise<{ added: number }> {
   // Senkron kimliklerini updatedAt'i BOZMADAN yaz (ayarlar ping-pong'u olmasin)
   const cur = await dietDb.settings.toCollection().first()
   if (cur?.id != null) await dietDb.settings.update(cur.id, { syncGistId: gistId, lastSyncAt: Date.now() })
-  else await dietDb.settings.add({ model: 'claude-opus-4-8', syncGistId: gistId, lastSyncAt: Date.now() })
+  else await dietDb.settings.add({ model: 'claude-opus-5', syncGistId: gistId, lastSyncAt: Date.now() })
   return { added }
 }
 

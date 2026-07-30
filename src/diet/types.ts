@@ -286,7 +286,7 @@ export interface ShoppingSuggestion {
 export interface DietSettings {
   id?: number
   apiKey?: string // Anthropic API anahtari (yalnizca cihazda saklanir)
-  model?: string // Kullanilacak model (varsayilan: claude-opus-4-8)
+  model?: string // Kullanilacak model (varsayilan: claude-opus-5)
   updatedAt?: number // ayarlarin son degisme zamani (senkron icin: yeni olan kazanir)
   syncToken?: string // GitHub kisisel erisim anahtari (gist yetkisi) — cihazlar arasi senkron
   syncGistId?: string // senkron verisinin tutuldugu OZEL gist'in id'si

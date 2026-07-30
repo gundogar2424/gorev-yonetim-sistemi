@@ -5,7 +5,7 @@
 import type { FoodAnalysis, MealAdvice, ShoppingSuggestion } from './types'
 import { recordUsage } from './lib/usage'
 
-export const DEFAULT_MODEL = 'claude-opus-4-8'
+export const DEFAULT_MODEL = 'claude-opus-5'
 
 // SDK'yi geç (lazy) yukle ve istemciyi olustur. messages.create sarmalanir:
 // her cevaptan gelen token kullanimi merkezi olarak kaydedilir (Ayarlar'da
@@ -152,7 +152,7 @@ function friendlyError(err: unknown): Error {
   if (status === 429) return new Error('Çok fazla istek gönderildi. Lütfen birazdan tekrar deneyin.')
   if (status === 404) {
     return new Error(
-      `Model bulunamadı. Ayarlar'dan model adını kontrol edin (örn. ${DEFAULT_MODEL} veya claude-sonnet-4-6). Ayrıntı: ${detail}`
+      `Model bulunamadı. Ayarlar'dan model adını kontrol edin (örn. ${DEFAULT_MODEL} veya claude-sonnet-5). Ayrıntı: ${detail}`
     )
   }
   if (status === 400) return new Error(`Geçersiz istek (400): ${detail}`)

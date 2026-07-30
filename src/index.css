@@ -15,8 +15,8 @@ body,
 body {
   margin: 0;
   -webkit-tap-highlight-color: transparent;
-  background: #f6f8fa;
-  color: #0f172a;
+  background: #f4f6f8;
+  color: #101828;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -30,6 +30,12 @@ input,
 select,
 textarea {
   font-size: 16px;
+}
+
+/* Rakamlar hizali gorunsun (kalori/makro tablolari) — profesyonel detay */
+.tabular,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 @layer components {
@@ -47,7 +53,7 @@ textarea {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-semibold transition active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white shadow-[0_6px_16px_-6px_rgba(5,150,105,0.55)] hover:bg-brand-700;
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
   }
   .btn-ghost {
     @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
@@ -55,16 +61,31 @@ textarea {
   .btn-danger {
     @apply btn bg-red-600 text-white hover:bg-red-700;
   }
+  /* Ikincil eylem: cerceveli, sakin (MFP'deki "Düzenle" gibi) */
+  .btn-secondary {
+    @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
+  }
+  /* KART: daha az yuvarlak, daha az golge, net kenar — "yuzey" hissi.
+     Abartili golge/radius amator durdugu icin bilincli olarak sadelestirildi. */
   .card {
-    @apply bg-white rounded-[20px] shadow-card border border-slate-100/80;
+    @apply bg-white rounded-2xl shadow-card border border-slate-200/70;
   }
   /* Kucuk yuvarlak etiket (rozet/pill) */
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
   }
-  /* Bolum basligi (kucuk, buyuk harf) */
+  /* Bolum basligi: BUYUK HARF DEGIL — normal, koyu, okunakli.
+     Buyuk harf + gri kucuk yazi kalabalik gorunuyordu. */
   .section-title {
-    @apply text-xs font-bold text-slate-400 uppercase tracking-wide;
+    @apply text-[13px] font-semibold text-slate-500;
+  }
+  /* Ekrandaki buyuk rakam (kalori, adim, kilo...) */
+  .stat-num {
+    @apply font-bold tracking-tight tabular-nums text-slate-900;
+  }
+  /* Rakamin altindaki kucuk etiket */
+  .stat-label {
+    @apply text-[11px] text-slate-500 leading-tight;
   }
 }
 
@@ -75,27 +96,29 @@ textarea {
    basliklar/butonlar (brand) dokunulmadan kalir. Rapor GORSELLERI canvas
    ile cizildiginden bundan etkilenmez (acik kalir).
    ========================================================================= */
+/* MFP'deki gibi SIYAHA YAKIN notr zemin (mavimsi lacivert degil).
+   Kartlar zeminden bir tik acik; kenarlik ince ve dusuk kontrastli. */
 .dark body {
-  background: #0b1220;
-  color: #e5e9f0;
+  background: #0d1117;
+  color: #e6edf3;
 }
 .dark .card {
-  background-color: #161f31;
-  border-color: #26324a;
+  background-color: #161b22;
+  border-color: #232a33;
 }
 
 /* Yuzeyler */
 .dark .bg-white {
-  background-color: #161f31;
+  background-color: #161b22;
 }
 .dark .bg-slate-50 {
-  background-color: #1b2740;
+  background-color: #1b222c;
 }
 .dark .bg-slate-100 {
-  background-color: #1f2c47;
+  background-color: #1f2731;
 }
 .dark .bg-slate-200 {
-  background-color: #26344f;
+  background-color: #273039;
 }
 
 /* Tonlu bilgi kartlari (-50) -> hafif tonlu koyu zemin */
@@ -128,15 +151,15 @@ textarea {
 .dark .text-slate-900,
 .dark .text-slate-800,
 .dark .text-slate-700 {
-  color: #e5e9f0;
+  color: #e6edf3;
 }
 .dark .text-slate-600,
 .dark .text-slate-500 {
-  color: #aab4c5;
+  color: #9aa7b4;
 }
 .dark .text-slate-400,
 .dark .text-slate-300 {
-  color: #8792a6;
+  color: #7d8894;
 }
 
 /* Tonlu koyu metinleri koyu zeminde acmak (kontrast icin) */
@@ -148,9 +171,11 @@ textarea {
 .dark .text-teal-700 {
   color: #6ee7b7;
 }
-/* Orta yesil vurgular (link/aktif ikon) koyu zeminde okunakli kalsin */
+/* Marka (MAVI) vurgular koyu zeminde okunakli kalsin */
 .dark .text-brand-600,
-.dark .text-brand-500,
+.dark .text-brand-500 {
+  color: #6ea8ff;
+}
 .dark .text-emerald-600,
 .dark .text-emerald-500 {
   color: #34d399;
@@ -184,7 +209,7 @@ textarea {
 .dark .border-slate-200,
 .dark .border-slate-300,
 .dark .border-slate-100\/80 {
-  border-color: #26324a;
+  border-color: #232a33;
 }
 .dark .border-emerald-100,
 .dark .border-brand-100,
@@ -208,13 +233,13 @@ textarea {
 /* Form alanlari */
 .dark .field-input,
 .dark .num-input {
-  background-color: #1b2740;
-  border-color: #2b3a57;
-  color: #e5e9f0;
+  background-color: #1b222c;
+  border-color: #2b333d;
+  color: #e6edf3;
 }
 .dark .field-input:focus,
 .dark .num-input:focus {
-  background-color: #161f31;
+  background-color: #161b22;
 }
 /* Sayi kutularindaki artir/azalt oklarini gizle (yer kaplamasin, rakam sigsin) */
 .num-input::-webkit-outer-spin-button,
@@ -230,8 +255,20 @@ textarea {
   color: #aab4c5;
 }
 .dark .btn-ghost {
-  background-color: #1f2c47;
+  background-color: #1f2731;
   color: #dbe2ec;
+}
+.dark .btn-secondary {
+  background-color: #161b22;
+  border-color: #2b333d;
+  color: #dbe2ec;
+}
+.dark .stat-num {
+  color: #e6edf3;
+}
+.dark .stat-label,
+.dark .section-title {
+  color: #9aa7b4;
 }
 .dark input,
 .dark select,

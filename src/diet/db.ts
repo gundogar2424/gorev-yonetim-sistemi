@@ -603,7 +603,7 @@ export async function clearDoneShopping() {
 // Kayit yoksa, DB'ye dokunmadan bellekte varsayilan bir nesne dondurur.
 export async function readDietSettings(): Promise<DietSettings> {
   const s = await dietDb.settings.toCollection().first()
-  return s ?? { model: 'claude-opus-4-8' }
+  return s ?? { model: 'claude-opus-5' }
 }
 
 // Ayarlari guncelle (yazma baglami — kayit yoksa olusturur, varsa gunceller)
@@ -613,6 +613,6 @@ export async function saveDietSettings(patch: Partial<DietSettings>) {
   if (s?.id != null) {
     await dietDb.settings.update(s.id, stamped)
   } else {
-    await dietDb.settings.add({ model: 'claude-opus-4-8', ...stamped })
+    await dietDb.settings.add({ model: 'claude-opus-5', ...stamped })
   }
 }
