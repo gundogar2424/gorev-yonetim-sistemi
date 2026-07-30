@@ -2512,25 +2512,47 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
 
   if (meals.length === 0) return null
 
-  // Bugün: saati gelmemiş ve girilmemiş ilk öğün
+  // 1) Saati GELMEMİŞ ve girilmemiş ilk öğün
   let next = meals.find((x) => x.min >= nowMin && !covered.has(x.meal))
   let tomorrow = false
+  let overdue = false
+
+  // 2) Yoksa: saati GEÇMİŞ ama hâlâ girilmemiş öğün.
+  //    Eskiden burası doğrudan yarına atlıyordu; saat 21:51'de 21:30'daki gece
+  //    öğünü girilmemişse öğün sessizce KAYBOLUYORDU. Girmediğin öğün
+  //    yarına atlamadan önce hâlâ önünde durmalı ki kaydedebilesin.
+  //    En SON geçen öğünü alıyoruz (sabah atlanan kahvaltıyı akşam öne
+  //    çıkarmak anlamsız olurdu) ve yalnızca makul bir süre içindeyse.
+  const OVERDUE_GRACE_MIN = 4 * 60
   if (!next) {
-    next = meals[0] // bugünküler bitti → yarının ilki
+    const past = meals.filter((x) => x.min < nowMin && !covered.has(x.meal) && nowMin - x.min <= OVERDUE_GRACE_MIN)
+    if (past.length) {
+      next = past[past.length - 1]
+      overdue = true
+    }
+  }
+
+  // 3) O da yoksa: yarının ilk öğünü
+  if (!next) {
+    next = meals[0]
     tomorrow = true
   }
 
-  // Ne kadar kaldı?
+  // Ne kadar kaldı / ne kadar geçti?
   const diff = (tomorrow ? next.min + 1440 : next.min) - nowMin
-  const hh = Math.floor(diff / 60)
-  const mm = diff % 60
+  const hh = Math.floor(Math.abs(diff) / 60)
+  const mm = Math.abs(diff) % 60
   const left = tomorrow
     ? `yarın ${next.time}`
-    : diff <= 0
-      ? 'vakti geldi'
-      : hh > 0
-        ? `${hh} sa ${mm} dk sonra`
-        : `${mm} dk sonra`
+    : overdue
+      ? hh > 0
+        ? `${hh} sa ${mm} dk gecikti`
+        : `${mm} dk gecikti`
+      : diff <= 0
+        ? 'vakti geldi'
+        : hh > 0
+          ? `${hh} sa ${mm} dk sonra`
+          : `${mm} dk sonra`
 
   const chosen = next.meal
   const planText = settings?.dietPlanMeals?.[chosen]?.trim()
@@ -2538,10 +2560,10 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
     <button onClick={() => onPick(chosen)} className="card p-5 w-full text-left active:scale-[0.995] transition">
       {/* Ust satir: etiket + saat. Emoji ogun simgesi olarak kucuk ve yardimci. */}
       <div className="flex items-center justify-between gap-3">
-        <span className="section-title">Sıradaki öğün</span>
+        <span className="section-title">{overdue ? 'Girilmemiş öğün' : 'Sıradaki öğün'}</span>
         <span className="text-[12px] text-slate-500 tabular-nums">
           {next.time}
-          {tomorrow ? ' · yarın' : ''}
+          {tomorrow ? ' · yarın' : overdue ? ' · geçti' : ''}
         </span>
       </div>
 
@@ -2549,7 +2571,7 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
         <span className="text-[28px] leading-none">{mealEmoji(chosen)}</span>
         <div className="min-w-0">
           <p className="text-[22px] font-bold text-slate-900 leading-tight tracking-tight">{mealLabel(chosen)}</p>
-          <p className="text-[13px] text-slate-500 mt-0.5">{left}</p>
+          <p className={`text-[13px] mt-0.5 ${overdue ? 'text-amber-600 font-medium' : 'text-slate-500'}`}>{left}</p>
         </div>
       </div>
 
