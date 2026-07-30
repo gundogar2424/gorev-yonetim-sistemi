@@ -210,7 +210,11 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const ex30 = sum(exercises.filter((e) => e.dateStr >= since30))
     if (ex30.n) {
       L.push(
-        `SPOR geçmişi: son 7 günde ${ex7.n} antrenman (${ex7.days} gün, ${ex7.min} dk, ~${ex7.kcal} kcal); son 30 günde ${ex30.n} antrenman (${ex30.days} gün, ${ex30.min} dk, ~${ex30.kcal} kcal). Haftalık değerlendirmede spor düzenini ve kalori yakımını dikkate al.`
+        // NOT: Health Connect'ten gelen antrenmanlarda kalori YOK (eklentinin
+        // verdigi sayi bazal metabolizmayi iceriyordu, bilerek silindi).
+        // Sifirsa "~0 kcal" yazmak yaniltici olur — o parcayi hic yazmiyoruz.
+        // Gunun gercek hareket kalorisi zaten ADIM satirinda ("kcal aktivite").
+        `SPOR geçmişi: son 7 günde ${ex7.n} antrenman (${ex7.days} gün, ${ex7.min} dk${ex7.kcal ? `, ~${ex7.kcal} kcal` : ''}); son 30 günde ${ex30.n} antrenman (${ex30.days} gün, ${ex30.min} dk${ex30.kcal ? `, ~${ex30.kcal} kcal` : ''}). Haftalık değerlendirmede spor düzenini ve kalori yakımını dikkate al; antrenman kalorisi yoksa günlük aktivite kalorisine bak.`
       )
     }
     // Ogun/kalori gecmisi (son 7 gun): gunluk ortalama alinan kalori
@@ -238,7 +242,11 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       if (ateAll.length) bits.push(`toplam ${ateAll.length} öğün`)
       if (allAdh.length) bits.push(`tüm zaman diyet başarısı ort. %${Math.round(allAdh.reduce((a, b) => a + b, 0) / allAdh.length)}`)
       if (exercises.length)
-        bits.push(`${exercises.length} antrenman (${exercises.reduce((s, e) => s + (e.minutes || 0), 0)} dk, ~${exercises.reduce((s, e) => s + (e.kcal || 0), 0)} kcal)`)
+      {
+        const exMin = exercises.reduce((s, e) => s + (e.minutes || 0), 0)
+        const exKcal = exercises.reduce((s, e) => s + (e.kcal || 0), 0)
+        bits.push(`${exercises.length} antrenman (${exMin} dk${exKcal ? `, ~${exKcal} kcal` : ''})`)
+      }
       L.push(
         `BAŞLANGIÇTAN BUGÜNE GENEL: ${bits.join(' · ')}. Haftalık/ilerleme değerlendirmesinde SADECE bu haftaya değil, ilk kayıttan bugüne bu uzun vadeli tabloya da bak; eski verilerdeki örüntü/ilerlemeyi de kullan.`
       )
