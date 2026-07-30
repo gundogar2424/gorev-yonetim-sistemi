@@ -74,6 +74,13 @@ jobs:
           h=node_modules/@flomentumsolutions/capacitor-health-extended/android/build.gradle
           grep -q "kotlin-android" "$h" || sed -i "s#^apply plugin: 'com.android.library'#apply plugin: 'com.android.library'\napply plugin: 'kotlin-android'#" "$h"
           echo "--- health-extended build.gradle ---"; grep -nE "apply plugin" "$h"
+          # Aynı eklenti, Health Connect kütüphanesinde bulunmayan bir sabiti
+          # (HealthPermission.PERMISSION_READ_EXERCISE_ROUTE) kullanıyor ->
+          # "Unresolved reference". Rota verisini kullanmıyoruz; sabiti resmi izin
+          # metniyle değiştir (aynı tip: String).
+          k=$(find node_modules/@flomentumsolutions/capacitor-health-extended/android/src/main/java -name 'HealthPlugin.kt')
+          sed -i 's#HealthPermission\.PERMISSION_READ_EXERCISE_ROUTE#"android.permission.health.READ_EXERCISE_ROUTE"#g' "$k"
+          echo "--- route sabiti yaması ---"; grep -n "READ_EXERCISE_ROUTE" "$k" || true
 
       - name: Kamera izni ekle (canlı barkod tarayıcı için)
         run: |
