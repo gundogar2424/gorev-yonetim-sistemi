@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry } from '../db'
+import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -1357,10 +1357,20 @@ function ActivityCard({ exercises }: { exercises: Exercise[] }) {
   const today = todayStr()
   const todays = exercises.filter((e) => e.dateStr === today)
 
-  const steps = todays.reduce((s, e) => s + (e.steps || 0), 0)
-  const kcal = todays.reduce((s, e) => s + (e.kcal || 0), 0)
+  // GÜNLÜK toplamlar (Health Connect'ten gelen adım/mesafe/yakılan kalori).
+  // Antrenman kaydı olmasa bile bunlar gösterilir.
+  const dayRow = useLiveQuery(() => getStepsRow(today), [today], undefined)
+
+  // Antrenmanlardan gelenler
+  const exSteps = todays.reduce((s, e) => s + (e.steps || 0), 0)
+  const exKcal = todays.reduce((s, e) => s + (e.kcal || 0), 0)
   const minutes = todays.reduce((s, e) => s + (e.minutes || 0), 0)
-  const distanceKm = todays.reduce((s, e) => s + (e.distanceKm || 0), 0)
+  const exDist = todays.reduce((s, e) => s + (e.distanceKm || 0), 0)
+
+  // Günlük toplam varsa onu kullan (daha kapsamlı); yoksa antrenman toplamı
+  const steps = dayRow?.count || exSteps
+  const distanceKm = dayRow?.distanceKm || exDist
+  const kcal = dayRow?.burnedKcal || dayRow?.activeKcal || exKcal
 
   const stats: { icon: string; val: string; label: string }[] = []
   if (steps > 0) stats.push({ icon: '👣', val: steps.toLocaleString('tr-TR'), label: 'adım' })
