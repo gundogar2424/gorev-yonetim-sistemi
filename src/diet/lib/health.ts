@@ -217,6 +217,29 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
     /* antrenman okunamadi; yalniz gunluk toplamlar donerse de olur */
   }
 
+  // ANTRENMAN KALORİSİNİ TEMİZLE.
+  // Eklentinin verdiği antrenman kalorisi TEMİZ DEĞİL: kaynak kodunda
+  // (addWorkoutTotalCalories → sumActiveAndBasalCalories) şu var —
+  //     active + basal   ... ikisi de yoksa → total
+  // yani her antrenmanın kalorisine BAZAL METABOLİZMA da katılıyor, hatta
+  // aktif veri yoksa doğrudan günün TOPLAM yakımına düşüyor. Bir diyet
+  // bütçesine eklenince "kalan kalori" uçuyor (7.978 adımda 3.078 kcal gibi).
+  //
+  // Elimizdeki TEMİZ ölçü günün aktif kalorisi: onu ayrı bir sorguyla
+  // ('active-calories') tek metrik olarak alıyoruz, bazal karışmıyor.
+  // Gün boyu hareketten yakılan toplam, tanımı gereği antrenmanların
+  // ÜST SINIRIDIR — antrenman toplamı bunu aşıyorsa oransal olarak kısıyoruz.
+  const rawWorkoutKcal = workouts.reduce((s, w) => s + (w.kcal || 0), 0)
+  const ceiling = activeKcal > 0 ? activeKcal : steps > 0 ? Math.round(steps * 0.04) : 0
+  if (ceiling > 0 && rawWorkoutKcal > ceiling) {
+    const factor = ceiling / rawWorkoutKcal
+    workouts = workouts.map((w) => ({ ...w, kcal: w.kcal ? Math.round(w.kcal * factor) : w.kcal }))
+  } else if (ceiling === 0 && rawWorkoutKcal > 0) {
+    // Hiç temiz ölçü yok: kirli sayıyı bütçeye sokmaktansa kaloriyi boş bırak.
+    // Antrenmanın kendisi (süre/mesafe/nabız) yine görünür.
+    workouts = workouts.map((w) => ({ ...w, kcal: undefined }))
+  }
+
   return {
     steps,
     distanceKm: Math.round((distanceM / 1000) * 100) / 100,
