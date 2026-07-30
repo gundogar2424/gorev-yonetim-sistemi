@@ -314,6 +314,13 @@ export interface DietSettings {
   dietPlanMeals?: Partial<Record<MealType, string>>
   dietPlanMealsSrc?: string
   reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)
+  // HANGI OGUNLERI YIYORSUN? Bu, bildirimden AYRI bir sorudur. Onceden bu
+  // bilgi "hatirlaticisi acik mi" ya da "diyet listesinde satiri var mi"
+  // uzerinden TAHMIN ediliyordu; ikisi de yaniltiyordu (bildirim istemedigin
+  // ogun yok sayiliyor, listeyi bolen yapay zeka satiri uretemezse ogun
+  // kayboluyordu). Artik kullanici acikca secer. Bos/tanimsizsa makul bir
+  // varsayilan turetilir (ana ogunler + listede karsiligi olan ara ogunler).
+  myMeals?: MealType[]
   // Gunluk/haftalik hedefler (istege bagli; bos birakilirsa varsayilan kullanilir)
   waterGoal?: number // Gunluk su hedefi (bardak)
   calorieGoal?: number // Gunluk kalori hedefi (kcal)

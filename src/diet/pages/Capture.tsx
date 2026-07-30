@@ -8,7 +8,7 @@ import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurem
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
-import { scheduleSugarReminder, applyNotifications, enabledMealTypes, mergeReminders } from '../lib/notify'
+import { scheduleSugarReminder, applyNotifications, activeMealTypes, mergeReminders } from '../lib/notify'
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel, mealEmoji } from '../lib/meals'
 import { isBeverage } from '../lib/food'
@@ -119,9 +119,9 @@ export default function Capture() {
 
   const hasKey = !!settings?.apiKey
 
-  // Takip edilecek öğünler = Hatırlatıcılar'da açılan öğünler. Puanlama (streak)
-  // bu listeyi kullansın; ayar değişince güncellensin.
-  const trackedMeals = enabledMealTypes(settings)
+  // Takip edilecek öğünler = kullanıcının "Öğünlerim"de işaretlediği öğünler
+  // (bildirim anahtarı DEĞİL). Puanlama/atlanan öğün cezası bunu kullanır.
+  const trackedMeals = activeMealTypes(settings)
   useEffect(() => {
     setActiveMeals(trackedMeals)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2449,23 +2449,12 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
   const now = new Date()
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
-  // HANGİ ÖĞÜNLER VAR?
-  // Karar KULLANICININDIR: Hatırlatıcılar'da açtığı öğünler sıraya girer, ara
-  // öğün de dahil (öğleden sonra ara = 'ikindi'). Diyet listesini öğünlere bölen
-  // yapay zeka o satırı üretememiş olabilir; bu, öğünün yok olduğu anlamına
-  // GELMEZ — o yüzden listeye bakıp ara öğün elemiyoruz.
-  // Hiçbir hatırlatıcı açık değilse (kullanıcı hiç seçim yapmamış) makul bir
-  // varsayılana düşeriz: 3 ana öğün + diyet listesinde karşılığı olan ara öğünler.
-  const plan = settings?.dietPlanMeals
-  const MAIN: MealType[] = ['kahvalti', 'ogle', 'aksam']
-
-  const all = mergeReminders(settings?.reminders)
-  const enabled = all.filter((r) => r.enabled)
-  const usable = enabled.length
-    ? enabled
-    : all.filter((r) => MAIN.includes(r.id as MealType) || !!plan?.[r.id as MealType]?.trim())
-
-  const meals = usable
+  // HANGİ ÖĞÜNLER VAR? Tek kaynak: Hatırlatıcılar > "Öğünlerim".
+  // Bildirim anahtarına BAKMIYORUZ — bildirim istemediğin öğün de yenir.
+  // Saatler yine hatırlatıcı satırlarından gelir (kullanıcı orada ayarlıyor).
+  const mine = new Set(activeMealTypes(settings))
+  const meals = mergeReminders(settings?.reminders)
+    .filter((r) => mine.has(r.id as MealType))
     .map((r) => {
       const [h, m] = r.time.split(':').map(Number)
       return { meal: r.id as MealType, time: r.time, min: (h || 0) * 60 + (m || 0) }

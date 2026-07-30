@@ -49,14 +49,41 @@ export function mergeReminders(saved?: Reminder[]): Reminder[] {
   return defaults.map((d) => byId.get(d.id) ?? d)
 }
 
-// Takip edilecek (kirmizi uyari + basari puani) ogunler: kullanicinin
-// Hatirlaticilar'da ACTIGI ogunler. Hicbiri acik degilse makul varsayilan:
-// 3 ana ogun (kahvalti/ogle/aksam).
+// Bildirimi ACIK olan ogunler (yalnizca bildirim isleri icin).
 export function enabledMealTypes(settings?: DietSettings): MealType[] {
   const on = mergeReminders(settings?.reminders)
     .filter((r) => r.enabled)
     .map((r) => r.id as MealType)
   return on.length ? on : ['kahvalti', 'ogle', 'aksam']
+}
+
+export const ALL_MEALS: MealType[] = ['kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece']
+const MAIN_MEALS: MealType[] = ['kahvalti', 'ogle', 'aksam']
+
+// KULLANICININ GERCEKTEN YEDIGI OGUNLER. "Sıradaki öğün", atlanan-ogun cezasi
+// ve gunluk basari puani BUNU kullanir — bildirim anahtarlarini DEGIL.
+//
+// Neden ayri: bildirim anahtari "haber ver mi?" sorusudur, "bu ogunu yiyor
+// muyum?" sorusu degil. Ikisi ayni sayilinca iki yanlis birden cikiyordu:
+// bildirimi kapali olan gece ogunu YOK sayiliyor, bildirimi acik kalmis sabah
+// ara ogunu VAR sayiliyordu.
+//
+// settings.myMeals bos ise makul bir varsayilan turetilir: 3 ana ogun +
+// bildirimi acik olan ara ogunler + diyet listesinde karsiligi yazan ara
+// ogunler. Kullanici Hatirlaticilar > "Öğünlerim"den bunu duzeltebilir.
+export function activeMealTypes(settings?: DietSettings): MealType[] {
+  const chosen = settings?.myMeals
+  if (chosen && chosen.length) return ALL_MEALS.filter((m) => chosen.includes(m))
+
+  const enabled = new Set(
+    mergeReminders(settings?.reminders)
+      .filter((r) => r.enabled)
+      .map((r) => r.id as MealType)
+  )
+  const plan = settings?.dietPlanMeals
+  return ALL_MEALS.filter(
+    (m) => MAIN_MEALS.includes(m) || enabled.has(m) || !!plan?.[m]?.trim()
+  )
 }
 
 // Android bildirim kanalini olustur (ses + titresim). Kullanici telefon

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { readDietSettings, saveDietSettings, listCheckins } from '../db'
-import { mergeReminders, ensurePermission, applyNotifications, isNative } from '../lib/notify'
-import type { Reminder, DietSettings } from '../types'
+import { mergeReminders, ensurePermission, applyNotifications, isNative, activeMealTypes, ALL_MEALS } from '../lib/notify'
+import type { Reminder, DietSettings, MealType } from '../types'
 
 export default function Reminders() {
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
@@ -26,6 +26,16 @@ export default function Reminders() {
       if (!merged.reminders?.length) merged.reminders = reminders
       await applyNotifications(merged)
     }
+  }
+
+  // "Öğünlerim": kullanicinin gercekten yedigi ogunler. Ayarda hic secim
+  // yoksa turetilen makul varsayilan gosterilir; ilk dokunusta o varsayilan
+  // aynen kaydedilir ve uzerinde degisiklik yapilir (yoksa tek tikta liste
+  // sifirlanmis gibi olurdu).
+  const myMeals = activeMealTypes(settings)
+  async function toggleMyMeal(meal: MealType) {
+    const next = myMeals.includes(meal) ? myMeals.filter((m) => m !== meal) : [...myMeals, meal]
+    await persist({ myMeals: ALL_MEALS.filter((m) => next.includes(m)) })
   }
 
   async function toggle(id: string, enabled: boolean) {
@@ -172,9 +182,46 @@ export default function Reminders() {
           </div>
         )}
 
+        {/* HANGI OGUNLERI YIYORSUN — bildirimden AYRI soru. Ana ekrandaki
+            "Sıradaki öğün", atlanan öğün cezası ve günlük başarı puanı bunu
+            kullanır. Önceden bildirim anahtarından tahmin ediliyordu. */}
+        <section className="space-y-2">
+          <h3 className="section-title px-1">Öğünlerim</h3>
+          <div className="card p-4 space-y-3">
+            <p className="text-[13px] text-slate-500 leading-relaxed">
+              Günde hangi öğünleri yiyorsun? “Sıradaki öğün” ve günlük başarı puanı buna göre hesaplanır.
+              <b> Bildirimden ayrıdır</b> — bildirim istemediğin bir öğünü yine de işaretleyebilirsin.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {reminders.map((r) => {
+                const on = myMeals.includes(r.id as MealType)
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => toggleMyMeal(r.id as MealType)}
+                    className={`chip border transition ${
+                      on
+                        ? 'bg-brand-600 text-white border-brand-600'
+                        : 'bg-transparent text-slate-500 border-slate-200 dark:border-[#333749]'
+                    }`}
+                  >
+                    {on ? '✓ ' : ''}
+                    {r.label}
+                  </button>
+                )
+              })}
+            </div>
+            {myMeals.length === 0 && (
+              <p className="text-[12px] text-amber-700 bg-amber-50 rounded-lg p-2">
+                Hiç öğün seçili değil. En az bir öğün seç, yoksa sıradaki öğün gösterilemez.
+              </p>
+            )}
+          </div>
+        </section>
+
         {/* Ogun hatirlaticilari */}
         <section className="space-y-2">
-          <h3 className="section-title px-1">🍽️ Öğün hatırlatıcıları</h3>
+          <h3 className="section-title px-1">Öğün hatırlatıcıları</h3>
           {reminders.map((r) => (
             <div key={r.id} className="card p-3 space-y-2">
               <div className="flex items-center gap-3">
