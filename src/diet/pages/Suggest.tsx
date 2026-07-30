@@ -330,7 +330,7 @@ export default function Suggest() {
             {/* Taninan urunler */}
             {advice.foodsDetected.length > 0 && (
               <div className="card p-3">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Tanınan ürünler</p>
+                <p className="section-title mb-1.5">Tanınan ürünler</p>
                 <div className="flex flex-wrap gap-1.5">
                   {advice.foodsDetected.map((f, i) => (
                     <span key={i} className="text-xs font-semibold bg-slate-100 text-slate-700 rounded-full px-2.5 py-1">

@@ -104,7 +104,7 @@ export default function Menu() {
         {/* Sohbet */}
         {plan.trim() && (
           <section className="card p-3 space-y-2">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">💬 Menün hakkında sor</p>
+            <p className="section-title">Menün hakkında sor</p>
             {chat.length > 0 && (
               <div className="space-y-1.5 max-h-72 overflow-y-auto">
                 {chat.map((m, i) => (
@@ -139,7 +139,7 @@ export default function Menu() {
         {/* AI ile duzelt */}
         {plan.trim() && (
           <section className="card p-3 space-y-2">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">✨ Yapay zeka ile düzelt</p>
+            <p className="section-title">Yapay zeka ile düzelt</p>
             <div className="flex gap-2">
               <input
                 className="field-input flex-1"
@@ -175,7 +175,7 @@ export default function Menu() {
 
         {/* Mevcut liste (elle de duzenlenebilir) */}
         <section className="card p-3 space-y-2">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Diyet listem</p>
+          <p className="section-title">Diyet listem</p>
           <textarea
             className="field-input font-mono text-xs min-h-[180px]"
             placeholder={'Listeni buraya yaz ya da Ayarlar’dan fotoğrafını çek…'}

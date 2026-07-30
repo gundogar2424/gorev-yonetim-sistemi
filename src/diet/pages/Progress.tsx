@@ -86,7 +86,7 @@ export default function Progress() {
 
         {/* Tum fotograflar */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Tüm fotoğraflar</h3>
+          <h3 className="section-title px-1">Tüm fotoğraflar</h3>
           {list.length === 0 && (
             <div className="card p-6 text-center text-slate-500 text-sm">
               <div className="text-5xl mb-2">📸</div>

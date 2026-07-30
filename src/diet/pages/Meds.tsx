@@ -280,7 +280,7 @@ export default function Meds() {
         {/* İLAÇ / VİTAMİN LİSTESİ (tanımlar) */}
         <section className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Programım</h3>
+            <h3 className="section-title">Programım</h3>
             <button
               onClick={() => setEditing('new')}
               className="text-xs font-semibold text-white bg-brand-600 rounded-full px-3 py-1"
@@ -341,7 +341,7 @@ export default function Meds() {
         {active.length > 0 && (
           <section className="card p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="section-title">📊 Kullanım uyumu</span>
+              <span className="section-title">Kullanım uyumu</span>
               <div className="flex gap-1">
                 {PERIODS.map((p) => (
                   <button

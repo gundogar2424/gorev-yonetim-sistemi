@@ -72,7 +72,7 @@ export default function Shopping() {
         {/* ALINACAKLAR (elimizde yok) — tik atılmamışlar */}
         {pending.length > 0 && (
           <section className="space-y-2">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">
+            <h3 className="section-title px-1">
               🛒 Alınacaklar ({pending.length})
             </h3>
             {pending.map((i) => (
@@ -85,7 +85,7 @@ export default function Shopping() {
         {done.length > 0 && (
           <section className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">✓ Alındı ({done.length})</h3>
+              <h3 className="section-title">Alındı ({done.length})</h3>
               <button onClick={clearDoneShopping} className="text-xs text-rose-500 underline">
                 Temizle
               </button>

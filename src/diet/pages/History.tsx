@@ -183,7 +183,7 @@ export default function History() {
         {groups.map(([date, items]) => (
           <section key={date} className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">{formatDate(date)}</h3>
+              <h3 className="section-title">{formatDate(date)}</h3>
               <DayScoreBadge entries={items} date={date} />
             </div>
             {items.map((e) => {

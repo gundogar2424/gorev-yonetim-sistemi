@@ -400,7 +400,7 @@ export default function Barcode() {
               value={man.name}
               onChange={(e) => setMan({ ...man, name: e.target.value })}
             />
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">100 g/ml için (paketin arkasından)</p>
+            <p className="section-title">100 g/ml için (paketin arkasından)</p>
             <div className="grid grid-cols-2 gap-2">
               <label className="text-sm text-slate-600">
                 Kalori (kcal)
@@ -456,7 +456,7 @@ export default function Barcode() {
             </div>
             <div className="p-4 space-y-3">
               {/* 100 g/ml icin besin degerleri (bilgi) */}
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">100 {unit} için</p>
+              <p className="section-title">100 {unit} için</p>
               <div className="grid grid-cols-4 gap-2 text-center">
                 <Box label="Kalori" value={`${product.per100.kcal}`} unit="kcal" cls="bg-orange-50 text-orange-700" />
                 <Box label="Protein" value={`${product.per100.protein}`} unit="g" cls="bg-rose-50 text-rose-700" />
@@ -499,7 +499,7 @@ export default function Barcode() {
                   )}
 
                   <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Hangi öğün?</p>
+                    <p className="section-title mb-1.5">Hangi öğün?</p>
                     <div className="flex flex-wrap gap-1.5">
                       {MEAL_OPTIONS.map((m) => (
                         <button

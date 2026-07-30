@@ -33,16 +33,16 @@ export default function ExercisePage() {
 
       <div className="p-3 space-y-4">
         {/* Ozet kart */}
-        <div className="card p-4 bg-gradient-to-br from-indigo-500 to-violet-600 text-white border-0">
-          <div className="flex items-start justify-between">
+        <div className="card p-5">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-indigo-50 text-xs uppercase tracking-wide">Egzersiz puanı</p>
-              <p className="text-4xl font-extrabold mt-1">⭐ {totalPoints}</p>
+              <p className="stat-label">Egzersiz puanı</p>
+              <p className="stat-num text-[38px] leading-none mt-1">{totalPoints.toLocaleString('tr-TR')}</p>
             </div>
-            <div className="text-right">
-              <p className="text-indigo-50 text-xs uppercase tracking-wide">Toplam</p>
-              <p className="text-lg font-bold mt-1">{list.length} egzersiz</p>
-              <p className="text-indigo-100 text-sm">{totalMinutes} dk</p>
+            <div className="text-right flex-shrink-0">
+              <p className="stat-label">Toplam</p>
+              <p className="stat-num text-[20px] leading-none mt-1.5">{list.length}</p>
+              <p className="text-[12px] text-slate-500 mt-1">egzersiz · {totalMinutes} dk</p>
             </div>
           </div>
         </div>
@@ -73,7 +73,7 @@ export default function ExercisePage() {
         {/* Hangi güne? — hem fotoğraftan hem elle eklenen veri bu güne yazılır */}
         <section className="card p-4">
           <label className="block">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">📅 Hangi güne ekleniyor?</span>
+            <span className="section-title">Hangi güne ekleniyor?</span>
             <input
               type="date"
               className="field-input mt-1"
@@ -122,7 +122,7 @@ export default function ExercisePage() {
 
         {/* Egzersiz gecmisi */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Geçmiş</h3>
+          <h3 className="section-title px-1">Geçmiş</h3>
           {list.length === 0 && (
             <div className="card p-6 text-center text-slate-500 text-sm">
               <div className="text-5xl mb-2">🏃</div>
@@ -234,15 +234,12 @@ function HealthConnectCard({ day }: { day: string }) {
   }
 
   return (
-    <section className="card p-4 bg-gradient-to-br from-sky-50 to-teal-50 border-sky-100 space-y-2">
-      <div className="flex items-center gap-3">
-        <span className="text-3xl">⌚</span>
-        <div className="flex-1">
-          <p className="font-bold text-slate-800">Samsung Health’ten otomatik al</p>
-          <p className="text-xs text-slate-500">
-            Adım, mesafe, kalori, uyku ve antrenmanları (nabızla) Health Connect üzerinden {formatDate(day)} gününe çeker.
-          </p>
-        </div>
+    <section className="card p-5 space-y-3">
+      <div>
+        <p className="text-[15px] font-semibold text-slate-900">Samsung Health’ten otomatik al</p>
+        <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+          Adım, mesafe, kalori, uyku ve antrenmanları (nabızla) Health Connect üzerinden {formatDate(day)} gününe çeker.
+        </p>
       </div>
 
       {state === 'unavailable' ? (

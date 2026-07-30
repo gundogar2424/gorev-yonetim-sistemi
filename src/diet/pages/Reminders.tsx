@@ -174,7 +174,7 @@ export default function Reminders() {
 
         {/* Ogun hatirlaticilari */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🍽️ Öğün hatırlatıcıları</h3>
+          <h3 className="section-title px-1">🍽️ Öğün hatırlatıcıları</h3>
           {reminders.map((r) => (
             <div key={r.id} className="card p-3 space-y-2">
               <div className="flex items-center gap-3">
@@ -209,7 +209,7 @@ export default function Reminders() {
 
         {/* Motivasyon bildirimi */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🌟 Motivasyon bildirimi</h3>
+          <h3 className="section-title px-1">🌟 Motivasyon bildirimi</h3>
           <div className="card p-3 space-y-2">
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -237,7 +237,7 @@ export default function Reminders() {
 
         {/* Gun ici "nasilsin?" check-in bildirimi */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">💬 Gün içi “nasılsın?”</h3>
+          <h3 className="section-title px-1">💬 Gün içi “nasılsın?”</h3>
           <div className="card p-3 space-y-2">
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -265,7 +265,7 @@ export default function Reminders() {
 
         {/* Seker olcum hatirlatmalari */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🩸 Şeker ölçüm hatırlatması</h3>
+          <h3 className="section-title px-1">🩸 Şeker ölçüm hatırlatması</h3>
 
           {/* Sabah aclik */}
           <div className="card p-3 space-y-2">
@@ -311,7 +311,7 @@ export default function Reminders() {
 
         {/* Akilli aclik hatirlaticisi (verilerden ogrenir) */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">🍽️ Akıllı açlık hatırlatıcısı</h3>
+          <h3 className="section-title px-1">🍽️ Akıllı açlık hatırlatıcısı</h3>
           <div className="card p-3 space-y-2">
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -332,7 +332,7 @@ export default function Reminders() {
 
         {/* Ilac / seker hapi hatirlatmasi (yemekten sonra) */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">💊 İlaç / şeker hapı hatırlatması</h3>
+          <h3 className="section-title px-1">💊 İlaç / şeker hapı hatırlatması</h3>
           <div className="card p-3 space-y-2">
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -380,7 +380,7 @@ export default function Reminders() {
 
         {/* Aksam "yarini planla" bildirimi */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">📅 Yarını planla</h3>
+          <h3 className="section-title px-1">📅 Yarını planla</h3>
           <div className="card p-3 space-y-2">
             <div className="flex items-center gap-3">
               <div className="flex-1">
@@ -408,7 +408,7 @@ export default function Reminders() {
 
         {/* Aksam "raporu gonder" hatirlatmasi */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">📤 Rapor hatırlatması</h3>
+          <h3 className="section-title px-1">📤 Rapor hatırlatması</h3>
           <div className="card p-3 space-y-2">
             <div className="flex items-center gap-3">
               <div className="flex-1">

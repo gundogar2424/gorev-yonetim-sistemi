@@ -89,7 +89,7 @@ export default function BeniTani() {
         {/* 1) BENI TANI PROFILI */}
         <section className="card p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="section-title">🧠 Beni Tanı Profili</span>
+            <span className="section-title">Beni Tanı Profili</span>
             {settings?.personalProfileAt && (
               <span className="text-[11px] text-slate-400">{fmtDate(settings.personalProfileAt)}</span>
             )}
@@ -116,7 +116,7 @@ export default function BeniTani() {
         {/* 2) HAFTALIK ICGORU */}
         <section className="card p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="section-title">📊 Haftalık İçgörü</span>
+            <span className="section-title">Haftalık İçgörü</span>
             {settings?.weeklyInsightsAt && (
               <span className="text-[11px] text-slate-400">{fmtDate(settings.weeklyInsightsAt)}</span>
             )}

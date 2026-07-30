@@ -172,7 +172,7 @@ export default function Labs() {
         )}
 
         <section className="space-y-2">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Kayıtlı Tahliller</h3>
+          <h3 className="section-title px-1">Kayıtlı Tahliller</h3>
           {(labs?.length ?? 0) === 0 && <p className="text-sm text-slate-400 px-1">Henüz tahlil yok.</p>}
           {(labs ?? []).map((l) => (
             <div key={l.id} className="card p-3 space-y-2">

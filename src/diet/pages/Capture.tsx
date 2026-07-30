@@ -839,7 +839,7 @@ export default function Capture() {
               </button>
             ) : (
               <div className="card p-3 space-y-2 border-emerald-200">
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Bu yemek ne? Ne kadar?</p>
+                <p className="section-title">Bu yemek ne? Ne kadar?</p>
                 <textarea
                   className="field-input min-h-[64px]"
                   autoFocus
@@ -866,7 +866,7 @@ export default function Capture() {
 
             {/* Hangi ogun? — saate gore varsayilan secili gelir */}
             <div className="card p-3 space-y-2">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Hangi öğün?</p>
+              <p className="section-title">Hangi öğün?</p>
               <div className="flex flex-wrap gap-1.5">
                 {MEAL_OPTIONS.map((m) => (
                   <button
@@ -962,7 +962,7 @@ export default function Capture() {
 
             {/* Ne zaman yedim? — varsayilan "şimdi"; gecmis ogunu de girebilirsin */}
             <div className="card p-3 space-y-2">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">⏰ Ne zaman?</p>
+              <p className="section-title">⏰ Ne zaman?</p>
               {!customWhen ? (
                 <button
                   onClick={() => {
@@ -1000,7 +1000,7 @@ export default function Capture() {
 
             {/* Bu ogun hakkinda sohbet/soru (sadece metin -> az token) */}
             <div className="card p-3 space-y-2">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">💬 Öğün hakkında</p>
+              <p className="section-title">Öğün hakkında</p>
               {chat.length > 0 && (
                 <div className="space-y-1.5 max-h-56 overflow-y-auto">
                   {chat.map((m, i) => (
@@ -1141,7 +1141,7 @@ function WeightGoal({ measurements, target, start, height }: { measurements: Mea
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="section-title">🎯 Kilo hedefin</span>
+        <span className="section-title">Kilo hedefin</span>
         <div className="flex items-center gap-2">
           {bmi != null && <span className={`chip ${bmiCls}`}>BMI {bmi} · {bmiCat}</span>}
           <span className="text-xs font-semibold text-slate-500">{base} → {target} kg</span>
@@ -1192,7 +1192,7 @@ function DailyScore({ entries }: { entries: DietEntry[] }) {
   return (
     <div className={`card p-4 border ${theme.soft}`}>
       <div className="flex items-end justify-between">
-        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Bugünkü diyet başarın</span>
+        <span className="section-title">Bugünkü diyet başarın</span>
         <span className={`text-3xl font-extrabold ${theme.text}`}>%{pct}</span>
       </div>
       <div className="h-2.5 w-full bg-white rounded-full overflow-hidden mt-2 border border-slate-100">
@@ -1869,7 +1869,7 @@ function CoachChat({
   return (
     <div className="card p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <p className="section-title">💬 Koçuna Sor</p>
+        <p className="section-title">Koçuna Sor</p>
         <Link to="/menu" className="text-xs text-brand-700 underline">
           Menüm →
         </Link>
@@ -2081,7 +2081,7 @@ export function RestaurantMenu({ settings }: { settings?: DietSettings }) {
   return (
     <div className="card p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <p className="section-title">🍽️ Dışarıda / Restoran</p>
+        <p className="section-title">Dışarıda / Restoran</p>
         <button onClick={() => setOpen(false)} className="text-xs text-slate-400">kapat</button>
       </div>
 
@@ -2488,7 +2488,7 @@ function ComplianceBar({ analysis }: { analysis: FoodAnalysis }) {
   return (
     <div className="bg-slate-50 rounded-xl p-3 space-y-2">
       <div className="flex items-end justify-between">
-        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Diyet listene uyum</span>
+        <span className="section-title">Diyet listene uyum</span>
         <span className={`text-2xl font-extrabold ${textColor}`}>%{pct}</span>
       </div>
       <div className="h-2.5 w-full bg-slate-200 rounded-full overflow-hidden">

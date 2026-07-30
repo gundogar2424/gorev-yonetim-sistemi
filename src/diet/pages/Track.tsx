@@ -479,7 +479,7 @@ function SendMeasurements() {
               setFromDate(t)
               setToDate(t)
             }}
-            className="w-full text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg py-1.5"
+            className="w-full text-[13px] font-semibold text-brand-600 py-1.5"
           >
             Bugünü seç (tek gün)
           </button>
@@ -511,22 +511,22 @@ function SendMeasurements() {
       {showMore && (
         <div className="space-y-2 bg-slate-50 rounded-lg p-2">
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => sendVital('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 text-sm whitespace-nowrap">
+            <button onClick={() => sendVital('seker')} className="btn-secondary text-sm whitespace-nowrap">
               🩸 Şeker listesi
             </button>
-            <button onClick={() => sendVital('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 text-sm whitespace-nowrap">
+            <button onClick={() => sendVital('tansiyon')} className="btn-secondary text-sm whitespace-nowrap">
               🩺 Tansiyon listesi
             </button>
-            <button onClick={() => sendVitalGraph('seker')} className="btn bg-rose-50 text-rose-700 border border-rose-100 text-sm whitespace-nowrap">
+            <button onClick={() => sendVitalGraph('seker')} className="btn-secondary text-sm whitespace-nowrap">
               📈 Şeker grafiği
             </button>
-            <button onClick={() => sendVitalGraph('tansiyon')} className="btn bg-sky-50 text-sky-700 border border-sky-100 text-sm whitespace-nowrap">
+            <button onClick={() => sendVitalGraph('tansiyon')} className="btn-secondary text-sm whitespace-nowrap">
               📈 Tansiyon grafiği
             </button>
-            <button onClick={() => sendVitalDay('seker')} className="btn bg-rose-100 text-rose-800 border border-rose-200 text-sm whitespace-nowrap">
+            <button onClick={() => sendVitalDay('seker')} className="btn-secondary text-sm whitespace-nowrap">
               🩸 Son günün şekeri
             </button>
-            <button onClick={() => sendVitalDay('tansiyon')} className="btn bg-sky-100 text-sky-800 border border-sky-200 text-sm whitespace-nowrap">
+            <button onClick={() => sendVitalDay('tansiyon')} className="btn-secondary text-sm whitespace-nowrap">
               🩺 Son günün tansiyonu
             </button>
           </div>
@@ -574,7 +574,7 @@ function MeasurePanel({ range }: { range: number }) {
 
       {/* Liste */}
       <section className="space-y-2">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Kayıtlar</h3>
+        <h3 className="section-title px-1">Kayıtlar</h3>
         {rows.length === 0 && <p className="text-sm text-slate-400 px-1">Bu aralıkta kayıt yok.</p>}
         {[...rows].reverse().map((m) => (
           <MeasureRow key={m.id} m={m} />
@@ -745,16 +745,14 @@ function VitalPanel({ range }: { range: number }) {
 
   return (
     <div className="space-y-4">
-      <Link
-        to="/checkup"
-        className="card p-3 flex items-center gap-3 bg-gradient-to-br from-teal-50 to-emerald-50 border-emerald-100 active:scale-[0.99] transition"
-      >
-        <span className="text-2xl">🩺</span>
-        <div className="flex-1">
-          <p className="text-sm font-bold text-slate-800">Sağlık Check-up</p>
-          <p className="text-xs text-slate-500">Şeker, tansiyon, tahlil ve kilonu bir arada hekim gibi yorumlasın; sağlık sorularını sor.</p>
+      <Link to="/checkup" className="card p-4 flex items-center gap-3 active:scale-[0.995] transition">
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-semibold text-slate-900">Sağlık Check-up</p>
+          <p className="text-[13px] text-slate-500 mt-0.5 leading-relaxed">
+            Şeker, tansiyon, tahlil ve kilonu bir arada hekim gibi yorumlar.
+          </p>
         </div>
-        <span className="text-emerald-600 text-xl">›</span>
+        <span className="text-[13px] font-semibold text-brand-600 flex-shrink-0">Aç</span>
       </Link>
 
       <section className="card p-3 space-y-2">
@@ -789,7 +787,7 @@ function VitalPanel({ range }: { range: number }) {
       <VitalForm />
 
       <section className="space-y-2">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">Kayıtlar</h3>
+        <h3 className="section-title px-1">Kayıtlar</h3>
         {rows.length === 0 && <p className="text-sm text-slate-400 px-1">Bu aralıkta kayıt yok.</p>}
         {[...rows].reverse().map((v) => (
           <div key={v.id} className="card p-3 flex items-center justify-between">
