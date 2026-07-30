@@ -8,8 +8,8 @@ import { buildHealthContext } from '../lib/context'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
-import { buildDailyImage, buildDailyImageSet, buildMealImage, buildDailyHealthImage, buildHungerImage } from '../lib/reportImage'
-import { shareTextSmart, shareImageSmart, shareImagesSmart } from '../lib/share'
+import { buildDailyImage, buildMealImage, buildDailyHealthImage, buildHungerImage } from '../lib/reportImage'
+import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { DietEntry, FoodAnalysis, MealType } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
@@ -62,28 +62,6 @@ export default function History() {
       setMsg('Görsel rapor oluşturulamadı.')
     }
     setTimeout(() => setMsg(''), 4000)
-  }
-
-  // Secilen gunu AYRI AYRI gorsellerle gonder (her ogun + spor/saglik ayri foto)
-  async function sendImageSet() {
-    setMsg('Görseller hazırlanıyor…')
-    try {
-      const settings = await readDietSettings()
-      const imgs = await buildDailyImageSet(reportDate, settings.userName)
-      if (!imgs.length) {
-        setMsg('Bu güne ait kayıt yok.')
-        setTimeout(() => setMsg(''), 4000)
-        return
-      }
-      const res = await shareImagesSmart(imgs)
-      if (res === 'shared') setMsg(`${imgs.length} görsel — paylaşım menüsü açıldı.`)
-      else if (res === 'copied') setMsg(`${imgs.length} görsel indirildi, diyetisyenine gönderebilirsin.`)
-      else if (res === 'cancelled') setMsg('')
-      else setMsg('Görseller gönderilemedi.')
-    } catch {
-      setMsg('Görseller oluşturulamadı.')
-    }
-    setTimeout(() => setMsg(''), 5000)
   }
 
   // Secilen gunun SAGLIK raporunu tek gorselde gonder (seker/tansiyon + spor + ilac/vitamin)
@@ -156,7 +134,6 @@ export default function History() {
           </button>
           {moreReports && (
             <div className="space-y-2">
-              <ReportOption onClick={sendImageSet} title="Ayrı gönder" desc="Her öğün için ayrı fotoğraf" />
               <ReportOption onClick={sendHealthImage} title="Günlük sağlık raporu" desc="Şeker, tansiyon, spor, ilaç" />
               <ReportOption onClick={sendHungerImage} title="Açlık grafiği" desc="Gün içindeki açlık akışı" />
             </div>
