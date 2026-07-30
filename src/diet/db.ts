@@ -289,10 +289,55 @@ export async function deleteExercise(id: number) {
 // HEALTH CONNECT: bir gunun Health'ten gelen antrenmanlarini yaz. Ayni gunun
 // daha once Health'ten alinmis (text'inde `tag` gecen) kayitlarini ONCE siler ki
 // tekrar ice aktarınca CIFT olmasin. Elle eklenen egzersizlere dokunmaz.
+// TEK SEFERLIK TEMIZLIK: Health Connect'ten gelen antrenmanlar bir donem
+// her ice aktarimda YENI createdAt aliyordu; bulut senkronu da createdAt'e
+// gore birlestirdigi icin silinen kayitlar geri gelip ayni antrenman
+// defalarca yaziliyordu (gunluk raporda 20 satir gibi). Kimlik artik
+// oturumun baslangic zamani, ama CIHAZDA BIRIKMIS kopyalar duruyor.
+// Ayni gun + ayni ad + ayni sure olanlardan EN ESKIsini birakip digerlerini
+// siliyoruz. Bir kez calisir; bayrak localStorage'da tutulur.
+const DEDUPE_FLAG = 'diet-health-dedupe-v1'
+export async function dedupeHealthExercisesOnce(): Promise<number> {
+  try {
+    if (localStorage.getItem(DEDUPE_FLAG)) return 0
+  } catch {
+    /* localStorage yoksa yine de calis */
+  }
+  let removed = 0
+  try {
+    const all = await dietDb.exercises.toArray()
+    const seen = new Set<string>()
+    const dup: number[] = []
+    for (const e of all.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))) {
+      if (!(e.text || '').includes(HEALTH_TAG_DB)) continue
+      const key = `${e.dateStr}|${e.text}|${e.minutes ?? ''}`
+      if (seen.has(key)) {
+        if (e.id != null) dup.push(e.id)
+      } else {
+        seen.add(key)
+      }
+    }
+    if (dup.length) await dietDb.exercises.bulkDelete(dup)
+    removed = dup.length
+    try {
+      localStorage.setItem(DEDUPE_FLAG, '1')
+    } catch {
+      /* yok say */
+    }
+  } catch {
+    /* temizlik basarisiz — uygulamayi engellemesin */
+  }
+  return removed
+}
+
+// lib/health.ts'teki HEALTH_TAG ile ayni deger; db katmani oraya bagimli
+// olmasin diye burada tekrar tanimli.
+const HEALTH_TAG_DB = '(Health Connect)'
+
 export async function replaceHealthExercises(
   dateStr: string,
   tag: string,
-  workouts: { text: string; minutes?: number; kcal?: number; avgHr?: number; distanceKm?: number; steps?: number }[]
+  workouts: { text: string; minutes?: number; kcal?: number; avgHr?: number; distanceKm?: number; steps?: number; startMs?: number }[]
 ): Promise<void> {
   const existing = await dietDb.exercises.where('dateStr').equals(dateStr).toArray()
   const stale = existing.filter((e) => (e.text || '').includes(tag) && e.id != null).map((e) => e.id as number)
@@ -305,7 +350,11 @@ export async function replaceHealthExercises(
       avgHr: w.avgHr,
       distanceKm: w.distanceKm,
       steps: w.steps,
-      createdAt: Date.now(),
+      // SABIT KIMLIK: antrenmanin baslangic zamani. Date.now() kullanmak
+      // her ice aktarmayi "yeni kayit" gibi gosteriyordu; bulut senkronu da
+      // createdAt'e gore birlestirdigi icin silinen kayitlari geri getirip
+      // ayni antrenmani defalarca yaziyordu (raporda 20 satir gibi).
+      createdAt: w.startMs ?? Date.now(),
       dateStr
     })
   }

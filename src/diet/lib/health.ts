@@ -124,6 +124,11 @@ export interface HealthWorkout {
   distanceKm?: number
   avgHr?: number
   steps?: number
+  // Oturumun BASLANGIC zamani (ms). Kaydin SABIT kimligi olarak kullanilir:
+  // ayni antrenman her ice aktarimda ayni createdAt'i alir. Boylece hem
+  // tekrar ice aktarma cift kayit uretmez, hem de bulut senkronu
+  // (createdAt'e gore birlestiriyor) silinen kaydi geri getirmez.
+  startMs?: number
 }
 export interface HealthDay {
   steps: number
@@ -204,8 +209,10 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
         ? Math.round(w.heartRate.reduce((s, h) => s + h.bpm, 0) / w.heartRate.length)
         : undefined
       const distKm = w.distance ? Math.round((w.distance / 1000) * 100) / 100 : undefined // distance = metre
+      const startMs = w.startDate ? Date.parse(w.startDate) : NaN
       return {
         text: `${workoutLabel(w.workoutType)} ${HEALTH_TAG}`,
+        startMs: Number.isFinite(startMs) ? startMs : undefined,
         minutes,
         kcal: w.calories ? Math.round(w.calories) : undefined,
         distanceKm: distKm,
