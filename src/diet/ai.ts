@@ -22,6 +22,20 @@ export const DEFAULT_MODEL = 'claude-opus-5'
 type Effort = 'low' | 'medium' | 'high'
 export const DEFAULT_EFFORT: Effort = 'medium'
 
+// DİKKAT: `effort` her modelde YOK. Haiku 4.5 ve Sonnet 4.5 bu parametreyi
+// kabul etmez ve istek HATA ile döner — yani "Ekonomik" modu seçmiş bir
+// kullanicida her cagri patlar. O yuzden yalnizca destekleyen ailelerde
+// ekliyoruz. Destekleyenler: Fable/Mythos 5, Opus 5 ve 4.6+, Sonnet 5 ve 4.6.
+function supportsEffort(model?: string): boolean {
+  const m = (model || '').toLowerCase()
+  if (m.includes('haiku')) return false
+  if (m.includes('sonnet-4-5')) return false
+  if (m.includes('fable') || m.includes('mythos')) return true
+  if (m.includes('opus-5') || m.includes('opus-4-8') || m.includes('opus-4-7') || m.includes('opus-4-6')) return true
+  if (m.includes('sonnet-5') || m.includes('sonnet-4-6')) return true
+  return false // taninmayan model: dokunma (hata vermektense tasarruftan vazgec)
+}
+
 // Onbellege alinmaya deger sistem metni esigi. Onbellek en az ~512 token'lik
 // bir on ek ister; Turkce metinde ~1.500 karakter civari. Esigi guvenli
 // tarafta tutuyoruz ki kisa istemlerde bosuna yazma bedeli odemeyelim.
@@ -39,8 +53,8 @@ async function createClient(apiKey: string) {
   client.messages.create = ((params: unknown, options?: unknown) => {
     const p = params as Record<string, unknown>
 
-    // Cagiran acikca belirtmediyse dusunme derinligini kis
-    if (p && typeof p === 'object' && !p.output_config) {
+    // Cagiran acikca belirtmediyse VE model destekliyorsa dusunme derinligini kis
+    if (p && typeof p === 'object' && !p.output_config && supportsEffort(p.model as string)) {
       p.output_config = { effort: DEFAULT_EFFORT }
     }
     // Uzun sistem metnini onbellege al (duz metinse blok haline getir)

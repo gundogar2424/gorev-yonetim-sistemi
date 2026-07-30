@@ -659,6 +659,15 @@ function UsageCard({ model, budget, budgetBase }: { model?: string; budget?: num
         </div>
       </div>
 
+      {/* DÜRÜSTLÜK NOTU: token sayisi gerçek, dolar tahmini ise TÜM geçmişi
+          BUGÜN seçili modelin tarifesinden hesaplar. Daha önce daha pahalı bir
+          modelle çalıştıysan gerçek harcaman bundan yüksektir. Geçmişte hangi
+          çağrının hangi modelle yapıldığı kaydedilmiyor; sonradan üretilemez. */}
+      <p className="text-[11px] text-slate-400 leading-relaxed">
+        Dolar tahmini, tüm geçmişi <b>şu an seçili modelin</b> ({priceLabel}) fiyatından hesaplar. Daha önce daha
+        pahalı bir modelle çalıştıysan gerçek harcaman bundan yüksektir — kesin rakam için Anthropic Console.
+      </p>
+
       {/* Kullanim suresi: kac ayri gun + ilk kullanim */}
       <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
         <span>📅 <span className="font-bold">{u.activeDays ?? Object.keys(u.days).length}</span> gün kullanıldı</span>
