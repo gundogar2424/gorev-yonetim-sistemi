@@ -4,12 +4,20 @@
 // calisir; web'de sessizce devre disidir.
 import type { HealthPlugin, HealthPermission } from 'capacitor-health'
 
-async function getPlugin(): Promise<HealthPlugin | null> {
+// ÖNEMLİ: Capacitor eklenti nesnesi (Proxy) bir async fonksiyondan DOĞRUDAN
+// döndürülürse, Promise çözümü sırasında JS "thenable mı?" diye `.then`e bakar ve
+// Proxy her özelliği çağrılabilir yaptığı için native `HealthPlugin.then()` çağrılıp
+// "not implemented" hatası verir. Bunu önlemek için MODÜL AD ALANINI döndürüyoruz
+// (thenable değil); eklentiye `mod.Health` ile SENKRON erişip metodu öyle çağırıyoruz.
+type HealthMod = { Health: HealthPlugin }
+let modPromise: Promise<HealthMod> | null = null
+
+async function getMod(): Promise<HealthMod | null> {
   const { Capacitor } = await import('@capacitor/core')
   if (!Capacitor.isNativePlatform()) return null
   try {
-    const mod = await import('capacitor-health')
-    return mod.Health
+    if (!modPromise) modPromise = import('capacitor-health') as unknown as Promise<HealthMod>
+    return await modPromise
   } catch {
     return null
   }
@@ -27,10 +35,10 @@ const PERMS: HealthPermission[] = [
 
 // Health Connect bu cihazda var mi (yuklu ve destekli mi)?
 export async function healthAvailable(): Promise<boolean> {
-  const H = await getPlugin()
-  if (!H) return false
+  const mod = await getMod()
+  if (!mod) return false
   try {
-    return (await H.isHealthAvailable()).available
+    return (await mod.Health.isHealthAvailable()).available
   } catch {
     return false
   }
@@ -38,21 +46,21 @@ export async function healthAvailable(): Promise<boolean> {
 
 // Izinleri iste (Health Connect izin ekranini acar).
 export async function requestHealthPerms(): Promise<void> {
-  const H = await getPlugin()
-  if (!H) throw new Error('Bu özellik yalnızca uygulamada (APK) çalışır.')
-  await H.requestHealthPermissions({ permissions: PERMS })
+  const mod = await getMod()
+  if (!mod) throw new Error('Bu özellik yalnızca uygulamada (APK) çalışır.')
+  await mod.Health.requestHealthPermissions({ permissions: PERMS })
 }
 
 // Health Connect ayar ekranini ac (izinleri elle yonetmek icin).
 export async function openHealthConnect(): Promise<void> {
-  const H = await getPlugin()
-  await H?.openHealthConnectSettings()
+  const mod = await getMod()
+  await mod?.Health.openHealthConnectSettings()
 }
 
 // Health Connect yuklu degilse Play Store'da ac.
 export async function openHealthConnectStore(): Promise<void> {
-  const H = await getPlugin()
-  await H?.showHealthConnectInPlayStore()
+  const mod = await getMod()
+  await mod?.Health.showHealthConnectInPlayStore()
 }
 
 // Antrenman tur kodunu (WALKING vb.) Turkce etikete cevir.
@@ -123,8 +131,9 @@ async function agg(H: HealthPlugin, dataType: string, start: string, end: string
 
 // Bir gunun tum verisini Health Connect'ten oku (adim/mesafe/kalori + antrenmanlar).
 export async function importHealthDay(dateStr: string): Promise<HealthDay | null> {
-  const H = await getPlugin()
-  if (!H) return null
+  const mod = await getMod()
+  if (!mod) return null
+  const H = mod.Health // senkron erişim (thenable yoklaması tetiklenmez)
   const { start, end } = dayBounds(dateStr)
 
   const steps = Math.round(await agg(H, 'steps', start, end))
