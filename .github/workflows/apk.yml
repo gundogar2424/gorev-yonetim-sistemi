@@ -68,6 +68,12 @@ jobs:
           sed -i -E "s/compileSdkVersion 35/compileSdkVersion 36/" "$p"
           sed -i -E "s/targetSdkVersion 35/targetSdkVersion 36/" "$p"
           echo "--- send-intent build.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion" "$p"
+          # capacitor-health-extended eklentisinin build.gradle'ı Kotlin eklentisini
+          # UYGULAMAYI UNUTMUŞ (sadece com.android.library var) ama `kotlin { }`
+          # bloğunu kullanıyor -> "Could not find method kotlin()". Eksik satırı ekle.
+          h=node_modules/@flomentumsolutions/capacitor-health-extended/android/build.gradle
+          grep -q "kotlin-android" "$h" || sed -i "s#^apply plugin: 'com.android.library'#apply plugin: 'com.android.library'\napply plugin: 'kotlin-android'#" "$h"
+          echo "--- health-extended build.gradle ---"; grep -nE "apply plugin" "$h"
 
       - name: Kamera izni ekle (canlı barkod tarayıcı için)
         run: |
