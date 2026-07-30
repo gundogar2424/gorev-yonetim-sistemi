@@ -595,6 +595,10 @@ export default function Capture() {
               ? 'Bugün temiz bir başlangıç yap.'
               : `${stats.streak} gündür diyetini bozmadın — devam.`}
           </p>
+          {/* YOLCULUK: seri bozulsa da SIFIRLANMAZ. "Kaç gündür bu işin
+              içindeyim" sorusunun cevabı; seri sıfırlandığında motivasyonu
+              tutan asıl rakam bu. */}
+          <JourneyLine entries={entries ?? []} measurements={measurements ?? []} />
         </div>
 
         {/* Kilo hedefi & gidisat (motivasyon) */}
@@ -1233,6 +1237,28 @@ function DailyScore({ entries }: { entries: DietEntry[] }) {
 //   1) Kaloriler   2) Makrolar   3) Kalp için Sağlıklı   4) Düşük Karbonhidrat
 // Yanlarda onceki/sonraki kartin ucu gorunur (MFP'deki gibi).
 // =====================================================================
+
+// DIYETE BASLAMA GUNU: uygulamadaki EN ESKI kaydin tarihi (ogun ya da olcum).
+// Seri (streak) diyet bozulunca sifirlanir; bu sayac SIFIRLANMAZ — "bu isin
+// icinde kacinci gunumdeyim" sorusunun cevabidir.
+function JourneyLine({ entries, measurements }: { entries: DietEntry[]; measurements: Measurement[] }) {
+  const dates = [...entries.map((e) => e.dateStr), ...measurements.map((m) => m.dateStr)].filter(Boolean)
+  if (!dates.length) return null
+  const first = dates.reduce((a, b) => (a < b ? a : b))
+
+  // Gun farki: iki tarihi de yerel gece yarisina sabitleyip hesapla ki
+  // yaz saati gecisleri 1 gun kaydirmasin.
+  const start = new Date(first + 'T00:00:00')
+  const today = new Date(todayStr() + 'T00:00:00')
+  const day = Math.floor((today.getTime() - start.getTime()) / 86_400_000) + 1
+
+  const nice = start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+  return (
+    <p className="text-[12px] text-slate-400 mt-2 pt-2.5 border-t border-slate-100 dark:border-[#2f3240]">
+      Diyetin {day}. günü · {nice} tarihinde başladın
+    </p>
+  )
+}
 
 // GUNLUK HEDEFLER — kalori hedefinden turetilir; oranlar MyFitnessPal ile
 // birebir ayni: karbonhidrat %50, yag %30, protein %20, seker %15 (kaloriden).
