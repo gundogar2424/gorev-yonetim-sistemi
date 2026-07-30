@@ -17,6 +17,12 @@ export interface FoodAnalysis {
   protein: number // Tahmini protein (gram); bilinmiyorsa 0
   carb: number // Tahmini karbonhidrat (gram); bilinmiyorsa 0
   fat: number // Tahmini yag (gram); bilinmiyorsa 0
+  // Ek besin degerleri (MyFitnessPal'daki "Kalp icin Saglikli" ve "Dusuk
+  // Karbonhidrat" kartlari icin). Eski kayitlarda YOK — okurken 0 varsayilir.
+  sugar?: number // Seker (gram)
+  fiber?: number // Lif (gram)
+  sodium?: number // Sodyum (mg)
+  cholesterol?: number // Kolesterol (mg)
   dietScore: number // Diyete uygunluk puani 1-10 (10 = mukemmel, 1 = cok kotu); bilinmiyorsa 0
   scoreReason: string // Puani neden tam vermedigi / nereden kirdigi (10 ise bos)
   harms: string[] // Yemegin zararlari / olumsuz yanlari

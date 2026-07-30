@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -612,11 +613,12 @@ export default function Capture() {
           </p>
         </div>
 
-        {/* Bugunku kalori takibi */}
-        <CalorieCard entries={entries ?? []} exercises={exercises ?? []} goal={settings?.calorieGoal} />
+        {/* Kaydırmalı kontrol paneli: Kaloriler / Makrolar / Kalp için Sağlıklı /
+            Düşük Karbonhidrat (MyFitnessPal'daki gibi 4 sayfa) */}
+        <Dashboard entries={entries ?? []} exercises={exercises ?? []} goal={settings?.calorieGoal} />
 
-        {/* Bugun yapilan spor/yuruyus (ayri gosterilir, kaloriden dusulmez) */}
-        <ActivityCard exercises={exercises ?? []} />
+        {/* Adım (otomatik, bütçeye karışmaz) + Egzersiz (bütçeye eklenir) */}
+        <StepExerciseRow exercises={exercises ?? []} stepGoal={settings?.stepGoal} />
 
         {/* Su takibi (ml) */}
         <WaterCard goalMl={settings?.waterGoal ? settings.waterGoal * 200 : 2500} />
@@ -1206,68 +1208,148 @@ function DailyScore({ entries }: { entries: DietEntry[] }) {
 // Bugun YENEN ogunlerin kalori HALKASI + makro (protein/karb/yag) dagilimi.
 // MyFitnessPal mantigi: Kalan = Hedef − Yenen + Spor. Yani yapilan spor günlük
 // kalori bütçesine EKLENİR (yenen kaloriyi karşılar), ayrıca ayrı da gösterilir.
-// GUNLUK HAREKET KALORISI — bütçeye eklenmesi gereken tek sayı.
-// Health Connect iki ayrı alan verir ve karıştırmak kaloriyi uçurur:
-//   activeKcal  → yalnızca HAREKETTEN yakılan  (bunu kullanırız)
-//   burnedKcal  → TOPLAM: bazal metabolizma + hareket. 1.700 adımda ~2.100
-//                 çıkar; bütçeye eklenirse "kalan" absürt yükselir. KULLANILMAZ.
-// Samsung Health aktif kaloriyi yazmıyorsa adımdan kaba tahmin üretiriz
-// (~0,04 kcal/adım, ortalama kilo için). Antrenman kalorisi zaten günlük aktif
-// kalorinin İÇİNDE sayıldığından toplamayıp BÜYÜK OLANI alırız (çift saymaz).
-function activeBurn(row: { activeKcal?: number } | undefined, workoutKcal: number, steps: number): number {
-  const active = row?.activeKcal || 0
-  const fromSteps = steps > 0 ? Math.round(steps * 0.04) : 0
-  return Math.max(workoutKcal, active, fromSteps)
+// =====================================================================
+// KONTROL PANELİ — MyFitnessPal'in "Bugün" ekranindaki KAYDIRMALI kart
+// dizisi. Dort sayfa yan yana durur, parmakla kaydirilir, altta nokta
+// gostergesi vardir:
+//   1) Kaloriler   2) Makrolar   3) Kalp için Sağlıklı   4) Düşük Karbonhidrat
+// Yanlarda onceki/sonraki kartin ucu gorunur (MFP'deki gibi).
+// =====================================================================
+
+// GUNLUK HEDEFLER — kalori hedefinden turetilir; oranlar MyFitnessPal ile
+// birebir ayni: karbonhidrat %50, yag %30, protein %20, seker %15 (kaloriden).
+// Lif/sodyum/kolesterol saglik esikleridir, kaloriye gore degismez.
+// Ornek: 2.380 kcal -> 298 g karb / 79 g yag / 119 g protein / 89 g seker.
+function dailyTargets(target: number) {
+  return {
+    carb: target ? Math.round((target * 0.5) / 4) : 0,
+    fat: target ? Math.round((target * 0.3) / 9) : 0,
+    protein: target ? Math.round((target * 0.2) / 4) : 0,
+    sugar: target ? Math.round((target * 0.15) / 4) : 0,
+    fiber: 30,
+    sodium: 2300,
+    cholesterol: 300
+  }
 }
 
-function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exercises: Exercise[]; goal?: number }) {
+function Dashboard({ entries, exercises, goal }: { entries: DietEntry[]; exercises: Exercise[]; goal?: number }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
-  const kcal = todays.reduce((s, e) => s + (e.estimatedCalories || 0), 0)
-  const protein = todays.reduce((s, e) => s + (e.protein || 0), 0)
-  const carb = todays.reduce((s, e) => s + (e.carb || 0), 0)
-  const fat = todays.reduce((s, e) => s + (e.fat || 0), 0)
+  const sum = (pick: (e: DietEntry) => number | undefined) => todays.reduce((s, e) => s + (pick(e) || 0), 0)
 
-  // Bugun HAREKETTEN yakilan kalori (bütçeye eklenen).
-  const todayEx = exercises.filter((e) => e.dateStr === today)
-  const workoutKcal = todayEx.reduce((s, e) => s + (e.kcal || 0), 0)
-  const stepsRow = useLiveQuery(() => getStepsRow(today), [today], undefined)
-  const stepCount = stepsRow?.count || todayEx.reduce((s, e) => s + (e.steps || 0), 0)
-  const exBurned = activeBurn(stepsRow, workoutKcal, stepCount)
+  const kcal = sum((e) => e.estimatedCalories)
+  const protein = sum((e) => e.protein)
+  const carb = sum((e) => e.carb)
+  const fat = sum((e) => e.fat)
+  const sugar = sum((e) => e.sugar)
+  const fiber = sum((e) => e.fiber)
+  const sodium = sum((e) => e.sodium)
+  const cholesterol = sum((e) => e.cholesterol)
+
+  // EGZERSİZ: MyFitnessPal'da bütçeye YALNIZCA kaydedilmiş antrenman eklenir.
+  // Adım ayrı bir karttır ve kalori bütçesine karışmaz (MFP'de 3.443 adımda
+  // "Egzersiz 0" yazmasının sebebi budur). Biz de aynısını yapıyoruz.
+  const exBurned = exercises.filter((e) => e.dateStr === today).reduce((s, e) => s + (e.kcal || 0), 0)
 
   const target = goal && goal > 0 ? goal : 0
-  // MyFitnessPal: gunluk butce = hedef + spor; kalan = butce − yenen
-  const budget = target + exBurned
-  const remaining = budget - kcal
-  const frac = budget ? Math.min(1, kcal / budget) : 0
-  const over = budget > 0 && kcal > budget
-  // Marka mavisi normal, butceye yaklasinca amber, asinca kirmizi.
-  const ringColor = over ? '#e11d48' : frac >= 0.85 ? '#f5a623' : '#1a6dff'
+  const g = dailyTargets(target)
 
-  // Halka (SVG) — daha ince cizgi, daha genis yaricap: sakin ve modern
-  const R = 52
-  const C = 2 * Math.PI * R
-  const dash = budget ? C * frac : 0
+  const pages = [
+    <CaloriePage key="kcal" target={target} eaten={kcal} exercise={exBurned} />,
+    <MacroPage key="makro" carb={carb} fat={fat} protein={protein} g={g} />,
+    <NutrientPage
+      key="kalp"
+      title="Kalp için Sağlıklı"
+      rows={[
+        { label: 'Yağ', value: fat, goal: g.fat, unit: 'g' },
+        { label: 'Sodyum', value: sodium, goal: g.sodium, unit: 'mg' },
+        { label: 'Kolesterol', value: cholesterol, goal: g.cholesterol, unit: 'mg' }
+      ]}
+    />,
+    <NutrientPage
+      key="karb"
+      title="Düşük Karbonhidrat"
+      rows={[
+        { label: 'Karbonhidrat', value: carb, goal: g.carb, unit: 'g' },
+        { label: 'Şeker', value: sugar, goal: g.sugar, unit: 'g' },
+        { label: 'Lif', value: fiber, goal: g.fiber, unit: 'g' }
+      ]}
+    />
+  ]
 
-  // Makro HEDEFLERI: MyFitnessPal gibi kalori hedefinden 50/30/20 (karb/yag/protein)
-  // Ornek: 2380 kcal -> 297g karb / 79g yag / 119g protein (MFP ile birebir)
-  const carbGoal = target ? Math.round((target * 0.5) / 4) : 0
-  const fatGoal = target ? Math.round((target * 0.3) / 9) : 0
-  const proteinGoal = target ? Math.round((target * 0.2) / 4) : 0
+  return <Carousel pages={pages} />
+}
+
+// Yatay kaydirmali kart dizisi + nokta gostergesi. Kartlar ekranin %89'u
+// kadar genis; boylece komsu kartin ucu gorunur ve "kaydirilabilir" oldugu
+// bakinca anlasilir (MFP'deki davranisin aynisi).
+function Carousel({ pages }: { pages: ReactNode[] }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(0)
+
+  function onScroll() {
+    const el = ref.current
+    if (!el) return
+    const first = el.firstElementChild as HTMLElement | null
+    if (!first) return
+    const step = first.offsetWidth + 12 // kart genisligi + gap-3
+    setActive(Math.max(0, Math.min(pages.length - 1, Math.round(el.scrollLeft / step))))
+  }
 
   return (
-    <div className="card p-5">
-      {/* Baslik + formul. Emoji YOK — baslik tipografiyle tasiniyor. */}
-      <div className="mb-4">
-        <h2 className="text-[17px] font-semibold text-slate-900 leading-tight">Kaloriler</h2>
-        <p className="text-[12px] text-slate-500 mt-0.5">Kalan = Hedef − Yenen + Spor</p>
+    <div>
+      <div ref={ref} onScroll={onScroll} className="flex items-stretch gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar">
+        {pages.map((p, i) => (
+          <div key={i} className="snap-center shrink-0 w-[89%]">
+            {p}
+          </div>
+        ))}
       </div>
+      <div className="flex justify-center gap-2 mt-3">
+        {pages.map((_, i) => (
+          <span
+            key={i}
+            className={`h-2 w-2 rounded-full transition-colors ${
+              i === active ? 'bg-brand-600' : 'bg-slate-300 dark:bg-[#3a4048]'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
-      <div className="flex items-center gap-5">
-        {/* Kalori halkasi — ortada KALAN */}
+// Kart basligi — MFP'de her sayfanin ustunde buyuk kalin bir baslik var.
+function PageTitle({ children, note }: { children: ReactNode; note?: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-[21px] font-bold leading-tight text-slate-900 dark:text-[#e6edf3]">{children}</h2>
+      {note && <p className="text-[13px] text-slate-500 mt-1">{note}</p>}
+    </div>
+  )
+}
+
+// 1. SAYFA — Kaloriler: solda halka (ortada KALAN), sagda Temel Hedef /
+// Yiyecek / Egzersiz.
+function CaloriePage({ target, eaten, exercise }: { target: number; eaten: number; exercise: number }) {
+  // MyFitnessPal: gunluk butce = hedef + egzersiz; kalan = butce − yiyecek
+  const budget = target + exercise
+  const remaining = budget - eaten
+  const frac = budget ? Math.min(1, eaten / budget) : 0
+  const over = budget > 0 && eaten > budget
+  const ringColor = over ? '#e11d48' : frac >= 0.85 ? '#f5a623' : '#1a6dff'
+
+  const R = 52
+  const C = 2 * Math.PI * R
+
+  return (
+    <div className="card p-5 h-full">
+      <PageTitle note="Kalan = Hedef − Yiyecek + Egzersiz">Kaloriler</PageTitle>
+
+      <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0" style={{ width: 128, height: 128 }}>
           <svg width="128" height="128" viewBox="0 0 128 128" className="-rotate-90">
-            <circle cx="64" cy="64" r={R} fill="none" strokeWidth="9" className="stroke-slate-100 dark:stroke-[#232a33]" />
+            <circle cx="64" cy="64" r={R} fill="none" strokeWidth="9" className="stroke-slate-100 dark:stroke-[#2c3036]" />
             {budget > 0 && (
               <circle
                 cx="64"
@@ -1277,81 +1359,172 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
                 stroke={ringColor}
                 strokeWidth="9"
                 strokeLinecap="round"
-                strokeDasharray={`${dash} ${C}`}
+                strokeDasharray={`${C * frac} ${C}`}
                 style={{ transition: 'stroke-dasharray .4s ease' }}
               />
             )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-[32px] leading-none font-bold tracking-tight tabular-nums ${over ? 'text-rose-600' : 'text-slate-900'}`}>
-              {budget > 0 ? Math.abs(remaining).toLocaleString('tr-TR') : kcal.toLocaleString('tr-TR')}
+            <span
+              className={`text-[32px] leading-none font-bold tracking-tight tabular-nums ${
+                over ? 'text-rose-500' : 'text-slate-900 dark:text-[#e6edf3]'
+              }`}
+            >
+              {budget > 0 ? Math.abs(remaining).toLocaleString('tr-TR') : eaten.toLocaleString('tr-TR')}
             </span>
-            <span className="text-[12px] text-slate-500 mt-1.5">
-              {budget > 0 ? (over ? 'fazla' : 'kalan') : 'yenen'}
-            </span>
+            <span className="text-[12px] text-slate-500 mt-1.5">{budget > 0 ? (over ? 'Fazla' : 'Kalan') : 'Yiyecek'}</span>
           </div>
         </div>
 
-        {/* Sag: hizali istatistik listesi. Emoji yerine renk gostergesi —
-            veriyi emoji ile etiketlemek amator duruyordu. */}
         <div className="flex-1 min-w-0">
           {budget > 0 ? (
-            <div className="divide-y divide-slate-100 dark:divide-[#232a33]">
-              <StatRow color="#94a3b8" label="Hedef" value={target} />
-              <StatRow color="#1a6dff" label="Yenen" value={kcal} />
-              <StatRow color="#16a34a" label={stepCount > 0 ? `Spor · ${stepCount.toLocaleString('tr-TR')} adım` : 'Spor'} value={exBurned} />
+            <div className="space-y-3">
+              <StatRow icon="flag" color="#94a3b8" label="Temel Hedef" value={target} />
+              <StatRow icon="fork" color="#1a6dff" label="Yiyecek" value={eaten} />
+              <StatRow icon="flame" color="#f5a623" label="Egzersiz" value={exercise} />
             </div>
           ) : (
             <p className="text-[13px] text-slate-500 leading-relaxed">
-              Kalori hedefini Ayarlar’dan girdiğinde burada hedef, yenen, spor ve kalan birlikte görünür.
+              Kalori hedefini Ayarlar’dan gir; hedef, yiyecek ve egzersiz burada birlikte görünsün.
             </p>
           )}
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* Makrolar — MyFitnessPal gibi 3 halka (karb/yag/protein) */}
-      <div className="mt-5 pt-4 border-t border-slate-100 dark:border-[#232a33]">
-        <span className="section-title">Makrolar</span>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {/* MyFitnessPal'in tam makro renkleri: turkuaz / lavanta mor / amber turuncu */}
-          <MacroRing label="Karbonhidrat" grams={carb} goalG={carbGoal} color="#2dd4bf" />
-          <MacroRing label="Yağ" grams={fat} goalG={fatGoal} color="#a78bfa" />
-          <MacroRing label="Protein" grams={protein} goalG={proteinGoal} color="#f5a623" />
+// 2. SAYFA — Makrolar: uc halka, ustlerinde RENKLI etiket, altlarinda "kaldi".
+function MacroPage({
+  carb,
+  fat,
+  protein,
+  g
+}: {
+  carb: number
+  fat: number
+  protein: number
+  g: ReturnType<typeof dailyTargets>
+}) {
+  return (
+    <div className="card p-5 h-full">
+      <PageTitle>Makrolar</PageTitle>
+      <div className="grid grid-cols-3 gap-2">
+        <MacroRing label="Karbonhidrat" grams={carb} goalG={g.carb} color="#2dd4bf" />
+        <MacroRing label="Yağ" grams={fat} goalG={g.fat} color="#a78bfa" />
+        <MacroRing label="Protein" grams={protein} goalG={g.protein} color="#f5a623" />
+      </div>
+    </div>
+  )
+}
+
+// 3. ve 4. SAYFA — besin degeri listesi: solda ad, sagda "alinan/hedef",
+// altinda ince dolum cubugu. Hedef asilirsa cubuk kirmiziya doner.
+function NutrientPage({
+  title,
+  rows
+}: {
+  title: string
+  rows: { label: string; value: number; goal: number; unit: string }[]
+}) {
+  return (
+    <div className="card p-5 h-full">
+      <PageTitle>{title}</PageTitle>
+      <div className="space-y-4">
+        {rows.map((r) => {
+          const frac = r.goal > 0 ? Math.min(1, r.value / r.goal) : 0
+          const over = r.goal > 0 && r.value > r.goal
+          return (
+            <div key={r.label}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[15px] text-slate-700 dark:text-[#c9d3de] truncate">{r.label}</span>
+                <span className="text-[15px] font-bold text-slate-900 dark:text-[#e6edf3] tabular-nums flex-shrink-0">
+                  {Math.round(r.value).toLocaleString('tr-TR')}/{r.goal.toLocaleString('tr-TR')}
+                  {r.unit}
+                </span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-[#2c3036] mt-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${over ? 'bg-rose-500' : 'bg-brand-600'}`}
+                  style={{ width: `${frac * 100}%` }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Kalori kartindaki tek satir — MyFitnessPal duzeni: solda RENKLI simge,
+// sagda ustte kucuk gri etiket, altinda KALIN rakam.
+function StatRow({ icon, color, label, value }: { icon: StatIcon; color: string; label: string; value: number }) {
+  return (
+    <div className="flex items-start gap-3">
+      <StatGlyph name={icon} color={color} />
+      <div className="min-w-0">
+        <div className="text-[12px] text-slate-500 leading-tight truncate">{label}</div>
+        <div className="text-[19px] font-bold text-slate-900 dark:text-[#e6edf3] tabular-nums leading-tight">
+          {value.toLocaleString('tr-TR')}
         </div>
       </div>
     </div>
   )
 }
 
-// Kalori kartindaki tek satir: renk gostergesi + etiket (sol), rakam (sag).
-// Rakamlar tabular-nums ile hizali — tablo gibi okunur, profesyonel durur.
-function StatRow({ color, label, value }: { color: string; label: string; value: number }) {
+type StatIcon = 'flag' | 'fork' | 'flame'
+function StatGlyph({ name, color }: { name: StatIcon; color: string }) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: color,
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    className: 'flex-shrink-0 mt-0.5'
+  }
+  if (name === 'flag')
+    return (
+      <svg {...common}>
+        <line x1="5" y1="21" x2="5" y2="3" />
+        <path d="M5 4h11l-2 3.5L16 11H5z" fill={color} stroke="none" />
+      </svg>
+    )
+  if (name === 'fork')
+    return (
+      <svg {...common}>
+        <path d="M8 3v7a2 2 0 0 1-2 2 2 2 0 0 1-2-2V3" />
+        <line x1="6" y1="12" x2="6" y2="21" />
+        <path d="M17 3c-1.6 1.2-2.5 3-2.5 5.2 0 1.7.8 2.8 2.5 2.8h1V3z" />
+        <line x1="18" y1="11" x2="18" y2="21" />
+      </svg>
+    )
   return (
-    <div className="flex items-center justify-between py-2">
-      <span className="flex items-center gap-2.5 min-w-0">
-        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-        <span className="text-[13px] text-slate-600 truncate">{label}</span>
-      </span>
-      <span className="text-[15px] font-semibold text-slate-900 tabular-nums">{value.toLocaleString('tr-TR')}</span>
-    </div>
+    <svg {...common}>
+      <path d="M12 2.5c2.8 3.2 5.5 5.6 5.5 9.3A5.5 5.5 0 0 1 12 21a5.5 5.5 0 0 1-5.5-5.2c0-2.4 1.2-4 2.6-5.8.4 1.3 1.1 2 2 2.3-.4-2.9.3-5.6.9-9.8z" />
+    </svg>
   )
 }
 
-// Tek makro halkasi (MyFitnessPal tarzi): ortada yenen gram, altinda /hedef,
-// altta "X g kaldi". Hedef yoksa (kalori hedefi girilmemis) sade gosterir.
+// Tek makro halkasi (MyFitnessPal tarzi): ustte RENKLI etiket, ortada yenen
+// gram + /hedef, altta "X gr. kaldı".
 function MacroRing({ label, grams, goalG, color }: { label: string; grams: number; goalG: number; color: string }) {
   const R = 33
   const C = 2 * Math.PI * R
   const frac = goalG > 0 ? Math.min(1, grams / goalG) : 0
-  const left = Math.max(0, goalG - grams)
+  const left = Math.max(0, goalG - Math.round(grams))
   return (
-    <div className="flex flex-col items-center text-center">
-      {/* Etiket notr gri — renk yalnizca halkada. Uc farkli renkte kalin
-          baslik yan yana durunca gurultulu goruunuyordu. */}
-      <span className="text-[12px] font-medium text-slate-600 mb-2">{label}</span>
+    <div className="flex flex-col items-center text-center min-w-0">
+      {/* MFP'de makro etiketi kendi RENGINDE yazilir — halkayla eslesir */}
+      <span className="text-[13px] font-semibold mb-2 truncate w-full" style={{ color }}>
+        {label}
+      </span>
       <div className="relative" style={{ width: 78, height: 78 }}>
         <svg width="78" height="78" viewBox="0 0 78 78" className="-rotate-90">
-          <circle cx="39" cy="39" r={R} fill="none" strokeWidth="6" className="stroke-slate-100 dark:stroke-[#232a33]" />
+          <circle cx="39" cy="39" r={R} fill="none" strokeWidth="6" className="stroke-slate-100 dark:stroke-[#2c3036]" />
           {goalG > 0 && (
             <circle
               cx="39"
@@ -1367,78 +1540,66 @@ function MacroRing({ label, grams, goalG, color }: { label: string; grams: numbe
           )}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[18px] leading-none font-semibold text-slate-900 tabular-nums">{Math.round(grams)}</span>
+          <span className="text-[18px] leading-none font-semibold text-slate-900 dark:text-[#e6edf3] tabular-nums">
+            {Math.round(grams)}
+          </span>
           {goalG > 0 && <span className="text-[11px] text-slate-500 leading-none mt-1">/{goalG}g</span>}
         </div>
       </div>
-      <span className="text-[11px] text-slate-500 mt-2">{goalG > 0 ? `${left} g kaldı` : `${Math.round(grams)} g`}</span>
+      <span className="text-[12px] text-slate-500 mt-2">{goalG > 0 ? `${left}gr. kaldı` : `${Math.round(grams)} g`}</span>
     </div>
   )
 }
 
-// Bugun yapilan spor/yuruyus (Samsung Health / elle) — hem ayri gosterilir
-// hem de MyFitnessPal gibi gunluk kalori butcesine EKLENIR (CalorieCard'da).
-function ActivityCard({ exercises }: { exercises: Exercise[] }) {
+// ADIM + EGZERSİZ — MFP'de kontrol panelinin altinda YAN YANA iki kucuk kart.
+// Adim Health Connect'ten otomatik gelir ve kalori butcesine KARISMAZ;
+// egzersiz ise butceye eklenir. MFP'deki ayrimin aynisi.
+function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepGoal?: number }) {
   const today = todayStr()
   const todays = exercises.filter((e) => e.dateStr === today)
-
-  // GÜNLÜK toplamlar (Health Connect'ten gelen adım/mesafe/yakılan kalori).
-  // Antrenman kaydı olmasa bile bunlar gösterilir.
   const dayRow = useLiveQuery(() => getStepsRow(today), [today], undefined)
 
-  // Antrenmanlardan gelenler
-  const exSteps = todays.reduce((s, e) => s + (e.steps || 0), 0)
+  const steps = dayRow?.count || todays.reduce((s, e) => s + (e.steps || 0), 0)
+  const goal = stepGoal && stepGoal > 0 ? stepGoal : 10000
+  const pct = Math.min(100, Math.round((steps / goal) * 100))
+
   const exKcal = todays.reduce((s, e) => s + (e.kcal || 0), 0)
   const minutes = todays.reduce((s, e) => s + (e.minutes || 0), 0)
-  const exDist = todays.reduce((s, e) => s + (e.distanceKm || 0), 0)
-
-  // Günlük toplam varsa onu kullan (daha kapsamlı); yoksa antrenman toplamı
-  const steps = dayRow?.count || exSteps
-  const distanceKm = dayRow?.distanceKm || exDist
-  // DIKKAT: burnedKcal TOPLAM yakim (bazal + hareket) — 1.700 adimda ~2.100
-  // cikar ve "yaktigin kalori" diye gostermek yaniltici. Burada da yalnizca
-  // HAREKET kalorisini gosteriyoruz; butceye eklenen sayiyla birebir ayni.
-  const kcal = activeBurn(dayRow, exKcal, steps)
-
-  const stats: { val: string; label: string }[] = []
-  if (steps > 0) stats.push({ val: steps.toLocaleString('tr-TR'), label: 'adım' })
-  if (distanceKm > 0) stats.push({ val: `${distanceKm.toFixed(1)}`, label: 'kilometre' })
-  if (minutes > 0) stats.push({ val: `${minutes}`, label: 'dakika' })
-  if (kcal > 0) stats.push({ val: `${kcal}`, label: 'kcal (hareketten)' })
-
-  // Bugün veri yoksa: kartı gizleme, ekleme yönlendirmesi göster (hep görünür)
-  if (stats.length === 0) {
-    return (
-      <Link to="/egzersiz" className="card p-4 flex items-center gap-3 active:scale-[0.995] transition">
-        <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-semibold text-slate-900">Bugün hareket</p>
-          <p className="text-[13px] text-slate-500 mt-0.5 leading-relaxed">
-            Henüz veri yok. Samsung Health’ten otomatik alabilirsin.
-          </p>
-        </div>
-        <span className="text-[13px] font-semibold text-brand-600 flex-shrink-0">Ekle</span>
-      </Link>
-    )
-  }
+  const hh = Math.floor(minutes / 60)
+  const mm = minutes % 60
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <span className="section-title">Bugün hareket</span>
-        <Link to="/egzersiz" className="text-[13px] font-semibold text-brand-600">Detay</Link>
+    <div className="grid grid-cols-2 gap-3">
+      <div className="card p-4">
+        <p className="text-[17px] font-bold text-slate-900 dark:text-[#e6edf3] leading-tight">Adım</p>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[20px] leading-none">👟</span>
+          <span className="text-[22px] font-bold text-slate-900 dark:text-[#e6edf3] tabular-nums leading-none">
+            {steps.toLocaleString('tr-TR')}
+          </span>
+        </div>
+        <p className="text-[13px] text-slate-500 mt-2 truncate">Hedef: {goal.toLocaleString('tr-TR')} adım</p>
+        <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#2c3036] mt-2 overflow-hidden">
+          <div className="h-full rounded-full bg-[#ff4d6d] transition-all" style={{ width: `${pct}%` }} />
+        </div>
       </div>
-      {/* Rakam odakli izgara: emoji yok, deger buyuk, etiket kucuk ve gri */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-        {stats.map((s, i) => (
-          <div key={i}>
-            <div className="stat-num text-[22px] leading-none">{s.val}</div>
-            <div className="stat-label mt-1.5">{s.label}</div>
-          </div>
-        ))}
-      </div>
-      <p className="text-[12px] text-slate-500 mt-4 pt-4 border-t border-slate-100 dark:border-[#232a33] leading-relaxed">
-        Yakılan kalori günlük bütçene eklenir; yukarıdaki halkada “kalan”a yansır.
-      </p>
+
+      <Link to="/egzersiz" className="card p-4 block active:scale-[0.99] transition">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[17px] font-bold text-slate-900 dark:text-[#e6edf3] leading-tight">Egzersiz</p>
+          <span className="text-[20px] leading-none text-slate-400 -mt-0.5">+</span>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[18px] leading-none">🔥</span>
+          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#c9d3de] tabular-nums">{exKcal} kal</span>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[18px] leading-none">🕐</span>
+          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#c9d3de] tabular-nums">
+            {hh}:{String(mm).padStart(2, '0')} sa.
+          </span>
+        </div>
+      </Link>
     </div>
   )
 }
@@ -2262,24 +2423,23 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
   const now = new Date()
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
-  // OLMAYAN ÖĞÜNÜ GÖSTERME: sadece Hatırlatıcılar'da AÇIK öğünler sıraya girer.
-  // Ayrıca diyet listesi öğünlere bölünmüşse, listede karşılığı BOŞ olan ARA
-  // öğünler atlanır (o gün öyle bir ara öğün yok demektir). Ana öğünler
-  // (kahvaltı/öğle/akşam) liste boş olsa da gösterilir.
+  // HANGİ ÖĞÜNLER VAR?
+  // Karar KULLANICININDIR: Hatırlatıcılar'da açtığı öğünler sıraya girer, ara
+  // öğün de dahil (öğleden sonra ara = 'ikindi'). Diyet listesini öğünlere bölen
+  // yapay zeka o satırı üretememiş olabilir; bu, öğünün yok olduğu anlamına
+  // GELMEZ — o yüzden listeye bakıp ara öğün elemiyoruz.
+  // Hiçbir hatırlatıcı açık değilse (kullanıcı hiç seçim yapmamış) makul bir
+  // varsayılana düşeriz: 3 ana öğün + diyet listesinde karşılığı olan ara öğünler.
   const plan = settings?.dietPlanMeals
-  const planSplit = !!plan && Object.values(plan).some((v) => (v || '').trim())
   const MAIN: MealType[] = ['kahvalti', 'ogle', 'aksam']
 
-  const enabled = mergeReminders(settings?.reminders).filter((r) => r.enabled)
-  const usable = enabled.length ? enabled : mergeReminders(settings?.reminders).filter((r) => MAIN.includes(r.id as MealType))
+  const all = mergeReminders(settings?.reminders)
+  const enabled = all.filter((r) => r.enabled)
+  const usable = enabled.length
+    ? enabled
+    : all.filter((r) => MAIN.includes(r.id as MealType) || !!plan?.[r.id as MealType]?.trim())
 
   const meals = usable
-    .filter((r) => {
-      const meal = r.id as MealType
-      if (MAIN.includes(meal)) return true // ana öğün her zaman
-      if (!planSplit) return true // liste bölünmemiş: hepsini göster
-      return !!plan?.[meal]?.trim() // ara öğün: ancak listede varsa
-    })
     .map((r) => {
       const [h, m] = r.time.split(':').map(Number)
       return { meal: r.id as MealType, time: r.time, min: (h || 0) * 60 + (m || 0) }
@@ -2331,12 +2491,12 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
 
       {/* Diyet listende bu ogunde ne var */}
       {planText ? (
-        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#232a33]">
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#262a30]">
           <p className="stat-label mb-1.5">Listende bu öğün</p>
           <p className="text-[15px] text-slate-800 leading-relaxed">{planText}</p>
         </div>
       ) : (
-        <p className="mt-4 pt-4 border-t border-slate-100 dark:border-[#232a33] text-[13px] text-slate-500 leading-relaxed">
+        <p className="mt-4 pt-4 border-t border-slate-100 dark:border-[#262a30] text-[13px] text-slate-500 leading-relaxed">
           {settings?.dietPlan?.trim()
             ? 'Diyet listen öğünlere bölünüyor; birazdan bu öğünde ne olduğu burada görünecek.'
             : 'Diyet listeni yükle (Menüm) — her öğünde ne yeneceği burada görünsün.'}

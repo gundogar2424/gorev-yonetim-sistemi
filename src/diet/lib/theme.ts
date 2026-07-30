@@ -5,6 +5,9 @@
 export type ThemePref = 'auto' | 'light' | 'dark'
 const KEY = 'diet-theme'
 
+// VARSAYILAN: KOYU. MyFitnessPal'in kontrol paneli koyu temada tasarlandi;
+// kartlar/renkler ona gore ayarlandi. Kullanici Ayarlar > Görünüm'den
+// Açık ya da Otomatik'e gecebilir; sectigi an localStorage'a yazilir.
 export function getThemePref(): ThemePref {
   try {
     const v = localStorage.getItem(KEY)
@@ -12,7 +15,7 @@ export function getThemePref(): ThemePref {
   } catch {
     /* yok say */
   }
-  return 'auto'
+  return 'dark'
 }
 
 function systemPrefersDark(): boolean {

@@ -38,6 +38,16 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
+/* Yatay kaydirmali kart dizisi (kontrol paneli) — kaydirma cubugu gizli;
+   yon duygusu yanlarda gorunen komsu kart ucundan ve nokta gostergesinden gelir. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @layer components {
   .field-label {
     @apply block text-sm font-medium text-slate-600 mb-1;
@@ -99,12 +109,14 @@ textarea {
 /* MFP'deki gibi SIYAHA YAKIN notr zemin (mavimsi lacivert degil).
    Kartlar zeminden bir tik acik; kenarlik ince ve dusuk kontrastli. */
 .dark body {
-  background: #0d1117;
+  background: #121417;
   color: #e6edf3;
 }
+/* MFP'de koyu temada kartlarin KENARLIGI YOKTUR; zeminden bir tik acik
+   yuzey olmasi yeter. Kenarlik eklemek kalabalik gosteriyordu. */
 .dark .card {
-  background-color: #161b22;
-  border-color: #232a33;
+  background-color: #1c1f24;
+  border-color: transparent;
 }
 
 /* Yuzeyler */

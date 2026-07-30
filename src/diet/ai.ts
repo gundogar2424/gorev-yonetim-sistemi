@@ -45,6 +45,10 @@ const OUTPUT_SCHEMA = {
     protein: { type: 'integer' },
     carb: { type: 'integer' },
     fat: { type: 'integer' },
+    sugar: { type: 'integer' },
+    fiber: { type: 'integer' },
+    sodium: { type: 'integer' },
+    cholesterol: { type: 'integer' },
     dietScore: { type: 'integer' },
     scoreReason: { type: 'string' },
     harms: { type: 'array', items: { type: 'string' } },
@@ -66,6 +70,10 @@ const OUTPUT_SCHEMA = {
     'protein',
     'carb',
     'fat',
+    'sugar',
+    'fiber',
+    'sodium',
+    'cholesterol',
     'dietScore',
     'scoreReason',
     'harms',
@@ -111,6 +119,8 @@ TÜRK DİYETİSYEN/EV ÖLÇÜLERİ: Kullanıcı miktarı şu ölçülerle verebi
 Örn. "5 çorba kaşığı pilav" ≈ 100 g pişmiş pilav → ona göre kalori ver.
 
 MAKROLAR: Sadece kaloriyi değil, tahmini MAKRO besinleri de ver — protein, carb (karbonhidrat), fat (yağ); hepsi GRAM cinsinden tam sayı. Porsiyon büyüklüğüne göre gerçekçi tahmin et. Görselde yemek yoksa hepsi 0.
+
+EK BESİN DEĞERLERİ: Ayrıca şunları da tahmin et — sugar (şeker, GRAM), fiber (lif, GRAM), sodium (sodyum, MİLİGRAM), cholesterol (kolesterol, MİLİGRAM). Hepsi tam sayı. Dikkat: sugar karbonhidratın bir alt kümesidir (carb'dan büyük olamaz). Tuzlu/işlenmiş yiyeceklerde sodyumu küçümseme (bir porsiyon hazır çorba/turşu/salam kolayca 800-1500 mg olur). Bitkisel gıdalarda kolesterol 0'dır. Görselde yemek yoksa hepsi 0.
 
 DİYET PUANI: dietScore alanına bu yemeğe diyete uygunluk açısından 1-10 arası bir puan ver (10 = mükemmel/diyete tam uygun, 7-9 = iyi, 4-6 = idareli, 1-3 = kötü/diyeti bozar). Varsa diyet listesine uyumu (yukarıdaki MAKRO & KALORİ bazlı kıyas — birebir aynı yemek değil) ve sağlıklılığı birlikte değerlendir. Görselde yemek yoksa dietScore=0.
 

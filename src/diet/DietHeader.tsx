@@ -6,18 +6,21 @@ interface Props {
   right?: ReactNode // Sag tarafta istege bagli icerik (buton, rozet vb.)
 }
 
-// Sayfa basligi. MyFitnessPal'daki gibi DUZ (degrade degil) marka MAVISI bir
-// ust bant, beyaz baslik. Renk yalnizca burada ve eylem ogelerinde kullanilir;
-// ekranin geri kalani notr kalir. Degrade yok — tek ton, keskin kenar.
+// Sayfa basligi — MyFitnessPal'in "Bugün" satirinin birebir karsiligi:
+// renkli bant YOK, zeminle ayni yuzey; baslik BUYUK ve kalin; renk yalnizca
+// sagdaki eylemde (mavi hap) gorunur. MFP'de de ust bant boyali degildir;
+// ekrani dolduran sey baslik boyutu ve mavi eylemdir.
 export default function DietHeader({ title, subtitle, right }: Props) {
   return (
-    <header className="sticky top-0 z-10 bg-brand-600">
-      <div className="px-4 pt-3.5 pb-3.5 flex items-end justify-between gap-3">
+    <header className="sticky top-0 z-10 bg-[#f6f8fa]/95 dark:bg-[#0d1117]/95 backdrop-blur">
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[25px] font-bold leading-tight tracking-tight text-white truncate">{title}</h1>
-          {subtitle && <p className="text-[13px] text-white/70 mt-0.5 truncate">{subtitle}</p>}
+          <h1 className="text-[30px] font-bold leading-none tracking-tight text-slate-900 dark:text-[#e6edf3] truncate">
+            {title}
+          </h1>
+          {subtitle && <p className="text-[13px] text-slate-500 mt-1.5 truncate">{subtitle}</p>}
         </div>
-        {right && <div className="flex-shrink-0 pb-1">{right}</div>}
+        {right && <div className="flex-shrink-0">{right}</div>}
       </div>
     </header>
   )
