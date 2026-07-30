@@ -130,7 +130,7 @@ export default function History() {
       <div className="p-3 space-y-4">
         {/* Diyetisyene rapor gonder */}
         <section className="card p-3 space-y-2">
-          <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Diyetisyene Gönder</h3>
+          <h3 className="section-title">Diyetisyene Gönder</h3>
           <p className="text-xs text-slate-500">
             Seçtiğin günün öğün, ölçü, sağlık verisi ve diyet başarısı gönderilir. Görsel rapor yemek fotoğraflarını da içerir.
           </p>

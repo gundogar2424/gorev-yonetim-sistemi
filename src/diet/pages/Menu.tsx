@@ -154,7 +154,7 @@ export default function Menu() {
             </div>
             {proposed != null && (
               <div className="space-y-2">
-                <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Önerilen yeni liste</p>
+                <p className="text-[13px] font-semibold text-emerald-700">Önerilen yeni liste</p>
                 <textarea
                   className="field-input font-mono text-xs min-h-[160px]"
                   value={proposed}

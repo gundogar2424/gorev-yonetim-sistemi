@@ -29,7 +29,7 @@ export default function ExercisePage() {
 
   return (
     <div>
-      <DietHeader title="Egzersiz" subtitle="Yaptığın egzersizi yaz, puan kazan" />
+      <DietHeader title="Egzersiz" subtitle="Samsung Health verilerin otomatik gelir" />
 
       <div className="p-3 space-y-4">
         {/* Ozet kart */}
@@ -51,26 +51,30 @@ export default function ExercisePage() {
         {weekGoal > 0 && (
           <section className="card p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">🎯 Haftalık Hedef</h3>
-              <span className={`text-sm font-bold ${weekCount >= weekGoal ? 'text-emerald-600' : 'text-slate-600'}`}>
+              <h3 className="section-title">Haftalık hedef</h3>
+              <span
+                className={`text-[15px] font-semibold tabular-nums ${
+                  weekCount >= weekGoal ? 'text-emerald-600' : 'text-slate-900'
+                }`}
+              >
                 {weekCount}/{weekGoal}
               </span>
             </div>
-            <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${weekCount >= weekGoal ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                className={`h-full rounded-full transition-all ${weekCount >= weekGoal ? 'bg-emerald-500' : 'bg-brand-600'}`}
                 style={{ width: `${weekPct}%` }}
               />
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-[13px] text-slate-500">
               {weekCount >= weekGoal
-                ? 'Bu haftanın hedefini tamamladın! 🎉'
+                ? 'Bu haftanın hedefini tamamladın.'
                 : `Bu hafta hedefe ${weekGoal - weekCount} egzersiz kaldı.`}
             </p>
           </section>
         )}
 
-        {/* Hangi güne? — hem fotoğraftan hem elle eklenen veri bu güne yazılır */}
+        {/* Hangi güne? — Health Connect'ten çekilen veri bu güne yazılır */}
         <section className="card p-4">
           <label className="block">
             <span className="section-title">Hangi güne ekleniyor?</span>
@@ -94,25 +98,25 @@ export default function ExercisePage() {
 
         {/* Egzersiz rozetleri */}
         <section className="card p-4 space-y-3">
-          <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">🏅 Egzersiz Rozetleri</h3>
-          {earned.length === 0 && <p className="text-sm text-slate-500">Henüz rozet yok. İlk egzersizini ekle! 👟</p>}
+          <h3 className="section-title">Rozetler</h3>
+          {earned.length === 0 && <p className="text-[13px] text-slate-500">Henüz rozet yok. İlk egzersizini ekle.</p>}
           {earned.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
               {earned.map((b) => (
-                <div key={b.count} className="bg-indigo-50 rounded-xl p-2 text-center">
+                <div key={b.count} className="bg-brand-50 border border-brand-100 rounded-xl p-2.5 text-center">
                   <div className="text-2xl">{b.emoji}</div>
-                  <p className="text-xs font-bold text-indigo-800">{b.name}</p>
+                  <p className="text-[12px] font-semibold text-brand-700 mt-0.5">{b.name}</p>
                   <p className="text-[10px] text-slate-500 leading-tight">{b.desc}</p>
                 </div>
               ))}
             </div>
           )}
           {locked.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 opacity-50">
+            <div className="grid grid-cols-3 gap-2">
               {locked.map((b) => (
-                <div key={b.count} className="bg-slate-50 rounded-xl p-2 text-center">
-                  <div className="text-2xl grayscale">{b.emoji}</div>
-                  <p className="text-xs font-bold text-slate-600">{b.name}</p>
+                <div key={b.count} className="bg-slate-50 border border-slate-200/70 rounded-xl p-2.5 text-center">
+                  <div className="text-2xl grayscale opacity-40">{b.emoji}</div>
+                  <p className="text-[12px] font-semibold text-slate-500 mt-0.5">{b.name}</p>
                   <p className="text-[10px] text-slate-400 leading-tight">{b.count} egzersiz</p>
                 </div>
               ))}
@@ -124,18 +128,17 @@ export default function ExercisePage() {
         <section className="space-y-2">
           <h3 className="section-title px-1">Geçmiş</h3>
           {list.length === 0 && (
-            <div className="card p-6 text-center text-slate-500 text-sm">
-              <div className="text-5xl mb-2">🏃</div>
-              Henüz egzersiz yok. Yukarıdan ilkini ekle.
+            <div className="card p-6 text-center text-[13px] text-slate-500">
+              Henüz egzersiz yok. Health Connect’ten çektiğinde burada listelenir.
             </div>
           )}
           {list.map((ex) => (
             <div key={ex.id} className="card p-3 flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl flex-shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-center text-xl flex-shrink-0">
                 💪
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-800 break-words">{ex.text}</p>
+                <p className="text-[15px] font-semibold text-slate-900 break-words">{ex.text}</p>
                 <p className="text-xs text-slate-500">
                   {formatDate(ex.dateStr)}
                   {ex.minutes ? ` · ${ex.minutes} dk` : ''}
@@ -222,7 +225,9 @@ function HealthConnectCard({ day }: { day: string }) {
       const parts: string[] = []
       if (data.steps) parts.push(`${data.steps.toLocaleString('tr-TR')} adım`)
       if (data.distanceKm) parts.push(`${data.distanceKm} km`)
-      if (data.totalKcal) parts.push(`~${data.totalKcal} kcal`)
+      // Hareketten yakilan (aktif) kalori. totalKcal bazal metabolizmayi da
+      // icerdiginden burada gosterilmez — "2.131 kcal yaktin" gibi yaniltici olur.
+      if (data.activeKcal) parts.push(`~${data.activeKcal} kcal hareket`)
       if (data.workouts.length) parts.push(`${data.workouts.length} antrenman`)
       if (data.sleepHours) parts.push(`${data.sleepHours} sa uyku`)
       setMsg(parts.length ? `Alındı: ${parts.join(' · ')}.` : 'Bu gün için Health Connect’te veri bulunamadı.')

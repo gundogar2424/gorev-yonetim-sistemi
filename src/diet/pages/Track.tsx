@@ -159,7 +159,7 @@ function ActivityPanel() {
   return (
     <section className="card p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">🏃 Günlük Aktivite</h3>
+        <h3 className="section-title">Günlük Aktivite</h3>
         {!open && (
           <button onClick={edit} className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
             {has ? '✏️ Düzenle' : '＋ Gir'}
@@ -292,7 +292,7 @@ function SugarMealInsight() {
 
   return (
     <section className="card p-3 space-y-2 bg-rose-50 border-rose-100">
-      <h3 className="font-bold text-rose-800 text-sm uppercase tracking-wide">🩸 Yemek–Şeker Bağlantısı</h3>
+      <h3 className="text-[13px] font-semibold text-rose-800">🩸 Yemek–Şeker Bağlantısı</h3>
       <p className="text-xs text-slate-500">
         Şeker ölçümlerini önceki öğünlerle eşleştirir: hangi yemek şekerini yükseltiyor, hangisi iyi geliyor.
       </p>
@@ -429,7 +429,7 @@ function SendMeasurements() {
 
   return (
     <section className="card p-3 space-y-2">
-      <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">📤 Ölçümleri Diyetisyene Gönder</h3>
+      <h3 className="section-title">Ölçümleri Diyetisyene Gönder</h3>
 
       {/* Hizli: sadece EN SON olcum (donem secmeye gerek yok) */}
       <button onClick={sendLatest} className="btn-primary w-full whitespace-nowrap">
@@ -691,7 +691,7 @@ function MeasureForm() {
 
   return (
     <section className="card p-3 space-y-3">
-      <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yeni Ölçü Ekle</h3>
+      <h3 className="section-title">Yeni Ölçü Ekle</h3>
       <div>
         <label className="field-label">Tarih</label>
         <input type="date" className="field-input" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -756,7 +756,7 @@ function VitalPanel({ range }: { range: number }) {
       </Link>
 
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-amber-600 uppercase tracking-wide">🩸 Açlık Şekeri (mg/dL)</h3>
+        <h3 className="text-[13px] font-semibold text-amber-600">🩸 Açlık Şekeri (mg/dL)</h3>
         {sugarAcPoints.length ? (
           <MiniChart points={sugarAcPoints} color="#d97706" unit="mg/dL" />
         ) : (
@@ -764,7 +764,7 @@ function VitalPanel({ range }: { range: number }) {
         )}
       </section>
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-sky-600 uppercase tracking-wide">🩸 Tok Şekeri · yemek sonrası (mg/dL)</h3>
+        <h3 className="text-[13px] font-semibold text-sky-600">🩸 Tok Şekeri · yemek sonrası (mg/dL)</h3>
         {sugarTokPoints.length ? (
           <MiniChart points={sugarTokPoints} color="#0284c7" unit="mg/dL" />
         ) : (
@@ -772,15 +772,15 @@ function VitalPanel({ range }: { range: number }) {
         )}
       </section>
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-sky-600 uppercase tracking-wide">💓 Büyük Tansiyon (sistolik)</h3>
+        <h3 className="text-[13px] font-semibold text-sky-600">💓 Büyük Tansiyon (sistolik)</h3>
         <MiniChart points={sysPoints} color="#0ea5e9" unit="" />
       </section>
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wide">🫀 Küçük Tansiyon (diastolik)</h3>
+        <h3 className="text-[13px] font-semibold text-indigo-600">🫀 Küçük Tansiyon (diastolik)</h3>
         <MiniChart points={diaPoints} color="#6366f1" unit="" />
       </section>
       <section className="card p-3 space-y-2">
-        <h3 className="text-xs font-bold text-rose-600 uppercase tracking-wide">❤️ Nabız</h3>
+        <h3 className="text-[13px] font-semibold text-rose-600">❤️ Nabız</h3>
         <MiniChart points={pulsePoints} color="#f43f5e" unit="" />
       </section>
 
@@ -900,7 +900,7 @@ function VitalForm() {
 
   return (
     <section className="card p-3 space-y-3">
-      <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yeni Ölçüm Ekle</h3>
+      <h3 className="section-title">Yeni Ölçüm Ekle</h3>
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => setKind('seker')}
@@ -971,7 +971,7 @@ function VitalForm() {
       {noteBusy && <p className="text-xs text-rose-600 font-semibold">🩸 Bu ölçümü son öğününle karşılaştırıyorum…</p>}
       {note && (
         <div className="rounded-xl bg-rose-50 border border-rose-100 p-3">
-          <p className="text-[11px] font-bold text-rose-700 uppercase tracking-wide mb-1">🩸 Öğün–Şeker Notu</p>
+          <p className="text-[11px] font-semibold text-rose-700 mb-1">🩸 Öğün–Şeker Notu</p>
           <p className="text-sm text-slate-700 whitespace-pre-wrap leading-snug">{note}</p>
         </div>
       )}

@@ -127,7 +127,7 @@ export default function Labs() {
       <div className="p-3 space-y-4">
         <Link
           to="/checkup"
-          className="card p-3 flex items-center gap-3 bg-gradient-to-br from-teal-50 to-emerald-50 border-emerald-100 active:scale-[0.99] transition"
+          className="card p-3 flex items-center gap-3 active:scale-[0.99] transition"
         >
           <span className="text-2xl">🩺</span>
           <div className="flex-1">
@@ -165,7 +165,7 @@ export default function Labs() {
 
         {analysis && (
           <section className="card p-4 bg-sky-50 border-sky-100 space-y-2">
-            <h3 className="font-bold text-sky-800 text-sm uppercase tracking-wide">🧠 Yorum</h3>
+            <h3 className="text-[13px] font-semibold text-sky-800">🧠 Yorum</h3>
             <p className="text-sm text-sky-900 whitespace-pre-wrap leading-snug">{analysis}</p>
             <p className="text-[11px] text-slate-500">Bu bir tıbbi teşhis değildir; kesin değerlendirme için doktoruna danış.</p>
           </section>

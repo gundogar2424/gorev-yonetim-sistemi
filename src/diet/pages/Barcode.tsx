@@ -450,7 +450,7 @@ export default function Barcode() {
         {/* Sonuc — once bilgi, onaylayinca ogun+miktar */}
         {product && !saved && (
           <section className="card overflow-hidden border-0 shadow-md">
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white px-4 py-3">
+            <div className="bg-emerald-600 text-white px-4 py-3">
               <h2 className="text-lg font-extrabold leading-tight">{product.name}</h2>
               <p className="text-emerald-50 text-xs mt-0.5">Barkod: {product.barcode}</p>
             </div>
@@ -582,7 +582,7 @@ function Box({ label, value, unit, cls }: { label: string; value: string; unit: 
         {value}
         <span className="text-[10px] font-bold">{unit}</span>
       </p>
-      <p className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">{label}</p>
+      <p className="text-[10px] font-semibold mt-0.5">{label}</p>
     </div>
   )
 }

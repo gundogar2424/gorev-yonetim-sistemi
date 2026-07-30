@@ -104,7 +104,7 @@ export default function Checkup() {
         ) : (
           <>
             {/* Bilgi + tek dokunus check-up */}
-            <section className="card p-4 space-y-3 bg-gradient-to-br from-teal-50 to-emerald-50 border-emerald-100">
+            <section className="card p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <span className="text-3xl">🩺</span>
                 <div>

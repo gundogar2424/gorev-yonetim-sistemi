@@ -365,7 +365,7 @@ export default function Suggest() {
   )
 }
 
-const PALETTE = ['from-emerald-500 to-emerald-600', 'from-indigo-500 to-violet-600', 'from-orange-400 to-orange-500']
+const PALETTE = ['bg-brand-600', 'bg-brand-600', 'bg-brand-600']
 
 function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
   const band = PALETTE[index % PALETTE.length]
@@ -416,7 +416,7 @@ function SuggestionCard({ s, index }: { s: MealSuggestion; index: number }) {
 
   return (
     <div className="card overflow-hidden border-0 shadow-md">
-      <div className={`bg-gradient-to-br ${band} text-white px-4 py-3`}>
+      <div className={`${band} text-white px-4 py-3`}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-extrabold leading-tight">{s.title}</h3>
           <span className="text-sm font-bold bg-white/25 rounded-full px-2.5 py-1 whitespace-nowrap">🔥 {s.calories} kcal</span>
@@ -485,7 +485,7 @@ function Macro({ label, value, cls }: { label: string; value: number; cls: strin
   return (
     <div className={`rounded-xl p-2 text-center ${cls}`}>
       <p className="text-lg font-extrabold leading-none">{value}<span className="text-xs font-bold">g</span></p>
-      <p className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">{label}</p>
+      <p className="text-[10px] font-semibold mt-0.5">{label}</p>
     </div>
   )
 }

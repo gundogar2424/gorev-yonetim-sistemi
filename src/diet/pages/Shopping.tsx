@@ -190,7 +190,7 @@ function SuggestFromPlan({
 
   return (
     <section className="card p-3 space-y-2 bg-emerald-50 border-emerald-100">
-      <h3 className="font-bold text-emerald-800 text-sm uppercase tracking-wide">🤖 Diyetime Göre Liste Çıkar</h3>
+      <h3 className="text-[13px] font-semibold text-emerald-800">🤖 Diyetime Göre Liste Çıkar</h3>
       {!hasKey ? (
         <p className="text-xs text-slate-500">
           Yapay zeka önerisi için{' '}

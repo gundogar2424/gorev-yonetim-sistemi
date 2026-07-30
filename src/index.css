@@ -123,7 +123,6 @@ textarea {
 
 /* Tonlu bilgi kartlari (-50) -> hafif tonlu koyu zemin */
 .dark .bg-emerald-50,
-.dark .bg-brand-50,
 .dark .bg-teal-50,
 .dark .bg-green-50 {
   background-color: #10261e;
@@ -139,7 +138,8 @@ textarea {
 }
 .dark .bg-sky-50,
 .dark .bg-blue-50,
-.dark .bg-indigo-50 {
+.dark .bg-indigo-50,
+.dark .bg-brand-50 {
   background-color: #14203a;
 }
 .dark .bg-violet-50,
@@ -165,13 +165,14 @@ textarea {
 /* Tonlu koyu metinleri koyu zeminde acmak (kontrast icin) */
 .dark .text-emerald-800,
 .dark .text-emerald-700,
-.dark .text-brand-800,
-.dark .text-brand-700,
 .dark .text-green-800,
 .dark .text-teal-700 {
   color: #6ee7b7;
 }
-/* Marka (MAVI) vurgular koyu zeminde okunakli kalsin */
+/* Marka (MAVI) vurgular koyu zeminde okunakli kalsin. Marka artik yesil
+   degil; bu yuzden brand-* tonlari mavi ailesine baglandi. */
+.dark .text-brand-800,
+.dark .text-brand-700,
 .dark .text-brand-600,
 .dark .text-brand-500 {
   color: #6ea8ff;
@@ -212,9 +213,12 @@ textarea {
   border-color: #232a33;
 }
 .dark .border-emerald-100,
-.dark .border-brand-100,
 .dark .border-teal-100 {
   border-color: #1e3a2e;
+}
+.dark .border-brand-100,
+.dark .border-brand-200 {
+  border-color: #1d2f4d;
 }
 .dark .border-rose-100,
 .dark .border-red-200 {

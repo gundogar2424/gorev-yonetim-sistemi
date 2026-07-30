@@ -51,9 +51,9 @@ export default function Weekly() {
         />
 
         {/* Puan vurgu */}
-        <div className="card p-4 bg-gradient-to-br from-amber-400 to-orange-500 text-white border-0 text-center">
-          <p className="text-orange-50 text-xs uppercase tracking-wide">Bu dönemde kazanılan puan</p>
-          <p className="text-5xl font-extrabold mt-1">⭐ {s.points}</p>
+        <div className="card p-5 text-center">
+          <p className="stat-label">Bu dönemde kazanılan puan</p>
+          <p className="stat-num text-[44px] leading-none mt-1.5">{s.points.toLocaleString('tr-TR')}</p>
         </div>
 
         {/* Karneler */}
@@ -68,8 +68,8 @@ export default function Weekly() {
         {/* Kilo degisimi */}
         <div className="card p-4 flex items-center justify-between">
           <div>
-            <p className="font-bold text-slate-700 text-sm">⚖️ Kilo değişimi</p>
-            <p className="text-xs text-slate-500">Dönem içindeki ilk ve son tartı arasında</p>
+            <p className="text-[15px] font-semibold text-slate-900">Kilo değişimi</p>
+            <p className="text-[13px] text-slate-500">Dönem içindeki ilk ve son tartı arasında</p>
           </div>
           {s.weightChange == null ? (
             <span className="text-sm text-slate-400">Yeterli tartı yok</span>
@@ -164,7 +164,7 @@ function CoachSummary({
 
   return (
     <section className="card p-3 space-y-2 bg-brand-50 border-brand-100">
-      <h3 className="font-bold text-brand-800 text-sm uppercase tracking-wide">🤖 Haftalık Koç Değerlendirmesi</h3>
+      <h3 className="text-[13px] font-semibold text-brand-800">🤖 Haftalık Koç Değerlendirmesi</h3>
       {!apiKey ? (
         <p className="text-xs text-slate-500">
           Yapay zeka değerlendirmesi için{' '}

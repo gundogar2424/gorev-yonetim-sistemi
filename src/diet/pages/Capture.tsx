@@ -38,7 +38,7 @@ interface Theme {
 function healthTheme(a: FoodAnalysis): Theme {
   if (a.healthy || a.riskLevel === 'düşük') {
     return {
-      band: 'from-emerald-500 to-emerald-600',
+      band: 'bg-emerald-600',
       soft: 'bg-emerald-50',
       text: 'text-emerald-700',
       chip: 'bg-emerald-100 text-emerald-800',
@@ -48,7 +48,7 @@ function healthTheme(a: FoodAnalysis): Theme {
   }
   if (a.riskLevel === 'orta') {
     return {
-      band: 'from-amber-400 to-amber-500',
+      band: 'bg-amber-500',
       soft: 'bg-amber-50',
       text: 'text-amber-700',
       chip: 'bg-amber-100 text-amber-800',
@@ -57,7 +57,7 @@ function healthTheme(a: FoodAnalysis): Theme {
     }
   }
   return {
-    band: 'from-rose-500 to-rose-600',
+    band: 'bg-rose-600',
     soft: 'bg-rose-50',
     text: 'text-rose-700',
     chip: 'bg-rose-100 text-rose-800',
@@ -962,7 +962,7 @@ export default function Capture() {
 
             {/* Ne zaman yedim? — varsayilan "şimdi"; gecmis ogunu de girebilirsin */}
             <div className="card p-3 space-y-2">
-              <p className="section-title">⏰ Ne zaman?</p>
+              <p className="section-title">Ne zaman?</p>
               {!customWhen ? (
                 <button
                   onClick={() => {
@@ -1169,7 +1169,7 @@ function WeightGoal({ measurements, target, start, height }: { measurements: Mea
 
       <div>
         <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-brand-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
         <p className="text-[11px] text-slate-400 mt-1 text-right">%{pct} tamamlandı</p>
       </div>
@@ -1206,6 +1206,20 @@ function DailyScore({ entries }: { entries: DietEntry[] }) {
 // Bugun YENEN ogunlerin kalori HALKASI + makro (protein/karb/yag) dagilimi.
 // MyFitnessPal mantigi: Kalan = Hedef − Yenen + Spor. Yani yapilan spor günlük
 // kalori bütçesine EKLENİR (yenen kaloriyi karşılar), ayrıca ayrı da gösterilir.
+// GUNLUK HAREKET KALORISI — bütçeye eklenmesi gereken tek sayı.
+// Health Connect iki ayrı alan verir ve karıştırmak kaloriyi uçurur:
+//   activeKcal  → yalnızca HAREKETTEN yakılan  (bunu kullanırız)
+//   burnedKcal  → TOPLAM: bazal metabolizma + hareket. 1.700 adımda ~2.100
+//                 çıkar; bütçeye eklenirse "kalan" absürt yükselir. KULLANILMAZ.
+// Samsung Health aktif kaloriyi yazmıyorsa adımdan kaba tahmin üretiriz
+// (~0,04 kcal/adım, ortalama kilo için). Antrenman kalorisi zaten günlük aktif
+// kalorinin İÇİNDE sayıldığından toplamayıp BÜYÜK OLANI alırız (çift saymaz).
+function activeBurn(row: { activeKcal?: number } | undefined, workoutKcal: number, steps: number): number {
+  const active = row?.activeKcal || 0
+  const fromSteps = steps > 0 ? Math.round(steps * 0.04) : 0
+  return Math.max(workoutKcal, active, fromSteps)
+}
+
 function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exercises: Exercise[]; goal?: number }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
@@ -1214,8 +1228,12 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
   const carb = todays.reduce((s, e) => s + (e.carb || 0), 0)
   const fat = todays.reduce((s, e) => s + (e.fat || 0), 0)
 
-  // Bugun yakilan spor kalorisi (Samsung Health / elle)
-  const exBurned = exercises.filter((e) => e.dateStr === today).reduce((s, e) => s + (e.kcal || 0), 0)
+  // Bugun HAREKETTEN yakilan kalori (bütçeye eklenen).
+  const todayEx = exercises.filter((e) => e.dateStr === today)
+  const workoutKcal = todayEx.reduce((s, e) => s + (e.kcal || 0), 0)
+  const stepsRow = useLiveQuery(() => getStepsRow(today), [today], undefined)
+  const stepCount = stepsRow?.count || todayEx.reduce((s, e) => s + (e.steps || 0), 0)
+  const exBurned = activeBurn(stepsRow, workoutKcal, stepCount)
 
   const target = goal && goal > 0 ? goal : 0
   // MyFitnessPal: gunluk butce = hedef + spor; kalan = butce − yenen
@@ -1281,7 +1299,7 @@ function CalorieCard({ entries, exercises, goal }: { entries: DietEntry[]; exerc
             <div className="divide-y divide-slate-100 dark:divide-[#232a33]">
               <StatRow color="#94a3b8" label="Hedef" value={target} />
               <StatRow color="#1a6dff" label="Yenen" value={kcal} />
-              <StatRow color="#16a34a" label="Spor" value={exBurned} />
+              <StatRow color="#16a34a" label={stepCount > 0 ? `Spor · ${stepCount.toLocaleString('tr-TR')} adım` : 'Spor'} value={exBurned} />
             </div>
           ) : (
             <p className="text-[13px] text-slate-500 leading-relaxed">
@@ -1377,13 +1395,16 @@ function ActivityCard({ exercises }: { exercises: Exercise[] }) {
   // Günlük toplam varsa onu kullan (daha kapsamlı); yoksa antrenman toplamı
   const steps = dayRow?.count || exSteps
   const distanceKm = dayRow?.distanceKm || exDist
-  const kcal = dayRow?.burnedKcal || dayRow?.activeKcal || exKcal
+  // DIKKAT: burnedKcal TOPLAM yakim (bazal + hareket) — 1.700 adimda ~2.100
+  // cikar ve "yaktigin kalori" diye gostermek yaniltici. Burada da yalnizca
+  // HAREKET kalorisini gosteriyoruz; butceye eklenen sayiyla birebir ayni.
+  const kcal = activeBurn(dayRow, exKcal, steps)
 
   const stats: { val: string; label: string }[] = []
   if (steps > 0) stats.push({ val: steps.toLocaleString('tr-TR'), label: 'adım' })
   if (distanceKm > 0) stats.push({ val: `${distanceKm.toFixed(1)}`, label: 'kilometre' })
   if (minutes > 0) stats.push({ val: `${minutes}`, label: 'dakika' })
-  if (kcal > 0) stats.push({ val: `${kcal}`, label: 'kcal yakıldı' })
+  if (kcal > 0) stats.push({ val: `${kcal}`, label: 'kcal (hareketten)' })
 
   // Bugün veri yoksa: kartı gizleme, ekleme yönlendirmesi göster (hep görünür)
   if (stats.length === 0) {
@@ -1477,7 +1498,7 @@ function CrisisSOS({ entries, exercises, settings }: { entries: DietEntry[]; exe
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 text-white font-extrabold text-lg py-3.5 shadow-md active:scale-[0.98] transition"
+        className="w-full rounded-2xl bg-rose-600 text-white font-semibold text-[16px] py-3.5 active:scale-[0.98] transition"
       >
         🆘 Canım çekiyor!
       </button>
@@ -2368,7 +2389,7 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
   return (
     <div className="card overflow-hidden border-0 shadow-md">
       {/* Renkli ust bant */}
-      <div className={`bg-gradient-to-br ${t.band} text-white px-4 py-3`}>
+      <div className={`${t.band} text-white px-4 py-3`}>
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-xl font-extrabold leading-tight">{analysis.foodName}</h2>
           <span className="text-3xl">{t.emoji}</span>
@@ -2397,7 +2418,7 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
         {/* Makroyu listeye yaklastirmak icin somut duzeltme (ekle/azalt/az ye) */}
         {analysis.macroFix?.trim() && (
           <div className="bg-sky-50 rounded-xl p-3 border border-sky-100">
-            <p className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-1">
+            <p className="text-[13px] font-semibold text-sky-700 mb-1">
               🎯 Listene yaklaştırmak için
             </p>
             <p className="text-sm text-sky-900 leading-snug">{analysis.macroFix}</p>
@@ -2407,7 +2428,7 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
         {/* Puani neden tam vermedi — nereden kirdi */}
         {analysis.dietScore > 0 && analysis.dietScore < 10 && analysis.scoreReason?.trim() && (
           <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">
+            <p className="text-[13px] font-semibold text-amber-700 mb-1">
               📉 Puanı neden {analysis.dietScore}/10 verdim
             </p>
             <p className="text-sm text-amber-900 leading-snug">{analysis.scoreReason}</p>
@@ -2420,7 +2441,7 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
         {/* Zararlari */}
         {analysis.harms.length > 0 && (
           <div className="bg-rose-50 rounded-xl p-3">
-            <p className="text-xs font-bold text-rose-600 uppercase tracking-wide mb-1.5">⊘ Zararları</p>
+            <p className="text-[13px] font-semibold text-rose-600 mb-1.5">⊘ Zararları</p>
             <ul className="space-y-1.5">
               {analysis.harms.map((h, i) => (
                 <li key={i} className="text-sm text-rose-900 flex gap-2 leading-snug">
@@ -2435,7 +2456,7 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
         {/* Motive edici sozler */}
         {analysis.motivations.length > 0 && (
           <div className="bg-emerald-50 rounded-xl p-3">
-            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1.5">💚 Sana bir söz</p>
+            <p className="text-[13px] font-semibold text-emerald-700 mb-1.5">💚 Sana bir söz</p>
             <ul className="space-y-1.5">
               {analysis.motivations.map((m, i) => (
                 <li key={i} className="text-sm text-emerald-900 flex gap-2 leading-snug">
@@ -2450,7 +2471,7 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
         {/* Kontrollu kacamak: cok canı cektiyse makul bir miktar oner */}
         {analysis.cravingPortion?.trim() && (
           <div className="bg-violet-50 rounded-xl p-3 border border-violet-100">
-            <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-1.5">🍫 Çok mu canın çekti?</p>
+            <p className="text-[13px] font-semibold text-violet-700 mb-1.5">🍫 Çok mu canın çekti?</p>
             <p className="text-sm text-violet-900 leading-snug">
               İllaki yiyeceksen bu kadarı diyetini bozmaz:{' '}
               <span className="font-extrabold">{analysis.cravingPortion}</span>
@@ -2462,7 +2483,7 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
         {/* Daha saglikli alternatif */}
         {analysis.healthierAlternative && (
           <div className="bg-sky-50 rounded-xl p-3">
-            <p className="text-xs font-bold text-sky-700 uppercase tracking-wide mb-1">🥗 Daha iyisi</p>
+            <p className="text-[13px] font-semibold text-sky-700 mb-1">🥗 Daha iyisi</p>
             <p className="text-sm text-sky-900 leading-snug">{analysis.healthierAlternative}</p>
           </div>
         )}

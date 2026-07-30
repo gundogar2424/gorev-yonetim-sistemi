@@ -113,7 +113,7 @@ export default function DietSettings() {
 
         {/* Rozetler */}
         <section className="card p-4 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Rozetlerin</h2>
+          <h2 className="section-title">Rozetlerin</h2>
           <p className="text-xs text-slate-500">
             {stats.streak} günlük serinle {earned.length} rozet kazandın.
           </p>
@@ -135,7 +135,7 @@ export default function DietSettings() {
 
         {/* API anahtari */}
         <section className="card p-4 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yapay Zeka Anahtarı</h2>
+          <h2 className="section-title">Yapay Zeka Anahtarı</h2>
           <p className="text-xs text-slate-500">
             Fotoğraf incelemesi Claude ile yapılır. Kendi API anahtarını gir; anahtar{' '}
             <span className="font-semibold">yalnızca bu cihazda</span> saklanır.
@@ -201,7 +201,7 @@ export default function DietSettings() {
 
         {/* Kisisellestirme */}
         <section className="card p-4 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Seni Tanıyalım</h2>
+          <h2 className="section-title">Seni Tanıyalım</h2>
           <p className="text-xs text-slate-500">Bu bilgiler, sözlerin sana özel olması için yapay zekaya iletilir.</p>
           <div>
             <label className="field-label">Adın</label>
@@ -345,7 +345,7 @@ export default function DietSettings() {
 
         {/* Hedefler */}
         <section className="card p-4 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Hedeflerim</h2>
+          <h2 className="section-title">Hedeflerim</h2>
           <p className="text-xs text-slate-500">
             Boş bırakırsan kalori ve haftalık egzersiz hedefi gizli kalır.
           </p>
@@ -412,7 +412,7 @@ export default function DietSettings() {
 
         {/* Diyet listesi */}
         <section className="card p-4 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Diyet Listem</h2>
+          <h2 className="section-title">Diyet Listem</h2>
           <p className="text-xs text-slate-500">
             Diyet listeni buraya ekle; her yemeğin listene{' '}
             <span className="font-semibold">% kaç uyduğunu</span> görürsün. Yazabilir ya da fotoğrafını okutabilirsin.
@@ -461,7 +461,7 @@ export default function DietSettings() {
 
         {/* Yedekleme & yer acma */}
         <section className="card p-4 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme & Yer Açma</h2>
+          <h2 className="section-title">Yedekleme & Yer Açma</h2>
           <p className="text-xs text-slate-500">
             Tüm verilerin ve API anahtarın tek dosyaya iner (hafif: <b>fotoğrafsız</b>, o yüzden çökmez). Kayıtların tam durur;
             fotoğraflar cihazda/senkronda kalır. Silmeden önce yedek al, yeniden kurunca geri yükle. (Yedek kişiseldir, paylaşma.)
@@ -486,7 +486,7 @@ export default function DietSettings() {
 
         {/* Tehlikeli bolge */}
         <section className="card p-4 space-y-2">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Veri</h2>
+          <h2 className="section-title">Veri</h2>
           <button onClick={clearAll} className="btn-danger w-full">
             Tüm Diyet Verilerini Sil
           </button>
@@ -514,7 +514,7 @@ function ThemeSelector() {
   }
   return (
     <section className="card p-4 space-y-3">
-      <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Görünüm</h2>
+      <h2 className="section-title">Görünüm</h2>
       <p className="text-xs text-slate-500">
         Otomatik: telefonun ayarına uyar. Dilersen sabitle.
       </p>
@@ -570,7 +570,7 @@ function SyncCard({ settings }: { settings?: DietSettingsType }) {
 
   return (
     <section className="card p-4 space-y-3">
-      <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">🔄 Cihazlar Arası Senkron</h2>
+      <h2 className="section-title">Cihazlar Arası Senkron</h2>
       <p className="text-xs text-slate-500">
         Telefon ve web sürümü birbirini otomatik günceller (veri, kendi GitHub hesabındaki <b>gizli</b> bir alanda tutulur).
         İki cihazda da AYNI anahtarı gir; uygulama her açılışta eşitler. Fotoğraflar senkrona dahil değildir.
@@ -638,7 +638,7 @@ function UsageCard({ model, budget, budgetBase }: { model?: string; budget?: num
   return (
     <section className="card p-4 space-y-3" data-tick={tick}>
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Token Kullanımı</h2>
+        <h2 className="section-title">Token Kullanımı</h2>
         <button onClick={refresh} className="text-xs text-emerald-700 underline">Yenile</button>
       </div>
       <p className="text-xs text-slate-500">
@@ -648,12 +648,12 @@ function UsageCard({ model, budget, budgetBase }: { model?: string; budget?: num
 
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-xl bg-emerald-50 p-3">
-          <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Bugün</p>
+          <p className="text-[11px] font-semibold text-emerald-700">Bugün</p>
           <p className="text-xl font-extrabold text-emerald-800">≈ ${estimateCostUsd(today, model).toFixed(3)}</p>
           <p className="text-[11px] text-emerald-700/80">{fmt(bucketTokens(today))} token · {today.calls} işlem</p>
         </div>
         <div className="rounded-xl bg-slate-50 p-3">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Toplam</p>
+          <p className="text-[11px] font-semibold text-slate-500">Toplam</p>
           <p className="text-xl font-extrabold text-slate-800">≈ ${estimateCostUsd(u.total, model).toFixed(2)}</p>
           <p className="text-[11px] text-slate-500">{fmt(bucketTokens(u.total))} token · {u.total.calls} işlem</p>
         </div>

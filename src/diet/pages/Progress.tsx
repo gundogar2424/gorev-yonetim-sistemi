@@ -73,7 +73,7 @@ export default function Progress() {
         {/* Karsilastirma: ilk vs son */}
         {canCompare && oldest && newest && (
           <section className="card p-3 space-y-2">
-            <h3 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Karşılaştırma</h3>
+            <h3 className="section-title">Karşılaştırma</h3>
             <div className="grid grid-cols-2 gap-2">
               <ComparePane label="ÖNCE" p={oldest} accent="bg-slate-500" />
               <ComparePane label="SONRA" p={newest} accent="bg-emerald-600" />
