@@ -51,6 +51,27 @@ export async function requestHealthPerms(): Promise<void> {
   await mod.Health.requestHealthPermissions({ permissions: PERMS })
 }
 
+// Izin VERILMIS mi? (izin penceresi ACMADAN sadece sorar). Otomatik
+// guncellemede kullanilir: izin yoksa kullaniciyi rahatsiz etmeyiz.
+// NOT: native taraf `permissions`i bir NESNE olarak dondurur ({PERM: true});
+// TS tipi dizi der. Ikisini de destekliyoruz.
+export async function healthPermsGranted(): Promise<boolean> {
+  const mod = await getMod()
+  if (!mod) return false
+  try {
+    const res = (await mod.Health.checkHealthPermissions({ permissions: PERMS })) as unknown as {
+      permissions?: Record<string, boolean> | Record<string, boolean>[]
+    }
+    const p = res?.permissions
+    if (!p) return false
+    const maps = Array.isArray(p) ? p : [p]
+    // Adim ya da antrenman izni varsa is goruyoruz (hepsi sart degil)
+    return maps.some((m) => m?.READ_STEPS === true || m?.READ_WORKOUTS === true)
+  } catch {
+    return false
+  }
+}
+
 // Health Connect ayar ekranini ac (izinleri elle yonetmek icin).
 export async function openHealthConnect(): Promise<void> {
   const mod = await getMod()
@@ -175,5 +196,41 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
     activeKcal,
     totalKcal,
     workouts
+  }
+}
+
+// Okunan gunu VERITABANINA yazar (gunluk toplamlar + antrenmanlar).
+// Hem butondan hem otomatik guncellemeden ayni yol kullanilir.
+export async function saveHealthDay(dateStr: string, data: HealthDay): Promise<void> {
+  const { setActivityDay, replaceHealthExercises } = await import('../db')
+  await setActivityDay(dateStr, {
+    count: data.steps,
+    activeKcal: data.activeKcal,
+    burnedKcal: data.totalKcal,
+    distanceKm: data.distanceKm
+  })
+  await replaceHealthExercises(dateStr, HEALTH_TAG, data.workouts)
+}
+
+// OTOMATIK GUNCELLEME: uygulama acildiginda / one geldiginde BUGUNU sessizce
+// tazeler. Izin YOKSA hicbir sey yapmaz (izin penceresi acmaz). Cok sik
+// calismasin diye kisa bir bekleme (throttle) uygulanir.
+let lastAutoSync = 0
+const AUTO_SYNC_MIN_GAP = 3 * 60 * 1000 // en fazla 3 dakikada bir
+
+export async function autoSyncHealthToday(force = false): Promise<boolean> {
+  const now = Date.now()
+  if (!force && now - lastAutoSync < AUTO_SYNC_MIN_GAP) return false
+  try {
+    if (!(await healthAvailable())) return false
+    if (!(await healthPermsGranted())) return false // izin yok: sessizce çık
+    const today = new Date().toLocaleDateString('en-CA')
+    const data = await importHealthDay(today)
+    if (!data) return false
+    await saveHealthDay(today, data)
+    lastAutoSync = now
+    return true
+  } catch {
+    return false // otomatik iş; hata kullanıcıyı rahatsız etmesin
   }
 }

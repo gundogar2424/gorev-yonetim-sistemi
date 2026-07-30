@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { listExercises, deleteExercise, readDietSettings, setActivityDay, replaceHealthExercises } from '../db'
-import { healthAvailable, requestHealthPerms, importHealthDay, openHealthConnectStore, HEALTH_TAG } from '../lib/health'
+import { listExercises, deleteExercise, readDietSettings } from '../db'
+import { healthAvailable, requestHealthPerms, importHealthDay, openHealthConnectStore, saveHealthDay } from '../lib/health'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
 
 export default function ExercisePage() {
@@ -216,15 +216,8 @@ function HealthConnectCard({ day }: { day: string }) {
         setErr('Veri okunamadı. Health Connect izinlerini kontrol et.')
         return
       }
-      // Günlük toplamlar (adım/mesafe/kalori) → adım kaydına yaz
-      await setActivityDay(day, {
-        count: data.steps,
-        activeKcal: data.activeKcal,
-        burnedKcal: data.totalKcal,
-        distanceKm: data.distanceKm
-      })
-      // Antrenmanlar → egzersiz kayıtları (aynı günün eski Health kayıtları silinir)
-      await replaceHealthExercises(day, HEALTH_TAG, data.workouts)
+      // Günlük toplamlar + antrenmanlar (aynı günün eski Health kayıtları tazelenir)
+      await saveHealthDay(day, data)
 
       const parts: string[] = []
       if (data.steps) parts.push(`${data.steps.toLocaleString('tr-TR')} adım`)

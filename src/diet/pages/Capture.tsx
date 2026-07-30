@@ -13,6 +13,7 @@ import { MEAL_OPTIONS, guessMeal, mealLabel, mealEmoji } from '../lib/meals'
 import { isBeverage } from '../lib/food'
 import { decodeBarcodeFromImage } from '../lib/barcode'
 import { buildHealthContext } from '../lib/context'
+import { autoSyncHealthToday } from '../lib/health'
 import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
 import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
@@ -124,6 +125,18 @@ export default function Capture() {
     setActiveMeals(trackedMeals)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackedMeals.join(',')])
+
+  // SAMSUNG HEALTH OTOMATİK TAZELEME: uygulama açıldığında ve arka plandan
+  // öne geldiğinde bugünün adım/kalori/antrenman verisini sessizce günceller.
+  // İzin verilmemişse hiçbir şey yapmaz (izin penceresi açmaz).
+  useEffect(() => {
+    autoSyncHealthToday()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') autoSyncHealthToday()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
 
   // Diyet listesi yüklendiğinde/değiştiğinde: yapay zeka BİR KEZ öğünlere bölsün
   // (kahvaltı/öğle/akşam/ara öğünler). Sonuç ayara kaydedilir; "Sıradaki öğün"de
