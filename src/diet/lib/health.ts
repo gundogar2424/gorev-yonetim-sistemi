@@ -217,28 +217,27 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
     /* antrenman okunamadi; yalniz gunluk toplamlar donerse de olur */
   }
 
-  // ANTRENMAN KALORİSİNİ TEMİZLE.
-  // Eklentinin verdiği antrenman kalorisi TEMİZ DEĞİL: kaynak kodunda
-  // (addWorkoutTotalCalories → sumActiveAndBasalCalories) şu var —
-  //     active + basal   ... ikisi de yoksa → total
-  // yani her antrenmanın kalorisine BAZAL METABOLİZMA da katılıyor, hatta
-  // aktif veri yoksa doğrudan günün TOPLAM yakımına düşüyor. Bir diyet
-  // bütçesine eklenince "kalan kalori" uçuyor (7.978 adımda 3.078 kcal gibi).
+  // ANTRENMAN KAYITLARINI AYIKLA — iki ayrı sorun var.
   //
-  // Elimizdeki TEMİZ ölçü günün aktif kalorisi: onu ayrı bir sorguyla
-  // ('active-calories') tek metrik olarak alıyoruz, bazal karışmıyor.
-  // Gün boyu hareketten yakılan toplam, tanımı gereği antrenmanların
-  // ÜST SINIRIDIR — antrenman toplamı bunu aşıyorsa oransal olarak kısıyoruz.
-  const rawWorkoutKcal = workouts.reduce((s, w) => s + (w.kcal || 0), 0)
-  const ceiling = activeKcal > 0 ? activeKcal : steps > 0 ? Math.round(steps * 0.04) : 0
-  if (ceiling > 0 && rawWorkoutKcal > ceiling) {
-    const factor = ceiling / rawWorkoutKcal
-    workouts = workouts.map((w) => ({ ...w, kcal: w.kcal ? Math.round(w.kcal * factor) : w.kcal }))
-  } else if (ceiling === 0 && rawWorkoutKcal > 0) {
-    // Hiç temiz ölçü yok: kirli sayıyı bütçeye sokmaktansa kaloriyi boş bırak.
-    // Antrenmanın kendisi (süre/mesafe/nabız) yine görünür.
-    workouts = workouts.map((w) => ({ ...w, kcal: undefined }))
-  }
+  // 1) KALORİ GÜVENİLİR DEĞİL. Eklentinin kaynağında
+  //    (addWorkoutTotalCalories → sumActiveAndBasalCalories) şu var:
+  //        active + basal   ... ikisi de yoksa → total
+  //    Yani her antrenmanın kalorisine BAZAL METABOLİZMA katılıyor; aktif veri
+  //    yoksa doğrudan günün TOPLAM yakımına düşüyor. Bunu bir diyet bütçesine
+  //    eklemek "kalan kalori"yi uçuruyor. Bu sayıyı ARTIK HİÇ KULLANMIYORUZ.
+  //    Bütçeye eklenen kalori tek temiz ölçüden gelir: günün AKTİF kalorisi
+  //    ('active-calories' tek metrik olarak sorgulanır, bazal karışmaz).
+  //
+  // 2) OTURUMLARIN ÇOĞU ANTRENMAN DEĞİL. Samsung Health gün içindeki
+  //    yürümeleri de "egzersiz oturumu" olarak yazıyor; 8 saatlik bir oturum
+  //    çıkabiliyor. 8 saat kesintisiz egzersiz gerçekçi değil — bu, gün boyu
+  //    hareketin kaydı ve zaten ADIM sayısında görünüyor. Antrenman listesine
+  //    girerse hem süre saçmalıyor hem de aynı hareket iki kez görünüyor.
+  //    Bu yüzden çok uzun oturumlar antrenman sayılmıyor.
+  const MAX_WORKOUT_MIN = 240 // 4 saat: uzun bir yürüyüş/bisiklet hâlâ geçer
+  workouts = workouts
+    .filter((w) => (w.minutes || 0) <= MAX_WORKOUT_MIN)
+    .map((w) => ({ ...w, kcal: undefined }))
 
   return {
     steps,

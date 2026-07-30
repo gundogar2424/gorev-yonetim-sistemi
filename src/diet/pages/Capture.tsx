@@ -625,7 +625,7 @@ export default function Capture() {
 
         {/* Kaydırmalı kontrol paneli: Kaloriler / Makrolar / Kalp için Sağlıklı /
             Düşük Karbonhidrat (MyFitnessPal'daki gibi 4 sayfa) */}
-        <Dashboard entries={entries ?? []} exercises={exercises ?? []} goal={settings?.calorieGoal} />
+        <Dashboard entries={entries ?? []} goal={settings?.calorieGoal} />
 
         {/* Adım (otomatik, bütçeye karışmaz) + Egzersiz (bütçeye eklenir) */}
         <StepExerciseRow exercises={exercises ?? []} stepGoal={settings?.stepGoal} />
@@ -1264,6 +1264,17 @@ function JourneyLine({ entries, measurements }: { entries: DietEntry[]; measurem
   )
 }
 
+// GÜNLÜK HAREKET KALORİSİ — bütçeye eklenen tek sayı.
+// Sadece TEMİZ ölçüyü kullanir: Health Connect'in "aktif kalori"si (bazal
+// metabolizma HARİÇ). Eklentinin antrenman basina verdigi kalori bazali da
+// icerdiginden ona hic bakmiyoruz. Aktif kalori yoksa adimdan kaba tahmin.
+function movementKcal(row: { activeKcal?: number; count?: number } | undefined): number {
+  const active = row?.activeKcal || 0
+  if (active > 0) return active
+  const steps = row?.count || 0
+  return steps > 0 ? Math.round(steps * 0.04) : 0
+}
+
 // GUNLUK HEDEFLER — kalori hedefinden turetilir; oranlar MyFitnessPal ile
 // birebir ayni: karbonhidrat %50, yag %30, protein %20, seker %15 (kaloriden).
 // Lif/sodyum/kolesterol saglik esikleridir, kaloriye gore degismez.
@@ -1280,7 +1291,7 @@ function dailyTargets(target: number) {
   }
 }
 
-function Dashboard({ entries, exercises, goal }: { entries: DietEntry[]; exercises: Exercise[]; goal?: number }) {
+function Dashboard({ entries, goal }: { entries: DietEntry[]; goal?: number }) {
   const today = todayStr()
   const todays = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
   const sum = (pick: (e: DietEntry) => number | undefined) => todays.reduce((s, e) => s + (pick(e) || 0), 0)
@@ -1297,7 +1308,13 @@ function Dashboard({ entries, exercises, goal }: { entries: DietEntry[]; exercis
   // EGZERSİZ: MyFitnessPal'da bütçeye YALNIZCA kaydedilmiş antrenman eklenir.
   // Adım ayrı bir karttır ve kalori bütçesine karışmaz (MFP'de 3.443 adımda
   // "Egzersiz 0" yazmasının sebebi budur). Biz de aynısını yapıyoruz.
-  const exBurned = exercises.filter((e) => e.dateStr === today).reduce((s, e) => s + (e.kcal || 0), 0)
+  // EGZERSİZ KALORİSİ — tek temiz kaynak: günün AKTİF kalorisi.
+  // Health Connect eklentisinin antrenman başına verdiği kalori bazal
+  // metabolizmayı da içeriyor (bkz. lib/health.ts) ve bütçeyi uçuruyordu.
+  // Aktif kalori tek metrik olarak sorgulanır, bazal karışmaz. Yoksa adımdan
+  // kaba tahmin (~0,04 kcal/adım) kullanılır.
+  const stepsRow = useLiveQuery(() => getStepsRow(today), [today], undefined)
+  const exBurned = movementKcal(stepsRow)
 
   const target = goal && goal > 0 ? goal : 0
   const g = dailyTargets(target)
@@ -1619,7 +1636,9 @@ function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepG
   const goal = stepGoal && stepGoal > 0 ? stepGoal : 10000
   const pct = Math.min(100, Math.round((steps / goal) * 100))
 
-  const exKcal = todays.reduce((s, e) => s + (e.kcal || 0), 0)
+  // Karttaki kalori, kalori halkasindaki "Egzersiz" ile AYNI sayi olmali —
+  // yoksa ayni ekranda iki farkli rakam gorunur. Ikisi de movementKcal.
+  const exKcal = movementKcal(dayRow)
   const minutes = todays.reduce((s, e) => s + (e.minutes || 0), 0)
   const hh = Math.floor(minutes / 60)
   const mm = minutes % 60
