@@ -76,7 +76,7 @@ export default function Menu() {
     <div>
       <DietHeader title="Menüm" subtitle="Diyet listen — sor & düzelt" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {msg && <p className="card p-3 bg-emerald-50 text-emerald-800 text-sm border-emerald-100">{msg}</p>}
 
         {!plan.trim() && (

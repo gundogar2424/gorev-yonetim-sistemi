@@ -68,7 +68,7 @@ export default function Track() {
     <div>
       <DietHeader title="Takip" subtitle="Ölçü, kilo, şeker, tansiyon" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {/* Sekme secici */}
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -428,12 +428,12 @@ function SendMeasurements() {
   }
 
   return (
-    <section className="card p-3 space-y-2">
-      <h3 className="section-title">Ölçümleri Diyetisyene Gönder</h3>
+    <section className="card p-4 space-y-3">
+      <h3 className="section-title">Ölçümleri diyetisyene gönder</h3>
 
       {/* Hizli: sadece EN SON olcum (donem secmeye gerek yok) */}
-      <button onClick={sendLatest} className="btn-primary w-full whitespace-nowrap">
-        📍 Sadece Son Ölçümü Gönder
+      <button onClick={sendLatest} className="btn-primary w-full">
+        Sadece son ölçümü gönder
       </button>
 
       <p className="text-xs text-slate-500 pt-1">
@@ -493,41 +493,41 @@ function SendMeasurements() {
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={sendText} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
-          ✍️ Yazılı Gönder
+        <button onClick={sendText} className="btn-secondary">
+          Yazılı
         </button>
-        <button onClick={sendImage} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
-          📸 Resimli Gönder
+        <button onClick={sendImage} className="btn-secondary">
+          Resimli
         </button>
       </div>
 
       {/* Şeker/tansiyonu AYRI göndermek isteyenler için — gizli başlar */}
       <button
         onClick={() => setShowMore((v) => !v)}
-        className="w-full text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg py-1.5"
+        className="w-full text-[13px] font-semibold text-slate-500 py-1"
       >
-        🩸 Şeker / tansiyon ayrı gönder {showMore ? '▲' : '▼'}
+        Şeker / tansiyon ayrı gönder {showMore ? '▲' : '▼'}
       </button>
       {showMore && (
-        <div className="space-y-2 bg-slate-50 rounded-lg p-2">
+        <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => sendVital('seker')} className="btn-secondary text-sm whitespace-nowrap">
-              🩸 Şeker listesi
+            <button onClick={() => sendVital('seker')} className="btn-secondary text-[13px] px-2">
+              Şeker listesi
             </button>
-            <button onClick={() => sendVital('tansiyon')} className="btn-secondary text-sm whitespace-nowrap">
-              🩺 Tansiyon listesi
+            <button onClick={() => sendVital('tansiyon')} className="btn-secondary text-[13px] px-2">
+              Tansiyon listesi
             </button>
-            <button onClick={() => sendVitalGraph('seker')} className="btn-secondary text-sm whitespace-nowrap">
-              📈 Şeker grafiği
+            <button onClick={() => sendVitalGraph('seker')} className="btn-secondary text-[13px] px-2">
+              Şeker grafiği
             </button>
-            <button onClick={() => sendVitalGraph('tansiyon')} className="btn-secondary text-sm whitespace-nowrap">
-              📈 Tansiyon grafiği
+            <button onClick={() => sendVitalGraph('tansiyon')} className="btn-secondary text-[13px] px-2">
+              Tansiyon grafiği
             </button>
-            <button onClick={() => sendVitalDay('seker')} className="btn-secondary text-sm whitespace-nowrap">
-              🩸 Son günün şekeri
+            <button onClick={() => sendVitalDay('seker')} className="btn-secondary text-[13px] px-2">
+              Son günün şekeri
             </button>
-            <button onClick={() => sendVitalDay('tansiyon')} className="btn-secondary text-sm whitespace-nowrap">
-              🩺 Son günün tansiyonu
+            <button onClick={() => sendVitalDay('tansiyon')} className="btn-secondary text-[13px] px-2">
+              Son günün tansiyonu
             </button>
           </div>
           <p className="text-[11px] text-slate-400">Seçili döneme göre gönderir (üstteki sekme / tarih).</p>

@@ -43,7 +43,7 @@ export default function More() {
   return (
     <div>
       <DietHeader title="Daha Fazla" />
-      <div className="p-3 space-y-3">
+      <div className="px-4 py-3 space-y-3">
         {mainLinks.map((l) => (
           <LinkCard key={l.to} l={l} />
         ))}

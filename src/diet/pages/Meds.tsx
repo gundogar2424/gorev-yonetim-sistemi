@@ -202,7 +202,7 @@ export default function Meds() {
     <div>
       <DietHeader title="İlaçlarım" subtitle="Günlük dozlar · hatırlatma · uyum raporu" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {err && <div className="card p-3 bg-rose-50 border-rose-200 text-rose-700 text-sm">{err}</div>}
 
         <AggressiveNotifCard />

@@ -70,7 +70,7 @@ export default function BeniTani() {
     <div>
       <DietHeader title="Beni Tanı" subtitle="Yapay zeka seni tanıdıkça kişisel profil + haftalık içgörü" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {!hasKey && (
           <div className="card p-4 bg-amber-50 border-amber-200 text-amber-800 text-sm">
             <p className="font-semibold mb-1">⚙️ Kurulum gerekli</p>

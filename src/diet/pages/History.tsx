@@ -127,50 +127,49 @@ export default function History() {
     <div>
       <DietHeader title="Geçmiş" subtitle="Kararlarının kaydı" />
 
-      <div className="p-3 space-y-4">
-        {/* Diyetisyene rapor gonder */}
-        <section className="card p-3 space-y-2">
-          <h3 className="section-title">Diyetisyene Gönder</h3>
-          <p className="text-xs text-slate-500">
-            Seçtiğin günün öğün, ölçü, sağlık verisi ve diyet başarısı gönderilir. Görsel rapor yemek fotoğraflarını da içerir.
+      <div className="px-4 py-3 space-y-3">
+        {/* Diyetisyene rapor gonder.
+            NOT: butonlarda `whitespace-nowrap` vardi; uzun etiket ("Günlük
+            Sağlık Raporu (şeker/tansiyon/spor/ilaç)") satira sigmayinca ekrandan
+            TASIYOR ve yazinin sonu kesiliyordu. Etiketler kisaltildi, alt
+            aciklama satirina alindi ve nowrap kaldirildi. */}
+        <section className="card p-4 space-y-3">
+          <h3 className="section-title">Diyetisyene gönder</h3>
+          <p className="text-[13px] text-slate-500 leading-relaxed">
+            Seçtiğin günün öğün, ölçü, sağlık verisi ve diyet başarısı gönderilir. Görsel rapor yemek fotoğraflarını da
+            içerir.
           </p>
           <input type="date" className="field-input" value={reportDate} onChange={(e) => setReportDate(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={sendReport} className="btn bg-slate-200 text-slate-700 hover:bg-slate-300 whitespace-nowrap">
-              ✍️ Yazılı Gönder
+            <button onClick={sendReport} className="btn-secondary">
+              Yazılı
             </button>
-            <button onClick={sendImage} className="btn-primary whitespace-nowrap">
-              📸 Tek Görsel
+            <button onClick={sendImage} className="btn-primary">
+              Tek görsel
             </button>
           </div>
-          {/* Diğer rapor türleri — gizli başlar, sadeleşsin diye */}
           <button
             onClick={() => setMoreReports((v) => !v)}
-            className="w-full text-xs font-semibold text-slate-500 bg-slate-100 rounded-lg py-1.5"
+            className="w-full text-[13px] font-semibold text-slate-500 py-1"
           >
-            📑 Diğer rapor türleri {moreReports ? '▲' : '▼'}
+            Diğer rapor türleri {moreReports ? '▲' : '▼'}
           </button>
           {moreReports && (
-            <div className="space-y-2 bg-slate-50 rounded-lg p-2">
-              <button onClick={sendImageSet} className="btn bg-brand-600 text-white w-full text-sm whitespace-nowrap">
-                🖼️ Ayrı Gönder (her öğün ayrı foto)
-              </button>
-              <button onClick={sendHealthImage} className="btn bg-sky-600 text-white w-full text-sm whitespace-nowrap">
-                🩺 Günlük Sağlık Raporu (şeker/tansiyon/spor/ilaç)
-              </button>
-              <button onClick={sendHungerImage} className="btn bg-violet-600 text-white w-full text-sm whitespace-nowrap">
-                🍽️ Açlık Grafiği (gün akışı)
-              </button>
+            <div className="space-y-2">
+              <ReportOption onClick={sendImageSet} title="Ayrı gönder" desc="Her öğün için ayrı fotoğraf" />
+              <ReportOption onClick={sendHealthImage} title="Günlük sağlık raporu" desc="Şeker, tansiyon, spor, ilaç" />
+              <ReportOption onClick={sendHungerImage} title="Açlık grafiği" desc="Gün içindeki açlık akışı" />
             </div>
           )}
-          {msg && <p className="text-xs text-emerald-700 font-semibold">{msg}</p>}
+          {msg && <p className="text-[13px] text-emerald-600 font-medium">{msg}</p>}
         </section>
 
-        {/* Ozet istatistikler */}
+        {/* Ozet istatistikler — rakamlar notr; uc farkli renk (turuncu/yesil/
+            kirmizi) yan yana durunca gereksiz gurultu yapiyordu. */}
         <div className="grid grid-cols-3 gap-2">
-          <Stat value={stats.points} label="Puan ⭐" accent="text-amber-500" />
-          <Stat value={stats.totalResisted} label="Vazgeçiş" accent="text-emerald-600" />
-          <Stat value={stats.totalAte} label="Yedim" accent="text-rose-500" />
+          <Stat value={stats.points} label="Puan" />
+          <Stat value={stats.totalResisted} label="Vazgeçiş" />
+          <Stat value={stats.totalAte} label="Yedim" />
         </div>
 
         {(entries?.length ?? 0) === 0 && (
@@ -780,12 +779,28 @@ function DayScoreBadge({ entries, date }: { entries: DietEntry[]; date: string }
   return <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cls}`}>Başarı %{pct}</span>
 }
 
-function Stat({ value, label, accent }: { value: number; label: string; accent: string }) {
+function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="card p-3 text-center">
-      <p className={`text-2xl font-extrabold ${accent}`}>{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-[22px] font-bold tabular-nums text-slate-900 dark:text-[#e0e1e6] leading-none">
+        {value.toLocaleString('tr-TR')}
+      </p>
+      <p className="text-[12px] text-slate-500 mt-1.5">{label}</p>
     </div>
+  )
+}
+
+// Rapor secenegi: renkli dev buton yerine ad + tek satirlik aciklama.
+// Uzun etiketler artik kesilmiyor, alt satira sariliyor.
+function ReportOption({ onClick, title, desc }: { onClick: () => void; title: string; desc: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left rounded-xl border border-slate-200 dark:border-[#333749] px-3.5 py-2.5 active:scale-[0.99] transition"
+    >
+      <span className="block text-[14px] font-semibold text-slate-900 dark:text-[#e0e1e6]">{title}</span>
+      <span className="block text-[12px] text-slate-500 mt-0.5">{desc}</span>
+    </button>
   )
 }
 

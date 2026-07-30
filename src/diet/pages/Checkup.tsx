@@ -92,7 +92,7 @@ export default function Checkup() {
     <div>
       <DietHeader title="Sağlık Check-up" subtitle="Tüm verilerini bir hekim gibi bütünsel yorumlar" />
 
-      <div className="p-3 space-y-3">
+      <div className="px-4 py-3 space-y-3">
         {!hasKey ? (
           <div className="card p-4 text-sm text-slate-600">
             Bunun için{' '}

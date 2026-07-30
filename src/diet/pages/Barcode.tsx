@@ -320,7 +320,7 @@ export default function Barcode() {
     <div>
       <DietHeader title="Barkod" subtitle="Paketli ürünü okut, kalori/makro öğren" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {/* Barkod gir / okut */}
         <section className="card p-4 space-y-3">
           {/* Canli tarama (kamera acik) */}

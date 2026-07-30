@@ -36,7 +36,7 @@ export default function Shopping() {
     <div>
       <DietHeader title="Alışveriş Listesi" subtitle="Tik at = alındı · tik yok = elimizde yok" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {/* Diyet listesine gore otomatik oneri (sade — dogrudan urunler) */}
         <SuggestFromPlan
           apiKey={settings?.apiKey}

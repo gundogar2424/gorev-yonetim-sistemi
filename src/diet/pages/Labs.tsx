@@ -124,7 +124,7 @@ export default function Labs() {
     <div>
       <DietHeader title="Tahliller" subtitle="Foto/PDF yükle, hafızada tutsun" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         <Link
           to="/checkup"
           className="card p-3 flex items-center gap-3 active:scale-[0.99] transition"

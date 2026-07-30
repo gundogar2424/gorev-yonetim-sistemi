@@ -31,7 +31,7 @@ export default function ExercisePage() {
     <div>
       <DietHeader title="Egzersiz" subtitle="Samsung Health verilerin otomatik gelir" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {/* Ozet kart */}
         <div className="card p-5">
           <div className="flex items-start justify-between gap-4">

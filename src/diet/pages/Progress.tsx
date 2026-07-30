@@ -41,7 +41,7 @@ export default function Progress() {
     <div>
       <DietHeader title="Önce - Sonra" subtitle="İlerleme fotoğrafların" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {/* Yeni fotograf ekle */}
         <section className="card p-4 space-y-3">
           <p className="text-xs text-slate-500">

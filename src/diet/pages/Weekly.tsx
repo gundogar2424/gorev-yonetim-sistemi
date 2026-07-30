@@ -22,7 +22,7 @@ export default function Weekly() {
     <div>
       <DietHeader title="Özet Rapor" subtitle="Son günlerin genel durumu" />
 
-      <div className="p-3 space-y-4">
+      <div className="px-4 py-3 space-y-3">
         {/* Donem secimi */}
         <div className="flex gap-2">
           {[7, 14, 30].map((d) => (
