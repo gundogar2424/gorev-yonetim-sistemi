@@ -224,6 +224,7 @@ function HealthConnectCard({ day }: { day: string }) {
       if (data.distanceKm) parts.push(`${data.distanceKm} km`)
       if (data.totalKcal) parts.push(`~${data.totalKcal} kcal`)
       if (data.workouts.length) parts.push(`${data.workouts.length} antrenman`)
+      if (data.sleepHours) parts.push(`${data.sleepHours} sa uyku`)
       setMsg(parts.length ? `Alındı: ${parts.join(' · ')}.` : 'Bu gün için Health Connect’te veri bulunamadı.')
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'İçe aktarma başarısız.')
@@ -239,7 +240,7 @@ function HealthConnectCard({ day }: { day: string }) {
         <div className="flex-1">
           <p className="font-bold text-slate-800">Samsung Health’ten otomatik al</p>
           <p className="text-xs text-slate-500">
-            Adım, mesafe, kalori ve antrenmanları (nabızla) Health Connect üzerinden {formatDate(day)} gününe çeker.
+            Adım, mesafe, kalori, uyku ve antrenmanları (nabızla) Health Connect üzerinden {formatDate(day)} gününe çeker.
           </p>
         </div>
       </div>
@@ -263,8 +264,8 @@ function HealthConnectCard({ day }: { day: string }) {
       {msg && <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg p-2">{msg}</p>}
       {err && <p className="text-xs text-rose-700 bg-rose-50 rounded-lg p-2">{err}</p>}
       <p className="text-[11px] text-slate-400 leading-tight">
-        İlk seferde Health Connect izin ekranı açılır; <b>Etkinlik</b> (adım/antrenman) ve <b>Hayati bulgular</b> (nabız)
-        izinlerini ver. Veri Samsung Health’in Health Connect’e yazdığı kadarıyla gelir.
+        İlk seferde Health Connect izin ekranı açılır; <b>Etkinlik</b> (adım/antrenman), <b>Uyku</b> ve{' '}
+        <b>Hayati bulgular</b> (nabız) izinlerini ver. Veri Samsung Health’in Health Connect’e yazdığı kadarıyla gelir.
       </p>
     </section>
   )

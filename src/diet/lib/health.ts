@@ -2,7 +2,7 @@
 // kalori ve antrenmanlar (nabizla). Samsung Health bu verileri Health Connect'e
 // yazar; biz de kullanicinin izniyle oradan okuruz. YALNIZCA APK'da (native)
 // calisir; web'de sessizce devre disidir.
-import type { HealthPlugin, HealthPermission } from 'capacitor-health'
+import type { HealthPlugin, HealthPermission } from '@flomentumsolutions/capacitor-health-extended'
 
 // ÖNEMLİ: Capacitor eklenti nesnesi (Proxy) bir async fonksiyondan DOĞRUDAN
 // döndürülürse, Promise çözümü sırasında JS "thenable mı?" diye `.then`e bakar ve
@@ -16,21 +16,23 @@ async function getMod(): Promise<HealthMod | null> {
   const { Capacitor } = await import('@capacitor/core')
   if (!Capacitor.isNativePlatform()) return null
   try {
-    if (!modPromise) modPromise = import('capacitor-health') as unknown as Promise<HealthMod>
+    if (!modPromise)
+      modPromise = import('@flomentumsolutions/capacitor-health-extended') as unknown as Promise<HealthMod>
     return await modPromise
   } catch {
     return null
   }
 }
 
-// Istedigimiz izinler: adim, antrenman, aktif/toplam kalori, mesafe, nabiz.
+// Istedigimiz izinler: adim, antrenman, aktif/toplam kalori, mesafe, nabiz, UYKU.
 const PERMS: HealthPermission[] = [
   'READ_STEPS',
   'READ_WORKOUTS',
   'READ_ACTIVE_CALORIES',
   'READ_TOTAL_CALORIES',
   'READ_DISTANCE',
-  'READ_HEART_RATE'
+  'READ_HEART_RATE',
+  'READ_SLEEP'
 ]
 
 // Health Connect bu cihazda var mi (yuklu ve destekli mi)?
@@ -128,6 +130,7 @@ export interface HealthDay {
   distanceKm: number
   activeKcal: number
   totalKcal: number
+  sleepHours: number // O SABAH uyanilan gece uykusu (saat); yoksa 0
   workouts: HealthWorkout[]
 }
 
@@ -150,7 +153,30 @@ async function agg(H: HealthPlugin, dataType: string, start: string, end: string
   }
 }
 
-// Bir gunun tum verisini Health Connect'ten oku (adim/mesafe/kalori + antrenmanlar).
+// UYKU: Health Connect uyku oturumlarini BASLANGIC gunune gore gruplar. Gece
+// 23:30'da baslayip sabah 07:00'de biten uyku, BIR ONCEKI gune yazilir. Bizim
+// istedigimiz "bu sabah uyandigin gece uykusu" oldugu icin pencereyi
+// (dun 12:00 → bugun 12:00) aliyoruz; boylece gece yarisini asan uyku dogru
+// gune (uyanilan gune) gelir. Deger SANIYE doner, saate cevrilir.
+async function readSleepHours(H: HealthPlugin, dateStr: string): Promise<number> {
+  try {
+    const noonToday = new Date(dateStr + 'T12:00:00')
+    const noonPrev = new Date(noonToday.getTime() - 86_400_000)
+    const r = await H.queryAggregated({
+      startDate: noonPrev.toISOString(),
+      endDate: noonToday.toISOString(),
+      dataType: 'sleep' as never,
+      bucket: 'day'
+    })
+    const seconds = (r.aggregatedData || []).reduce((s, a) => s + (a.value || 0), 0)
+    if (!seconds) return 0
+    return Math.round((seconds / 3600) * 10) / 10 // saat, tek ondalik
+  } catch {
+    return 0 // uyku izni yok / veri yok
+  }
+}
+
+// Bir gunun tum verisini Health Connect'ten oku (adim/mesafe/kalori/uyku + antrenmanlar).
 export async function importHealthDay(dateStr: string): Promise<HealthDay | null> {
   const mod = await getMod()
   if (!mod) return null
@@ -161,6 +187,7 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
   const activeKcal = Math.round(await agg(H, 'active-calories', start, end))
   const totalKcal = Math.round(await agg(H, 'total-calories', start, end))
   const distanceM = await agg(H, 'distance', start, end)
+  const sleepHours = await readSleepHours(H, dateStr)
 
   let workouts: HealthWorkout[] = []
   try {
@@ -195,6 +222,7 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
     distanceKm: Math.round((distanceM / 1000) * 100) / 100,
     activeKcal,
     totalKcal,
+    sleepHours,
     workouts
   }
 }
@@ -202,7 +230,7 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
 // Okunan gunu VERITABANINA yazar (gunluk toplamlar + antrenmanlar).
 // Hem butondan hem otomatik guncellemeden ayni yol kullanilir.
 export async function saveHealthDay(dateStr: string, data: HealthDay): Promise<void> {
-  const { setActivityDay, replaceHealthExercises } = await import('../db')
+  const { setActivityDay, replaceHealthExercises, setSleepDay } = await import('../db')
   await setActivityDay(dateStr, {
     count: data.steps,
     activeKcal: data.activeKcal,
@@ -210,6 +238,8 @@ export async function saveHealthDay(dateStr: string, data: HealthDay): Promise<v
     distanceKm: data.distanceKm
   })
   await replaceHealthExercises(dateStr, HEALTH_TAG, data.workouts)
+  // Uyku yalnizca veri VARSA yazilir; 0 gelirse elle girilmis kaydi silmeyelim
+  if (data.sleepHours > 0) await setSleepDay(dateStr, data.sleepHours)
 }
 
 // OTOMATIK GUNCELLEME: uygulama acildiginda / one geldiginde BUGUNU sessizce

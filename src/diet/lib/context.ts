@@ -16,7 +16,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
   const since7 = todayStr(new Date(Date.now() - 6 * 86_400_000))
 
-  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll, waterAll] = await Promise.all([
+  const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll, waterAll, sleepAll] = await Promise.all([
     dietDb.entries.toArray(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
@@ -31,7 +31,8 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     dietDb.checkins.toArray(),
     dietDb.meds.toArray(),
     dietDb.steps.toArray(),
-    dietDb.water.toArray()
+    dietDb.water.toArray(),
+    dietDb.sleep.toArray()
   ])
 
   const L: string[] = []
@@ -337,6 +338,37 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
           : `Su bugün iyi gidiyor, kısaca takdir edebilirsin. `) +
         `Az su; kabızlık, baş ağrısı, yorgunluk, koyu idrar ve tokluk hissinde azalmayla bağlantılıdır. Kafein (kahve/çay) ve egzersiz su ihtiyacını ARTIRIR — bunları birlikte yorumla.`
     )
+  }
+
+  // UYKU (Samsung Health/Health Connect'ten ya da elle): dun gece + 7 gun ort.
+  // Uyku; aclik hormonlari (ghrelin/leptin), tatli krizi, insulin direnci ve
+  // toparlanma ile dogrudan iliskilidir — bunlari BIRLIKTE yorumla.
+  if (sleepAll.length) {
+    const lastNight = sleepAll.find((s) => s.dateStr === today)
+    let sum7 = 0
+    let n7 = 0
+    for (let i = 0; i < 7; i++) {
+      const d = todayStr(new Date(Date.now() - i * 86_400_000))
+      const row = sleepAll.find((s) => s.dateStr === d)
+      if (row?.hours) {
+        sum7 += row.hours
+        n7++
+      }
+    }
+    const avg7 = n7 ? Math.round((sum7 / n7) * 10) / 10 : 0
+    const bits: string[] = []
+    if (lastNight?.hours) bits.push(`dün gece ${lastNight.hours} saat`)
+    if (avg7) bits.push(`son 7 gün ort. ${avg7} saat/gece (${n7} gece kaydı)`)
+    if (bits.length) {
+      const short = (lastNight?.hours ?? avg7) > 0 && (lastNight?.hours ?? avg7) < 6.5
+      L.push(
+        `UYKU: ${bits.join(' · ')}. ` +
+          (short
+            ? 'Uyku YETERSİZ görünüyor (<6,5 sa). Az uyku; açlık hormonlarını bozar (ghrelin↑/leptin↓), tatlı-karbonhidrat krizini artırır, insülin direncini ve kan şekerini kötüleştirir, antrenman toparlanmasını yavaşlatır. Bugün tatlı krizi/fazla yeme olduysa bunu uykuyla İLİŞKİLENDİR ve erken yatmayı, akşam kafeini kesmeyi öner. '
+            : 'Uyku iyi görünüyor; toparlanma ve iştah kontrolü açısından bunu kısaca olumlu belirtebilirsin. ') +
+          'Kilo durağanlığı, açlık örüntüsü ve kafein tüketimiyle birlikte değerlendir.'
+      )
+    }
   }
 
   // KAHVE/KAFEIN: bugunku kafeinli icecek sayisi. Uyku/tansiyon/su ile iliskilendir.

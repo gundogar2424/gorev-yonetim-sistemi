@@ -88,12 +88,15 @@ jobs:
       - name: Health Connect manifesti (Samsung Health verisini otomatik almak için)
         run: |
           f=android/app/src/main/AndroidManifest.xml
-          # Sağlık izinleri eklentinin kendi manifestinden merge ile gelir. Buraya
-          # Health Connect'i görebilmek için <queries> + izin-gerekçe ekranı eklenir.
+          # NOT: capacitor-health-extended eklentisinin kendi manifesti BOŞ; sağlık
+          # izinleri merge ile GELMEZ. O yüzden hepsini burada tek tek ekliyoruz.
+          grep -q 'android.permission.health.READ_STEPS' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.health.READ_STEPS" />\n    <uses-permission android:name="android.permission.health.READ_EXERCISE" />\n    <uses-permission android:name="android.permission.health.READ_DISTANCE" />\n    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />\n    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />\n    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />\n    <uses-permission android:name="android.permission.health.READ_SLEEP" />\n</manifest>#' "$f"
+          # Health Connect uygulamasını görebilmek için <queries>
           grep -q 'com.google.android.apps.healthdata' "$f" || sed -i 's#</manifest>#    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>#' "$f"
           # İzin gerekçe ekranı (Health Connect gizlilik bağlantısı buraya gider) +
-          # Android 14+ "izin kullanımı" ekranı. Aktivite sınıfı eklentiden gelir.
-          grep -q 'PermissionsRationaleActivity' "$f" || perl -0pi -e 's#(\s*</application>)#\n            <activity android:name="com.fit_up.health.capacitor.PermissionsRationaleActivity" android:exported="true">\n                <intent-filter>\n                    <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />\n                </intent-filter>\n            </activity>\n            <activity-alias android:name="ViewPermissionUsageActivity" android:exported="true" android:targetActivity="com.fit_up.health.capacitor.PermissionsRationaleActivity" android:permission="android.permission.START_VIEW_PERMISSION_USAGE">\n                <intent-filter>\n                    <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />\n                    <category android:name="android.intent.category.HEALTH_PERMISSIONS" />\n                </intent-filter>\n            </activity-alias>$1#' "$f"
+          # Android 14+ "izin kullanımı" ekranı. Sınıf adı eklentinin paketinden gelir.
+          RA=com.flomentumsolutions.capacitorhealthextended.capacitor.PermissionsRationaleActivity
+          grep -q 'PermissionsRationaleActivity' "$f" || perl -0pi -e "s#(\s*</application>)#\n            <activity android:name=\"$RA\" android:exported=\"true\">\n                <intent-filter>\n                    <action android:name=\"androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE\" />\n                </intent-filter>\n            </activity>\n            <activity-alias android:name=\"ViewPermissionUsageActivity\" android:exported=\"true\" android:targetActivity=\"$RA\" android:permission=\"android.permission.START_VIEW_PERMISSION_USAGE\">\n                <intent-filter>\n                    <action android:name=\"android.intent.action.VIEW_PERMISSION_USAGE\" />\n                    <category android:name=\"android.intent.category.HEALTH_PERMISSIONS\" />\n                </intent-filter>\n            </activity-alias>\$1#" "$f"
           echo "--- health manifest ---"; grep -E "healthdata|PermissionsRationale|VIEW_PERMISSION_USAGE|health.READ" "$f" || true
 
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
