@@ -2225,8 +2225,24 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
   const now = new Date()
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
-  // TÜM öğünleri kullan (ara öğünler de görünsün); saatleri Hatırlatıcılar'dan gelir
-  const meals = mergeReminders(settings?.reminders)
+  // OLMAYAN ÖĞÜNÜ GÖSTERME: sadece Hatırlatıcılar'da AÇIK öğünler sıraya girer.
+  // Ayrıca diyet listesi öğünlere bölünmüşse, listede karşılığı BOŞ olan ARA
+  // öğünler atlanır (o gün öyle bir ara öğün yok demektir). Ana öğünler
+  // (kahvaltı/öğle/akşam) liste boş olsa da gösterilir.
+  const plan = settings?.dietPlanMeals
+  const planSplit = !!plan && Object.values(plan).some((v) => (v || '').trim())
+  const MAIN: MealType[] = ['kahvalti', 'ogle', 'aksam']
+
+  const enabled = mergeReminders(settings?.reminders).filter((r) => r.enabled)
+  const usable = enabled.length ? enabled : mergeReminders(settings?.reminders).filter((r) => MAIN.includes(r.id as MealType))
+
+  const meals = usable
+    .filter((r) => {
+      const meal = r.id as MealType
+      if (MAIN.includes(meal)) return true // ana öğün her zaman
+      if (!planSplit) return true // liste bölünmemiş: hepsini göster
+      return !!plan?.[meal]?.trim() // ara öğün: ancak listede varsa
+    })
     .map((r) => {
       const [h, m] = r.time.split(':').map(Number)
       return { meal: r.id as MealType, time: r.time, min: (h || 0) * 60 + (m || 0) }
