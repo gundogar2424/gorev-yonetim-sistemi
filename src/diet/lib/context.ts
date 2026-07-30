@@ -10,7 +10,12 @@ import type { DietSettings, Measurement } from '../types'
 
 const fmt = (n: number) => Math.round(n * 10) / 10
 
-export async function buildHealthContext(settings?: DietSettings): Promise<string> {
+// Cagri tipi. Amac: her cagriya HER SEYI gondermemek. 'full' varsayilandir
+// (hicbir sey kirpilmaz); digerleri o cagri icin ANLAMSIZ olan satirlari atar.
+// Suphedeysen 'full' birak — modulu kor etmektense token odemek yeglenir.
+export type HealthScope = 'full' | 'food' | 'shopping' | 'quick'
+
+export async function buildHealthContext(settings?: DietSettings, scope: HealthScope = 'full'): Promise<string> {
   const today = todayStr()
   const since30 = todayStr(new Date(Date.now() - 29 * 86_400_000))
   const since14 = todayStr(new Date(Date.now() - 13 * 86_400_000))
@@ -37,19 +42,24 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   ])
 
   const L: string[] = []
+  // Satiri ekle. skipIn verilirse, o kapsamlarda satir HIC yazilmaz.
+  const add = (text: string, skipIn?: HealthScope[]) => {
+    if (skipIn && skipIn.includes(scope)) return
+    add(text)
+  }
 
   // SENI TANIYAN KALICI PROFIL (varsa) — en tepede, tum degerlendirmelerin temeli.
   // DIKKAT: profil ESKI olabilir; guncel sayilar (kilo/olcu/tarih) icin ASAGIDAKI
   // taze verileri esas al — profildeki sayilari "en son" sanma.
   if (settings?.personalProfile?.trim()) {
-    L.push(
+    add(
       `SENİ TANIYAN KİŞİSEL PROFİL (uygulamanın bu kullanıcı için ÖNCEDEN çıkardığı kalıcı özet — huy/tercih/örüntü için kullan). ÖNEMLİ: Bu profil ESKİ olabilir; GÜNCEL kilo/ölçü/tarih için AŞAĞIDAKI "EN SON ÖLÇÜM" ve "ölçü eğilimi" satırlarını esas al, profildeki sayıları en güncel sanma:\n${settings.personalProfile.trim()}`
     )
   }
 
   // BUGUNE OZEL not/plan — en basta ve guclu: tum degerlendirmeler buna uysun
   if (dayNote?.text?.trim()) {
-    L.push(
+    add(
       `BUGÜNE ÖZEL NOT/PLAN (kullanıcı bugün için şunu belirtti — analiz, öneri ve gün değerlendirmesinde MUTLAKA dikkate al, buna aykırı ceza/uyarı verme): "${dayNote.text.trim()}". Örn. öğünleri birleştirdiyse bunu normal say, "çift öğün" gibi değerlendirme.`
     )
   }
@@ -64,18 +74,18 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   const lastWDate = weights.length ? weights[weights.length - 1].dateStr : undefined
   if (lastW) prof.push(`kilo ${lastW} kg (${lastWDate})`)
   if (settings?.targetWeight) prof.push(`hedef kilo ${settings.targetWeight} kg`)
-  if (prof.length) L.push(`Profil: ${prof.join(', ')}.`)
-  if (settings?.conditions?.trim()) L.push(`Rahatsızlıklar: ${settings.conditions.trim()}.`)
+  if (prof.length) add(`Profil: ${prof.join(', ')}.`)
+  if (settings?.conditions?.trim()) add(`Rahatsızlıklar: ${settings.conditions.trim()}.`)
   // Serbest-metin ilaç listesi YALNIZCA yapılandırılmış ilaç tablosu boşken kullanılsın
   // (aksi halde aynı ilaç 2-3 kez, farklı yazımla geçip modeli yanıltıyordu).
   const hasMedTable = medDefs.some((m) => m.active !== false)
-  if (!hasMedTable && settings?.medications?.trim()) L.push(`Kullandığı ilaçlar: ${settings.medications.trim()}.`)
-  if (settings?.activityLevel?.trim()) L.push(`Hareket düzeyi: ${settings.activityLevel.trim()} (kalori/porsiyon önerisinde dikkate al).`)
-  if (settings?.dailyRhythm?.trim()) L.push(`Günlük düzen (uyku/iş): ${settings.dailyRhythm.trim()} (öğün saati/plan önerisini buna göre yap).`)
+  if (!hasMedTable && settings?.medications?.trim()) add(`Kullandığı ilaçlar: ${settings.medications.trim()}.`)
+  if (settings?.activityLevel?.trim()) add(`Hareket düzeyi: ${settings.activityLevel.trim()} (kalori/porsiyon önerisinde dikkate al).`, ['shopping', 'quick'])
+  if (settings?.dailyRhythm?.trim()) add(`Günlük düzen (uyku/iş): ${settings.dailyRhythm.trim()} (öğün saati/plan önerisini buna göre yap).`, ['shopping', 'quick'])
   if (settings?.dislikedFoods?.trim())
-    L.push(`Sevmediği/kaçındığı/alerjik yiyecekler (ASLA önerme): ${settings.dislikedFoods.trim()}.`)
+    add(`Sevmediği/kaçındığı/alerjik yiyecekler (ASLA önerme): ${settings.dislikedFoods.trim()}.`)
   if (settings?.preferences?.trim()) {
-    L.push(
+    add(
       `KİŞİSEL ALIŞKANLIKLAR/TERCİHLER (analiz ve tahminlerde MUTLAKA bunları esas al, görselden aksini VARSAYMA): ${settings.preferences.trim()}. Örn. "kahveyi şekersiz içer" dendiyse kahveyi şekersiz say, kaloriyi ve şekeri ona göre hesapla.`
     )
   }
@@ -92,9 +102,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     if (typeof last.navel === 'number') parts.push(`göbek ${last.navel} cm`)
     if (typeof last.hip === 'number') parts.push(`kalça ${last.hip} cm`)
     if (typeof last.leg === 'number') parts.push(`bacak ${last.leg} cm`)
-    L.push(
+    add(
       `EN SON ÖLÇÜM (${last.dateStr} — kullanıcının GİRDİĞİ en güncel veri, bunu esas al): ${parts.join(' · ') || '—'}. Toplam ${measurements.length} ölçüm kaydı var; "veri yok/tek nokta" deme.`
-    )
+    , ['food', 'shopping', 'quick'])
 
     // BİR ÖNCEKİ ÖLÇÜME GÖRE — net, TARİHLİ karşılaştırma (AI "önceki haftayı" 30 günlük
     // eğilimin en eski değeriyle KARIŞTIRMASIN). Her ölçü için ayrı ayrı fark.
@@ -114,9 +124,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
         return `${f.l} ${prev[f.k]}→${last[f.k]}${f.u} (${d > 0 ? '+' : ''}${d})`
       })
       if (diffs.length) {
-        L.push(
+        add(
           `BİR ÖNCEKİ ÖLÇÜME GÖRE DEĞİŞİM (${prev.dateStr} → ${last.dateStr} — yani "geçen ölçüme/haftaya göre"): ${diffs.join(' · ')}. ÖNEMLİ: "önceki hafta/önceki ölçüm" derken SADECE bu ${prev.dateStr} değerlerini kullan; daha eski kayıtlarla (30 günlük eğilimin başı) KARIŞTIRMA.`
-        )
+        , ['food', 'shopping', 'quick'])
       }
     }
   }
@@ -145,9 +155,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     trend('leg', 'bacak', 'cm')
   ].filter(Boolean)
   if (trends.length) {
-    L.push(
+    add(
       `Son ~30 GÜNLÜK ölçü eğilimi (EN ESKİ kayıt ${m30first} → EN SON ${m30last} arası, birden çok haftayı kapsar — "önceki hafta" DEĞİL): ${trends.join(' · ')}. (Yorum ipucu: kilo sabit/az düşükken bel-göbek inceliyorsa yağ kaybı + kas korunumu olasıdır; kol/bacak inceliyor ama bel değişmiyorsa kas kaybına dikkat çek.)`
-    )
+    , ['food', 'shopping', 'quick'])
   }
 
   // TUM ZAMAN yolculugu: ilk kayittan bugune degisim (uzun vadeli seyir).
@@ -172,7 +182,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     journey('leg', 'bacak', 'cm')
   ].filter(Boolean)
   if (journeys.length) {
-    L.push(`Başlangıçtan bugüne toplam değişim: ${journeys.join(' · ')}. (Kilo düşerken bel/kalça/bacak da inceliyorsa süreç sağlıklı ilerliyor demektir; bunu bütünsel yorumla.)`)
+    add(`Başlangıçtan bugüne toplam değişim: ${journeys.join(' · ')}. (Kilo düşerken bel/kalça/bacak da inceliyorsa süreç sağlıklı ilerliyor demektir; bunu bütünsel yorumla.)`, ['food', 'shopping', 'quick'])
   }
 
   // Seker: son 5 olcum + ortalama; tansiyon: son deger
@@ -181,12 +191,12 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const last5 = sugars.slice(-5).map((v) => `${v.sugar}${v.sugarContext ? `(${v.sugarContext})` : ''}`)
     const pool = sugars.slice(-10)
     const avg = Math.round(pool.reduce((s, v) => s + (v.sugar || 0), 0) / pool.length)
-    L.push(`Kan şekeri: son ${last5.length} ölçüm ${last5.join(', ')} mg/dL; son ${pool.length} ölçüm ortalaması ~${avg}.`)
+    add(`Kan şekeri: son ${last5.length} ölçüm ${last5.join(', ')} mg/dL; son ${pool.length} ölçüm ortalaması ~${avg}.`, ['shopping'])
   }
   const bps = vitals.filter((v) => v.kind === 'tansiyon' && typeof v.systolic === 'number')
   if (bps.length) {
     const b = bps[bps.length - 1]
-    L.push(`Son tansiyon: ${b.systolic}/${b.diastolic}${b.pulse ? `, nabız ${b.pulse}` : ''}.`)
+    add(`Son tansiyon: ${b.systolic}/${b.diastolic}${b.pulse ? `, nabız ${b.pulse}` : ''}.`, ['shopping'])
   }
 
   // Son 7 gun diyet basarisi ortalamasi
@@ -196,7 +206,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const p = dayAdherence(entries, d)
     if (p != null) adhs.push(p)
   }
-  if (adhs.length) L.push(`Son 7 gün diyet başarısı ortalaması: %${Math.round(adhs.reduce((a, b) => a + b, 0) / adhs.length)}.`)
+  if (adhs.length) add(`Son 7 gün diyet başarısı ortalaması: %${Math.round(adhs.reduce((a, b) => a + b, 0) / adhs.length)}.`, ['food', 'shopping', 'quick'])
 
   // HAFTALIK/AYLIK OZET — "bu haftayı/ilerlemeyi değerlendir" isteginde koc bunlari
   // kullansin: spor gecmisi, ogun/kalori gecmisi (bugunle sinirli kalmasin).
@@ -210,20 +220,20 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const ex7 = sum(exercises.filter((e) => e.dateStr >= since7))
     const ex30 = sum(exercises.filter((e) => e.dateStr >= since30))
     if (ex30.n) {
-      L.push(
+      add(
         // NOT: Health Connect'ten gelen antrenmanlarda kalori YOK (eklentinin
         // verdigi sayi bazal metabolizmayi iceriyordu, bilerek silindi).
         // Sifirsa "~0 kcal" yazmak yaniltici olur — o parcayi hic yazmiyoruz.
         // Gunun gercek hareket kalorisi zaten ADIM satirinda ("kcal aktivite").
         `SPOR geçmişi: son 7 günde ${ex7.n} antrenman (${ex7.days} gün, ${ex7.min} dk${ex7.kcal ? `, ~${ex7.kcal} kcal` : ''}); son 30 günde ${ex30.n} antrenman (${ex30.days} gün, ${ex30.min} dk${ex30.kcal ? `, ~${ex30.kcal} kcal` : ''}). Haftalık değerlendirmede spor düzenini ve kalori yakımını dikkate al; antrenman kalorisi yoksa günlük aktivite kalorisine bak.`
-      )
+      , ['food', 'shopping', 'quick'])
     }
     // Ogun/kalori gecmisi (son 7 gun): gunluk ortalama alinan kalori
     const ateAll = entries.filter((e) => e.decision === 'ate')
     const days7 = new Set(ateAll.filter((e) => e.dateStr >= since7).map((e) => e.dateStr))
     if (days7.size) {
       const kcal7 = ateAll.filter((e) => e.dateStr >= since7).reduce((s, e) => s + (e.estimatedCalories || 0), 0)
-      L.push(`ÖĞÜN geçmişi: son 7 günde ${days7.size} gün kayıt, toplam ~${kcal7} kcal (günlük ort. ~${Math.round(kcal7 / days7.size)} kcal). Haftalık değerlendirmede bu eğilimi kullan.`)
+      add(`ÖĞÜN geçmişi: son 7 günde ${days7.size} gün kayıt, toplam ~${kcal7} kcal (günlük ort. ~${Math.round(kcal7 / days7.size)} kcal). Haftalık değerlendirmede bu eğilimi kullan.`, ['food', 'shopping', 'quick'])
     }
 
     // TÜM ZAMAN (ilk kayıttan bugüne) genel tablo — koç haftayı değerlendirirken tüm
@@ -248,9 +258,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
         const exKcal = exercises.reduce((s, e) => s + (e.kcal || 0), 0)
         bits.push(`${exercises.length} antrenman (${exMin} dk${exKcal ? `, ~${exKcal} kcal` : ''})`)
       }
-      L.push(
+      add(
         `BAŞLANGIÇTAN BUGÜNE GENEL: ${bits.join(' · ')}. Haftalık/ilerleme değerlendirmesinde SADECE bu haftaya değil, ilk kayıttan bugüne bu uzun vadeli tabloya da bak; eski verilerdeki örüntü/ilerlemeyi de kullan.`
-      )
+      , ['food', 'shopping', 'quick'])
     }
 
     // BİRLEŞİK ÖĞÜNLER: kullanıcı geç kalkınca iki öğünü tek kayıtta birleştirmiş olabilir.
@@ -261,9 +271,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
         .slice(-8)
         .map((e) => `${e.dateStr}: ${mealLabel(e.mealType)}${[e.alsoMeal, e.alsoMeal2].filter(Boolean).map((x) => '+' + mealLabel(x as never)).join('')}`)
         .join(' · ')
-      L.push(
+      add(
         `BİRLEŞİK ÖĞÜNLER (son 14 gün — kullanıcı bu günlerde iki öğünü tek öğünde birleştirdi): ${list}. Bu günlerde ilgili iki öğünü TEK öğün gibi değerlendir, "kahvaltı/öğün atladın" deme.`
-      )
+      , ['food', 'shopping', 'quick'])
     }
   }
 
@@ -278,7 +288,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       if (st.activeKcal) p.push(`${st.activeKcal} kcal aktivite`)
       if (st.burnedKcal) p.push(`${st.burnedKcal} kcal toplam yakım`)
       if (st.distanceKm) p.push(`${st.distanceKm} km`)
-      if (p.length) L.push(`Bugünkü aktivite (saatten): ${p.join(' · ')}.`)
+      if (p.length) add(`Bugünkü aktivite (saatten): ${p.join(' · ')}.`, ['shopping', 'quick'])
     }
     const last7 = stepsAll.filter((s) => s.dateStr >= since7)
     if (last7.length) {
@@ -289,9 +299,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       const aSteps = avg((s) => s.count)
       const aBurn = avg((s) => s.burnedKcal)
       if (aSteps || aBurn) {
-        L.push(
+        add(
           `Son 7 gün aktivite ort.: ${aSteps ? `${aSteps} adım/gün` : ''}${aSteps && aBurn ? ', ' : ''}${aBurn ? `~${aBurn} kcal/gün yakım` : ''}. Kalori dengesi ve hareket düzeyini buna göre değerlendir.`
-        )
+        , ['food', 'shopping', 'quick'])
       }
     }
   }
@@ -323,7 +333,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     )
   const lastMood = checkins.length ? checkins[checkins.length - 1] : undefined
   if (lastMood?.mood != null) bits.push(`son moral ${lastMood.mood}/10${lastMood.note ? ` ("${lastMood.note}")` : ''}`)
-  L.push(`Bugün şu ana kadar: ${bits.join(' · ')}.`)
+  add(`Bugün şu ana kadar: ${bits.join(' · ')}.`)
 
   // SU (genel saglik icin temel): bugunku alim hedefe gore + son 7 gun ortalamasi.
   // PROAKTIF: yetersizse gun icinde suyu ARTIRMASINI net soyle (koc/analiz/checkup
@@ -340,13 +350,13 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const avg7 = Math.round(sum7 / 7)
     const pctToday = goalMl ? Math.round((todayMl / goalMl) * 100) : 0
     const low = todayMl < goalMl * 0.6 || todayMl < 1500
-    L.push(
+    add(
       `SU DURUMU (genel sağlık için ÖNEMLİ): bugün ${todayMl} ml içildi (hedef ${goalMl} ml, %${pctToday}); son 7 gün ort. ~${avg7} ml/gün. ` +
         (low
           ? `Su BUGÜN YETERSİZ görünüyor — gün içinde suyu ARTIRMASINI net ama nazikçe söyle (ör. "bir sonraki saat başlarında birer bardak su iç"). `
           : `Su bugün iyi gidiyor, kısaca takdir edebilirsin. `) +
         `Az su; kabızlık, baş ağrısı, yorgunluk, koyu idrar ve tokluk hissinde azalmayla bağlantılıdır. Kafein (kahve/çay) ve egzersiz su ihtiyacını ARTIRIR — bunları birlikte yorumla.`
-    )
+    , ['food', 'shopping', 'quick'])
   }
 
   // UYKU (Samsung Health/Health Connect'ten ya da elle): dun gece + 7 gun ort.
@@ -370,13 +380,13 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     if (avg7) bits.push(`son 7 gün ort. ${avg7} saat/gece (${n7} gece kaydı)`)
     if (bits.length) {
       const short = (lastNight?.hours ?? avg7) > 0 && (lastNight?.hours ?? avg7) < 6.5
-      L.push(
+      add(
         `UYKU: ${bits.join(' · ')}. ` +
           (short
             ? 'Uyku YETERSİZ görünüyor (<6,5 sa). Az uyku; açlık hormonlarını bozar (ghrelin↑/leptin↓), tatlı-karbonhidrat krizini artırır, insülin direncini ve kan şekerini kötüleştirir, antrenman toparlanmasını yavaşlatır. Bugün tatlı krizi/fazla yeme olduysa bunu uykuyla İLİŞKİLENDİR ve erken yatmayı, akşam kafeini kesmeyi öner. '
             : 'Uyku iyi görünüyor; toparlanma ve iştah kontrolü açısından bunu kısaca olumlu belirtebilirsin. ') +
           'Kilo durağanlığı, açlık örüntüsü ve kafein tüketimiyle birlikte değerlendir.'
-      )
+      , ['food', 'shopping', 'quick'])
     }
   }
 
@@ -386,9 +396,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       !!n && /kahve|espresso|latte|cappuccino|americano|mocha|nescafe|filtre|çay(?!dan)|matcha|enerji ?i[çc]ece/i.test(n)
     const coffeeToday = entries.filter((e) => e.dateStr === today && e.decision === 'ate' && isCaffeine(e.foodName)).length
     if (coffeeToday > 0) {
-      L.push(
+      add(
         `KAHVE/KAFEİN: bugün ~${coffeeToday} kafeinli içecek (kahve/çay vb.). Kafein idrar söktürür (su ihtiyacını artırır) ve fazlası uykuyu, kalp çarpıntısını, tansiyonu ve kan şekeri dalgalanmasını etkileyebilir. Çoksa (≥3-4) öğleden sonra/akşam azaltmasını ve yanında su içmesini öner; tansiyon/şeker verisiyle birlikte değerlendir.`
-      )
+      , ['food', 'shopping', 'quick'])
     }
   }
 
@@ -399,9 +409,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
     const hs = hungerToday
       .map((c) => `${new Date(c.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} açlık ${c.hunger}/10`)
       .join(', ')
-    L.push(
+    add(
       `Bugünkü AÇLIK kayıtları (1 tok–10 çok aç; moralden ayrı): ${hs}. Yüksek açlık saatlerini son öğünle ve aktiviteyle ilişkilendir; sık erken acıkıyorsa porsiyon/protein/lif önerisi ver.`
-    )
+    , ['shopping', 'quick'])
   }
 
   // ACLIK ORUNTUSU (son 30 gun): en sik hangi saatlerde cok acikiyor (>=7/10).
@@ -414,9 +424,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       hourCount.set(h, (hourCount.get(h) ?? 0) + 1)
     }
     const top = [...hourCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([h]) => `${h}:00`)
-    L.push(
+    add(
       `AÇLIK ÖRÜNTÜSÜ: son 30 günde en çok ${top.join(' ve ')} civarı acıkıyor (yüksek açlık kaydı). Bu saatlerden önce ara öğün/su öner, proaktif davran.`
-    )
+    , ['food', 'quick'])
   }
 
   // TANIMLI ILAC/VITAMIN listesi + bugunku uyum (planlanan vs alinan)
@@ -429,16 +439,16 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       const gun = !m.days || !m.days.length ? 'her gün' : m.days.map((d) => ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d]).join(',')
       return `${m.name}${m.brand ? ` [${m.brand}]` : ''} (${m.kind === 'vitamin' ? 'vitamin' : 'ilaç'}, ${rel}, ${gun}, saat ${m.times?.join('/') || '—'})`
     })
-    L.push(`Düzenli kullandığı ilaç/vitaminler: ${defLines.join('; ')}.`)
+    add(`Düzenli kullandığı ilaç/vitaminler: ${defLines.join('; ')}.`, ['shopping', 'quick'])
     // Etken madde analizleri (varsa): ilerleme/gerileme yorumlarinda yediklerle
     // BIRLIKTE degerlendir (ornegin D vitamini + gunes, omega-3 + lipid profili).
     const ingLines = activeMeds
       .filter((m) => m.ingredients?.trim())
       .map((m) => `• ${m.name}: ${m.ingredients!.trim().replace(/\s+/g, ' ')}`)
     if (ingLines.length) {
-      L.push(
+      add(
         `İlaç/vitamin ETKEN MADDE bilgisi (yorumlarda beslenme ve ilerleme/gerileme ile birlikte kullan; teşhis/doz tavsiyesi verme):\n${ingLines.join('\n')}`
-      )
+      , ['food', 'shopping', 'quick'])
     }
     // Bugun alinmamis dozlar
     const missing = todaysMeds
@@ -449,7 +459,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       })
       .map((m) => m.name)
     if (missing.length) {
-      L.push(`Bugün HENÜZ alınmamış görünen ilaç/vitamin: ${missing.join(', ')} — uygunsa nazikçe hatırlat.`)
+      add(`Bugün HENÜZ alınmamış görünen ilaç/vitamin: ${missing.join(', ')} — uygunsa nazikçe hatırlat.`, ['food', 'shopping', 'quick'])
     }
   }
 
@@ -463,12 +473,12 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
         return `${t} ${m.name}${rel}`
       })
       .join(', ')
-    L.push(`Bugün alınan ilaçlar: ${ms}.`)
+    add(`Bugün alınan ilaçlar: ${ms}.`, ['food', 'shopping', 'quick'])
   }
   const med7 = medAll.filter((m) => m.dateStr >= todayStr(new Date(Date.now() - 6 * 86_400_000)))
   if (med7.length >= 3) {
     const days = new Set(med7.map((m) => m.dateStr)).size
-    L.push(`Son 7 günde ${med7.length} ilaç kaydı (${days} gün) — düzenliliği ve öğünle ilişkisini değerlendirebilirsin.`)
+    add(`Son 7 günde ${med7.length} ilaç kaydı (${days} gün) — düzenliliği ve öğünle ilişkisini değerlendirebilirsin.`, ['food', 'shopping', 'quick'])
   }
 
   // (Tokluk/satiety özelliği kaldırıldı — artık kaydedilmiyor; ilgili sinyal üretilmez.)
@@ -478,7 +488,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   if (cr.length) {
     const hrs = cr.map((c) => `${new Date(c.createdAt).getHours()}:00`)
     const res = cr.filter((c) => c.outcome === 'resisted').length
-    L.push(`Son 14 günde ${cr.length} kriz anı (saatler: ${hrs.join(', ')}); ${res}/${cr.length} direnç. Kriz saatleri yaklaşırken önden uyarabilirsin.`)
+    add(`Son 14 günde ${cr.length} kriz anı (saatler: ${hrs.join(', ')}); ${res}/${cr.length} direnç. Kriz saatleri yaklaşırken önden uyarabilirsin.`, ['food', 'shopping', 'quick'])
   }
 
   // TANIDIK YIYECEKLER: kullanicinin daha once yedigi yiyecekler — fotograf
@@ -492,9 +502,9 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
   }
   const known = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 18).map(([n]) => n)
   if (known.length) {
-    L.push(
+    add(
       `Kullanıcının daha önce yediği/tanıdığı yiyecekler (bir FOTOĞRAFI değerlendirirken, görseldeki şey bunlardan birine benziyorsa önce bunu düşün; örn. kahverengi kurutulmuş meyveyi yanlış türle karıştırma): ${known.join(', ')}.`
-    )
+    , ['shopping', 'quick'])
   }
 
   // Son tahlil(ler): en yeni 1-2 kaydin kisa ozeti (kompakt tutulur). Boylece
@@ -505,7 +515,7 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       const body = (lb.analysis?.trim() || lb.text?.trim() || '').replace(/\s+/g, ' ').slice(0, 500)
       return `[${lb.dateStr}] ${lb.title || 'Tahlil'}: ${body}`
     })
-    L.push(`Son tahlil(ler) (özet; ilaç/rahatsızlıkla birlikte değerlendir):\n${bits.join('\n')}`)
+    add(`Son tahlil(ler) (özet; ilaç/rahatsızlıkla birlikte değerlendir):\n${bits.join('\n')}`, ['shopping', 'quick'])
   }
 
   // ALISVERIS LISTESI: evde neyin var/neyin eksik oldugunu gosterir. "Ne yesem",
@@ -519,8 +529,8 @@ export async function buildHealthContext(settings?: DietSettings): Promise<strin
       .map((s) => s.text.trim())
       .filter(Boolean)
       .slice(0, 20)
-    if (bought.length) L.push(`Son günlerde alışverişte işaretlediği (evde olması muhtemel) ürünler: ${bought.join(', ')}.`)
-    if (pending.length) L.push(`Alışveriş listesinde HENÜZ ALINMAMIŞ ürünler (bunları "evde var" sayma): ${pending.join(', ')}.`)
+    if (bought.length) add(`Son günlerde alışverişte işaretlediği (evde olması muhtemel) ürünler: ${bought.join(', ')}.`, ['food', 'quick'])
+    if (pending.length) add(`Alışveriş listesinde HENÜZ ALINMAMIŞ ürünler (bunları "evde var" sayma): ${pending.join(', ')}.`, ['food', 'quick'])
   }
 
   return L.join('\n')

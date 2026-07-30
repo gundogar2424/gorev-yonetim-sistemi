@@ -259,7 +259,7 @@ export default function Barcode() {
         goal: settings.goal,
         dietPlan: settings.dietPlan,
         dietitianNotes: settings.dietitianNotes,
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'food')
       })
       setAdvice(res)
     } catch (err) {

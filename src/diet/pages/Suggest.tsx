@@ -88,7 +88,7 @@ export default function Suggest() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'shopping')
       })
       setClarifyChat([{ role: 'assistant', text: reply }])
     } catch (err) {
@@ -116,7 +116,7 @@ export default function Suggest() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'shopping')
       })
       setClarifyChat([...hist, { role: 'assistant', text: reply }])
     } catch (err) {
@@ -142,7 +142,7 @@ export default function Suggest() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'shopping')
       })
       setAdvice(res)
       setPhase('result')

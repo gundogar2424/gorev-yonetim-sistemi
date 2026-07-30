@@ -57,9 +57,24 @@ async function createClient(apiKey: string) {
     if (p && typeof p === 'object' && !p.output_config && supportsEffort(p.model as string)) {
       p.output_config = { effort: DEFAULT_EFFORT }
     }
-    // Uzun sistem metnini onbellege al (duz metinse blok haline getir)
-    if (p && typeof p === 'object' && typeof p.system === 'string' && p.system.length >= CACHE_MIN_CHARS) {
-      p.system = [{ type: 'text', text: p.system, cache_control: { type: 'ephemeral' } }]
+    // Sistem metnini onbelleklenebilir hale getir.
+    // Ayrac (CTX_MARK) varsa: [SABIT talimatlar] + [OYNAK baglam] diye ikiye
+    // bolunur ve YALNIZCA sabit kisim onbellege alinir. Boylece kullanici bir
+    // ogun/su/check-in girdiginde onbellek KIRILMAZ — eskiden tum sistem tek
+    // blok oldugu icin her veri degisiminde bastan yaziliyordu.
+    if (p && typeof p === 'object' && typeof p.system === 'string') {
+      const full = p.system
+      const at = full.indexOf(CTX_MARK)
+      if (at > 0) {
+        const stable = full.slice(0, at)
+        const volatile = full.slice(at + CTX_MARK.length).split(CTX_MARK).join('')
+        const head: Record<string, unknown> = { type: 'text', text: stable }
+        // Onbellege yazmanin da bedeli var; kisa on ekte zarar eder.
+        if (stable.length >= CACHE_MIN_CHARS) head.cache_control = { type: 'ephemeral' }
+        p.system = volatile ? [head, { type: 'text', text: volatile }] : [head]
+      } else if (full.length >= CACHE_MIN_CHARS) {
+        p.system = [{ type: 'text', text: full, cache_control: { type: 'ephemeral' } }]
+      }
     }
 
     const ret = origCreate(params as never, options as never)
@@ -275,6 +290,19 @@ function healthText(h?: string): string {
   return h?.trim()
     ? `\n\nKULLANICININ GÜNCEL SAĞLIK/İLERLEME VERİLERİ (uygulamanın veritabanından; değerlendirmende bunları da göz önünde tut, alakalı olanlara kısaca değin. Örn. kilo sabitken bel inceliyorsa "kaybın yağdan, kas korunuyor" gibi bütünsel yorum yap; şekeri/tansiyonu yüksekse önerini ona göre şekillendir):\n${h.trim()}`
     : ''
+}
+
+// ONBELLEK AYRACI. Sistem metninin SABIT kismini OYNAK kismindan ayirir.
+// Neden: onbellek bir ON EK uzerinde calisir; oynak veri (bugunku ogunler, su,
+// check-in...) sabit talimatlarla ayni blokta olursa her kayitta on ek degisir
+// ve onbellek HIC tutmaz. Ayractan onceki kisim onbelleklenir, sonrasi taze
+// gonderilir. Isaretin kendisi istege gonderilmeden once silinir.
+const CTX_MARK = '⁣CTX⁣'
+
+// Sistem metninde OYNAK bolumu baslatir (healthText'in ayracli hali).
+function healthSys(h?: string): string {
+  const t = healthText(h)
+  return t ? `${CTX_MARK}${t}` : ''
 }
 
 // Fotografi inceler ve yapilandirilmis sonucu dondurur
@@ -614,7 +642,7 @@ reply alanına Türkçe, KISA (1-3 cümle), net ve yardımcı bir cevap yaz. Diy
 - correction.estimatedCalories = düzeltilmiş tahmini kalori. correction.protein/carb/fat = düzeltilmiş makrolar (gram, tam sayı).
 - reply alanında puanı/kaloriyi GÜNCELLEDİĞİNİ kısaca söyle (örn. "Düzelttim, yeni puanın 8/10.").
 Eğer ortada bir düzeltme YOKSA (sadece soru soruyorsa): correction.changed = false ve tüm alanlara MEVCUT değerleri aynen yaz (scoreReason'a mevcut kırılma sebebini yazabilirsin).
-${ctx.join(' ')}${healthText(health)}`
+${ctx.join(' ')}${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -668,7 +696,7 @@ export async function chatAboutPlan(opts: {
   if (goal) ctx.push(`Hedef: ${goal}.`)
   const system = `Sen "Diyet Koçu"sun. Kullanıcının diyet/öğün listesi aşağıda. Sorularını YALNIZCA bu listeye göre yanıtla (örn. "öğlen ne var", "sıradaki öğünde ne var"). Şu anki zaman: ${now}. Sağlık bağlamı verildiyse (şeker, rahatsızlık, sevmediği/alerjik yiyecekler) ona AYKIRI öneri verme. Türkçe, KISA ve net cevap ver. ${ctx.join(
     ' '
-  )}\n\nDİYET LİSTESİ:\n${dietPlan.trim()}${healthText(health)}`
+  )}\n\nDİYET LİSTESİ:\n${dietPlan.trim()}${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -917,7 +945,7 @@ Kurallar:
 - Diyet listesinde olmayan, sağlıksız (şekerli/işlenmiş) ürünler EKLEME.
 - note alanına TEK kısa cümlelik bir bilgi yaz (örn. "Listene göre ~${days} günlük temel alışveriş.").
 
-Üslubun: Türkçe, sade, abartısız. ${ctx.join(' ')}${healthText(health)}`
+Üslubun: Türkçe, sade, abartısız. ${ctx.join(' ')}${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -992,8 +1020,8 @@ Türkçe ve KISA yaz (rapor 6-10 satır, diğer cevaplar 1-4 cümle). ${ctx.join
 DİYET LİSTESİ:
 ${dietPlan?.trim() || '(liste girilmemiş — menü sorularında bunu belirt ve Ayarlar/Menü sayfasına yönlendir)'}
 
-${shoppingList?.trim() ? `ALINACAKLAR LİSTESİ (henüz alınmadı): ${shoppingList.trim()}\n\n` : ''}BUGÜNÜN ÖZETİ:
-${daySummary}${healthText(health)}`
+${CTX_MARK}${shoppingList?.trim() ? `ALINACAKLAR LİSTESİ (henüz alınmadı): ${shoppingList.trim()}\n\n` : ''}BUGÜNÜN ÖZETİ:
+${daySummary}${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -1047,7 +1075,7 @@ Görevin:
 Türkçe, KISA ve net yaz; net bir "ben olsam şunu söylerdim" tavsiyesiyle bitir. Profesyonel, güven veren üslup; abartı ve şaka yok. ${ctx.join(' ')}
 
 DİYET LİSTESİ:
-${dietPlan?.trim() || '(liste girilmemiş — genel sağlıklı beslenme ilkelerine göre öner)'}${dietitianText(dietitianNotes)}${healthText(health)}`
+${dietPlan?.trim() || '(liste girilmemiş — genel sağlıklı beslenme ilkelerine göre öner)'}${dietitianText(dietitianNotes)}${healthSys(health)}`
 
   // Ekleri (foto + PDF) SON kullanici mesajina koy (yalnizca bu turda gonderilir)
   const attachBlocks = [...images, ...(pdfDataUrl ? [pdfDataUrl] : [])]
@@ -1111,8 +1139,8 @@ export async function cravingHelp(opts: {
 4. Bugünkü verilerine ve hedefine atıfta bulunarak kısa, güçlü bir motivasyon cümlesiyle bitir.
 KISA yaz (2-4 cümle), samimi ve kararlı ol. Türkçe. ${ctx.join(' ')}
 
-BUGÜNÜN DURUMU:
-${context}${healthText(health)}`
+${CTX_MARK}BUGÜNÜN DURUMU:
+${context}${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -1158,7 +1186,7 @@ export async function analyzeMealSugar(opts: {
 - Açlık ölçümlerinin genel seyrini değerlendir.
 - Bu örüntülere göre 2-3 pratik beslenme önerisi ver (neyi azalt, neyle değiştir, öğün sırası gibi).
 - Veri azsa dürüstçe "henüz az veri var, eğilim şu yönde" de; kesin konuşma.
-Kısa başlıklar + kısa maddeler kullan, okunaklı yaz. ÇOK ÖNEMLİ: Bu tıbbi teşhis değildir; ilaç/doz önerme; kesin değerlendirme için doktora danışmasını mutlaka belirt. ${ctx.join(' ')}${healthText(health)}`
+Kısa başlıklar + kısa maddeler kullan, okunaklı yaz. ÇOK ÖNEMLİ: Bu tıbbi teşhis değildir; ilaç/doz önerme; kesin değerlendirme için doktora danışmasını mutlaka belirt. ${ctx.join(' ')}${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -1202,7 +1230,7 @@ export async function quickMealSugarNote(opts: {
   const system = `Sen bir klinik diyetisyen/sağlık asistanısın. Kullanıcı SON yediği öğünden sonra bir KAN ŞEKERİ ölçtü. Görevin, bu ÖLÇÜMÜN o ÖĞÜNLE ilişkisini KISA (en fazla 2 cümle) ve KİŞİYE ÖZEL yorumlamak:
 - Bu değer bu öğün için iyi mi, yüksek mi? Öğündeki hangi bileşen (nişasta/şeker/porsiyon) etkilemiş olabilir?
 - Somut, uygulanabilir tek bir mini öneri ver (örn. "bir dahaki sefere pilavı yarıya indir / yanına protein ekle").
-Kişinin sağlık verisi verildiyse (ilaç/rahatsızlık/eğilim) onu da dikkate al. ÇOK ÖNEMLİ: Tıbbi teşhis değildir; endişe verecek bir durumda doktora danışmasını hatırlat. Türkçe, sıcak ve kısa yaz.${healthText(health)}`
+Kişinin sağlık verisi verildiyse (ilaç/rahatsızlık/eğilim) onu da dikkate al. ÇOK ÖNEMLİ: Tıbbi teşhis değildir; endişe verecek bir durumda doktora danışmasını hatırlat. Türkçe, sıcak ve kısa yaz.${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -1268,8 +1296,8 @@ Nasıl konuşursun:
 TAHLİLLER:
 ${labsText?.trim() || '(kayıtlı tahlil yok — kullanıcı Tahliller bölümünden ekleyebilir)'}
 
-SON ŞEKER / TANSİYON:
-${vitalsText?.trim() || '(kayıt yok)'}${healthText(health)}`
+${CTX_MARK}SON ŞEKER / TANSİYON:
+${vitalsText?.trim() || '(kayıt yok)'}${healthSys(health)}`
 
   const client = await createClient(apiKey)
   try {
@@ -1459,7 +1487,7 @@ export async function analyzeLabs(opts: {
 - İlaçları ve rahatsızlıklarıyla BAĞLANTILI dikkat noktaları ve UYARILAR ver (örn. "şekerin yüksek ve X ilacı kullanıyorsun, şu belirtilere dikkat et / şu besinlerden kaçın"). İlaç-besin etkileşimi olası ise nazikçe belirt.
 - Diyet/beslenme açısından somut öneriler sun (bu verilerin ışığında).
 - Acil/riskli bir değer varsa vurgula ve doktora başvurmasını öner.
-ÇOK ÖNEMLİ: Bu tıbbi teşhis veya tedavi değildir; ilaç değişikliği önerme; kesin değerlendirme için doktora/eczacıya danışması gerektiğini MUTLAKA belirt. ${ctx.join(' ')}${healthText(health)}`,
+ÇOK ÖNEMLİ: Bu tıbbi teşhis veya tedavi değildir; ilaç değişikliği önerme; kesin değerlendirme için doktora/eczacıya danışması gerektiğini MUTLAKA belirt. ${ctx.join(' ')}${healthSys(health)}`,
       messages: [
         {
           role: 'user',
@@ -1636,7 +1664,7 @@ Kurallar:
 - HENÜZ kalori/makro/puan VERME; önce yeterince netleştir.
 - Kullanıcı cevapladıkça kısaca "anladım" diye teyit et; belirsizlik sürüyorsa 1-2 soru daha sor.
 - Yeterince netleştiğinde şunu yaz: "Netleşti 👍 Hazırsan aşağıdan 'Onayla ve hesapla'ya bas."
-- Kullanıcının söylediğini varsayma, sor; ama gereksiz uzatma. Kısa, samimi, Türkçe. ${ctx.join(' ')}${dietitianText(dietitianNotes)}${planText}${healthText(health)}`
+- Kullanıcının söylediğini varsayma, sor; ama gereksiz uzatma. Kısa, samimi, Türkçe. ${ctx.join(' ')}${dietitianText(dietitianNotes)}${planText}${healthSys(health)}`
 
   const img = photoDataUrl && history.length === 0 ? splitDataUrl(photoDataUrl) : null
   const firstContent = [
@@ -1690,7 +1718,7 @@ Kurallar:
 - Ürünleri sorarken bir de PORSİYON BİRİMİ tercihini sor: "Porsiyonları nasıl vereyim — gram mı, yoksa çorba/tatlı/çay kaşığı, su bardağı gibi ev ölçüsü mü? İstersen bazıları gram bazıları ölçü olabilir." Kullanıcının tercihini not al (öneri aşamasında buna uyulacak).
 - Kullanıcı düzeltince güncel listeyi kısaca teyit et; hâlâ belirsizse tek bir soru daha sor.
 - Liste netleşince şunu yaz: "Liste net 👍 Hazırsan 'Öner'e bas."
-- Kısa, samimi, Türkçe. ${ctx.join(' ')}${dietitianText(dietitianNotes)}${planText}${healthText(health)}`
+- Kısa, samimi, Türkçe. ${ctx.join(' ')}${dietitianText(dietitianNotes)}${planText}${healthSys(health)}`
 
   const sources = photoDataUrls?.length && history.length === 0 ? photoDataUrls : []
   const imgs = sources.map((u) => splitDataUrl(u)).filter((v): v is NonNullable<typeof v> => !!v)
@@ -1742,7 +1770,7 @@ export async function analyzeMedIngredients(opts: {
 • Beslenmeyle ilişkisi: (aç/tok, yağla emilim, hangi besinlerle desteklenir)
 • Dikkat/etkileşim: (varsa genel uyarı)
 ÇOK ÖNEMLİ: Bu bir bilgilendirmedir, TEŞHİS/TEDAVİ/DOZ TAVSİYESİ DEĞİLDİR; doz ve etkileşim için doktor/eczacıya danışılmalı. Türkçe, abartısız, toplam ~120 kelime.
-KİŞİYE GÖRE YAZ: Aşağıda kişinin sağlık verisi (tahlilleri, şeker/tansiyon ölçümleri, kullandığı DİĞER ilaç/vitaminler, rahatsızlıkları) verildiyse, "İlgili tahlil/belirti" ve "Dikkat/etkileşim" başlıklarını genel geçer değil ONA GÖRE yaz: ilgili tahlil değeri elindeyse son sonucunu ve tarihini an (örn. "son D vitaminin 18 — düşük"), aldığı diğer ürünlerle bilinen bir etkileşim/çakışma varsa kısaca belirt. Veride karşılığı yoksa uydurma, genel bilgi ver.${healthText(health)}`
+KİŞİYE GÖRE YAZ: Aşağıda kişinin sağlık verisi (tahlilleri, şeker/tansiyon ölçümleri, kullandığı DİĞER ilaç/vitaminler, rahatsızlıkları) verildiyse, "İlgili tahlil/belirti" ve "Dikkat/etkileşim" başlıklarını genel geçer değil ONA GÖRE yaz: ilgili tahlil değeri elindeyse son sonucunu ve tarihini an (örn. "son D vitaminin 18 — düşük"), aldığı diğer ürünlerle bilinen bir etkileşim/çakışma varsa kısaca belirt. Veride karşılığı yoksa uydurma, genel bilgi ver.${healthSys(health)}`
 
   const client = await createClient(apiKey)
   const label = `${brand?.trim() ? `Marka: ${brand.trim()} — ` : ''}${name.trim()}${dose?.trim() ? ` (${dose.trim()})` : ''}${kind === 'vitamin' ? ' — vitamin/takviye' : ''}`

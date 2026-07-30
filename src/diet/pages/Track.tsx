@@ -859,7 +859,7 @@ function VitalForm() {
         meal: mealText,
         minutesAfter,
         model: settings.model,
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'quick')
       })
       setNote(res)
     } catch {

@@ -272,7 +272,7 @@ export default function Capture() {
         mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'food')
       })
       setAnalysis(result)
       setPhase('result')
@@ -296,7 +296,7 @@ export default function Capture() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'food')
       })
       setClarifyChat([{ role: 'assistant', text: reply }])
     } catch (err) {
@@ -324,7 +324,7 @@ export default function Capture() {
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
         dietitianNotes: settings?.dietitianNotes,
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'food')
       })
       setClarifyChat([...hist, { role: 'assistant', text: reply }])
     } catch (err) {
@@ -376,7 +376,7 @@ export default function Capture() {
         dietitianNotes: settings?.dietitianNotes,
         note: noteArg || undefined,
         body: bodyContext(settings, measurements),
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'food')
       })
       setAnalysis(result)
       setPhase('result')
@@ -407,7 +407,7 @@ export default function Capture() {
         mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'food')
       })
       setAnalysis(result)
       setPhase('result')
@@ -442,7 +442,7 @@ export default function Capture() {
         mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
-        health: await buildHealthContext(settings)
+        health: await buildHealthContext(settings, 'food')
       })
       setAnalysis(result)
       setPhase('result')

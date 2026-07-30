@@ -259,7 +259,7 @@ function MealAiRefine({ e }: { e: DietEntry }) {
         goal: s.goal,
         dietPlan: s.dietPlan,
         dietitianNotes: s.dietitianNotes,
-        health: await buildHealthContext(s)
+        health: await buildHealthContext(s, 'food')
       })
       setChat([{ role: 'assistant', text: reply }])
     } catch (x) {
@@ -288,7 +288,7 @@ function MealAiRefine({ e }: { e: DietEntry }) {
         goal: s.goal,
         dietPlan: s.dietPlan,
         dietitianNotes: s.dietitianNotes,
-        health: await buildHealthContext(s)
+        health: await buildHealthContext(s, 'food')
       })
       setChat([...hist, { role: 'assistant', text: reply }])
     } catch (x) {
@@ -328,7 +328,7 @@ function MealAiRefine({ e }: { e: DietEntry }) {
           dietitianNotes: s.dietitianNotes,
           note: desc || undefined,
           mealInfo,
-          health: await buildHealthContext(s)
+          health: await buildHealthContext(s, 'food')
         })
       } else {
         // Yazıdan değerlendir — fotoğraf GÖNDERİLMEZ (fotoğraf kayıtta durmaya devam eder)
@@ -345,7 +345,7 @@ function MealAiRefine({ e }: { e: DietEntry }) {
           dietPlan: s.dietPlan,
           dietitianNotes: s.dietitianNotes,
           mealInfo,
-          health: await buildHealthContext(s)
+          health: await buildHealthContext(s, 'food')
         })
       }
       // Fotoğrafı KORU (analyzeFoodByText photo döndürmez); sadece değerleri güncelle
