@@ -286,6 +286,26 @@ function dietitianText(notes?: string): string {
 // Ortak saglik akli baglamini metne cevirir (varsa). Tum modullere gider;
 // model alakali olanlara deginir (orn. kilo sabit ama bel incelmisse
 // "yagdan gitmis olabilir", sekeri yuksekse ona gore konusur).
+// SOHBET GECMISI SINIRI. Eskiden her turda TUM sohbet bastan gonderiliyordu;
+// sohbet uzadikca her yeni sorunun maliyeti artiyor, uzun bir sohbet gunun tum
+// ogun analizlerinden pahaliya gelebiliyordu.
+// Eski turlari dusurmek bilgi kaybettirmez: kalici olan her sey (kilo, olcu,
+// tahlil, ilac, tercihler, gunun notu, bugunku alim) ZATEN her turda saglik
+// baglamiyla yeniden gidiyor. Dusen sey yalnizca eski laf kalabaligi.
+const MAX_HISTORY = 12
+
+function trimHistory<T extends { role: 'user' | 'assistant'; text: string }>(history: T[]): T[] {
+  if (history.length <= MAX_HISTORY) return history
+  // Konunun ne oldugu kaybolmasin diye ILK kullanici mesaji korunur.
+  const firstUser = history.find((m) => m.role === 'user')
+  const tail = history.slice(-(MAX_HISTORY - 1))
+  if (firstUser && !tail.includes(firstUser)) return [firstUser, ...tail]
+  // Ilk mesaj zaten kuyrukta: API ilk mesajin 'user' olmasini ister
+  let t = tail
+  while (t.length > 1 && t[0].role !== 'user') t = t.slice(1)
+  return t
+}
+
 function healthText(h?: string): string {
   return h?.trim()
     ? `\n\nKULLANICININ GÜNCEL SAĞLIK/İLERLEME VERİLERİ (uygulamanın veritabanından; değerlendirmende bunları da göz önünde tut, alakalı olanlara kısaca değin. Örn. kilo sabitken bel inceliyorsa "kaybın yağdan, kas korunuyor" gibi bütünsel yorum yap; şekeri/tansiyonu yüksekse önerini ona göre şekillendir):\n${h.trim()}`
@@ -650,7 +670,7 @@ ${ctx.join(' ')}${healthSys(health)}`
       model,
       max_tokens: 700,
       system,
-      messages: history.map((m) => ({ role: m.role, content: m.text })),
+      messages: trimHistory(history).map((m) => ({ role: m.role, content: m.text })),
       output_config: { format: { type: 'json_schema', schema: CHAT_SCHEMA } }
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
@@ -704,7 +724,7 @@ export async function chatAboutPlan(opts: {
       model,
       max_tokens: 600,
       system,
-      messages: history.map((m) => ({ role: m.role, content: m.text }))
+      messages: trimHistory(history).map((m) => ({ role: m.role, content: m.text }))
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
     const text = response.content
@@ -1029,7 +1049,7 @@ ${daySummary}${healthSys(health)}`
       model,
       max_tokens: 700,
       system,
-      messages: history.map((m) => ({ role: m.role, content: m.text }))
+      messages: trimHistory(history).map((m) => ({ role: m.role, content: m.text }))
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
     const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
@@ -1082,8 +1102,10 @@ ${dietPlan?.trim() || '(liste girilmemiş — genel sağlıklı beslenme ilkeler
     .map((d) => mediaBlock(d))
     .filter((b): b is Record<string, unknown> => !!b)
 
-  const lastIdx = history.length - 1
-  const msgs = history.map((m, i) => {
+  // Once kirp, SONRA son mesaji bul: ekler kirpilmis dizinin sonuna bagli kalsin
+  const hist = trimHistory(history)
+  const lastIdx = hist.length - 1
+  const msgs = hist.map((m, i) => {
     if (i === lastIdx && m.role === 'user') {
       // Web sitesinden cikarilan menu metnini kullanici mesajina ekle
       const txt = menuText?.trim()
@@ -1148,7 +1170,7 @@ ${context}${healthSys(health)}`
       model,
       max_tokens: 500,
       system,
-      messages: history.map((m) => ({ role: m.role, content: m.text }))
+      messages: trimHistory(history).map((m) => ({ role: m.role, content: m.text }))
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
     const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
@@ -1305,7 +1327,7 @@ ${vitalsText?.trim() || '(kayıt yok)'}${healthSys(health)}`
       model,
       max_tokens: 1200,
       system,
-      messages: history.map((m) => ({ role: m.role, content: m.text }))
+      messages: trimHistory(history).map((m) => ({ role: m.role, content: m.text }))
     })
     if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
     const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
@@ -1673,7 +1695,7 @@ Kurallar:
   ]
   const messages = [
     { role: 'user' as const, content: firstContent },
-    ...history.map((m) => ({ role: m.role, content: m.text }))
+    ...trimHistory(history).map((m) => ({ role: m.role, content: m.text }))
   ]
 
   const client = await createClient(apiKey)
@@ -1731,7 +1753,7 @@ Kurallar:
   ]
   const messages = [
     { role: 'user' as const, content: firstContent },
-    ...history.map((m) => ({ role: m.role, content: m.text }))
+    ...trimHistory(history).map((m) => ({ role: m.role, content: m.text }))
   ]
 
   const client = await createClient(apiKey)
