@@ -5,26 +5,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        // MARKA: MyFitnessPal'daki gibi tek, guclu bir MAVI vurgu.
-        // Yalnizca EYLEM icin kullanilir (buton / aktif sekme / link);
-        // genel yuzeyler notr kalir. Boylece arayuz sakin ve profesyonel durur.
+        // MARKA MAVISI — MyFitnessPal ekran goruntusunden PIKSEL ORNEKLEMEYLE
+        // alindi: #4d9bff (600). Yalnizca EYLEM icin kullanilir (buton /
+        // aktif sekme / link); yuzeyler notr kalir.
         brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#1a6dff',
-          700: '#1857d6',
-          800: '#1746ac',
-          900: '#173a86'
+          50: '#eef5ff',
+          100: '#d8e8ff',
+          200: '#b7d5ff',
+          300: '#8ec0ff',
+          400: '#70b8ff', // MFP'de "Yiyecek" catal simgesinin mavisi
+          500: '#4d9bff',
+          600: '#4d9bff', // ana vurgu (Düzenle hapi, aktif nokta, FAB)
+          700: '#3b83e0',
+          800: '#2f68b4',
+          900: '#27528b'
         },
-        // MAKRO renkleri (MFP ile ayni dil): karbonhidrat / yag / protein
+        // MFP paletinden ORNEKLENEN renkler
+        mfp: {
+          bg: '#151724', // sayfa zemini
+          card: '#252733', // kart yuzeyi
+          sunken: '#151724', // bos ilerleme cubugu / halka izi (zeminle ayni)
+          text: '#e0e1e6', // ana metin
+          muted: '#9b9ea7', // ikincil metin
+          dot: '#52555c', // pasif nokta
+          step: '#f54b72', // adim (ayakkabi + cubuk)
+          flame: '#f59525' // egzersiz alevi
+        },
+        // MAKRO renkleri (MFP'den orneklendi): karbonhidrat / yag / protein
         macro: {
-          carb: '#2dd4bf',
-          fat: '#a78bfa',
-          protein: '#f5a623'
+          carb: '#63d4ce',
+          fat: '#c38dd8',
+          protein: '#ffc66d'
         }
       },
       boxShadow: {

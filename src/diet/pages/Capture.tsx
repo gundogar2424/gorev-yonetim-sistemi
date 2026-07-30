@@ -1310,7 +1310,7 @@ function Carousel({ pages }: { pages: ReactNode[] }) {
           <span
             key={i}
             className={`h-2 w-2 rounded-full transition-colors ${
-              i === active ? 'bg-brand-600' : 'bg-slate-300 dark:bg-[#3a4048]'
+              i === active ? 'bg-brand-600' : 'bg-slate-300 dark:bg-[#52555c]'
             }`}
           />
         ))}
@@ -1323,7 +1323,7 @@ function Carousel({ pages }: { pages: ReactNode[] }) {
 function PageTitle({ children, note }: { children: ReactNode; note?: string }) {
   return (
     <div className="mb-4">
-      <h2 className="text-[21px] font-bold leading-tight text-slate-900 dark:text-[#e6edf3]">{children}</h2>
+      <h2 className="text-[23px] font-bold leading-tight text-slate-900 dark:text-[#e0e1e6]">{children}</h2>
       {note && <p className="text-[13px] text-slate-500 mt-1">{note}</p>}
     </div>
   )
@@ -1337,7 +1337,7 @@ function CaloriePage({ target, eaten, exercise }: { target: number; eaten: numbe
   const remaining = budget - eaten
   const frac = budget ? Math.min(1, eaten / budget) : 0
   const over = budget > 0 && eaten > budget
-  const ringColor = over ? '#e11d48' : frac >= 0.85 ? '#f5a623' : '#1a6dff'
+  const ringColor = over ? '#f54b72' : frac >= 0.85 ? '#f59525' : '#4d9bff'
 
   const R = 52
   const C = 2 * Math.PI * R
@@ -1349,7 +1349,7 @@ function CaloriePage({ target, eaten, exercise }: { target: number; eaten: numbe
       <div className="flex items-center gap-4">
         <div className="relative flex-shrink-0" style={{ width: 128, height: 128 }}>
           <svg width="128" height="128" viewBox="0 0 128 128" className="-rotate-90">
-            <circle cx="64" cy="64" r={R} fill="none" strokeWidth="9" className="stroke-slate-100 dark:stroke-[#2c3036]" />
+            <circle cx="64" cy="64" r={R} fill="none" strokeWidth="9" className="stroke-slate-100 dark:stroke-[#151724]" />
             {budget > 0 && (
               <circle
                 cx="64"
@@ -1367,7 +1367,7 @@ function CaloriePage({ target, eaten, exercise }: { target: number; eaten: numbe
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
               className={`text-[32px] leading-none font-bold tracking-tight tabular-nums ${
-                over ? 'text-rose-500' : 'text-slate-900 dark:text-[#e6edf3]'
+                over ? 'text-rose-500' : 'text-slate-900 dark:text-[#e0e1e6]'
               }`}
             >
               {budget > 0 ? Math.abs(remaining).toLocaleString('tr-TR') : eaten.toLocaleString('tr-TR')}
@@ -1380,8 +1380,8 @@ function CaloriePage({ target, eaten, exercise }: { target: number; eaten: numbe
           {budget > 0 ? (
             <div className="space-y-3">
               <StatRow icon="flag" color="#94a3b8" label="Temel Hedef" value={target} />
-              <StatRow icon="fork" color="#1a6dff" label="Yiyecek" value={eaten} />
-              <StatRow icon="flame" color="#f5a623" label="Egzersiz" value={exercise} />
+              <StatRow icon="fork" color="#70b8ff" label="Yiyecek" value={eaten} />
+              <StatRow icon="flame" color="#f59525" label="Egzersiz" value={exercise} />
             </div>
           ) : (
             <p className="text-[13px] text-slate-500 leading-relaxed">
@@ -1410,9 +1410,9 @@ function MacroPage({
     <div className="card p-5 h-full">
       <PageTitle>Makrolar</PageTitle>
       <div className="grid grid-cols-3 gap-2">
-        <MacroRing label="Karbonhidrat" grams={carb} goalG={g.carb} color="#2dd4bf" />
-        <MacroRing label="Yağ" grams={fat} goalG={g.fat} color="#a78bfa" />
-        <MacroRing label="Protein" grams={protein} goalG={g.protein} color="#f5a623" />
+        <MacroRing label="Karbonhidrat" grams={carb} goalG={g.carb} color="#63d4ce" />
+        <MacroRing label="Yağ" grams={fat} goalG={g.fat} color="#c38dd8" />
+        <MacroRing label="Protein" grams={protein} goalG={g.protein} color="#ffc66d" />
       </div>
     </div>
   )
@@ -1437,13 +1437,13 @@ function NutrientPage({
           return (
             <div key={r.label}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[15px] text-slate-700 dark:text-[#c9d3de] truncate">{r.label}</span>
-                <span className="text-[15px] font-bold text-slate-900 dark:text-[#e6edf3] tabular-nums flex-shrink-0">
+                <span className="text-[15px] text-slate-700 dark:text-[#e0e1e6] truncate">{r.label}</span>
+                <span className="text-[15px] font-bold text-slate-900 dark:text-[#e0e1e6] tabular-nums flex-shrink-0">
                   {Math.round(r.value).toLocaleString('tr-TR')}/{r.goal.toLocaleString('tr-TR')}
                   {r.unit}
                 </span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-[#2c3036] mt-2 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-[#151724] mt-2 overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${over ? 'bg-rose-500' : 'bg-brand-600'}`}
                   style={{ width: `${frac * 100}%` }}
@@ -1464,8 +1464,9 @@ function StatRow({ icon, color, label, value }: { icon: StatIcon; color: string;
     <div className="flex items-start gap-3">
       <StatGlyph name={icon} color={color} />
       <div className="min-w-0">
-        <div className="text-[12px] text-slate-500 leading-tight truncate">{label}</div>
-        <div className="text-[19px] font-bold text-slate-900 dark:text-[#e6edf3] tabular-nums leading-tight">
+        {/* MFP'de etiket de BEYAZ (gri degil), sadece rakam kalin */}
+        <div className="text-[13px] text-slate-700 dark:text-[#e0e1e6] leading-tight truncate">{label}</div>
+        <div className="text-[19px] font-bold text-slate-900 dark:text-[#e0e1e6] tabular-nums leading-tight">
           {value.toLocaleString('tr-TR')}
         </div>
       </div>
@@ -1524,7 +1525,7 @@ function MacroRing({ label, grams, goalG, color }: { label: string; grams: numbe
       </span>
       <div className="relative" style={{ width: 78, height: 78 }}>
         <svg width="78" height="78" viewBox="0 0 78 78" className="-rotate-90">
-          <circle cx="39" cy="39" r={R} fill="none" strokeWidth="6" className="stroke-slate-100 dark:stroke-[#2c3036]" />
+          <circle cx="39" cy="39" r={R} fill="none" strokeWidth="6" className="stroke-slate-100 dark:stroke-[#151724]" />
           {goalG > 0 && (
             <circle
               cx="39"
@@ -1540,7 +1541,7 @@ function MacroRing({ label, grams, goalG, color }: { label: string; grams: numbe
           )}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[18px] leading-none font-semibold text-slate-900 dark:text-[#e6edf3] tabular-nums">
+          <span className="text-[18px] leading-none font-semibold text-slate-900 dark:text-[#e0e1e6] tabular-nums">
             {Math.round(grams)}
           </span>
           {goalG > 0 && <span className="text-[11px] text-slate-500 leading-none mt-1">/{goalG}g</span>}
@@ -1571,31 +1572,31 @@ function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepG
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="card p-4">
-        <p className="text-[17px] font-bold text-slate-900 dark:text-[#e6edf3] leading-tight">Adım</p>
+        <p className="text-[17px] font-bold text-slate-900 dark:text-[#e0e1e6] leading-tight">Adım</p>
         <div className="flex items-center gap-2 mt-2">
           <span className="text-[20px] leading-none">👟</span>
-          <span className="text-[22px] font-bold text-slate-900 dark:text-[#e6edf3] tabular-nums leading-none">
+          <span className="text-[22px] font-bold text-slate-900 dark:text-[#e0e1e6] tabular-nums leading-none">
             {steps.toLocaleString('tr-TR')}
           </span>
         </div>
         <p className="text-[13px] text-slate-500 mt-2 truncate">Hedef: {goal.toLocaleString('tr-TR')} adım</p>
-        <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#2c3036] mt-2 overflow-hidden">
-          <div className="h-full rounded-full bg-[#ff4d6d] transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#151724] mt-2 overflow-hidden">
+          <div className="h-full rounded-full bg-[#f54b72] transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
       <Link to="/egzersiz" className="card p-4 block active:scale-[0.99] transition">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-[17px] font-bold text-slate-900 dark:text-[#e6edf3] leading-tight">Egzersiz</p>
+          <p className="text-[17px] font-bold text-slate-900 dark:text-[#e0e1e6] leading-tight">Egzersiz</p>
           <span className="text-[20px] leading-none text-slate-400 -mt-0.5">+</span>
         </div>
         <div className="flex items-center gap-2 mt-2">
           <span className="text-[18px] leading-none">🔥</span>
-          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#c9d3de] tabular-nums">{exKcal} kal</span>
+          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">{exKcal} kal</span>
         </div>
         <div className="flex items-center gap-2 mt-2">
           <span className="text-[18px] leading-none">🕐</span>
-          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#c9d3de] tabular-nums">
+          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">
             {hh}:{String(mm).padStart(2, '0')} sa.
           </span>
         </div>
@@ -2491,12 +2492,12 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
 
       {/* Diyet listende bu ogunde ne var */}
       {planText ? (
-        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#262a30]">
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#2f3240]">
           <p className="stat-label mb-1.5">Listende bu öğün</p>
           <p className="text-[15px] text-slate-800 leading-relaxed">{planText}</p>
         </div>
       ) : (
-        <p className="mt-4 pt-4 border-t border-slate-100 dark:border-[#262a30] text-[13px] text-slate-500 leading-relaxed">
+        <p className="mt-4 pt-4 border-t border-slate-100 dark:border-[#2f3240] text-[13px] text-slate-500 leading-relaxed">
           {settings?.dietPlan?.trim()
             ? 'Diyet listen öğünlere bölünüyor; birazdan bu öğünde ne olduğu burada görünecek.'
             : 'Diyet listeni yükle (Menüm) — her öğünde ne yeneceği burada görünsün.'}

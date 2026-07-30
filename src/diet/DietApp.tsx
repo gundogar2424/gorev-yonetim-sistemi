@@ -112,7 +112,7 @@ export default function DietApp() {
   }, [])
 
   return (
-    <div className="min-h-full flex flex-col max-w-xl mx-auto bg-[#f6f8fa] dark:bg-[#121417]">
+    <div className="min-h-full flex flex-col max-w-xl mx-auto bg-[#f6f8fa] dark:bg-[#151724]">
       {/* Alt menu + sistem tuslari icin guvenli alan kadar bosluk birak */}
       <main className="flex-1" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         <Routes>
@@ -140,19 +140,27 @@ export default function DietApp() {
       {/* Alt gezinme cubugu (mobil icin sabit). Sistem tuslarinin ustunde kalsin diye
           alttan guvenli alan (safe-area) kadar bosluk eklenir. */}
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white/95 dark:bg-[#16181c]/95 backdrop-blur border-t border-slate-200/80 dark:border-[#22262c] grid grid-cols-5 z-20"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white/95 dark:bg-[#151724]/95 backdrop-blur border-t border-slate-200/80 dark:border-[#2f3240] grid grid-cols-5 z-20"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1">
             {({ isActive }) => (
               <>
-                {/* Hap seklinde arka plan yok: MFP'de aktiflik sadece RENK ve
-                    kalinlikla belli edilir; bu daha sakin ve profesyonel durur. */}
-                <NavIcon name={t.icon} className={`h-[22px] w-[22px] ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
+                {/* Hap seklinde arka plan yok. MFP'de koyu temada aktif sekme
+                    MAVI degil BEYAZDIR; pasifler gri. Acik temada marka
+                    mavisini kullaniyoruz (beyaz zeminde beyaz olmaz). */}
+                <NavIcon
+                  name={t.icon}
+                  className={`h-[22px] w-[22px] ${
+                    isActive ? 'text-brand-600 dark:text-[#e0e1e6]' : 'text-slate-400 dark:text-[#9b9ea7]'
+                  }`}
+                />
                 <span
                   className={`text-[11px] leading-none ${
-                    isActive ? 'text-brand-600 font-semibold' : 'text-slate-500 font-medium'
+                    isActive
+                      ? 'text-brand-600 dark:text-[#e0e1e6] font-semibold'
+                      : 'text-slate-500 dark:text-[#9b9ea7] font-medium'
                   }`}
                 >
                   {t.label}
