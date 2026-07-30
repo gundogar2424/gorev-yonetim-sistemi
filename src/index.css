@@ -1,3 +1,31 @@
+/* =========================================================================
+   YAZI TIPI — Inter (degisken agirlik, SIL Open Font License; lisans metni
+   src/fonts/Inter-LICENSE.txt). MyFitnessPal kendi ozel yazi tipini gomuyor;
+   Inter harf formlari (cift katli 'a', duz uclu rakamlar, siki harf araligi)
+   ve rakam genislikleriyle ona en yakin acik lisansli aile.
+   Dosyalar UYGULAMANIN ICINE gomulu — internet gerektirmez. Yalnizca latin ve
+   latin-ext alt kumeleri alindi (Turkce icin ğ ş ı İ latin-ext'te); kiril,
+   yunan, vietnam alt kumeleri bosuna yer kaplamasin diye disarida birakildi.
+   ========================================================================= */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,15 +45,27 @@ body {
   -webkit-tap-highlight-color: transparent;
   background: #f4f6f8;
   color: #101828;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* MFP'de basliklar SIKI dizilir; Inter'in varsayilan araligi biraz genis.
+     cv11 = tek katli 'a' yerine duz 'l' ayrimi (1/l/I karismasin). */
+  font-feature-settings: 'cv11';
+  letter-spacing: -0.011em;
   /* iOS guvenli alan (centik) destegi */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
     env(safe-area-inset-left);
 }
 
-/* Mobilde girisleri buyutme zoom'unu engelle */
+/* Mobilde girisleri buyutme zoom'unu engelle.
+   Form ogeleri yazi tipini KENDILIGINDEN devralmaz (tarayici varsayilanini
+   kullanir) — Inter disinda kalmasinlar diye acikca devrettiriyoruz. */
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
 input,
 select,
 textarea {
