@@ -53,21 +53,14 @@ jobs:
       - name: Web varlıklarını senkronla
         run: npx cap sync android
 
-      - name: compileSdk 36'ya yükselt (send-intent eklentisi gerektiriyor)
+      - name: SDK sürümleri + eklenti yamaları
         run: |
           v=android/variables.gradle
           sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
           sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
-          # capacitor-health (Health Connect) minSdk 26 ister; app'i de 26'ya cek
+          # Health Connect eklentisi minSdk 26 ister; app'i de 26'ya cek
           sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 26/" "$v"
           echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" "$v"
-          # send-intent eklentisi kendi build.gradle'ında compileSdk'i 35'e SABİTLİYOR
-          # (resmi Capacitor eklentileri gibi rootProject'ten okumuyor). AAR metadata
-          # kontrolü için onu da 36'ya çek.
-          p=node_modules/send-intent/android/build.gradle
-          sed -i -E "s/compileSdkVersion 35/compileSdkVersion 36/" "$p"
-          sed -i -E "s/targetSdkVersion 35/targetSdkVersion 36/" "$p"
-          echo "--- send-intent build.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion" "$p"
           # capacitor-health-extended eklentisinin build.gradle'ı Kotlin eklentisini
           # UYGULAMAYI UNUTMUŞ (sadece com.android.library var) ama `kotlin { }`
           # bloğunu kullanıyor -> "Could not find method kotlin()". Eksik satırı ekle.
@@ -88,15 +81,11 @@ jobs:
           grep -q 'android.permission.CAMERA' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' "$f"
           grep -q 'READ_MEDIA_IMAGES' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n</manifest>#' "$f"
           grep -q 'mlkit.vision.DEPENDENCIES' "$f" || sed -i 's#</application>#    <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />\n</application>#' "$f"
-          # PAYLAŞ hedefi: Samsung Health vb. bir resmi "Diyet Koçu"na paylaşabilsin.
-          # MainActivity'nin LAUNCHER intent-filter'ının hemen ardına SEND (image/*)
-          # intent-filter eklenir; böylece uygulama paylaşım menüsünde görünür.
-          grep -q 'android.intent.action.SEND' "$f" || perl -0pi -e 's#(<category android:name="android.intent.category.LAUNCHER"\s*/>\s*</intent-filter>)#$1\n\n            <intent-filter>\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="image/*" />\n            </intent-filter>#' "$f"
           # Bildirimlerin TAM ZAMANINDA (ekrani uyandirarak, sesle) gelmesi icin
           # kesin-alarm + bildirim izinleri. USE_EXACT_ALARM (Android 13+) otomatik
           # verilir ve alarmlarin Doze/uyku modunda bile zamaninda calmasini saglar.
           grep -q 'USE_EXACT_ALARM' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
-          echo "--- manifest ---"; grep -E "uses-permission|uses-feature|mlkit|action.SEND|mimeType" "$f" || true
+          echo "--- manifest ---"; grep -E "uses-permission|uses-feature|mlkit" "$f" || true
 
       - name: Health Connect manifesti (Samsung Health verisini otomatik almak için)
         run: |
