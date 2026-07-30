@@ -184,13 +184,24 @@ export function computeWeekly(
 // Bir yemek kaydinin "diyet basari" puani (0-100):
 // vazgecti=100, yedi=listeye uyum% (liste yoksa saglikliysa 85, degilse 25).
 // Karar verilmemis (none) kayitlar hesaba katilmaz (null).
+// DIYET-NOTR ICECEK/ATISTIRMALIK: sekersiz kahve/cay/su gibi saglikli ve neredeyse
+// kalorisiz seyler bir OGUN yerine gecmez, diyeti bozmaz. Bunlari NOTR say (null) —
+// gunun basari ortalamasina KATMA; boylece dusuk "uyum" puaniyla gunu asagi cekmez.
 export function entryScore(e: DietEntry): number | null {
   if (e.decision === 'resisted') return 100
   if (e.decision === 'ate') {
+    if (isNeutralExtra(e)) return null // sekersiz kahve/cay/su vb. -> notr, sayma
     if (e.compliancePercent >= 0) return e.compliancePercent
     return e.healthy ? 85 : 25
   }
   return null
+}
+
+// Diyeti ne bozan ne de bir ogunun yerine gecen, saglikli ve neredeyse kalorisiz
+// icecek/atistirmalik (sekersiz kahve, cay, su, sade soda vb.). Bunlar "serbest"
+// sayilir ve basari yuzdesine dahil edilmez.
+export function isNeutralExtra(e: DietEntry): boolean {
+  return e.decision === 'ate' && !!e.healthy && (e.estimatedCalories || 0) <= 40
 }
 
 // Takip edilen ogunler: bir gunun "tam" sayilmasi icin beklenen ogunler.
