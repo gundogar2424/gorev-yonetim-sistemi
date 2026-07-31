@@ -388,7 +388,12 @@ export default function Capture() {
     setError('')
     setAnalysis(null)
     setPhase('analyzing')
+    // Hangi adimda patladigini bilmek icin adim etiketi: kucultulmus
+    // derlemede yigin izindeki adlar okunmuyor.
+    let step = 'sağlık bağlamı okunuyor'
     try {
+      const health = await buildHealthContext(settings, 'food')
+      step = 'fotoğraf yapay zekaya gönderiliyor'
       const result = await analyzeFood({
         apiKey: settings!.apiKey!,
         photoDataUrl: dataUrl,
@@ -400,12 +405,12 @@ export default function Capture() {
         dietitianNotes: settings?.dietitianNotes,
         note: noteArg || undefined,
         body: bodyContext(settings, measurements),
-        health: await buildHealthContext(settings, 'food')
+        health
       })
       setAnalysis(result)
       setPhase('result')
     } catch (err) {
-      setError(describeError(err))
+      setError(describeError(err, step))
       setPhase('idle')
     }
   }
