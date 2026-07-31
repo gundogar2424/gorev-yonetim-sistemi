@@ -350,6 +350,24 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
   if (lastMood?.mood != null) bits.push(`son moral ${lastMood.mood}/10${lastMood.note ? ` ("${lastMood.note}")` : ''}`)
   add(`Bugün şu ana kadar: ${bits.join(' · ')}.`)
 
+  // TEK DOKUNUSLA eklenenler (cay/kahve/ayran gibi sik tuketilenler). Bunlar
+  // OGUN DEGIL; kullanici bilerek yapay zekaya inceletmedi. Ayri yaziyoruz ki
+  // koc bunlari "ogun atladi/bozdu" diye degerlendirmesin, ama kafein ve
+  // kalori toplaminda hesaba katabilsin.
+  const quicks = entries.filter((e) => e.dateStr === today && e.quick)
+  if (quicks.length) {
+    const q = new Map<string, { n: number; kcal: number }>()
+    for (const e of quicks) {
+      const cur = q.get(e.foodName) ?? { n: 0, kcal: 0 }
+      q.set(e.foodName, { n: cur.n + 1, kcal: cur.kcal + (e.estimatedCalories || 0) })
+    }
+    const list = [...q.entries()].map(([n, v]) => `${v.n}× ${n}${v.kcal ? ` (~${v.kcal} kcal)` : ''}`).join(', ')
+    add(
+      `Bugün tek dokunuşla eklediği içecek/atıştırmalıklar (ÖĞÜN DEĞİL — kullanıcı bunları bilerek incelettirmedi, öğün gibi değerlendirme ve puan kırma): ${list}. Kalori toplamına dahildir; kafein/şeker yorumunda kullanabilirsin.`,
+      ['shopping', 'quick']
+    )
+  }
+
   // SU (genel saglik icin temel): bugunku alim hedefe gore + son 7 gun ortalamasi.
   // PROAKTIF: yetersizse gun icinde suyu ARTIRMASINI net soyle (koc/analiz/checkup
   // her yerde). Kafein ve egzersizle su ihtiyacini iliskilendir.

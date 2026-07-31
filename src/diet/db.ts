@@ -19,7 +19,8 @@ import type {
   DayNote,
   MedLog,
   MedDef,
-  MealType
+  MealType,
+  Favorite
 } from './types'
 
 export class DietCoachDB extends Dexie {
@@ -40,6 +41,7 @@ export class DietCoachDB extends Dexie {
   daynotes!: Table<DayNote, number>
   medlogs!: Table<MedLog, number>
   meds!: Table<MedDef, number>
+  favorites!: Table<Favorite, number>
 
   constructor() {
     super('diet-coach')
@@ -215,6 +217,27 @@ export class DietCoachDB extends Dexie {
       daynotes: '++id, dateStr',
       medlogs: '++id, dateStr, createdAt, medId',
       meds: '++id, active, createdAt'
+    })
+    // Surum 14: sik tuketilen urunler (tek dokunusla ekleme)
+    this.version(14).stores({
+      entries: '++id, createdAt, dateStr, decision',
+      settings: '++id',
+      measurements: '++id, dateStr, createdAt',
+      vitals: '++id, dateStr, createdAt, kind',
+      labs: '++id, dateStr, createdAt',
+      shopping: '++id, createdAt, done',
+      exercises: '++id, dateStr, createdAt',
+      water: '++id, dateStr',
+      steps: '++id, dateStr',
+      sleep: '++id, dateStr',
+      progress: '++id, dateStr, createdAt',
+      products: '++id, barcode',
+      checkins: '++id, dateStr, createdAt',
+      cravings: '++id, dateStr, createdAt',
+      daynotes: '++id, dateStr',
+      medlogs: '++id, dateStr, createdAt, medId',
+      meds: '++id, active, createdAt',
+      favorites: '++id, createdAt'
     })
   }
 }
@@ -664,4 +687,58 @@ export async function saveDietSettings(patch: Partial<DietSettings>) {
   } else {
     await dietDb.settings.add({ model: 'claude-opus-5', ...stamped })
   }
+}
+
+// ---- SIK TUKETTIKLERIM (tek dokunusla ekleme) ----
+// Amac: bir bardak cay/kahve icin her seferinde yapay zeka calistirmamak.
+// Deger kullanicinin bir kez girdigi sabit kalori/makrodur; cagri yapilmaz.
+export function listFavorites(): Promise<Favorite[]> {
+  return dietDb.favorites.orderBy('createdAt').toArray()
+}
+
+export async function addFavorite(f: Omit<Favorite, 'id' | 'createdAt' | 'uses'>): Promise<number> {
+  return (await dietDb.favorites.add({ ...f, uses: 0, createdAt: Date.now() })) as number
+}
+
+export async function updateFavorite(id: number, patch: Partial<Favorite>): Promise<void> {
+  await dietDb.favorites.update(id, patch)
+}
+
+export async function deleteFavorite(id: number): Promise<void> {
+  await dietDb.favorites.delete(id)
+}
+
+// Sik tuketileni GUNE EKLE. Yapay zeka CAGRILMAZ (quick: true).
+// mealType 'serbest' verilir ki takip edilen bir ana ogunun yerine gecmesin —
+// "cay ictim" kahvalti yapilmis sayilmamali.
+export async function addFavoriteToDay(f: Favorite, dateStr: string): Promise<void> {
+  await dietDb.entries.add({
+    photo: '',
+    foodFound: true,
+    foodName: f.emoji ? `${f.emoji} ${f.name}` : f.name,
+    healthy: true,
+    riskLevel: 'düşük',
+    estimatedCalories: Math.max(0, Math.round(f.kcal || 0)),
+    protein: Math.max(0, Math.round(f.protein || 0)),
+    carb: Math.max(0, Math.round(f.carb || 0)),
+    fat: Math.max(0, Math.round(f.fat || 0)),
+    sugar: Math.max(0, Math.round(f.sugar || 0)),
+    dietScore: 0,
+    scoreReason: '',
+    harms: [],
+    motivations: [],
+    healthierAlternative: '',
+    verdict: '',
+    compliancePercent: -1,
+    complianceNote: '',
+    macroFix: '',
+    cravingPortion: '',
+    cravingNote: '',
+    decision: 'ate',
+    mealType: 'serbest',
+    quick: true,
+    createdAt: Date.now(),
+    dateStr
+  })
+  if (f.id != null) await dietDb.favorites.update(f.id, { uses: (f.uses ?? 0) + 1 })
 }

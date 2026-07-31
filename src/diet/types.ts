@@ -56,6 +56,11 @@ export interface DietEntry extends FoodAnalysis {
   dateStr: string // Yerel tarih (YYYY-MM-DD)
   sharedAt?: number // Bu ogun diyetisyene tek tek gonderildiyse zaman damgasi
   pending?: boolean // Hizli kaydedildi, henuz yapay zekayla incelenmedi (sonra duzeltilecek)
+  // TEK DOKUNUSLA eklenen sik tuketilen urun (cay, kahve, ayran...). Yapay zeka
+  // HIC calistirilmaz: kalorisi/makrosu kullanicinin bir kez girdigi sabit
+  // degerdir. Ogun sayilmaz, diyet puanina katilmaz; yalnizca gunun kalori
+  // toplamina ve icecek/atistirma dokumune girer.
+  quick?: boolean
   draftNote?: string // Hizli kaydederken yazilan aciklama; Gecmis'te AI ile hesaplamak icin saklanir
 }
 
@@ -261,6 +266,23 @@ export interface MedDef {
   ingredientsAt?: number // analiz ne zaman uretildi (ms)
   updatedAt?: number // son duzenleme zamani (senkronda yeni olan kazanir)
   note?: string
+  createdAt: number
+}
+
+// SIK TUKETILEN URUN ("Sik tuketiklerim"): kullanicinin bir kez tanimladigi,
+// sonra tek dokunusla gunune ekledigi sabit degerli oge. Bir bardak cay ya da
+// kahve icin her seferinde yapay zeka calistirmak hem para hem de anlamsiz —
+// koc bunlari bir "ogun" gibi degerlendirmemeli.
+export interface Favorite {
+  id?: number
+  emoji?: string // kisa gorsel ipucu (orn. "☕")
+  name: string // orn. "Çay (şekersiz)"
+  kcal: number // bir porsiyonun kalorisi
+  protein?: number
+  carb?: number
+  fat?: number
+  sugar?: number
+  uses?: number // kac kez eklendi — cok kullanilan basa gelir
   createdAt: number
 }
 

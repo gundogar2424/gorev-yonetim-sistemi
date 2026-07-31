@@ -188,6 +188,10 @@ export function computeWeekly(
 // kalorisiz seyler bir OGUN yerine gecmez, diyeti bozmaz. Bunlari NOTR say (null) —
 // gunun basari ortalamasina KATMA; boylece dusuk "uyum" puaniyla gunu asagi cekmez.
 export function entryScore(e: DietEntry): number | null {
+  // Tek dokunusla eklenen sik tuketilen urun (cay, kahve, ayran...) puana
+  // KATILMAZ. Yapay zeka bunlari hic incelemedi; bir bardak cayi "ogun" gibi
+  // degerlendirip gunun basarisini kirmasi yanlis olur. Kalorisi yine sayilir.
+  if (e.quick) return null
   if (e.decision === 'resisted') return 100
   if (e.decision === 'ate') {
     if (isNeutralExtra(e)) return null // sekersiz kahve/cay/su vb. -> notr, sayma
@@ -219,6 +223,9 @@ export const TRACKED_MEALS: { meal: MealType; overdueHour: number }[] = [
 
 // Bir kaydin kapsadigi tum ogun tipleri (birlesik ogunler dahil).
 function entryMeals(e: DietEntry): MealType[] {
+  // Sik tuketilen urun hicbir ogunu KAPSAMAZ: "cay ictim" kahvalti yapilmis
+  // sayilmamali, yoksa atlanan ogun uyarisi susar.
+  if (e.quick) return []
   return [e.mealType, e.alsoMeal, e.alsoMeal2].filter(Boolean) as MealType[]
 }
 

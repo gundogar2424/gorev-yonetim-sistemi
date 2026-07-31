@@ -18,7 +18,8 @@ import type {
   Craving,
   DayNote,
   MedLog,
-  MedDef
+  MedDef,
+  Favorite
 } from '../types'
 
 // Yedek surum 5: tahlil, ilac tanimlari/kayitlari, check-in, kriz, gun notu ve
@@ -45,6 +46,7 @@ interface DietBackup {
   daynotes?: DayNote[]
   medlogs?: MedLog[]
   meds?: MedDef[]
+  favorites?: Favorite[]
   settings: DietSettings | null
 }
 
@@ -67,6 +69,7 @@ export async function buildBackupData(): Promise<DietBackup> {
     daynotes,
     medlogs,
     meds,
+    favorites,
     settingsRow
   ] = await Promise.all([
     dietDb.entries.toArray(),
@@ -85,6 +88,7 @@ export async function buildBackupData(): Promise<DietBackup> {
     dietDb.daynotes.toArray(),
     dietDb.medlogs.toArray(),
     dietDb.meds.toArray(),
+    dietDb.favorites.toArray(),
     dietDb.settings.toCollection().first()
   ])
   // API anahtari da yedege dahil edilir ki yeniden kurulumda tekrar girmek
@@ -98,7 +102,7 @@ export async function buildBackupData(): Promise<DietBackup> {
   const progressLite = progress.map((p) => ({ ...p, photo: '' }))
   return {
     app: 'diet-coach',
-    version: 5,
+    version: 6,
     exportedAt: Date.now(),
     entries: entriesLite,
     measurements,
@@ -116,6 +120,7 @@ export async function buildBackupData(): Promise<DietBackup> {
     daynotes,
     medlogs,
     meds,
+    favorites,
     settings
   }
 }
@@ -167,6 +172,7 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
     if (b.daynotes) await dietDb.daynotes.clear()
     if (b.medlogs) await dietDb.medlogs.clear()
     if (b.meds) await dietDb.meds.clear()
+    if (b.favorites) await dietDb.favorites.clear()
   }
   // id catismasini onlemek icin id'leri dusurerek ekle
   const strip = <T extends { id?: number }>(arr: T[]) => arr.map(({ id: _id, ...rest }) => rest)
@@ -184,6 +190,7 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
   if (b.checkins?.length) await dietDb.checkins.bulkAdd(strip(b.checkins) as CheckIn[])
   if (b.cravings?.length) await dietDb.cravings.bulkAdd(strip(b.cravings) as Craving[])
   if (b.daynotes?.length) await dietDb.daynotes.bulkAdd(strip(b.daynotes) as DayNote[])
+  if (b.favorites?.length) await dietDb.favorites.bulkAdd(strip(b.favorites) as Favorite[])
 
   // ILAC TANIMLARI + ALIM KAYITLARI birlikte gelir. Kayittaki medId, tanimin
   // id'sine baglidir; eklerken id'ler yeniden uretildigi icin bag KOPAR.
@@ -238,7 +245,8 @@ export async function restoreDietBackup(b: DietBackup, mode: 'replace' | 'merge'
     cravings: b.cravings?.length ?? 0,
     daynotes: b.daynotes?.length ?? 0,
     medlogs: b.medlogs?.length ?? 0,
-    meds: b.meds?.length ?? 0
+    meds: b.meds?.length ?? 0,
+    favorites: b.favorites?.length ?? 0
   }
 }
 

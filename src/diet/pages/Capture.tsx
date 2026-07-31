@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow } from '../db'
+import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -17,7 +17,7 @@ import { buildHealthContext } from '../lib/context'
 import { autoSyncHealthToday } from '../lib/health'
 import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
-import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn } from '../types'
+import type { Decision, DietEntry, FoodAnalysis, MealType, Measurement, Exercise, DietSettings, CheckIn, Favorite } from '../types'
 
 type Phase = 'idle' | 'converse' | 'analyzing' | 'result' | 'saved'
 
@@ -647,6 +647,9 @@ export default function Capture() {
         {/* Kaydırmalı kontrol paneli: Kaloriler / Makrolar / Kalp için Sağlıklı /
             Düşük Karbonhidrat (MyFitnessPal'daki gibi 4 sayfa) */}
         <Dashboard entries={entries ?? []} goal={settings?.calorieGoal} />
+
+        {/* Sık tükettiklerim: tek dokunuşla ekle, yapay zeka hiç çalışmaz */}
+        <Favorites />
 
         {/* Adım (otomatik, bütçeye karışmaz) + Egzersiz (bütçeye eklenir) */}
         <StepExerciseRow exercises={exercises ?? []} stepGoal={settings?.stepGoal} />
@@ -2784,6 +2787,158 @@ function ComplianceBar({ analysis }: { analysis: FoodAnalysis }) {
       </div>
       <p className={`text-sm font-semibold ${textColor}`}>{label}</p>
       {analysis.complianceNote && <p className="text-sm text-slate-600">{analysis.complianceNote}</p>}
+    </div>
+  )
+}
+
+// ---- SIK TUKETTIKLERIM ----------------------------------------------------
+// Bir bardak cay/kahve icin yapay zeka calistirmak hem gereksiz para harciyor
+// hem de koc bunlari "ogun" gibi degerlendirip puani kiriyordu. Burada
+// kullanici bir kez tanimliyor, sonra tek dokunusla gunune ekliyor: HICBIR
+// API cagrisi yapilmaz. Kayit `quick` isaretiyle gider; ogun sayilmaz,
+// puana katilmaz, ama gunun kalori toplamina girer.
+const FAV_SUGGESTIONS: { emoji: string; name: string; kcal: number }[] = [
+  { emoji: '☕', name: 'Çay (şekersiz)', kcal: 0 },
+  { emoji: '☕', name: 'Türk kahvesi (sade)', kcal: 5 },
+  { emoji: '🥛', name: 'Ayran (200 ml)', kcal: 75 },
+  { emoji: '🥤', name: 'Soda (sade)', kcal: 0 },
+  { emoji: '🍎', name: 'Elma (1 orta)', kcal: 95 }
+]
+
+function Favorites() {
+  const favs = useLiveQuery(() => listFavorites(), [], [])
+  const [edit, setEdit] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('')
+  const [kcal, setKcal] = useState('')
+  const [flash, setFlash] = useState('')
+
+  const list = [...(favs ?? [])].sort((a, b) => (b.uses ?? 0) - (a.uses ?? 0))
+
+  async function quickAdd(f: Favorite) {
+    await addFavoriteToDay(f, todayStr())
+    setFlash(`${f.name} eklendi${f.kcal ? ` · ${f.kcal} kcal` : ''} — yapay zeka çalışmadı`)
+    setTimeout(() => setFlash(''), 2500)
+  }
+
+  async function save() {
+    const n = name.trim()
+    if (!n) return
+    await addFavorite({ name: n, emoji: emoji.trim() || undefined, kcal: Math.max(0, Number(kcal) || 0) })
+    setName('')
+    setEmoji('')
+    setKcal('')
+    setAdding(false)
+  }
+
+  return (
+    <div className="card p-3.5 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <p className="text-[14px] font-semibold text-slate-900 dark:text-[#e0e1e6]">🔖 Sık tükettiklerim</p>
+        {list.length > 0 && (
+          <button onClick={() => setEdit((v) => !v)} className="text-[12px] text-slate-500 dark:text-[#9b9ea7]">
+            {edit ? 'Bitti' : 'Düzenle'}
+          </button>
+        )}
+      </div>
+
+      {list.length === 0 && !adding && (
+        <div className="space-y-2">
+          <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] leading-relaxed">
+            Çay, kahve gibi sık tükettiklerini buraya ekle; tek dokunuşla güne yazılır. Yapay zeka hiç çalışmaz —
+            token harcamaz ve bunları öğün sayıp puanını kırmaz.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {FAV_SUGGESTIONS.map((sg) => (
+              <button
+                key={sg.name}
+                onClick={() => addFavorite({ name: sg.name, emoji: sg.emoji, kcal: sg.kcal })}
+                className="text-[12px] rounded-full px-2.5 py-1.5 bg-slate-100 dark:bg-[#2f3240] text-slate-700 dark:text-[#e0e1e6]"
+              >
+                + {sg.emoji} {sg.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {list.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {list.map((f) => (
+            <div key={f.id} className="flex items-center">
+              <button
+                onClick={() => quickAdd(f)}
+                disabled={edit}
+                className="text-[13px] font-medium rounded-full pl-2.5 pr-2.5 py-2 bg-brand-50 dark:bg-[#2f3240] text-brand-700 dark:text-[#e0e1e6] disabled:opacity-60"
+              >
+                {f.emoji ? `${f.emoji} ` : ''}
+                {f.name}
+                {f.kcal ? <span className="text-slate-400 dark:text-[#9b9ea7]"> · {f.kcal}</span> : null}
+              </button>
+              {edit && (
+                <button
+                  onClick={() => f.id != null && deleteFavorite(f.id)}
+                  className="ml-1 text-[13px] text-rose-600 px-1.5"
+                  aria-label={`${f.name} sil`}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          {!adding && (
+            <button
+              onClick={() => setAdding(true)}
+              className="text-[13px] font-semibold rounded-full px-3 py-2 bg-slate-100 dark:bg-[#2f3240] text-slate-600 dark:text-[#9b9ea7]"
+            >
+              ＋
+            </button>
+          )}
+        </div>
+      )}
+
+      {adding && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              className="field-input w-14 text-center"
+              placeholder="☕"
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value)}
+            />
+            <input
+              className="field-input flex-1"
+              placeholder="Ad (örn. Çay şekersiz)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              className="field-input w-20"
+              inputMode="numeric"
+              placeholder="kcal"
+              value={kcal}
+              onChange={(e) => setKcal(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={save} className="btn-primary flex-1">
+              Kaydet
+            </button>
+            <button onClick={() => setAdding(false)} className="btn-secondary flex-1">
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      )}
+
+      {list.length === 0 && !adding && (
+        <button onClick={() => setAdding(true)} className="btn-secondary w-full">
+          ＋ Kendim ekleyeyim
+        </button>
+      )}
+
+      {flash && <p className="text-[12px] text-emerald-700 bg-emerald-50 rounded-lg p-2">{flash}</p>}
     </div>
   )
 }
