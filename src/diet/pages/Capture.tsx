@@ -88,7 +88,25 @@ function bodyContext(s?: DietSettings, measurements?: Measurement[]): string | u
 export default function Capture() {
   const navigate = useNavigate()
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
-  const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
+  // FOTOGRAFSIZ LISTE. Ana ekran bu kaydi yalnizca sayi/tarih/ad/karar icin
+  // kullaniyor. Kayit basina ~200-400 KB'lik base64 fotografla birlikte
+  // tutmak aylik veride on-larca MB eder ve ekran acik kaldigi SURECE
+  // bellekte kalir; telefonda donmaya ve bellek cokmelerine yol aciyordu.
+  // Akisla okunup fotograf alani aninda dusuruluyor.
+  const entries = useLiveQuery(async () => {
+    const out: DietEntry[] = []
+    await dietDb.entries.each((e) => {
+      out.push(e.photo ? { ...e, photo: '' } : e)
+    })
+    return out
+  }, [], [])
+  // Fotografin GERCEKTEN gerektigi tek yer: bugunun karar verilmemis ogunleri
+  // (aksam kontrolu kucuk resimleri). Bu kucuk kume ayrica cekilir.
+  const pendingToday = useLiveQuery(
+    () => dietDb.entries.where('dateStr').equals(todayStr()).and((e) => e.decision === 'none').toArray(),
+    [],
+    []
+  )
   const exercises = useLiveQuery(() => listExercises(), [], [])
   const measurements = useLiveQuery(() => listMeasurements(), [], [])
   const stats = computeStats(entries ?? [], exercises ?? [])
@@ -646,7 +664,7 @@ export default function Capture() {
         <CoachChat entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
 
         {/* Aksam kontrolu: bugun karar verilmemis ogunler */}
-        <PendingCheckIn entries={entries ?? []} />
+        <PendingCheckIn entries={pendingToday ?? []} />
 
         {!hasKey && (
           <div className="card p-4 bg-amber-50 border-amber-200 text-amber-800 text-sm">
