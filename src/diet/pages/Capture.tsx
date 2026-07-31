@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay } from '../db'
+import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay, getSleepDay, listSleep } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -664,6 +664,9 @@ export default function Capture() {
 
         {/* Adım (otomatik, bütçeye karışmaz) + Egzersiz (bütçeye eklenir) */}
         <StepExerciseRow exercises={exercises ?? []} stepGoal={settings?.stepGoal} />
+
+        {/* Uyku (saatten gelir; ana ekranda görünmüyordu) */}
+        <SleepRow goal={settings?.sleepGoal} />
 
         {/* Su takibi (ml) */}
         <WaterCard goalMl={settings?.waterGoal ? settings.waterGoal * 200 : 2500} />
@@ -1677,6 +1680,12 @@ function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepG
   const minutes = todays.reduce((s, e) => s + (e.minutes || 0), 0)
   const hh = Math.floor(minutes / 60)
   const mm = minutes % 60
+  // KAYDEDILMIS ANTRENMAN VAR MI? Yoksa karttaki kalori antrenmandan degil,
+  // gun icinde ATILAN ADIMLARDAN geliyor demektir. Eskiden ayrimi yapmadan
+  // "Egzersiz · 54 kal · 0:00 sa." yaziyordu; hic spor yapmayan biri icin
+  // yanlis bir izlenim. Kalori bütcede kalmali (hareket gercekten yakiliyor)
+  // ama nereden geldigi yazmali.
+  const hasWorkout = minutes > 0 || todays.length > 0
 
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -1703,12 +1712,18 @@ function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepG
           <span className="text-[18px] leading-none">🔥</span>
           <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">{exKcal} kal</span>
         </div>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[18px] leading-none">🕐</span>
-          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">
-            {hh}:{String(mm).padStart(2, '0')} sa.
-          </span>
-        </div>
+        {hasWorkout ? (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[18px] leading-none">🕐</span>
+            <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">
+              {hh}:{String(mm).padStart(2, '0')} sa.
+            </span>
+          </div>
+        ) : (
+          <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
+            {exKcal > 0 ? 'Adımlardan · bugün antrenman yok' : 'Bugün antrenman yok'}
+          </p>
+        )}
       </Link>
     </div>
   )
@@ -3018,5 +3033,66 @@ function Favorites() {
 
       {flash && <p className="text-[12px] text-emerald-700 bg-emerald-50 rounded-lg p-2">{flash}</p>}
     </div>
+  )
+}
+
+// ---- UYKU -----------------------------------------------------------------
+// Uyku verisi Health Connect'ten cekilip `sleep` tablosuna yaziliyor ve ortak
+// saglik baglamina giriyordu, ama EKRANDA HICBIR YERDE gorunmuyordu; tek
+// gorundugu yer Egzersiz sayfasindaki gecici bildirim satiriydi.
+// `sleep[bugun]` = DUN GECE uyunan sure (readSleepHours ogleden ogleye okur).
+function SleepRow({ goal }: { goal?: number }) {
+  const today = todayStr()
+  const last = useLiveQuery(() => getSleepDay(today), [today], 0) ?? 0
+  const all = useLiveQuery(() => listSleep(), [], [])
+
+  // Son 7 gecenin ortalamasi (yalnizca kayit olan geceler)
+  const days: string[] = []
+  for (let i = 0; i < 7; i++) days.push(todayStr(new Date(Date.now() - i * 86_400_000)))
+  const vals = (all ?? []).filter((r) => days.includes(r.dateStr) && r.hours > 0).map((r) => r.hours)
+  const avg = vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0
+
+  const target = goal && goal > 0 ? goal : 7
+  const pct = last > 0 ? Math.min(100, Math.round((last / target) * 100)) : 0
+  // 6,5 saatin altinda uyku; aclik hormonlari, tatli krizi ve kan sekeriyle
+  // dogrudan iliskili. Koc bunu zaten yorumluyor, kullanici da gorsun.
+  const low = last > 0 && last < 6.5
+
+  return (
+    <Link to="/egzersiz" className="card p-4 block active:scale-[0.99] transition">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[17px] font-bold text-slate-900 dark:text-[#e0e1e6] leading-tight">😴 Uyku</p>
+        {avg > 0 && (
+          <span className="text-[12px] text-slate-500 dark:text-[#9b9ea7]">7 gün ort. {avg} sa</span>
+        )}
+      </div>
+
+      {last > 0 ? (
+        <>
+          <div className="flex items-baseline gap-2 mt-2">
+            <span className="text-[26px] font-bold text-slate-900 dark:text-[#e0e1e6] tabular-nums leading-none">
+              {last}
+            </span>
+            <span className="text-[14px] text-slate-500 dark:text-[#9b9ea7]">saat · dün gece</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#151724] mt-2.5 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${low ? 'bg-amber-500' : 'bg-violet-500'}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
+            {low
+              ? `Hedef ${target} sa — az uyku tatlı krizini ve kan şekerini etkiler.`
+              : `Hedef ${target} sa`}
+          </p>
+        </>
+      ) : (
+        <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
+          Dün gece için uyku verisi yok. Saatini taktıysan Health Connect'ten “Uyku” iznini ve Samsung Health'in
+          uyku paylaşımını kontrol et — dokun, oradan alalım.
+        </p>
+      )}
+    </Link>
   )
 }
