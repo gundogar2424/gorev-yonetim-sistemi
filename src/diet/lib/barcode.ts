@@ -187,6 +187,47 @@ export async function lookupProduct(barcode: string): Promise<ProductInfo | null
   }
 }
 
+// ISIMLE ARAMA (barkod olmadan). Ayni ucretsiz veritabani, ayni sekilde
+// anahtarsiz. Amac: "ayran", "yulaf", "beyaz peynir" gibi PAKETLI urunlerde
+// yapay zekaya tahmin ettirmek yerine gercek etiket degerlerini kullanmak —
+// hem token harcamaz hem daha dogrudur.
+// SINIR: ev yemegi (mercimek corbasi, karniyarik) bu veritabaninda yok;
+// orada yapay zeka daha isabetli kalir.
+export async function searchProductsByName(query: string, limit = 12): Promise<ProductInfo[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const url =
+    'https://world.openfoodfacts.org/api/v2/search' +
+    `?search_terms=${encodeURIComponent(q)}` +
+    '&fields=code,product_name,brands,nutriments' +
+    `&page_size=${Math.min(24, Math.max(1, limit))}`
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error('Veritabanına ulaşılamadı. İnternet bağlantını kontrol et.')
+  const j = (await res.json()) as { products?: Record<string, unknown>[] }
+  const out: ProductInfo[] = []
+  for (const raw of j.products ?? []) {
+    const p = raw as { code?: string; product_name?: string; brands?: string; nutriments?: Record<string, unknown> }
+    const n = p.nutriments || {}
+    const kcal = num(n['energy-kcal_100g'])
+    const name = [p.brands, p.product_name].filter(Boolean).join(' — ').trim()
+    // Adi ya da kalorisi olmayan kayitlar ise yaramaz — Open Food Facts
+    // kullanici katkili, eksik kayitlar var. Bunlari gostermiyoruz.
+    if (!name || !kcal) continue
+    out.push({
+      barcode: p.code || '',
+      name,
+      per100: {
+        kcal,
+        protein: num(n['proteins_100g']),
+        carb: num(n['carbohydrates_100g']),
+        fat: num(n['fat_100g'])
+      }
+    })
+    if (out.length >= limit) break
+  }
+  return out
+}
+
 // Belli gram icin besin degerlerini hesaplar (100 g uzerinden orantilar)
 export function forGrams(p: ProductInfo, grams: number) {
   const f = grams / 100

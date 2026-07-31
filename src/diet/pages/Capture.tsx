@@ -12,7 +12,7 @@ import { scheduleSugarReminder, applyNotifications, activeMealTypes, mergeRemind
 import { fileToResizedDataUrl, urlToResizedDataUrl } from '../../lib/image'
 import { MEAL_OPTIONS, guessMeal, mealLabel, mealEmoji } from '../lib/meals'
 import { isBeverage } from '../lib/food'
-import { decodeBarcodeFromImage } from '../lib/barcode'
+import { decodeBarcodeFromImage, searchProductsByName, type ProductInfo } from '../lib/barcode'
 import { buildHealthContext } from '../lib/context'
 import { autoSyncHealthToday } from '../lib/health'
 import { fetchMenuContent } from '../lib/webmenu'
@@ -2813,6 +2813,38 @@ function Favorites() {
   const [emoji, setEmoji] = useState('')
   const [kcal, setKcal] = useState('')
   const [flash, setFlash] = useState('')
+  // Veritabaninda ISIMLE arama (Open Food Facts, ucretsiz, yapay zeka YOK)
+  const [q, setQ] = useState('')
+  const [hits, setHits] = useState<ProductInfo[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchErr, setSearchErr] = useState('')
+
+  async function runSearch() {
+    const term = q.trim()
+    if (term.length < 2) return
+    setSearching(true)
+    setSearchErr('')
+    setHits([])
+    try {
+      const r = await searchProductsByName(term)
+      setHits(r)
+      if (!r.length) setSearchErr('Bu isimde paketli ürün bulunamadı. Ev yemeğiyse fotoğraf/yazı ile hesaplatman daha doğru olur.')
+    } catch (e) {
+      setSearchErr(e instanceof Error ? e.message : 'Arama başarısız.')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  // Veritabanindan secilen urunu 100 g degeriyle sik tuketilene cevir.
+  async function addFromDb(p: ProductInfo) {
+    await addFavorite({ name: `${p.name} (100 g)`, kcal: Math.round(p.per100.kcal), protein: Math.round(p.per100.protein), carb: Math.round(p.per100.carb), fat: Math.round(p.per100.fat) })
+    setQ('')
+    setHits([])
+    setAdding(false)
+    setFlash(`${p.name} eklendi — değerler etiketinden, yapay zeka çalışmadı`)
+    setTimeout(() => setFlash(''), 3000)
+  }
 
   const list = [...(favs ?? [])].sort((a, b) => (b.uses ?? 0) - (a.uses ?? 0))
 
@@ -2900,6 +2932,41 @@ function Favorites() {
 
       {adding && (
         <div className="space-y-2">
+          {/* Once VERITABANINDA ara: paketli üründe etiket değeri, 0 token */}
+          <div className="flex gap-2">
+            <input
+              className="field-input flex-1"
+              placeholder="Veritabanında ara (örn. ayran, yulaf)"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+            />
+            <button onClick={runSearch} disabled={searching || q.trim().length < 2} className="btn-secondary px-3">
+              {searching ? '…' : '🔎'}
+            </button>
+          </div>
+          {searchErr && <p className="text-[12px] text-amber-800 bg-amber-50 rounded-lg p-2 leading-relaxed">{searchErr}</p>}
+          {hits.length > 0 && (
+            <div className="space-y-1 max-h-56 overflow-y-auto">
+              {hits.map((h, i) => (
+                <button
+                  key={`${h.barcode}-${i}`}
+                  onClick={() => addFromDb(h)}
+                  className="w-full text-left rounded-lg p-2 bg-slate-50 dark:bg-[#2f3240]"
+                >
+                  <p className="text-[13px] font-medium text-slate-800 dark:text-[#e0e1e6] truncate">{h.name}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-[#9b9ea7]">
+                    100 g: {Math.round(h.per100.kcal)} kcal · P{Math.round(h.per100.protein)} K
+                    {Math.round(h.per100.carb)} Y{Math.round(h.per100.fat)}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-slate-400 leading-tight">
+            Bulamazsan aşağıdan elle gir. Değerler Open Food Facts'ten gelir (kullanıcı katkılı — saçma görünüyorsa
+            elle düzelt).
+          </p>
           <div className="flex gap-2">
             <input
               className="field-input w-14 text-center"
