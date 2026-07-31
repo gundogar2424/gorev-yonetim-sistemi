@@ -609,23 +609,35 @@ export async function setStepsDay(dateStr: string, count: number) {
   }
 }
 
-// ---- Gunluk uyku takibi (elle, saat) ----
+// ---- Gunluk uyku takibi (saat) ----
 export async function getSleepDay(dateStr: string): Promise<number> {
   const row = await dietDb.sleep.where('dateStr').equals(dateStr).first()
   return row?.hours ?? 0
 }
+export function getSleepRow(dateStr: string): Promise<Sleep | undefined> {
+  return dietDb.sleep.where('dateStr').equals(dateStr).first()
+}
 export function listSleep(): Promise<Sleep[]> {
   return dietDb.sleep.orderBy('dateStr').toArray()
 }
-export async function setSleepDay(dateStr: string, hours: number) {
+// manual=true  -> kullanici elle girdi; bu satir kilitlenir.
+// manual=false -> Health Connect senkronu. ELLE GIRILMIS bir satirin uzerine
+// yazmaz; yoksa kullanicinin duzeltmesi her senkronda geri alinirdi.
+export async function setSleepDay(dateStr: string, hours: number, manual = false) {
   const h = Math.max(0, Math.min(24, Math.round(hours * 10) / 10))
   const row = await dietDb.sleep.where('dateStr').equals(dateStr).first()
   if (row?.id != null) {
+    if (!manual && row.manual) return
     if (h === 0) await dietDb.sleep.delete(row.id)
-    else await dietDb.sleep.update(row.id, { hours: h })
+    else await dietDb.sleep.update(row.id, { hours: h, manual })
   } else if (h > 0) {
-    await dietDb.sleep.add({ dateStr, hours: h, createdAt: Date.now() })
+    await dietDb.sleep.add({ dateStr, hours: h, manual, createdAt: Date.now() })
   }
+}
+// Elle girilen degeri sil; bir sonraki senkronda saatten gelen deger yazilir.
+export async function clearSleepDay(dateStr: string) {
+  const row = await dietDb.sleep.where('dateStr').equals(dateStr).first()
+  if (row?.id != null) await dietDb.sleep.delete(row.id)
 }
 
 // ---- Ilerleme fotograflari (once-sonra) ----

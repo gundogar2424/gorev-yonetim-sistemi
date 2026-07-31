@@ -186,11 +186,16 @@ export interface Steps {
   createdAt: number
 }
 
-// Gunluk uyku suresi (elle girilir, saat cinsinden; orn. 7.5)
+// Gunluk uyku suresi (saat cinsinden; orn. 7.5)
 export interface Sleep {
   id?: number
   dateStr: string // YYYY-MM-DD
   hours: number // Uyku suresi (saat)
+  // Kullanici bu geceyi ELLE girdi/duzeltti mi? true ise Health Connect
+  // senkronu bu satirin uzerine YAZMAZ. Saatten gelen "yatakta gecen sure"
+  // gercek uyku suresinden buyuk olabiliyor; kullanicinin duzeltmesi
+  // otomatik veriden daha guvenilirdir.
+  manual?: boolean
   createdAt: number
 }
 

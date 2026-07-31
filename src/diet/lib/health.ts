@@ -186,17 +186,40 @@ async function agg(H: HealthPlugin, dataType: string, start: string, end: string
 // gune (uyanilan gune) gelir. Deger SANIYE doner, saate cevrilir.
 async function readSleepHours(H: HealthPlugin, dateStr: string): Promise<number> {
   try {
+    // GECE UYKUSU PENCERESI: onceki gun 18:00 -> bugun 12:00 (eskiden 12:00 ->
+    // 12:00 idi). Eklenti pencereye giren TUM uyku oturumlarinin suresini
+    // TOPLUYOR (aggregateSleepSessions -> sessions.sumOf). 12:00'den
+    // baslatildiginda dun ogleden sonraki bir sekerleme de gece uykusuna
+    // ekleniyordu. 18:00 bunu disarida birakir, gece uykusunun tamamini
+    // (kacta yatildigindan bagimsiz) icerde tutar. Gece bolunduyse
+    // (uyanip tekrar uyuma) parcalarin toplanmasi DOGRUDUR.
+    //
+    // DIKKAT — bu, saatten gelen sayinin Samsung Health'te gorunenden buyuk
+    // olmasinin TEK sebebi degil; bilinen digerleri:
+    //   1) SleepSessionRecord suresi = YATAKTA GECEN sure. Eklenti
+    //      endTime-startTime aliyor, arada uyanik gecen "awake" evrelerini
+    //      DUSMUYOR. Samsung Health ekraninda ise bunlar dusulmus olur.
+    //   2) Ayni geceyi iki kaynak (saat + telefon) ayri ayri yazabilir;
+    //      eklenti ikisini de toplar, tekillestirme yapmaz.
+    // Eklenti ham uyku kayitlarini disari acmadigi icin bunlari JS tarafinda
+    // ayiklayamiyoruz. Bu yuzden kullanici degeri elle duzeltebiliyor
+    // (Sleep.manual) ve elle girilen deger senkronda korunuyor.
     const noonToday = new Date(dateStr + 'T12:00:00')
-    const noonPrev = new Date(noonToday.getTime() - 86_400_000)
+    const eveningPrev = new Date(noonToday.getTime() - 18 * 3600_000) // dun 18:00
     const r = await H.queryAggregated({
-      startDate: noonPrev.toISOString(),
+      startDate: eveningPrev.toISOString(),
       endDate: noonToday.toISOString(),
       dataType: 'sleep' as never,
       bucket: 'day'
     })
     const seconds = (r.aggregatedData || []).reduce((s, a) => s + (a.value || 0), 0)
     if (!seconds) return 0
-    return Math.round((seconds / 3600) * 10) / 10 // saat, tek ondalik
+    const hours = seconds / 3600
+    // MANTIK SINIRI: tek gecede 14 saatten fazla uyku pratikte veri
+    // artefaktidir (ayni gecenin iki kaynaktan iki kez yazilmasi gibi). Gercek
+    // disi bir sayiyi hem kullaniciya hem de koca vermektense tavana cekiyoruz.
+    if (hours > 14) return 14
+    return Math.round(hours * 10) / 10 // saat, tek ondalik
   } catch {
     return 0 // uyku izni yok / veri yok
   }

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay, getSleepDay, listSleep } from '../db'
+import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay, getSleepRow, setSleepDay, clearSleepDay, listSleep } from '../db'
 import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
@@ -3048,8 +3048,11 @@ function Favorites() {
 // `sleep[bugun]` = DUN GECE uyunan sure (readSleepHours ogleden ogleye okur).
 function SleepRow({ goal }: { goal?: number }) {
   const today = todayStr()
-  const last = useLiveQuery(() => getSleepDay(today), [today], 0) ?? 0
+  const row = useLiveQuery(() => getSleepRow(today), [today], undefined)
+  const last = row?.hours ?? 0
   const all = useLiveQuery(() => listSleep(), [], [])
+  const [edit, setEdit] = useState(false)
+  const [draft, setDraft] = useState('')
 
   // Son 7 gecenin ortalamasi (yalnizca kayit olan geceler)
   const days: string[] = []
@@ -3063,22 +3066,86 @@ function SleepRow({ goal }: { goal?: number }) {
   // dogrudan iliskili. Koc bunu zaten yorumluyor, kullanici da gorsun.
   const low = last > 0 && last < 6.5
 
+  async function save() {
+    const h = Number(String(draft).replace(',', '.'))
+    if (!Number.isFinite(h) || h < 0 || h > 24) return
+    // manual=true: bundan sonraki Health Connect senkronu bu satiri EZMEZ.
+    await setSleepDay(today, h, true)
+    setEdit(false)
+  }
+
   return (
-    <Link to="/egzersiz" className="card p-4 block active:scale-[0.99] transition">
+    <div className="card p-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[17px] font-bold text-slate-900 dark:text-[#e0e1e6] leading-tight">😴 Uyku</p>
-        {avg > 0 && (
-          <span className="text-[12px] text-slate-500 dark:text-[#9b9ea7]">7 gün ort. {avg} sa</span>
-        )}
+        <div className="flex items-center gap-2">
+          {avg > 0 && (
+            <span className="text-[12px] text-slate-500 dark:text-[#9b9ea7]">7 gün ort. {avg} sa</span>
+          )}
+          <Link to="/egzersiz" className="text-[12px] text-violet-600 dark:text-violet-400 font-semibold">
+            Detay
+          </Link>
+        </div>
       </div>
 
-      {last > 0 ? (
-        <>
+      {edit ? (
+        <div className="mt-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.5"
+              min="0"
+              max="24"
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="örn. 7.5"
+              className="w-24 rounded-xl border border-slate-200 dark:border-[#262837] bg-white dark:bg-[#101220] px-3 py-2 text-[16px] tabular-nums text-slate-900 dark:text-[#e0e1e6]"
+            />
+            <span className="text-[14px] text-slate-500 dark:text-[#9b9ea7]">saat</span>
+            <button onClick={save} className="ml-auto btn-primary px-4 py-2 text-[14px]">
+              Kaydet
+            </button>
+            <button
+              onClick={() => setEdit(false)}
+              className="text-[14px] text-slate-500 dark:text-[#9b9ea7] px-2 py-2"
+            >
+              Vazgeç
+            </button>
+          </div>
+          {row?.manual && (
+            <button
+              onClick={async () => {
+                await clearSleepDay(today)
+                setEdit(false)
+              }}
+              className="text-[12px] text-violet-600 dark:text-violet-400 mt-2 font-semibold"
+            >
+              Elle girişi sil, saatten gelen değeri kullan
+            </button>
+          )}
+          <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
+            Saat “yatakta geçen süreyi” yazıyor; arada uyanık kaldığın dakikaları düşmüyor. Samsung Health'te
+            gördüğün gerçek uyku süresini yazabilirsin — senkron bu değeri artık ezmez.
+          </p>
+        </div>
+      ) : last > 0 ? (
+        <button
+          onClick={() => {
+            setDraft(String(last))
+            setEdit(true)
+          }}
+          className="w-full text-left active:scale-[0.99] transition"
+        >
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-[26px] font-bold text-slate-900 dark:text-[#e0e1e6] tabular-nums leading-none">
               {last}
             </span>
             <span className="text-[14px] text-slate-500 dark:text-[#9b9ea7]">saat · dün gece</span>
+            {row?.manual && (
+              <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">elle</span>
+            )}
           </div>
           <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#151724] mt-2.5 overflow-hidden">
             <div
@@ -3089,15 +3156,23 @@ function SleepRow({ goal }: { goal?: number }) {
           <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
             {low
               ? `Hedef ${target} sa — az uyku tatlı krizini ve kan şekerini etkiler.`
-              : `Hedef ${target} sa`}
+              : `Hedef ${target} sa · yanlışsa dokunup düzelt`}
           </p>
-        </>
+        </button>
       ) : (
-        <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
-          Dün gece için uyku verisi yok. Saatini taktıysan Health Connect'ten “Uyku” iznini ve Samsung Health'in
-          uyku paylaşımını kontrol et — dokun, oradan alalım.
-        </p>
+        <button
+          onClick={() => {
+            setDraft('')
+            setEdit(true)
+          }}
+          className="w-full text-left"
+        >
+          <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
+            Dün gece için uyku verisi yok. Saatini taktıysan Health Connect'ten “Uyku” iznini kontrol et; ya da
+            dokunup elle gir.
+          </p>
+        </button>
       )}
-    </Link>
+    </div>
   )
 }
