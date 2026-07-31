@@ -60,7 +60,10 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
   // Satiri ekle. skipIn verilirse, o kapsamlarda satir HIC yazilmaz.
   const add = (text: string, skipIn?: HealthScope[]) => {
     if (skipIn && skipIn.includes(scope)) return
-    add(text)
+    // DIKKAT: burasi L.push OLMALI. Bir kez `add(text)` yazildi ve fonksiyon
+    // kendini cagirir hale geldi; sonsuz ozyineleme her yapay zeka cagrisini
+    // "Maximum call stack size exceeded" ile dusurdu.
+    L.push(text)
   }
 
   // SENI TANIYAN KALICI PROFIL (varsa) — en tepede, tum degerlendirmelerin temeli.
