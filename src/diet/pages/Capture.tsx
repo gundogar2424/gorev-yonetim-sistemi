@@ -14,6 +14,7 @@ import { MEAL_OPTIONS, guessMeal, mealLabel, mealEmoji } from '../lib/meals'
 import { isBeverage } from '../lib/food'
 import { decodeBarcodeFromImage, searchProductsByName, type ProductInfo } from '../lib/barcode'
 import { buildHealthContext } from '../lib/context'
+import { describeError } from '../lib/errtext'
 import { autoSyncHealthToday } from '../lib/health'
 import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
@@ -235,7 +236,7 @@ export default function Capture() {
       const dataUrl = await fileToResizedDataUrl(file, 1000, 0.85)
       await afterCapture(dataUrl)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fotoğraf okunamadı.')
+      setError(describeError(err))
       setPhase('idle')
     }
   }
@@ -279,7 +280,12 @@ export default function Capture() {
     setError('')
     setAnalysis(null)
     setPhase('analyzing')
+    // Hangi adimda patladigini bilmek icin: kucultulmus derlemede yigin izi
+    // okunmuyor, adim etiketi tek guvenilir isaret.
+    let step = 'sağlık bağlamı okunuyor'
     try {
+      const health = await buildHealthContext(settings, 'food')
+      step = 'yapay zekaya gönderiliyor'
       const result = await analyzeFoodByText({
         apiKey: settings!.apiKey!,
         note: desc,
@@ -290,12 +296,12 @@ export default function Capture() {
         mealInfo: mealInfoStr(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
-        health: await buildHealthContext(settings, 'food')
+        health
       })
       setAnalysis(result)
       setPhase('result')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setError(describeError(err, step))
       setPhase('converse')
     }
   }
@@ -318,7 +324,7 @@ export default function Capture() {
       })
       setClarifyChat([{ role: 'assistant', text: reply }])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setError(describeError(err))
     } finally {
       setClarifyBusy(false)
     }
@@ -346,7 +352,7 @@ export default function Capture() {
       })
       setClarifyChat([...hist, { role: 'assistant', text: reply }])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setError(describeError(err))
     } finally {
       setClarifyBusy(false)
     }
@@ -399,7 +405,7 @@ export default function Capture() {
       setAnalysis(result)
       setPhase('result')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setError(describeError(err))
       setPhase('idle')
     }
   }
@@ -430,7 +436,7 @@ export default function Capture() {
       setAnalysis(result)
       setPhase('result')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setError(describeError(err))
       setPhase('idle')
     }
   }
@@ -465,7 +471,7 @@ export default function Capture() {
       setAnalysis(result)
       setPhase('result')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu.')
+      setError(describeError(err))
       setPhase('result')
     }
   }
@@ -579,7 +585,7 @@ export default function Capture() {
       }
       setChat([...history, { role: 'assistant', text: res.reply }])
     } catch (err) {
-      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+      setChat([...history, { role: 'assistant', text: describeError(err) }])
     } finally {
       setChatBusy(false)
     }
@@ -1737,7 +1743,7 @@ function CrisisSOS({ entries, exercises, settings }: { entries: DietEntry[]; exe
       })
       setChat([...history, { role: 'assistant', text: answer }])
     } catch (err) {
-      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+      setChat([...history, { role: 'assistant', text: describeError(err) }])
     } finally {
       setBusy(false)
     }
@@ -2141,7 +2147,7 @@ function CoachChat({
       }
       setChat([...history, { role: 'assistant', text: shown }])
     } catch (err) {
-      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+      setChat([...history, { role: 'assistant', text: describeError(err) }])
     } finally {
       setBusy(false)
     }
@@ -2327,7 +2333,7 @@ export function RestaurantMenu({ settings }: { settings?: DietSettings }) {
         setLinkMsg('')
       }
     } catch (err) {
-      setChat([...history, { role: 'assistant', text: err instanceof Error ? err.message : 'Cevap alınamadı.' }])
+      setChat([...history, { role: 'assistant', text: describeError(err) }])
     } finally {
       setBusy(false)
     }
