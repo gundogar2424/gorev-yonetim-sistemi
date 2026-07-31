@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { listExercises, deleteExercise, readDietSettings } from '../db'
-import { healthAvailable, requestHealthPerms, importHealthDay, openHealthConnectStore, saveHealthDay } from '../lib/health'
+import {
+  healthAvailable,
+  requestHealthPerms,
+  importHealthDay,
+  openHealthConnectStore,
+  openHealthConnect,
+  saveHealthDay,
+  sleepPermGranted
+} from '../lib/health'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
 
 export default function ExercisePage() {
@@ -188,6 +196,8 @@ function HealthConnectCard({ day }: { day: string }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
+  // Uyku ozel durum: izin yoksa eklenti hata atmiyor, 0 donuyor. Ayirt edip soyluyoruz.
+  const [sleepWarn, setSleepWarn] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -231,6 +241,17 @@ function HealthConnectCard({ day }: { day: string }) {
       if (data.workouts.length) parts.push(`${data.workouts.length} antrenman`)
       if (data.sleepHours) parts.push(`${data.sleepHours} sa uyku`)
       setMsg(parts.length ? `Alındı: ${parts.join(' · ')}.` : 'Bu gün için Health Connect’te veri bulunamadı.')
+
+      // UYKU 0 geldiyse sebebini ayirt et: izin mi yok, veri mi yok?
+      // (Eklenti izin yokken hata atmadigi icin ikisi ayni gorunuyordu.)
+      if (data.sleepHours) setSleepWarn('')
+      else if (await sleepPermGranted()) {
+        setSleepWarn(
+          'Uyku izni var ama bu gece için veri gelmedi. Samsung Health → Ayarlar → Health Connect’ten “Uyku”nun paylaşıldığını kontrol et; saatin gece takılı olmalı.'
+        )
+      } else {
+        setSleepWarn('Uyku izni verilmemiş. Health Connect ayarlarından uygulamaya “Uyku” okuma iznini ver.')
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'İçe aktarma başarısız.')
     } finally {
@@ -265,6 +286,14 @@ function HealthConnectCard({ day }: { day: string }) {
 
       {msg && <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg p-2">{msg}</p>}
       {err && <p className="text-xs text-rose-700 bg-rose-50 rounded-lg p-2">{err}</p>}
+      {sleepWarn && (
+        <div className="text-xs text-amber-800 bg-amber-50 rounded-lg p-2 space-y-2">
+          <p className="leading-relaxed">😴 {sleepWarn}</p>
+          <button onClick={() => openHealthConnect()} className="btn-secondary w-full">
+            Health Connect ayarlarını aç
+          </button>
+        </div>
+      )}
       <p className="text-[11px] text-slate-400 leading-tight">
         İlk seferde Health Connect izin ekranı açılır; <b>Etkinlik</b> (adım/antrenman), <b>Uyku</b> ve{' '}
         <b>Hayati bulgular</b> (nabız) izinlerini ver. Veri Samsung Health’in Health Connect’e yazdığı kadarıyla gelir.

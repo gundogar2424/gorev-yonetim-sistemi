@@ -74,6 +74,27 @@ export async function healthPermsGranted(): Promise<boolean> {
   }
 }
 
+// UYKU IZNI ayrica sorulur. Sebebi onemli: eklenti uyku izni yoksa HATA
+// ATMIYOR — bos liste donuyor (aggregateSleepSessions icinde
+// `if (!hasSleepPermission) return emptyList()`). Bizim tarafta bu "0 saat
+// uyku" gibi gorunuyor; kullaniciya izin eksigi hic bildirilmiyordu.
+// Bu fonksiyon "izin yok" ile "o gece veri yok" durumunu ayirmamizi saglar.
+export async function sleepPermGranted(): Promise<boolean> {
+  const mod = await getMod()
+  if (!mod) return false
+  try {
+    const res = (await mod.Health.checkHealthPermissions({
+      permissions: ['READ_SLEEP'] as HealthPermission[]
+    })) as unknown as { permissions?: Record<string, boolean> | Record<string, boolean>[] }
+    const p = res?.permissions
+    if (!p) return false
+    const maps = Array.isArray(p) ? p : [p]
+    return maps.some((m) => m?.READ_SLEEP === true)
+  } catch {
+    return false
+  }
+}
+
 // Health Connect ayar ekranini ac (izinleri elle yonetmek icin).
 export async function openHealthConnect(): Promise<void> {
   const mod = await getMod()
