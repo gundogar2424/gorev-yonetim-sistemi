@@ -41,6 +41,23 @@ function supportsEffort(model?: string): boolean {
 // tarafta tutuyoruz ki kisa istemlerde bosuna yazma bedeli odemeyelim.
 const CACHE_MIN_CHARS = 2000
 
+// Dusunme ACIK kaldigi cagrilarda cikti tavani: dusunme + cevap birlikte
+// sigsin diye. Tavan bir SINIRDIR, harcama degil — model kisa cevap yaziyorsa
+// fazlasi kullanilmaz.
+const MIN_TOKENS_WITH_THINKING = 4000
+
+// Bu modellerde `thinking` alani BOS birakilirsa dusunme ACIK gelir.
+function thinkingOnByDefault(model?: string): boolean {
+  const m = (model || '').toLowerCase()
+  return m.includes('opus-5') || m.includes('sonnet-5') || m.includes('fable') || m.includes('mythos')
+}
+
+// Fable/Mythos'ta dusunme her zaman aciktir; `{type:'disabled'}` 400 doner.
+function rejectsDisabledThinking(model?: string): boolean {
+  const m = (model || '').toLowerCase()
+  return m.includes('fable') || m.includes('mythos')
+}
+
 // SDK'yi geç (lazy) yukle ve istemciyi olustur. messages.create sarmalanir:
 // her cevaptan gelen token kullanimi merkezi olarak kaydedilir (Ayarlar'da
 // gosterilir) ve yukaridaki iki tasarruf ayari uygulanir. Boylece 27 ayri
@@ -53,9 +70,37 @@ async function createClient(apiKey: string) {
   client.messages.create = ((params: unknown, options?: unknown) => {
     const p = params as Record<string, unknown>
 
-    // Cagiran acikca belirtmediyse VE model destekliyorsa dusunme derinligini kis
-    if (p && typeof p === 'object' && !p.output_config && supportsEffort(p.model as string)) {
-      p.output_config = { effort: DEFAULT_EFFORT }
+    // Cagiran acikca belirtmediyse VE model destekliyorsa dusunme derinligini kis.
+    // NOT: eskiden yalnizca `output_config` HIC YOKKEN ekleniyordu; oysa
+    // yapilandirilmis cikti isteyen cagrilar output_config'i kendileri kuruyor
+    // (format alani icin). Onlar bu yuzden hic kisilmiyor, varsayilan `high`
+    // efor ile calisiyordu. Artik efor yoksa mevcut nesneye ekleniyor.
+    if (p && typeof p === 'object' && supportsEffort(p.model as string)) {
+      const oc = (p.output_config as Record<string, unknown> | undefined) ?? {}
+      if (oc.effort === undefined) p.output_config = { ...oc, effort: DEFAULT_EFFORT }
+    }
+
+    // DUSUNME VARSAYILANI — "Yanıt yarıda kesildi" hatasinin sebebi.
+    // Claude Opus 5 ve Sonnet 5'te `thinking` alani BOS birakilirsa dusunme
+    // ACIK gelir (Opus 4.8'de kapali geliyordu) ve `max_tokens` dusunme ile
+    // cevabi BIRLIKTE sinirlar. Bu uygulamadaki tavanlar (2000, 900, 700...)
+    // yalnizca CEVABA gore olculmustu; dusunme butceyi yiyince yanit yarida
+    // kesiliyor (stop_reason: max_tokens).
+    //
+    // Iki cagri tipini ayri ele aliyoruz:
+    //  - YAPILANDIRILMIS CIKTI (json_schema): bu bir CIKARIM isi, derin
+    //    dusunmeye ihtiyaci yok. Dusunme kapatilir — hem kesilme biter hem
+    //    cikti token'i (girdinin 5 katı fiyatta) dusER.
+    //  - SOHBET/YORUM: dusunme kalir, tavan yukseltilir.
+    // Fable/Mythos'ta dusunme her zaman aciktir ve `disabled` REDDEDILIR;
+    // orada yalnizca tavan yukseltilir.
+    if (p && typeof p === 'object' && p.thinking === undefined && thinkingOnByDefault(p.model as string)) {
+      const hasSchema = !!(p.output_config as { format?: unknown } | undefined)?.format
+      if (hasSchema && !rejectsDisabledThinking(p.model as string)) {
+        p.thinking = { type: 'disabled' }
+      } else if (typeof p.max_tokens === 'number' && p.max_tokens < MIN_TOKENS_WITH_THINKING) {
+        p.max_tokens = MIN_TOKENS_WITH_THINKING
+      }
     }
     // Sistem metnini onbelleklenebilir hale getir.
     // Ayrac (CTX_MARK) varsa: [SABIT talimatlar] + [OYNAK baglam] diye ikiye
