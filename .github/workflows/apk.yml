@@ -85,6 +85,9 @@ jobs:
           sed -i 's#HealthPermission\.PERMISSION_READ_EXERCISE_ROUTE#"android.permission.health.READ_EXERCISE_ROUTE"#g' "$k"
           echo "--- route sabiti yaması ---"; grep -n "READ_EXERCISE_ROUTE" "$k" || true
 
+      - name: Uyku toplama yaması (yatakta geçen süre yerine gerçek uyku)
+        run: |
+          python3 tools/patch-sleep-aggregation.py
       - name: Kamera izni ekle (canlı barkod tarayıcı için)
         run: |
           f=android/app/src/main/AndroidManifest.xml

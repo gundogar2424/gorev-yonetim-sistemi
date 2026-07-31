@@ -194,16 +194,16 @@ async function readSleepHours(H: HealthPlugin, dateStr: string): Promise<number>
     // (kacta yatildigindan bagimsiz) icerde tutar. Gece bolunduyse
     // (uyanip tekrar uyuma) parcalarin toplanmasi DOGRUDUR.
     //
-    // DIKKAT — bu, saatten gelen sayinin Samsung Health'te gorunenden buyuk
-    // olmasinin TEK sebebi degil; bilinen digerleri:
-    //   1) SleepSessionRecord suresi = YATAKTA GECEN sure. Eklenti
-    //      endTime-startTime aliyor, arada uyanik gecen "awake" evrelerini
-    //      DUSMUYOR. Samsung Health ekraninda ise bunlar dusulmus olur.
-    //   2) Ayni geceyi iki kaynak (saat + telefon) ayri ayri yazabilir;
-    //      eklenti ikisini de toplar, tekillestirme yapmaz.
-    // Eklenti ham uyku kayitlarini disari acmadigi icin bunlari JS tarafinda
-    // ayiklayamiyoruz. Bu yuzden kullanici degeri elle duzeltebiliyor
-    // (Sleep.manual) ve elle girilen deger senkronda korunuyor.
+    // Sayinin Samsung Health'te gorunenden buyuk cikmasinin diger iki sebebi
+    // eklentinin KENDI icindeydi ve orada yamalandi
+    // (tools/patch-sleep-aggregation.py, CI'da uygulanir):
+    //   1) SleepSessionRecord suresi = YATAKTA GECEN sure; eklenti
+    //      endTime-startTime aliyor, uyanik evreleri dusmuyordu.
+    //   2) Ayni geceyi iki kaynak (saat + telefon) yazdiginda ikisi de
+    //      toplaniyordu.
+    // Yama evre bazinda hesaplayip ust uste binen araliklari birlestiriyor.
+    // Yine de kaynak veri hatali olabilir; bu yuzden kullanici degeri elle
+    // duzeltebiliyor (Sleep.manual) ve elle girilen deger senkronda korunuyor.
     const noonToday = new Date(dateStr + 'T12:00:00')
     const eveningPrev = new Date(noonToday.getTime() - 18 * 3600_000) // dun 18:00
     const r = await H.queryAggregated({
