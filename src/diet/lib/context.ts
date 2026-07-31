@@ -6,9 +6,24 @@
 import { dietDb } from '../db'
 import { todayStr, dayAdherence } from '../streak'
 import { mealLabel } from './meals'
-import type { DietSettings, Measurement } from '../types'
+import type { DietEntry, DietSettings, Measurement } from '../types'
 
 const fmt = (n: number) => Math.round(n * 10) / 10
+
+// FOTOGRAFSIZ OKUMA. entries tablosundaki her kayit base64 bir yemek
+// fotografi tasiyor (~200-400 KB). `toArray()` bunlarin HEPSINI ayni anda
+// bellege aliyordu: aylik veride on-larca MB eder ve bu HER yapay zeka
+// cagrisinda bastan tekrarlanir. Telefonda WebView'i sisirip donmaya ve
+// bellek kaynakli cokmelere yol aciyor.
+// Burada fotografa hic ihtiyac yok — akisla okuyup fotograf alanini aninda
+// dusuruyoruz; boylece ayni anda bellekte en fazla TEK fotograf bulunur.
+async function readEntriesLite(): Promise<DietEntry[]> {
+  const out: DietEntry[] = []
+  await dietDb.entries.each((e) => {
+    out.push(e.photo ? { ...e, photo: '' } : e)
+  })
+  return out
+}
 
 // Cagri tipi. Amac: her cagriya HER SEYI gondermemek. 'full' varsayilandir
 // (hicbir sey kirpilmaz); digerleri o cagri icin ANLAMSIZ olan satirlari atar.
@@ -22,7 +37,7 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
   const since7 = todayStr(new Date(Date.now() - 6 * 86_400_000))
 
   const [entries, measurements, vitals, exercises, waterRow, checkins, cravings, labs, dayNote, medToday, medAll, checkinsAll, medDefs, stepsAll, waterAll, sleepAll, shoppingAll] = await Promise.all([
-    dietDb.entries.toArray(),
+    readEntriesLite(),
     dietDb.measurements.orderBy('createdAt').toArray(),
     dietDb.vitals.orderBy('createdAt').toArray(),
     dietDb.exercises.toArray(),
