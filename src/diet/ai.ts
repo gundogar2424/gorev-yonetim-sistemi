@@ -204,18 +204,35 @@ PUANI NEREDEN KIRDIĞIN (çok önemli): scoreReason alanına puanı NEDEN tam ve
 Üslubun: Türkçe, sıcak, abartısız, suçlayıcı değil GÜÇLENDİRİCİ. Kısa ve vurucu cümleler kur. harms ve motivations için 2-4 madde yeterli. Kaloriyi gram göz kararı tahmin et (porsiyon başına).`
 
 // Bir data URL'i media type + base64 parcalarina ayirir
+// data URL'i BASIT DILIMLEME ile ayirir — bilerek REGEX KULLANILMIYOR.
+// Sebebi: eskiden `/^data:([^;]+);base64,(.+)$/` kullaniliyordu. Sondaki
+// `(.+)$` yakalama grubu, birkac yuz KB'lik base64 govdesi uzerinde Android
+// WebView'in regex motorunda yigini tasiriyor ve istek gonderilmeden
+// "Maximum call stack size exceeded" hatasi firlatiyordu. Fotograf ne kadar
+// buyukse o kadar olasi. indexOf + slice sabit maliyetlidir, tasmaz.
+function parseDataUrl(dataUrl: string): { mediaType: string; base64: string } | null {
+  const HEAD = 'data:'
+  const MARK = ';base64,'
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith(HEAD)) return null
+  const i = dataUrl.indexOf(MARK)
+  if (i <= HEAD.length) return null
+  const mediaType = dataUrl.slice(HEAD.length, i)
+  const base64 = dataUrl.slice(i + MARK.length)
+  if (!mediaType || !base64) return null
+  return { mediaType, base64 }
+}
+
 function splitDataUrl(dataUrl: string): { mediaType: string; base64: string } | null {
-  const m = dataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/)
-  if (!m) return null
-  return { mediaType: m[1], base64: m[2] }
+  const p = parseDataUrl(dataUrl)
+  return p && p.mediaType.startsWith('image/') ? p : null
 }
 
 // Goruntu VEYA PDF data URL'inden uygun mesaj icerik blogu olusturur
 function mediaBlock(dataUrl: string): Record<string, unknown> | null {
-  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
-  if (!m) return null
-  const media = m[1]
-  const data = m[2]
+  const p = parseDataUrl(dataUrl)
+  if (!p) return null
+  const media = p.mediaType
+  const data = p.base64
   if (media === 'application/pdf') {
     return { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } }
   }
@@ -253,7 +270,23 @@ function friendlyError(err: unknown): Error {
     return new Error('İnternet bağlantısı kurulamadı. Bağlantını kontrol edip tekrar dene. 📶')
   }
   if (status) return new Error(`İnceleme başarısız (${status}): ${detail}`)
-  return new Error(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.')
+
+  // BURAYA DUSEN HATA API'DEN GELMIYOR — uygulamanin kendi kodunda olusmus bir
+  // JavaScript hatasidir (orn. RangeError: Maximum call stack size exceeded).
+  // Eskiden kullaniciya yalin İngilizce mesaj gosteriliyordu; nerede oldugu
+  // hicbir yerde gorunmuyordu. Artik hatanin turunu ve yiginin ilk satirini da
+  // yaziyoruz ki ekran goruntusunden kaynagi bulunabilsin.
+  if (err instanceof Error) {
+    const where = (err.stack || '')
+      .split('\n')
+      .slice(1)
+      .map((l) => l.trim())
+      .find((l) => !!l)
+    return new Error(
+      `Uygulama hatası: ${err.name}: ${err.message}${where ? `\nKonum: ${where}` : ''}\n(Bu bir sunucu hatası değil. Ekran görüntüsüyle bildirebilirsin.)`
+    )
+  }
+  return new Error('Bilinmeyen bir hata oluştu.')
 }
 
 interface AnalyzeOptions {
