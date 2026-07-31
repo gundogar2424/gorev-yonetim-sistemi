@@ -263,8 +263,24 @@ export async function importHealthDay(dateStr: string): Promise<HealthDay | null
   //    girerse hem süre saçmalıyor hem de aynı hareket iki kez görünüyor.
   //    Bu yüzden çok uzun oturumlar antrenman sayılmıyor.
   const MAX_WORKOUT_MIN = 240 // 4 saat: uzun bir yürüyüş/bisiklet hâlâ geçer
+
+  // 3) YANLIS GUNE YAZILMA. Health Connect'e "bugun 00:00 - 24:00" araligi
+  //    veriliyor, ama sorgu araliga DEGEN oturumlari da donduruyor: dun gece
+  //    23:40'ta baslayip 00:05'te biten bir yuruyus bugunun sonucuna giriyor
+  //    ve bugune antrenman olarak yaziliyordu. Kullanici spor yapmadigi gunde
+  //    "egzersiz" goruyordu.
+  //    Kural: oturum HANGI GUN BASLADIYSA o gune aittir. Baslangici bu gunun
+  //    disinda kalanlar eleniyor; kendi gunu ice aktarilinca zaten yazilacak.
+  const { start: dayStart, end: dayEnd } = dayBounds(dateStr)
+  const startsToday = (w: HealthWorkout): boolean => {
+    if (w.startMs == null) return true // baslangic bilinmiyorsa dokunma
+    const t = w.startMs
+    return t >= Date.parse(dayStart) && t < Date.parse(dayEnd)
+  }
+
   workouts = workouts
     .filter((w) => (w.minutes || 0) <= MAX_WORKOUT_MIN)
+    .filter(startsToday)
     .map((w) => ({ ...w, kcal: undefined }))
 
   return {
