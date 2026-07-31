@@ -1491,7 +1491,7 @@ function CaloriePage({ target, eaten, exercise }: { target: number; eaten: numbe
             <div className="space-y-3">
               <StatRow icon="flag" color="#94a3b8" label="Temel Hedef" value={target} />
               <StatRow icon="fork" color="#70b8ff" label="Yiyecek" value={eaten} />
-              <StatRow icon="flame" color="#f59525" label="Egzersiz" value={exercise} />
+              <StatRow icon="flame" color="#f59525" label="Hareket" value={exercise} />
             </div>
           ) : (
             <p className="text-[13px] text-slate-500 leading-relaxed">
@@ -1674,8 +1674,9 @@ function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepG
   const goal = stepGoal && stepGoal > 0 ? stepGoal : 10000
   const pct = Math.min(100, Math.round((steps / goal) * 100))
 
-  // Karttaki kalori, kalori halkasindaki "Egzersiz" ile AYNI sayi olmali —
-  // yoksa ayni ekranda iki farkli rakam gorunur. Ikisi de movementKcal.
+  // Gunun HAREKET kalorisi. Adim kartinda gosterilir — cunku kaynagi adimlar
+  // (ya da saatin aktif kalorisi), antrenman degil. Kalori halkasindaki
+  // "Hareket" satiri da ayni sayidir; iki ekran asla farkli rakam gostermez.
   const exKcal = movementKcal(dayRow)
   const minutes = todays.reduce((s, e) => s + (e.minutes || 0), 0)
   const hh = Math.floor(minutes / 60)
@@ -1697,7 +1698,10 @@ function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepG
             {steps.toLocaleString('tr-TR')}
           </span>
         </div>
-        <p className="text-[13px] text-slate-500 mt-2 truncate">Hedef: {goal.toLocaleString('tr-TR')} adım</p>
+        <p className="text-[13px] text-slate-500 mt-2 truncate">
+          Hedef: {goal.toLocaleString('tr-TR')} adım
+          {exKcal > 0 ? ` · ~${exKcal} kal` : ''}
+        </p>
         <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#151724] mt-2 overflow-hidden">
           <div className="h-full rounded-full bg-[#f54b72] transition-all" style={{ width: `${pct}%` }} />
         </div>
@@ -1708,20 +1712,21 @@ function StepExerciseRow({ exercises, stepGoal }: { exercises: Exercise[]; stepG
           <p className="text-[17px] font-bold text-slate-900 dark:text-[#e0e1e6] leading-tight">Egzersiz</p>
           <span className="text-[20px] leading-none text-slate-400 -mt-0.5">+</span>
         </div>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[18px] leading-none">🔥</span>
-          <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">{exKcal} kal</span>
-        </div>
         {hasWorkout ? (
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[18px] leading-none">🕐</span>
-            <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">
-              {hh}:{String(mm).padStart(2, '0')} sa.
-            </span>
-          </div>
+          <>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[18px] leading-none">🕐</span>
+              <span className="text-[17px] font-semibold text-slate-700 dark:text-[#e0e1e6] tabular-nums">
+                {hh}:{String(mm).padStart(2, '0')} sa.
+              </span>
+            </div>
+            <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
+              {todays.length} antrenman · kalorisi adım kartında
+            </p>
+          </>
         ) : (
-          <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
-            {exKcal > 0 ? 'Adımlardan · bugün antrenman yok' : 'Bugün antrenman yok'}
+          <p className="text-[13px] text-slate-500 dark:text-[#9b9ea7] mt-3 leading-snug">
+            Bugün antrenman yok. Eklemek için dokun.
           </p>
         )}
       </Link>
