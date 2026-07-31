@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
-import { dietDb, listExercises, listMeasurements, readDietSettings } from '../db'
+import { dietDb, listExercises, listMeasurements, listWater, listSteps, listSleep, readDietSettings } from '../db'
 import { computeWeekly, todayStr, dayAdherence, type WeeklySummary } from '../streak'
 import { weeklyCoachSummary } from '../ai'
 import { buildHealthContext } from '../lib/context'
@@ -13,10 +13,24 @@ export default function Weekly() {
   const entries = useLiveQuery(() => dietDb.entries.toArray(), [], [])
   const exercises = useLiveQuery(() => listExercises(), [], [])
   const measurements = useLiveQuery(() => listMeasurements(), [], [])
+  // Su / adim / uyku da bu ozete girsin: computeWeekly bunlari zaten
+  // hesapliyordu ama sayfa bos dizi gecerek besliyordu, yani hicbir zaman
+  // gorunmuyorlardi.
+  const waters = useLiveQuery(() => listWater(), [], [])
+  const steps = useLiveQuery(() => listSteps(), [], [])
+  const sleeps = useLiveQuery(() => listSleep(), [], [])
   const settings = useLiveQuery(() => readDietSettings(), [], undefined)
   const [days, setDays] = useState(7)
 
-  const s = computeWeekly(entries ?? [], exercises ?? [], [], measurements ?? [], [], [], days)
+  const s = computeWeekly(
+    entries ?? [],
+    exercises ?? [],
+    waters ?? [],
+    measurements ?? [],
+    steps ?? [],
+    sleeps ?? [],
+    days
+  )
 
   return (
     <div>
@@ -63,6 +77,9 @@ export default function Weekly() {
           <Tile emoji="⚠️" value={s.broke} label="Diyet bozma" accent="text-rose-600" />
           <Tile emoji="🔥" value={s.kcalAte} label="Alınan kalori" accent="text-orange-600" />
           <Tile emoji="🏃" value={s.exerciseCount} label={`Egzersiz (${s.exerciseMinutes} dk)`} accent="text-indigo-600" />
+          <Tile emoji="😴" value={s.sleepAvg} label="Uyku ort. (saat/gece)" accent="text-violet-600" />
+          <Tile emoji="👟" value={s.stepsAvg} label="Adım ort. (gün)" accent="text-pink-600" />
+          <Tile emoji="💧" value={s.waterAvg} label="Su ort. (bardak/gün)" accent="text-sky-600" />
         </div>
 
         {/* Kilo degisimi */}
@@ -124,6 +141,9 @@ function CoachSummary({
     lines.push(`Vazgeçiş: ${s.resisted}, yenen öğün: ${s.ate}, diyet bozma: ${s.broke}.`)
     lines.push(`Toplam alınan kalori ~${s.kcalAte} kcal (günlük ort ~${Math.round(s.kcalAte / days)} kcal).`)
     lines.push(`Egzersiz: ${s.exerciseCount} kez, ${s.exerciseMinutes} dk.`)
+    if (s.sleepAvg) lines.push(`Uyku: günlük ort. ${s.sleepAvg} saat.`)
+    if (s.stepsAvg) lines.push(`Adım: günlük ort. ${s.stepsAvg}.`)
+    if (s.waterAvg) lines.push(`Su: günlük ort. ${s.waterAvg} bardak.`)
     if (s.weightChange != null) lines.push(`Kilo değişimi: ${s.weightChange > 0 ? '+' : ''}${s.weightChange} kg.`)
 
     // Gunluk basari (son N gun)
