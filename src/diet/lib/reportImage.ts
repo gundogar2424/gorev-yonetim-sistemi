@@ -827,8 +827,8 @@ export async function buildMealCardImage(e: DietEntry, userName?: string): Promi
   // Fotograf KARE kirpilir (drawCover): kart duzeni her fotografta ayni kalir.
   const PHOTO = innerW
   const OVERLAY_H = 96 // fotografin altindaki koyu seritin yuksekligi
-  const MACRO_H = 132
-  const FOOT_H = 78
+  const MACRO_H = 152 // makro satiri + altindaki ayirici icin nefes payi
+  const FOOT_H = 88
 
   const cardH = CARD_PAD + PHOTO + 26 + nameLines.length * NAME_LH + 22 + MACRO_H + FOOT_H
   const logicalH = PAD + cardH + PAD
