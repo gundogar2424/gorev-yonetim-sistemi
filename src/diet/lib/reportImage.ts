@@ -807,6 +807,140 @@ export async function buildMealImage(e: DietEntry, userName?: string): Promise<B
   })
 }
 
+// ---- ÖĞÜN KARTI: fotoğraf + gramaj/kalori + makro şeridi ------------------
+// buildMealImage DIYETISYENE gider ve bilerek sadedir (kalori/puan yok —
+// diyetisyenin isine karisilmiyor). Bu kart ise KULLANICININ kendisi icin:
+// fotografin uzerinde "270 g · 540 kcal", altinda buyuk yemek adi ve dort
+// makro sutunu. Paylasilabilir tek bir kare.
+export async function buildMealCardImage(e: DietEntry, userName?: string): Promise<Blob> {
+  const img = e.photo ? await loadImage(e.photo) : null
+
+  const CARD_PAD = 30 // beyaz kartin ic bosluğu
+  const contentW = W - 2 * PAD
+  const innerW = contentW - 2 * CARD_PAD
+
+  const mctx = document.createElement('canvas').getContext('2d')!
+  mctx.font = 'bold 52px sans-serif'
+  const nameLines = wrapText(mctx, e.foodName || 'Öğün', innerW)
+  const NAME_LH = 64
+
+  // Fotograf KARE kirpilir (drawCover): kart duzeni her fotografta ayni kalir.
+  const PHOTO = innerW
+  const OVERLAY_H = 96 // fotografin altindaki koyu seritin yuksekligi
+  const MACRO_H = 132
+  const FOOT_H = 78
+
+  const cardH = CARD_PAD + PHOTO + 26 + nameLines.length * NAME_LH + 22 + MACRO_H + FOOT_H
+  const logicalH = PAD + cardH + PAD
+  const { canvas, ctx } = hiDpiCanvas(W, logicalH)
+  ctx.textBaseline = 'alphabetic'
+  ctx.textAlign = 'left'
+
+  // Zemin: sicak turuncu bir yuzey — kart uzerinde one ciksin
+  const bg = ctx.createLinearGradient(0, 0, W, logicalH)
+  bg.addColorStop(0, '#ffd9a8')
+  bg.addColorStop(1, '#ffb066')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, logicalH)
+
+  // Beyaz kart
+  fillRound(ctx, PAD, PAD, contentW, cardH, 34, '#ffffff')
+
+  // Fotograf (kare, kirpilmis)
+  const px = PAD + CARD_PAD
+  let y = PAD + CARD_PAD
+  ctx.save()
+  roundRectPath(ctx, px, y, PHOTO, PHOTO, 18)
+  ctx.clip()
+  ctx.fillStyle = '#eef2f6'
+  ctx.fillRect(px, y, PHOTO, PHOTO)
+  if (img) {
+    drawCover(ctx, img, px, y, PHOTO)
+  } else {
+    ctx.fillStyle = '#cbd5e1'
+    ctx.font = '110px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('🍽️', px + PHOTO / 2, y + PHOTO / 2 + 38)
+    ctx.textAlign = 'left'
+  }
+  // Gramaj + kalori seridi (fotografin altina yapisik, yari saydam koyu)
+  const grams = e.portionGrams && e.portionGrams > 0 ? `${e.portionGrams} g` : ''
+  const kcal = e.estimatedCalories > 0 ? `${e.estimatedCalories} kcal` : ''
+  const strip = [grams, kcal].filter(Boolean).join('  ·  ')
+  if (strip) {
+    ctx.fillStyle = 'rgba(15,23,42,0.62)'
+    ctx.fillRect(px, y + PHOTO - OVERLAY_H, PHOTO, OVERLAY_H)
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 46px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(`🔥  ${strip}`, px + PHOTO / 2, y + PHOTO - OVERLAY_H / 2 + 16)
+    ctx.textAlign = 'left'
+  }
+  if (e.decision === 'resisted') drawNotEatenStamp(ctx, px, y, PHOTO, PHOTO)
+  ctx.restore()
+  y += PHOTO + 26
+
+  // Yemek adi
+  ctx.fillStyle = '#1f2937'
+  ctx.font = 'bold 52px sans-serif'
+  ctx.textAlign = 'center'
+  for (const ln of nameLines) {
+    y += NAME_LH - 14
+    ctx.fillText(ln, W / 2, y)
+    y += 14
+  }
+  ctx.textAlign = 'left'
+  y += 22
+
+  // Makro sutunlari: her birinin solunda ince turuncu cizgi (referans tasarim)
+  const macros: { v: number; l: string; u: string }[] = [
+    { v: e.carb, l: 'Karbonhidrat', u: 'g' },
+    { v: e.fat, l: 'Yağ', u: 'g' },
+    { v: e.protein, l: 'Protein', u: 'g' },
+    { v: e.fiber ?? 0, l: 'Lif', u: 'g' }
+  ]
+  const colW = innerW / macros.length
+  macros.forEach((m, i) => {
+    const cx = px + i * colW
+    ctx.fillStyle = '#f59e0b'
+    ctx.fillRect(cx, y + 6, 5, 52)
+    ctx.fillStyle = '#1f2937'
+    ctx.font = 'bold 44px sans-serif'
+    ctx.fillText(`${Math.max(0, Math.round(m.v || 0))}${m.u}`, cx + 18, y + 48)
+    ctx.fillStyle = '#9ca3af'
+    ctx.font = '24px sans-serif'
+    // Etiket sutuna sigmazsa kisalt — "Karbonhi/drat" gibi kirilma olmasin
+    ctx.fillText(truncate(ctx, m.l, colW - 22), cx + 18, y + 88)
+  })
+  y += MACRO_H
+
+  // Ayirici + alt bilgi
+  ctx.strokeStyle = '#e5e7eb'
+  ctx.lineWidth = 2
+  ctx.setLineDash([6, 8])
+  ctx.beginPath()
+  ctx.moveTo(px, y - 22)
+  ctx.lineTo(px + innerW, y - 22)
+  ctx.stroke()
+  ctx.setLineDash([])
+
+  ctx.fillStyle = '#1f2937'
+  ctx.font = 'bold 32px sans-serif'
+  ctx.fillText('Diyet Koçu', px, y + 14)
+  ctx.fillStyle = '#9ca3af'
+  ctx.font = '22px sans-serif'
+  const dateNice = new Date(e.dateStr + 'T00:00:00').toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long'
+  })
+  const time = new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  ctx.fillText(`${dateNice} · ${time}${userName ? ` · ${userName}` : ''}`, px, y + 48)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Görsel oluşturulamadı'))), 'image/png')
+  })
+}
+
 // ---- AÇLIK TAKİBİ raporu: gün akışı (kronolojik) — sabahtan akşama saat sırasıyla ----
 // Açlık kayıtları ve öğünler TEK zaman çizelgesinde, BÜYÜK ve okunaklı satırlarla.
 // Diyetisyen "kahvaltıdan önce 8'di, sonra 3'e düştü, ara öğün şurada" akışını görür.

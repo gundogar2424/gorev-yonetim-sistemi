@@ -162,6 +162,7 @@ const OUTPUT_SCHEMA = {
     healthy: { type: 'boolean' },
     riskLevel: { type: 'string', enum: ['düşük', 'orta', 'yüksek'] },
     estimatedCalories: { type: 'integer' },
+    portionGrams: { type: 'integer' },
     protein: { type: 'integer' },
     carb: { type: 'integer' },
     fat: { type: 'integer' },
@@ -187,6 +188,7 @@ const OUTPUT_SCHEMA = {
     'healthy',
     'riskLevel',
     'estimatedCalories',
+    'portionGrams',
     'protein',
     'carb',
     'fat',
@@ -237,6 +239,8 @@ TÜRK DİYETİSYEN/EV ÖLÇÜLERİ: Kullanıcı miktarı şu ölçülerle verebi
 - 1 avuç ≈ 30 g, 1 dilim ekmek ≈ 25-30 g, 1 köfte kadar ≈ 30 g
 - "porsiyon", "adet", "kaşık" gibi ifadeleri makul gramaja çevir.
 Örn. "5 çorba kaşığı pilav" ≈ 100 g pişmiş pilav → ona göre kalori ver.
+
+PORSİYON AĞIRLIĞI (portionGrams): Tabaktaki/bardaktaki her şeyin TOPLAM ağırlığını GRAM cinsinden tam sayı olarak tahmin et. Kalori ve makrolar bu ağırlık için olsun; ikisi birbiriyle tutarlı olmalı. Görseldeki referanslara (tabak/bardak/kaşık boyu) ve yukarıdaki ev ölçülerine dayan. Sıvılar için 1 ml ≈ 1 g say (1 su bardağı süt ≈ 200 g). Birden fazla şey varsa hepsini topla (örn. 1 muz ~120 g + 1 bardak süt ~200 g + 1 avuç kuruyemiş ~25 g → 345). Görselde yemek yoksa 0.
 
 MAKROLAR: Sadece kaloriyi değil, tahmini MAKRO besinleri de ver — protein, carb (karbonhidrat), fat (yağ); hepsi GRAM cinsinden tam sayı. Porsiyon büyüklüğüne göre gerçekçi tahmin et. Görselde yemek yoksa hepsi 0.
 

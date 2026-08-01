@@ -8,7 +8,7 @@ import { buildHealthContext } from '../lib/context'
 import { computeStats, todayStr, dayAdherence } from '../streak'
 import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
-import { buildDailyImage, buildMealImage, buildDailyHealthImage, buildHungerImage } from '../lib/reportImage'
+import { buildDailyImage, buildMealImage, buildMealCardImage, buildDailyHealthImage, buildHungerImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
 import type { DietEntry, FoodAnalysis, MealType } from '../types'
 
@@ -178,6 +178,7 @@ export default function History() {
                     <p className="text-xs text-slate-500">
                       {e.mealType ? `${mealEmoji(e.mealType)} ${mealLabel(e.mealType)}${[e.alsoMeal, e.alsoMeal2].filter(Boolean).map((m) => ' + ' + mealLabel(m as MealType)).join('')}${e.alsoMeal ? ' 🔗' : ''} · ` : ''}
                       {new Date(e.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      {!e.pending && e.portionGrams ? ` · ${e.portionGrams} g` : ''}
                       {!e.pending ? ` · ~${e.estimatedCalories} kcal` : ''}
                     </p>
                     <div className="flex flex-wrap items-center gap-1 mt-1">
@@ -697,6 +698,27 @@ function MealShare({ e }: { e: DietEntry }) {
     }
   }
 
+  // OGUN KARTI — kullanicinin kendisi icin: fotograf + gramaj/kalori + makro.
+  // Diyetisyene gonderim sayilmadigi icin sharedAt'e DOKUNULMAZ.
+  async function sendCard() {
+    setBusy(true)
+    setMsg('Kart hazırlanıyor…')
+    try {
+      const settings = await readDietSettings()
+      const blob = await buildMealCardImage(e, settings.userName)
+      const res = await shareImageSmart(blob, `ogun-kart-${e.dateStr}-${e.id}.png`)
+      if (res === 'shared') flash('Paylaşım menüsü açıldı.')
+      else if (res === 'copied') flash('Kart indirildi.')
+      else if (res === 'cancelled') setMsg('')
+      else flash('Kart gönderilemedi.')
+    } catch {
+      flash('Kart oluşturulamadı.')
+    } finally {
+      setBusy(false)
+      setOpen(false)
+    }
+  }
+
   async function sendText() {
     setBusy(true)
     try {
@@ -737,6 +759,9 @@ function MealShare({ e }: { e: DietEntry }) {
           </button>
           <button onClick={sendText} disabled={busy} className="text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-full px-2.5 py-1 disabled:opacity-60">
             ✍️ Yazılı
+          </button>
+          <button onClick={sendCard} disabled={busy} className="text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800 rounded-full px-2.5 py-1 disabled:opacity-60">
+            🍽️ Kart
           </button>
           <button onClick={() => setOpen(false)} className="text-[11px] text-slate-400 px-1">
             kapat

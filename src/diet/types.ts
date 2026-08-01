@@ -14,6 +14,10 @@ export interface FoodAnalysis {
   healthy: boolean // Diyet acisindan saglikli mi?
   riskLevel: RiskLevel // Diyeti bozma riski
   estimatedCalories: number // Tahmini kalori
+  // Tabaktaki TOPLAM porsiyon agirligi (gram). Kalori ve makrolar bu agirlik
+  // icindir; kart gorselinde "270 g · 540 kcal" seklinde gosterilir.
+  // ESKI KAYITLARDA YOK — okurken yokluğu normal, gizlenir.
+  portionGrams?: number
   protein: number // Tahmini protein (gram); bilinmiyorsa 0
   carb: number // Tahmini karbonhidrat (gram); bilinmiyorsa 0
   fat: number // Tahmini yag (gram); bilinmiyorsa 0

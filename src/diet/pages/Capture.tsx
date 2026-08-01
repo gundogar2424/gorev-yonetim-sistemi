@@ -1348,7 +1348,18 @@ function Dashboard({ entries, goal }: { entries: DietEntry[]; goal?: number }) {
   const g = dailyTargets(target)
 
   const pages = [
-    <CaloriePage key="kcal" target={target} eaten={kcal} exercise={exBurned} />,
+    <CaloriePage
+      key="kcal"
+      target={target}
+      eaten={kcal}
+      exercise={exBurned}
+      macros={[
+        { label: 'Karbonhidrat', value: carb, goal: g.carb, color: '#63d4ce' },
+        { label: 'Protein', value: protein, goal: g.protein, color: '#ffc66d' },
+        { label: 'Yağ', value: fat, goal: g.fat, color: '#c38dd8' },
+        { label: 'Lif', value: fiber, goal: g.fiber, color: '#8bc34a' }
+      ]}
+    />,
     <MacroPage key="makro" carb={carb} fat={fat} protein={protein} g={g} />,
     <NutrientPage
       key="kalp"
@@ -1431,7 +1442,24 @@ function PageTitle({ children, note }: { children: ReactNode; note?: string }) {
 
 // 1. SAYFA — Kaloriler: solda halka (ortada KALAN), sagda Temel Hedef /
 // Yiyecek / Egzersiz.
-function CaloriePage({ target, eaten, exercise }: { target: number; eaten: number; exercise: number }) {
+interface MacroBar {
+  label: string
+  value: number
+  goal: number
+  color: string
+}
+
+function CaloriePage({
+  target,
+  eaten,
+  exercise,
+  macros
+}: {
+  target: number
+  eaten: number
+  exercise: number
+  macros: MacroBar[]
+}) {
   // MyFitnessPal: gunluk butce = hedef + egzersiz; kalan = butce − yiyecek
   const budget = target + exercise
   const remaining = budget - eaten
@@ -1490,6 +1518,32 @@ function CaloriePage({ target, eaten, exercise }: { target: number; eaten: numbe
           )}
         </div>
       </div>
+
+      {/* MAKRO SERIDI — karbonhidrat/protein/yag/lif tek bakista.
+          Bunlar zaten sonraki kartlarda vardi ama KAYDIRMADAN gorunmuyordu;
+          gunun en cok bakilan sayilari bu kartta dursun. */}
+      {budget > 0 && (
+        <div className="grid grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-[#262837]">
+          {macros.map((m) => {
+            const frac = m.goal > 0 ? Math.min(1, m.value / m.goal) : 0
+            const over = m.goal > 0 && m.value > m.goal
+            return (
+              <div key={m.label} className="min-w-0">
+                <p className="text-[12px] font-semibold text-slate-700 dark:text-[#e0e1e6] truncate">{m.label}</p>
+                <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-[#151724] mt-1.5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${frac * 100}%`, background: over ? '#f54b72' : m.color }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+                  {Math.round(m.value)}/{m.goal}g
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -2689,7 +2743,10 @@ function ResultCard({ analysis }: { analysis: FoodAnalysis }) {
           {analysis.dietScore > 0 && (
             <span className="text-xs font-bold bg-white/30 rounded-full px-2.5 py-1">⭐ Diyet puanı {analysis.dietScore}/10</span>
           )}
-          <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">🔥 ~{analysis.estimatedCalories} kcal</span>
+          <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">
+            🔥 ~{analysis.estimatedCalories} kcal
+            {analysis.portionGrams ? ` · ${analysis.portionGrams} g` : ''}
+          </span>
           {(analysis.protein ?? 0) + (analysis.carb ?? 0) + (analysis.fat ?? 0) > 0 && (
             <span className="text-xs font-bold bg-white/25 rounded-full px-2.5 py-1">
               P {analysis.protein}g · K {analysis.carb}g · Y {analysis.fat}g
