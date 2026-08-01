@@ -12,6 +12,7 @@ import {
   sleepPermGranted
 } from '../lib/health'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
+import { movementKcal, plausibleDistanceKm } from '../lib/movement'
 
 export default function ExercisePage() {
   const exercises = useLiveQuery(() => listExercises(), [], [])
@@ -233,11 +234,14 @@ function HealthConnectCard({ day }: { day: string }) {
       await saveHealthDay(day, data)
 
       const parts: string[] = []
+      const actRow = { count: data.steps, activeKcal: data.activeKcal, distanceKm: data.distanceKm }
       if (data.steps) parts.push(`${data.steps.toLocaleString('tr-TR')} adım`)
-      if (data.distanceKm) parts.push(`${data.distanceKm} km`)
-      // Hareketten yakilan (aktif) kalori. totalKcal bazal metabolizmayi da
-      // icerdiginden burada gosterilmez — "2.131 kcal yaktin" gibi yaniltici olur.
-      if (data.activeKcal) parts.push(`~${data.activeKcal} kcal hareket`)
+      const dk = plausibleDistanceKm(actRow)
+      if (dk) parts.push(`${dk} km`)
+      // Hareketten yakilan kalori. totalKcal bazal metabolizmayi da icerdiginden
+      // gosterilmez — "4581 kcal yaktin" gibi yaniltici olur (bkz. lib/movement.ts).
+      const mk = movementKcal(actRow)
+      if (mk) parts.push(`~${mk} kcal hareket`)
       if (data.workouts.length) parts.push(`${data.workouts.length} antrenman`)
       if (data.sleepHours) parts.push(`${data.sleepHours} sa uyku`)
       setMsg(parts.length ? `Alındı: ${parts.join(' · ')}.` : 'Bu gün için Health Connect’te veri bulunamadı.')

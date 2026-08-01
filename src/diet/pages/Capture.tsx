@@ -15,6 +15,7 @@ import { isBeverage } from '../lib/food'
 import { decodeBarcodeFromImage, searchProductsByName, type ProductInfo } from '../lib/barcode'
 import { buildHealthContext } from '../lib/context'
 import { describeError } from '../lib/errtext'
+import { movementKcal } from '../lib/movement'
 import { autoSyncHealthToday } from '../lib/health'
 import { fetchMenuContent } from '../lib/webmenu'
 import { nativeScan } from '../lib/barcode'
@@ -1300,17 +1301,6 @@ function JourneyLine({ entries, measurements }: { entries: DietEntry[]; measurem
       <span className="text-[12px] text-slate-400 flex-shrink-0">{nice}</span>
     </div>
   )
-}
-
-// GÜNLÜK HAREKET KALORİSİ — bütçeye eklenen tek sayı.
-// Sadece TEMİZ ölçüyü kullanir: Health Connect'in "aktif kalori"si (bazal
-// metabolizma HARİÇ). Eklentinin antrenman basina verdigi kalori bazali da
-// icerdiginden ona hic bakmiyoruz. Aktif kalori yoksa adimdan kaba tahmin.
-function movementKcal(row: { activeKcal?: number; count?: number } | undefined): number {
-  const active = row?.activeKcal || 0
-  if (active > 0) return active
-  const steps = row?.count || 0
-  return steps > 0 ? Math.round(steps * 0.04) : 0
 }
 
 // GUNLUK HEDEFLER — kalori hedefinden turetilir; oranlar MyFitnessPal ile

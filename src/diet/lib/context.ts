@@ -6,6 +6,7 @@
 import { dietDb } from '../db'
 import { todayStr, dayAdherence } from '../streak'
 import { mealLabel } from './meals'
+import { movementKcal, plausibleDistanceKm } from './movement'
 import type { DietEntry, DietSettings, Measurement } from '../types'
 
 const fmt = (n: number) => Math.round(n * 10) / 10
@@ -303,9 +304,12 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
       const p: string[] = []
       if (st.count) p.push(`${st.count} adım`)
       if (st.activeMin) p.push(`${st.activeMin} dk etkin`)
-      if (st.activeKcal) p.push(`${st.activeKcal} kcal aktivite`)
-      if (st.burnedKcal) p.push(`${st.burnedKcal} kcal toplam yakım`)
-      if (st.distanceKm) p.push(`${st.distanceKm} km`)
+      // Bazal metabolizmayi iceren "toplam yakim" KOCA VERILMEZ; mukerrer
+      // kayitlar yuzunden sisiyor ve kalori butcesini ucuruyor (lib/movement.ts).
+      const mk = movementKcal(st)
+      if (mk) p.push(`~${mk} kcal hareket`)
+      const dk = plausibleDistanceKm(st)
+      if (dk) p.push(`${dk} km`)
       if (p.length) add(`Bugünkü aktivite (saatten): ${p.join(' · ')}.`, ['shopping', 'quick'])
     }
     const last7 = stepsAll.filter((s) => s.dateStr >= since7)
@@ -315,10 +319,10 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
         return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0
       }
       const aSteps = avg((s) => s.count)
-      const aBurn = avg((s) => s.burnedKcal)
+      const aBurn = avg((s) => movementKcal(s))
       if (aSteps || aBurn) {
         add(
-          `Son 7 gün aktivite ort.: ${aSteps ? `${aSteps} adım/gün` : ''}${aSteps && aBurn ? ', ' : ''}${aBurn ? `~${aBurn} kcal/gün yakım` : ''}. Kalori dengesi ve hareket düzeyini buna göre değerlendir.`
+          `Son 7 gün aktivite ort.: ${aSteps ? `${aSteps} adım/gün` : ''}${aSteps && aBurn ? ', ' : ''}${aBurn ? `~${aBurn} kcal/gün hareket` : ''}. Kalori dengesi ve hareket düzeyini buna göre değerlendir.`
         , ['food', 'shopping', 'quick'])
       }
     }

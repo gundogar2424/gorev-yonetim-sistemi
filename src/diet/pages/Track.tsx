@@ -19,6 +19,7 @@ import {
 import { analyzeMealSugar, quickMealSugarNote } from '../ai'
 import { buildHealthContext } from '../lib/context'
 import { todayStr } from '../streak'
+import { movementKcal, plausibleDistanceKm } from '../lib/movement'
 import { buildMeasurementsReport } from '../lib/report'
 import { buildMeasurementsImage, buildLatestMeasurementImage, buildVitalReportImage, buildLastDayVitalImage, buildVitalGraphImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
@@ -173,9 +174,8 @@ function ActivityPanel() {
             Bugün:
             {row?.count ? ` ${row.count.toLocaleString('tr-TR')} adım` : ''}
             {row?.activeMin ? ` · ${row.activeMin} dk etkin` : ''}
-            {row?.activeKcal ? ` · ${row.activeKcal} kcal aktivite` : ''}
-            {row?.burnedKcal ? ` · ${row.burnedKcal} kcal toplam` : ''}
-            {row?.distanceKm ? ` · ${row.distanceKm} km` : ''}
+            {movementKcal(row) ? ` · ~${movementKcal(row)} kcal hareket` : ''}
+            {plausibleDistanceKm(row) ? ` · ${plausibleDistanceKm(row)} km` : ''}
           </p>
         ) : (
           <p className="text-xs text-slate-500">

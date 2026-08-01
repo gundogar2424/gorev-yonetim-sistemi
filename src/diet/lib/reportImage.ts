@@ -5,6 +5,7 @@ import { dietDb } from '../db'
 import { dayAdherence } from '../streak'
 import { mealLabel, mealEmoji, MEAL_OPTIONS } from './meals'
 import { groupHungerByMeal, hungerAvg } from './report'
+import { movementKcal, plausibleDistanceKm } from './movement'
 import type { DietEntry, Vital } from '../types'
 
 const W = 820
@@ -492,9 +493,11 @@ export async function buildDailyHealthImage(dateStr: string, userName?: string):
   const actParts: string[] = []
   if (actRow?.count) actParts.push(`👟 ${actRow.count.toLocaleString('tr-TR')} adım`)
   if (actRow?.activeMin) actParts.push(`⏱️ ${actRow.activeMin} dk etkin`)
-  if (actRow?.activeKcal) actParts.push(`🔥 ${actRow.activeKcal} kcal aktivite`)
-  if (actRow?.burnedKcal) actParts.push(`🔋 ${actRow.burnedKcal} kcal toplam`)
-  if (actRow?.distanceKm) actParts.push(`📍 ${actRow.distanceKm} km`)
+  // Bazal metabolizmayi iceren "toplam yakim" GOSTERILMEZ; bkz. lib/movement.ts.
+  const moveKcal = movementKcal(actRow)
+  if (moveKcal) actParts.push(`🔥 ~${moveKcal} kcal hareket`)
+  const distKm = plausibleDistanceKm(actRow)
+  if (distKm) actParts.push(`📍 ${distKm} km`)
   const waterMl = waterRow ? (waterRow.ml != null ? waterRow.ml : (waterRow.glasses || 0) * 200) : 0
   vitals.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
   exercises.sort((a, b) => a.createdAt - b.createdAt)
