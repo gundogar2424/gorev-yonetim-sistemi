@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay, getSleepRow, setSleepDay, clearSleepDay, listSleep } from '../db'
-import { analyzeFood, analyzeFoodByText, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
+import { analyzeFood, analyzeFoodByText, recheckCompliance, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { scheduleSugarReminder, applyNotifications, activeMealTypes, mergeReminders } from '../lib/notify'
@@ -270,6 +270,20 @@ export default function Capture() {
   const mealInfoStr = () =>
     [mealType, alsoMeal, alsoMeal2].filter(Boolean).map((m) => mealLabel(m as MealType)).join(' + ') || undefined
 
+  // ANALİZ SIRASINDA geçerli olan öğün bilgisi. Kullanıcı sonuç ekranında
+  // öğünü değiştirir/birleştirirse bu, o anki seçimden AYRILIR ve kayıttan
+  // önce uyum yeniden hesaplanır (yoksa uyum yanlış öğüne göre kalırdı).
+  const [analyzedMealInfo, setAnalyzedMealInfo] = useState<string | undefined>(undefined)
+  // 'analyzing' ekranindaki metin; yeniden degerlendirmede farkli yazar.
+  const [analyzingLabel, setAnalyzingLabel] = useState('')
+
+  // Analize gonderilen ogun bilgisini hem dondur hem hatirla.
+  const rememberMealInfo = () => {
+    const info = mealInfoStr()
+    setAnalyzedMealInfo(info)
+    return info
+  }
+
   // YAZIDAN hesapla: fotoğrafı GÖNDERMEDEN, kullanıcının yazdığı açıklamadan
   // değerlendir. Fotoğraf kayıtta durmaya devam eder (diyetisyene gider).
   async function analyzeFromText() {
@@ -294,7 +308,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        mealInfo: mealInfoStr(),
+        mealInfo: rememberMealInfo(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
         health
@@ -402,7 +416,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        mealInfo: mealInfoStr(),
+        mealInfo: rememberMealInfo(),
         dietitianNotes: settings?.dietitianNotes,
         note: noteArg || undefined,
         body: bodyContext(settings, measurements),
@@ -434,7 +448,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        mealInfo: mealInfoStr(),
+        mealInfo: rememberMealInfo(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
         health: await buildHealthContext(settings, 'food')
@@ -469,7 +483,7 @@ export default function Capture() {
         userName: settings?.userName,
         goal: settings?.goal,
         dietPlan: settings?.dietPlan,
-        mealInfo: mealInfoStr(),
+        mealInfo: rememberMealInfo(),
         dietitianNotes: settings?.dietitianNotes,
         body: bodyContext(settings, measurements),
         health: await buildHealthContext(settings, 'food')
@@ -484,6 +498,40 @@ export default function Capture() {
 
   async function decide(decision: Decision) {
     if (!analysis) return
+
+    // ÖĞÜN SONRADAN DEĞİŞTİYSE UYUMU YENİDEN HESAPLA.
+    // Sonuç ekranında öğün birleştirilirse (kahvaltı+öğle+ikindi) analiz
+    // sırasındaki uyum yanlış öğüne göre hesaplanmış olur; üç öğünlük yemek
+    // tek öğünle kıyaslandığı için uyum dibe vurur ve günün başarı yüzdesini
+    // yanlış aşağı çeker. Fotoğraf gönderilmez, yalnızca ad+kalori+makro gider.
+    let finalAnalysis = analysis
+    const info = mealInfoStr()
+    const plan = settings?.dietPlan?.trim()
+    if (decision === 'ate' && plan && info && info !== analyzedMealInfo && settings?.apiKey) {
+      setAnalyzingLabel('Öğün birleşimine göre yeniden değerlendiriliyor…')
+      setPhase('analyzing')
+      try {
+        const rc = await recheckCompliance({
+          apiKey: settings.apiKey,
+          model: settings.model,
+          dietPlan: plan,
+          mealInfo: info,
+          foodName: analysis.foodName,
+          estimatedCalories: analysis.estimatedCalories,
+          protein: analysis.protein,
+          carb: analysis.carb,
+          fat: analysis.fat,
+          portionGrams: analysis.portionGrams
+        })
+        finalAnalysis = { ...analysis, ...rc }
+        setAnalysis(finalAnalysis)
+      } catch {
+        // Yeniden hesaplanamadiysa kaydi engelleme; eski degerlerle devam et.
+      } finally {
+        setAnalyzingLabel('')
+      }
+    }
+
     // Gecmis tarih/saat secildiyse onu kullan; yoksa su an
     let createdAt = Date.now()
     let dateStr = todayStr()
@@ -495,7 +543,7 @@ export default function Capture() {
       }
     }
     await dietDb.entries.add({
-      ...analysis,
+      ...finalAnalysis,
       photo,
       decision,
       mealType,
@@ -789,6 +837,18 @@ export default function Capture() {
           <div className="card p-4 space-y-3">
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-60 object-cover" />}
 
+            {/* ÖĞÜN SEÇİMİ HESAPLAMADAN ÖNCE. Birleşik öğünde (kahvaltı+öğle+
+                ikindi) uyumun listedeki o öğünlerin TOPLAMINA göre hesaplanması
+                için modelin bunu önceden bilmesi gerekiyor. */}
+            <MealPicker
+              mealType={mealType}
+              alsoMeal={alsoMeal}
+              alsoMeal2={alsoMeal2}
+              setMealType={setMealType}
+              setAlsoMeal={setAlsoMeal}
+              setAlsoMeal2={setAlsoMeal2}
+            />
+
             {/* EN UCUZ + EN DOĞRU: ne yediğini yaz, metinden hesapla */}
             <label className="text-xs font-semibold text-slate-600">Ne yedin? (yazınca hem ucuz hem doğru olur)</label>
             <textarea
@@ -865,7 +925,7 @@ export default function Capture() {
             {photo && <img src={photo} alt="Yemek" className="w-full rounded-xl max-h-72 object-cover" />}
             <div className="flex items-center justify-center gap-2 text-emerald-700 py-2">
               <span className="animate-spin h-5 w-5 border-2 border-emerald-600 border-t-transparent rounded-full" />
-              <span className="font-semibold">Yemeğin inceleniyor…</span>
+              <span className="font-semibold">{analyzingLabel || 'Yemeğin inceleniyor…'}</span>
             </div>
           </div>
         )}
@@ -915,101 +975,14 @@ export default function Capture() {
               </div>
             )}
 
-            {/* Hangi ogun? — saate gore varsayilan secili gelir */}
-            <div className="card p-3 space-y-2">
-              <p className="section-title">Hangi öğün?</p>
-              <div className="flex flex-wrap gap-1.5">
-                {MEAL_OPTIONS.map((m) => (
-                  <button
-                    key={m.value}
-                    onClick={() => {
-                      setMealType(m.value)
-                      if (alsoMeal === m.value) setAlsoMeal(undefined)
-                      if (alsoMeal2 === m.value) setAlsoMeal2(undefined)
-                    }}
-                    className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
-                      mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {m.emoji} {m.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* BIRLESIK OGUN: gec kalkinca 2-3 ogunu birlestir (or. kahvalti+ogle+ikindi) */}
-              {!alsoMeal ? (
-                <button onClick={() => setAlsoMeal(mealType === 'kahvalti' ? 'ogle' : 'kahvalti')} className="text-xs text-emerald-700 underline">
-                  ＋ Bu öğünü başka bir öğünle birleştir (geç kalktım vb.)
-                </button>
-              ) : (
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-bold text-emerald-700">Birleşik öğün — ikinci öğün:</p>
-                    <button
-                      onClick={() => {
-                        setAlsoMeal(undefined)
-                        setAlsoMeal2(undefined)
-                      }}
-                      className="text-[11px] text-slate-400 underline"
-                    >
-                      birleştirmeyi kaldır
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {MEAL_OPTIONS.filter((m) => m.value !== mealType && m.value !== alsoMeal2).map((m) => (
-                      <button
-                        key={m.value}
-                        onClick={() => setAlsoMeal(m.value)}
-                        className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
-                          alsoMeal === m.value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {m.emoji} {m.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* ÜÇÜNCÜ öğün (opsiyonel) */}
-                  {!alsoMeal2 ? (
-                    <button
-                      onClick={() => {
-                        const free = MEAL_OPTIONS.find((m) => m.value !== mealType && m.value !== alsoMeal)
-                        if (free) setAlsoMeal2(free.value)
-                      }}
-                      className="text-[11px] text-emerald-700 underline"
-                    >
-                      ＋ Üçüncü öğünü de ekle
-                    </button>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[11px] font-bold text-emerald-700">Üçüncü öğün:</p>
-                        <button onClick={() => setAlsoMeal2(undefined)} className="text-[11px] text-slate-400 underline">
-                          üçüncüyü kaldır
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {MEAL_OPTIONS.filter((m) => m.value !== mealType && m.value !== alsoMeal).map((m) => (
-                          <button
-                            key={m.value}
-                            onClick={() => setAlsoMeal2(m.value)}
-                            className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
-                              alsoMeal2 === m.value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {m.emoji} {m.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  <p className="text-[10px] text-slate-400">
-                    Bu kayıt “{mealLabel(mealType)} + {mealLabel(alsoMeal)}{alsoMeal2 ? ` + ${mealLabel(alsoMeal2)}` : ''}” olarak sayılır; koç bu öğünleri tek öğün gibi değerlendirir, “öğün atladın” demez.
-                  </p>
-                </div>
-              )}
-            </div>
+            <MealPicker
+              mealType={mealType}
+              alsoMeal={alsoMeal}
+              alsoMeal2={alsoMeal2}
+              setMealType={setMealType}
+              setAlsoMeal={setAlsoMeal}
+              setAlsoMeal2={setAlsoMeal2}
+            />
 
             {/* Ne zaman yedim? — varsayilan "şimdi"; gecmis ogunu de girebilirsin */}
             <div className="card p-3 space-y-2">
@@ -1299,6 +1272,127 @@ function JourneyLine({ entries, measurements }: { entries: DietEntry[]; measurem
         <span className="text-[13px] text-slate-500"> · diyetteki toplam günün</span>
       </div>
       <span className="text-[12px] text-slate-400 flex-shrink-0">{nice}</span>
+    </div>
+  )
+}
+
+// HANGI OGUN? — ogun secimi + birlesik ogun (kahvalti+ogle+ikindi gibi).
+//
+// DIKKAT: Bu secim ANALIZDEN ONCE yapilmali. Eskiden yalnizca sonuc ekraninda
+// vardi; model birlesik ogunu bilmeden calisiyor, uc ogunluk yemegi listedeki
+// TEK ogunle kiyaslayip "cok fazla" sayiyordu. Uyum dibe vuruyor, gunun basari
+// yuzdesi de ondan hesaplandigi icin %10 gibi degerler cikiyordu. Bu yuzden
+// bilesen hem "ne yedin?" ekraninda hem sonuc ekraninda gosteriliyor.
+function MealPicker({
+  mealType,
+  alsoMeal,
+  alsoMeal2,
+  setMealType,
+  setAlsoMeal,
+  setAlsoMeal2
+}: {
+  mealType: MealType
+  alsoMeal?: MealType
+  alsoMeal2?: MealType
+  setMealType: (m: MealType) => void
+  setAlsoMeal: (m: MealType | undefined) => void
+  setAlsoMeal2: (m: MealType | undefined) => void
+}) {
+  // Saate gore varsayilan secili gelir (guessMeal).
+  return (
+    <div className="card p-3 space-y-2">
+      <p className="section-title">Hangi öğün?</p>
+      <div className="flex flex-wrap gap-1.5">
+        {MEAL_OPTIONS.map((m) => (
+          <button
+            key={m.value}
+            onClick={() => {
+              setMealType(m.value)
+              if (alsoMeal === m.value) setAlsoMeal(undefined)
+              if (alsoMeal2 === m.value) setAlsoMeal2(undefined)
+            }}
+            className={`text-sm font-semibold rounded-full px-3 py-1.5 ${
+              mealType === m.value ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {m.emoji} {m.label}
+          </button>
+        ))}
+      </div>
+
+      {/* BIRLESIK OGUN: gec kalkinca 2-3 ogunu birlestir (or. kahvalti+ogle+ikindi) */}
+      {!alsoMeal ? (
+        <button onClick={() => setAlsoMeal(mealType === 'kahvalti' ? 'ogle' : 'kahvalti')} className="text-xs text-emerald-700 underline">
+          ＋ Bu öğünü başka bir öğünle birleştir (geç kalktım vb.)
+        </button>
+      ) : (
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold text-emerald-700">Birleşik öğün — ikinci öğün:</p>
+            <button
+              onClick={() => {
+                setAlsoMeal(undefined)
+                setAlsoMeal2(undefined)
+              }}
+              className="text-[11px] text-slate-400 underline"
+            >
+              birleştirmeyi kaldır
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {MEAL_OPTIONS.filter((m) => m.value !== mealType && m.value !== alsoMeal2).map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setAlsoMeal(m.value)}
+                className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+                  alsoMeal === m.value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {m.emoji} {m.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ÜÇÜNCÜ öğün (opsiyonel) */}
+          {!alsoMeal2 ? (
+            <button
+              onClick={() => {
+                const free = MEAL_OPTIONS.find((m) => m.value !== mealType && m.value !== alsoMeal)
+                if (free) setAlsoMeal2(free.value)
+              }}
+              className="text-[11px] text-emerald-700 underline"
+            >
+              ＋ Üçüncü öğünü de ekle
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-emerald-700">Üçüncü öğün:</p>
+                <button onClick={() => setAlsoMeal2(undefined)} className="text-[11px] text-slate-400 underline">
+                  üçüncüyü kaldır
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {MEAL_OPTIONS.filter((m) => m.value !== mealType && m.value !== alsoMeal).map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => setAlsoMeal2(m.value)}
+                    className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+                      alsoMeal2 === m.value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {m.emoji} {m.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <p className="text-[10px] text-slate-400">
+            Bu kayıt “{mealLabel(mealType)} + {mealLabel(alsoMeal)}{alsoMeal2 ? ` + ${mealLabel(alsoMeal2)}` : ''}” olarak sayılır; koç bu öğünleri tek öğün gibi değerlendirir, “öğün atladın” demez.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

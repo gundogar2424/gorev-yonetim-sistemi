@@ -612,6 +612,84 @@ export async function analyzeFoodByText(opts: {
   }
 }
 
+// UYUMU YENIDEN HESAPLA — ogun secimi analizden SONRA degistiginde.
+//
+// Neden gerekli: "Hangi ogun?" secimi (ve birlesik ogun) sonuc ekranindaydi,
+// yani analiz ZATEN calistiktan sonra yapiliyordu. Kullanici kahvalti+ogle+
+// ikindi'yi birlestirdiginde model bunu bilmiyordu; tek bir ogune gore
+// kiyasliyor, uc ogunluk yemegi "cok fazla" sayip uyumu dibe cekiyordu.
+// Gunun basari yuzdesi de bu uyumdan hesaplandigi icin %10 gibi degerler
+// cikiyordu. Fotograf GONDERILMEZ; sadece ad + kalori + makro gider (ucuz).
+const COMPLIANCE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    compliancePercent: { type: 'integer' },
+    complianceNote: { type: 'string' },
+    macroFix: { type: 'string' },
+    dietScore: { type: 'integer' },
+    scoreReason: { type: 'string' }
+  },
+  required: ['compliancePercent', 'complianceNote', 'macroFix', 'dietScore', 'scoreReason']
+} as const
+
+export interface ComplianceRecheck {
+  compliancePercent: number
+  complianceNote: string
+  macroFix: string
+  dietScore: number
+  scoreReason: string
+}
+
+export async function recheckCompliance(opts: {
+  apiKey: string
+  model?: string
+  dietPlan: string
+  mealInfo: string
+  foodName: string
+  estimatedCalories: number
+  protein: number
+  carb: number
+  fat: number
+  portionGrams?: number
+}): Promise<ComplianceRecheck> {
+  const { apiKey, model = DEFAULT_MODEL, dietPlan, mealInfo, foodName, estimatedCalories, protein, carb, fat, portionGrams } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const client = await createClient(apiKey)
+  const gram = portionGrams && portionGrams > 0 ? `, ~${portionGrams} g` : ''
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 900,
+      system: `Sen bir diyetisyensin. Bir öğünün diyet listesine uyumunu YALNIZCA KALORİ ve MAKRO (protein/karbonhidrat/yağ) üzerinden değerlendirirsin.
+
+TEMEL KURAL: Yemeğin ADI listedekiyle aynı mı diye BAKMA. Listede "ızgara tavuk + salata" varken kişi "ızgara köfte + salata" yediyse, kalori ve makro yakınsa uyum YÜKSEKTİR — isim farkı ceza sebebi DEĞİLDİR.
+
+BİRLEŞİK ÖĞÜN (çok önemli): Öğün bilgisi birden fazla öğün içeriyorsa (örn. "Kahvaltı + Öğle + İkindi"), kişi bunları TEK SEFERDE yemiştir. Karşılaştırmayı listedeki O ÖĞÜNLERİN TOPLAMINA göre yap; tek bir öğüne göre DEĞİL. Üç öğünlük yemeği tek öğünle kıyaslayıp "çok fazla" deme. "Öğün atladın / eksik" diye CEZALANDIRMA — birleşen öğünlerin hepsi bu kayıtla karşılanmıştır.
+
+compliancePercent = 0-100: 100 = ilgili öğün(ler)in TOPLAM kalori ve makrosuna çok yakın; 50 = kısmen sapmış; 0 = tamamen aykırı. Puanı sadece kalori/makro BELİRGİN saparsa kır.
+complianceNote = tek kısa cümle, sayısal kıyas ver (örn. "Listede kahvaltı+öğle+ikindi toplamı ~950 kcal / ~55 g protein; bu öğün ~900 kcal / ~50 g protein — uyumlu").
+macroFix = uyumsuzluk varsa somut düzeltme (1-2 cümle), yoksa "".
+dietScore = 1-10 diyete uygunluk. scoreReason = puanı nereden kırdığın, tamsa "".`,
+      messages: [
+        {
+          role: 'user',
+          content: `DİYET LİSTEM:\n${dietPlan.trim()}\n\nBU KAYIT ŞU ÖĞÜN(LER)İ KARŞILIYOR: ${mealInfo}\n\nYEDİĞİM: ${foodName}${gram} — ~${estimatedCalories} kcal, ${protein} g protein, ${carb} g karbonhidrat, ${fat} g yağ.\n\nUyumu yukarıdaki kurallara göre hesapla.`
+        }
+      ],
+      output_config: { format: { type: 'json_schema', schema: COMPLIANCE_SCHEMA } }
+    })
+    if (response.stop_reason === 'max_tokens') throw new Error('Yanıt yarıda kesildi. Lütfen tekrar deneyin.')
+    const rawText = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!rawText) throw new Error('Modelden boş yanıt geldi.')
+    const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    return JSON.parse(cleaned) as ComplianceRecheck
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Diyet listesini OGUNLERE ayir (bir kez): her ogunde ne yenecegi kisa/okunakli.
 // Ana ekranda "Sıradaki öğün"de gosterilir. Liste degisince yeniden calisir.
 const DIET_SPLIT_SCHEMA = {
