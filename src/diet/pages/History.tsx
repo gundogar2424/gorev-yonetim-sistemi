@@ -10,7 +10,7 @@ import { mealEmoji, mealLabel, MEAL_OPTIONS } from '../lib/meals'
 import { buildDailyReport, buildMealText, whatsappLink } from '../lib/report'
 import { buildDailyImage, buildMealImage, buildMealCardImage, buildDailyHealthImage, buildHungerImage } from '../lib/reportImage'
 import { shareTextSmart, shareImageSmart } from '../lib/share'
-import type { DietEntry, FoodAnalysis, MealType } from '../types'
+import type { DietEntry, FoodAnalysis, MealType, Exercise, Vital, MedLog } from '../types'
 
 const DECISION_LABEL: Record<string, { text: string; cls: string }> = {
   resisted: { text: '💪 Vazgeçti', cls: 'bg-emerald-100 text-emerald-800' },
@@ -22,6 +22,10 @@ export default function History() {
   // En yeni en ustte
   const entries = useLiveQuery(() => dietDb.entries.orderBy('createdAt').reverse().toArray(), [], [])
   const exercises = useLiveQuery(() => listExercises(), [], [])
+  // GÜNÜN TAMAMI: öğünlerin yanında spor, şeker/tansiyon ölçümü ve
+  // ilaç/vitamin kayıtları da aynı zaman çizelgesinde görünsün.
+  const vitals = useLiveQuery(() => dietDb.vitals.toArray(), [], [])
+  const medlogs = useLiveQuery(() => dietDb.medlogs.toArray(), [], [])
   const stats = computeStats(entries ?? [], exercises ?? [])
   const [reportDate, setReportDate] = useState(todayStr())
   const [msg, setMsg] = useState('')
@@ -98,8 +102,14 @@ export default function History() {
     setTimeout(() => setMsg(''), 4000)
   }
 
-  // Tarihe gore grupla
+  // Tarihe gore grupla. Yalnizca ogunler degil; spor/olcum/ilac kaydi olan
+  // gunler de listelensin (o gun yemek girilmemis olabilir).
   const groups = groupByDate(entries ?? [])
+  const dayEvents = buildDayEvents(exercises ?? [], vitals ?? [], medlogs ?? [])
+  const allDates = Array.from(new Set([...groups.map(([d]) => d), ...Object.keys(dayEvents)])).sort((a, b) =>
+    a < b ? 1 : a > b ? -1 : 0
+  )
+  const mealsByDate = new Map(groups)
 
   return (
     <div>
@@ -156,13 +166,22 @@ export default function History() {
           </div>
         )}
 
-        {groups.map(([date, items]) => (
+        {allDates.map((date) => {
+          const items = mealsByDate.get(date) ?? []
+          // Öğünler ve diğer olaylar TEK listede, saate göre (en yenisi üstte).
+          const merged: { t: number; meal?: DietEntry; ev?: DayEvent }[] = [
+            ...items.map((e) => ({ t: e.createdAt, meal: e })),
+            ...(dayEvents[date] ?? []).map((ev) => ({ t: ev.t, ev }))
+          ].sort((a, b) => b.t - a.t)
+          return (
           <section key={date} className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <h3 className="section-title">{formatDate(date)}</h3>
               <DayScoreBadge entries={items} date={date} />
             </div>
-            {items.map((e) => {
+            {merged.map((row, idx) => {
+              if (row.ev) return <EventRow key={`ev-${idx}`} ev={row.ev} />
+              const e = row.meal!
               const d = DECISION_LABEL[e.decision] ?? DECISION_LABEL.none
               return (
                 <div key={e.id} className={`card p-3 flex gap-3 items-center ${e.pending ? 'ring-2 ring-amber-300' : ''}`}>
@@ -208,8 +227,98 @@ export default function History() {
               )
             })}
           </section>
-        ))}
+          )
+        })}
       </div>
+    </div>
+  )
+}
+
+// ---- GÜNÜN DİĞER OLAYLARI (spor / şeker-tansiyon / ilaç-vitamin) ----------
+// Geçmişte yalnızca öğünler vardı; "o gün ne yaptım" sorusunun cevabı
+// dağınıktı. Bu olaylar öğünlerle AYNI zaman çizelgesine giriyor.
+interface DayEvent {
+  t: number // siralama icin zaman damgasi
+  icon: string
+  title: string
+  detail?: string
+  cls: string // sol kenar rengi
+}
+
+function buildDayEvents(
+  exercises: Exercise[],
+  vitals: Vital[],
+  medlogs: MedLog[]
+): Record<string, DayEvent[]> {
+  const out: Record<string, DayEvent[]> = {}
+  const push = (dateStr: string, ev: DayEvent) => {
+    ;(out[dateStr] ||= []).push(ev)
+  }
+
+  for (const x of exercises) {
+    const parts = [
+      x.minutes ? `${x.minutes} dk` : '',
+      x.distanceKm ? `${x.distanceKm} km` : '',
+      x.steps ? `${x.steps.toLocaleString('tr-TR')} adım` : '',
+      x.avgHr ? `${x.avgHr} bpm` : ''
+    ].filter(Boolean)
+    push(x.dateStr, {
+      t: x.createdAt,
+      icon: '💪',
+      title: x.text,
+      detail: parts.join(' · ') || undefined,
+      cls: 'border-l-sky-400'
+    })
+  }
+
+  for (const v of vitals) {
+    // Olcumun saati `time` alaninda; siralama icin o saati gunun tarihiyle
+    // birlestiriyoruz (createdAt kayit anini gosterir, olcum anini degil).
+    const t = Date.parse(`${v.dateStr}T${v.time || '12:00'}:00`)
+    if (v.kind === 'seker') {
+      push(v.dateStr, {
+        t: Number.isFinite(t) ? t : v.createdAt,
+        icon: '🩸',
+        title: `Şeker ${v.sugar ?? '—'} mg/dL`,
+        detail: v.sugarContext || undefined,
+        cls: 'border-l-rose-400'
+      })
+    } else {
+      push(v.dateStr, {
+        t: Number.isFinite(t) ? t : v.createdAt,
+        icon: '🫀',
+        title: `Tansiyon ${v.systolic ?? '—'}/${v.diastolic ?? '—'}`,
+        detail: v.pulse ? `nabız ${v.pulse}` : undefined,
+        cls: 'border-l-violet-400'
+      })
+    }
+  }
+
+  for (const m of medlogs) {
+    const t = m.time ? Date.parse(`${m.dateStr}T${m.time}:00`) : NaN
+    const skipped = m.status === 'skipped'
+    push(m.dateStr, {
+      t: Number.isFinite(t) ? t : m.createdAt,
+      icon: m.kind === 'vitamin' ? '🌿' : '💊',
+      title: m.name,
+      detail: skipped ? 'atlandı' : 'alındı',
+      cls: skipped ? 'border-l-slate-300' : 'border-l-emerald-400'
+    })
+  }
+
+  return out
+}
+
+function EventRow({ ev }: { ev: DayEvent }) {
+  const time = new Date(ev.t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  return (
+    <div className={`card px-3 py-2 flex items-center gap-2.5 border-l-4 ${ev.cls}`}>
+      <span className="text-lg flex-shrink-0">{ev.icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-semibold text-slate-800 dark:text-[#e0e1e6] truncate">{ev.title}</p>
+        {ev.detail && <p className="text-[12px] text-slate-500 truncate">{ev.detail}</p>}
+      </div>
+      <span className="text-[12px] text-slate-400 tabular-nums flex-shrink-0">{time}</span>
     </div>
   )
 }
