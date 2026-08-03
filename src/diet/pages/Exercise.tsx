@@ -263,6 +263,41 @@ function HealthConnectCard({ day }: { day: string }) {
     }
   }
 
+  // SON 7 GUNU YENIDEN CEK.
+  //
+  // Neden gerekli: uyku hesabindaki hata (eklenti 48 saatlik pencere
+  // sorguluyordu, iki gece toplaniyordu) duzeltildi ama VERITABANINDAKI eski
+  // satirlar yanlis kaldi; senkron yalnizca secilen gunu tazeliyor. Kullanici
+  // 7 gunu tek tek secip cekmek zorunda kalmasin.
+  // Elle girilmis uyku degerleri korunur (setSleepDay, Sleep.manual).
+  async function pullWeek() {
+    setBusy(true)
+    setErr('')
+    setMsg('')
+    try {
+      await requestHealthPerms()
+      let ok = 0
+      for (let i = 0; i < 7; i++) {
+        const d = todayStr(new Date(Date.now() - i * 86_400_000))
+        setMsg(`Yeniden çekiliyor: ${formatDate(d)} (${i + 1}/7)…`)
+        try {
+          const data = await importHealthDay(d)
+          if (data) {
+            await saveHealthDay(d, data)
+            ok++
+          }
+        } catch {
+          /* tek gun okunamadiysa digerlerini durdurma */
+        }
+      }
+      setMsg(ok ? `${ok} gün yeniden çekildi.` : 'Health Connect’ten veri alınamadı.')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Yeniden çekme başarısız.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="card p-5 space-y-3">
       <div>
@@ -283,9 +318,18 @@ function HealthConnectCard({ day }: { day: string }) {
           </button>
         </div>
       ) : (
-        <button onClick={pull} disabled={busy || state === 'checking'} className="btn-primary w-full">
-          {busy ? 'Alınıyor…' : state === 'checking' ? 'Kontrol ediliyor…' : '⌚ Health Connect’ten al'}
-        </button>
+        <div className="space-y-2">
+          <button onClick={pull} disabled={busy || state === 'checking'} className="btn-primary w-full">
+            {busy ? 'Alınıyor…' : state === 'checking' ? 'Kontrol ediliyor…' : '⌚ Health Connect’ten al'}
+          </button>
+          <button onClick={pullWeek} disabled={busy || state === 'checking'} className="btn-secondary w-full">
+            🔄 Son 7 günü yeniden çek
+          </button>
+          <p className="text-[11px] text-slate-400 leading-tight">
+            Eski kayıtlardaki adım/uyku değerleri düzeltmelerden sonra kendiliğinden güncellenmez; bu düğme son 7 günü
+            baştan alır. Elle girdiğin uyku süreleri korunur.
+          </p>
+        </div>
       )}
 
       {msg && <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg p-2">{msg}</p>}
