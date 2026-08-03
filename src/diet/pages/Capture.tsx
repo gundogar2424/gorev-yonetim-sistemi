@@ -166,7 +166,11 @@ export default function Capture() {
   useEffect(() => {
     const plan = settings?.dietPlan?.trim()
     if (!plan || !settings?.apiKey || splitBusy.current) return
-    if (settings.dietPlanMealsSrc === plan) return // bu liste zaten bölünmüş
+    // Bu liste zaten bölünmüş mü? Hafta sonu seti YOKSA bölme eski sürümden
+    // kalmıştır (o sürüm tek set üretiyordu) — kullanıcı listeye dokunmak
+    // zorunda kalmasın diye bir kez daha bölüyoruz.
+    const splitFresh = settings.dietPlanMealsSrc === plan && !!settings.dietPlanMealsWeekend
+    if (splitFresh) return
     splitBusy.current = true
     void splitDietPlanMeals({ apiKey: settings.apiKey, dietPlan: plan, model: settings.model })
       .then((meals) => {
@@ -187,7 +191,7 @@ export default function Capture() {
         splitBusy.current = false
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings?.dietPlan, settings?.apiKey, settings?.dietPlanMealsSrc])
+  }, [settings?.dietPlan, settings?.apiKey, settings?.dietPlanMealsSrc, settings?.dietPlanMealsWeekend])
 
   // "Sıradaki öğün" kartına dokununca: o öğünü önceden seç, ekleme menüsüne kaydır
   const [pendingMeal, setPendingMeal] = useState<MealType | null>(null)
