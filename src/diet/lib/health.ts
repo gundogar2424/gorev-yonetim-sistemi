@@ -161,6 +161,12 @@ export interface HealthDay {
 }
 
 // Bir gunun yerel gece yarisi -> ertesi gece yarisi araligini ISO olarak verir.
+// Yerel tarih (YYYY-MM-DD). toISOString() UTC'ye kaydirdigi icin kullanilmaz.
+function dayStr(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
 function dayBounds(dateStr: string): { start: string; end: string } {
   const start = new Date(dateStr + 'T00:00:00')
   const end = new Date(start.getTime() + 86_400_000)
@@ -186,24 +192,23 @@ async function agg(H: HealthPlugin, dataType: string, start: string, end: string
 // gune (uyanilan gune) gelir. Deger SANIYE doner, saate cevrilir.
 async function readSleepHours(H: HealthPlugin, dateStr: string): Promise<number> {
   try {
-    // GECE UYKUSU PENCERESI: onceki gun 18:00 -> bugun 12:00 (eskiden 12:00 ->
-    // 12:00 idi). Eklenti pencereye giren TUM uyku oturumlarinin suresini
-    // TOPLUYOR (aggregateSleepSessions -> sessions.sumOf). 12:00'den
-    // baslatildiginda dun ogleden sonraki bir sekerleme de gece uykusuna
-    // ekleniyordu. 18:00 bunu disarida birakir, gece uykusunun tamamini
-    // (kacta yatildigindan bagimsiz) icerde tutar. Gece bolunduyse
-    // (uyanip tekrar uyuma) parcalarin toplanmasi DOGRUDUR.
+    // ASIL HATA BURADAYDI — VERDIGIMIZ SAATLER DIKKATE ALINMIYOR.
     //
-    // Sayinin Samsung Health'te gorunenden buyuk cikmasinin diger iki sebebi
-    // eklentinin KENDI icindeydi ve orada yamalandi
-    // (tools/patch-sleep-aggregation.py, CI'da uygulanir):
-    //   1) SleepSessionRecord suresi = YATAKTA GECEN sure; eklenti
-    //      endTime-startTime aliyor, uyanik evreleri dusmuyordu.
-    //   2) Ayni geceyi iki kaynak (saat + telefon) yazdiginda ikisi de
-    //      toplaniyordu.
-    // Yama evre bazinda hesaplayip ust uste binen araliklari birlestiriyor.
-    // Yine de kaynak veri hatali olabilir; bu yuzden kullanici degeri elle
-    // duzeltebiliyor (Sleep.manual) ve elle girilen deger senkronda korunuyor.
+    // bucket:'day' sorgularinda eklenti pencereyi TAKVIM GUNUNE yuvarliyor
+    // (normalizeTimeRangeForBucket): baslangic o gunun 00:00'ina, bitis ise
+    // ERTESI gunun 00:00'ina cekiliyor. Yani "dun 18:00 -> bugun 12:00" dedigimizde
+    // gercekte "dun 00:00 -> yarin 00:00" = 48 SAATLIK pencere sorgulaniyor.
+    // Bu pencereye IKI GECE birden giriyor ve eklenti hepsinin suresini
+    // topluyordu: 6,5 saatlik gercek uyku ~13-14 saat olarak donuyor, 14 saatlik
+    // tavana yapisiyordu (Samsung Health 22:38-06:55 / 6sa 33dk derken
+    // uygulama "14 saat" gosteriyordu).
+    //
+    // COZUM: donen kovalari TARIHE gore ayikla. Eklenti her kovayi uyku
+    // oturumunun BASLADIGI yerel gune gore gruplayip startDate ile donuyor.
+    // Bize lazim olan yalnizca iki kova:
+    //   - DUN baslayan uyku (aksam yatip sabah kalkma — normal durum)
+    //   - BUGUN baslayan uyku (gece yarisindan sonra yatilmissa)
+    // Onceki gecelere ait kovalar atiliyor.
     const noonToday = new Date(dateStr + 'T12:00:00')
     const eveningPrev = new Date(noonToday.getTime() - 18 * 3600_000) // dun 18:00
     const r = await H.queryAggregated({
@@ -212,7 +217,17 @@ async function readSleepHours(H: HealthPlugin, dateStr: string): Promise<number>
       dataType: 'sleep' as never,
       bucket: 'day'
     })
-    const seconds = (r.aggregatedData || []).reduce((s, a) => s + (a.value || 0), 0)
+
+    const prevStr = dayStr(new Date(noonToday.getTime() - 86_400_000))
+    const keep = new Set([prevStr, dateStr])
+    const rows = r.aggregatedData || []
+    // startDate "2026-08-02T00:00" gibi gelir; ilk 10 karakter tarihtir.
+    const dated = rows.filter((a) => /^\d{4}-\d{2}-\d{2}/.test(String(a.startDate || '')))
+    // Eklenti startDate vermezse (surum degisikligi) eski davranisa dus —
+    // yanlis olabilir ama 0 dondurup veriyi yok saymaktan iyidir.
+    const useRows = dated.length ? dated.filter((a) => keep.has(String(a.startDate).slice(0, 10))) : rows
+
+    const seconds = useRows.reduce((s, a) => s + (a.value || 0), 0)
     if (!seconds) return 0
     const hours = seconds / 3600
     // MANTIK SINIRI: tek gecede 14 saatten fazla uyku pratikte veri
