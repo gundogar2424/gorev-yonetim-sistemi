@@ -169,7 +169,19 @@ export default function Capture() {
     if (settings.dietPlanMealsSrc === plan) return // bu liste zaten bölünmüş
     splitBusy.current = true
     void splitDietPlanMeals({ apiKey: settings.apiKey, dietPlan: plan, model: settings.model })
-      .then((meals) => saveDietSettings({ dietPlanMeals: meals as Partial<Record<MealType, string>>, dietPlanMealsSrc: plan }))
+      .then((meals) => {
+        // Model hem hafta ici hem "_hs" (hafta sonu) alanlarini doldurur.
+        const MEALS: MealType[] = ['kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece']
+        const week: Partial<Record<MealType, string>> = {}
+        const wknd: Partial<Record<MealType, string>> = {}
+        for (const m of MEALS) {
+          if (meals[m]?.trim()) week[m] = meals[m].trim()
+          // Hafta sonu icin ayri bir sey yoksa hafta icine dus.
+          const hs = meals[`${m}_hs`]?.trim() || meals[m]?.trim()
+          if (hs) wknd[m] = hs
+        }
+        return saveDietSettings({ dietPlanMeals: week, dietPlanMealsWeekend: wknd, dietPlanMealsSrc: plan })
+      })
       .catch(() => {})
       .finally(() => {
         splitBusy.current = false
@@ -2748,7 +2760,10 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
           : `${mm} dk sonra`
 
   const chosen = next.meal
-  const planText = settings?.dietPlanMeals?.[chosen]?.trim()
+  // Hafta sonuysa hafta sonu menusu (yoksa hafta ici metnine duser).
+  const dow = new Date().getDay()
+  const planSet = dow === 0 || dow === 6 ? settings?.dietPlanMealsWeekend : settings?.dietPlanMeals
+  const planText = (planSet?.[chosen] ?? settings?.dietPlanMeals?.[chosen])?.trim()
   return (
     <button onClick={() => onPick(chosen)} className="card p-5 w-full text-left active:scale-[0.995] transition">
       {/* Ust satir: etiket + saat. Emoji ogun simgesi olarak kucuk ve yardimci. */}

@@ -692,6 +692,9 @@ dietScore = 1-10 diyete uygunluk. scoreReason = puanı nereden kırdığın, tam
 
 // Diyet listesini OGUNLERE ayir (bir kez): her ogunde ne yenecegi kisa/okunakli.
 // Ana ekranda "Sıradaki öğün"de gosterilir. Liste degisince yeniden calisir.
+// HAFTA ICI + HAFTA SONU AYRI. Diyet listeleri sik sik "Hafta sonu ogle ve
+// aksam menusu su" diye ayriliyor; tek bir bolme bunu kaybediyor ve cumartesi
+// gunu kullaniciya hafta ici menusu gosteriliyordu. `_hs` = hafta sonu.
 const DIET_SPLIT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -701,9 +704,18 @@ const DIET_SPLIT_SCHEMA = {
     ogle: { type: 'string' },
     ikindi: { type: 'string' },
     aksam: { type: 'string' },
-    gece: { type: 'string' }
+    gece: { type: 'string' },
+    kahvalti_hs: { type: 'string' },
+    ara1_hs: { type: 'string' },
+    ogle_hs: { type: 'string' },
+    ikindi_hs: { type: 'string' },
+    aksam_hs: { type: 'string' },
+    gece_hs: { type: 'string' }
   },
-  required: ['kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece']
+  required: [
+    'kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece',
+    'kahvalti_hs', 'ara1_hs', 'ogle_hs', 'ikindi_hs', 'aksam_hs', 'gece_hs'
+  ]
 } as const
 
 export async function splitDietPlanMeals(opts: {
@@ -720,11 +732,15 @@ export async function splitDietPlanMeals(opts: {
       model,
       max_tokens: 1500,
       system:
-        'Kullanıcının diyet listesini öğünlere ayıran bir asistansın. Her öğün için O ÖĞÜNDE YENECEK şeyleri KISA ve OKUNAKLI yaz (örn. "2 dilim tam buğday ekmek, süzme peynir, 5 zeytin, çay"). Listede o öğün belirtilmemişse o alanı "" (boş) bırak. Uydurma; sadece listede yazanı düzenle.',
+        `Kullanıcının diyet listesini öğünlere ayıran bir asistansın. Her öğün için O ÖĞÜNDE YENECEK şeyleri KISA ve OKUNAKLI yaz (örn. "2 dilim tam buğday ekmek, süzme peynir, 5 zeytin, çay"). Listede o öğün belirtilmemişse o alanı "" (boş) bırak. Uydurma; sadece listede yazanı düzenle.
+
+HAFTA İÇİ / HAFTA SONU: Alanların "_hs" ile bitenleri HAFTA SONU (Cumartesi-Pazar) içindir, diğerleri hafta içi. Liste hafta sonu için ayrı bir menü veriyorsa (örn. "Hafta sonu öğle ve akşam ana yemek menü: ...") o öğünleri "_hs" alanlarına yaz. Hafta sonu için ayrı bir şey yazmıyorsa "_hs" alanına hafta içiyle AYNI metni koy.
+
+SEÇENEKLER: Bir öğün için birden fazla alternatif varsa (örn. "haftada 5 gün şu, haftada 2 gün bu" ya da "VEYA" ile ayrılmış menüler) hepsini TEK metinde "veya" ile yaz; birini seçip diğerini atma. Gün sayısı belirtilmişse kısaca belirt (örn. "5 gün: ... · 2 gün: ...").`,
       messages: [
         {
           role: 'user',
-          content: `DİYET LİSTEM:\n${dietPlan.trim()}\n\nBunu şu öğünlere ayır ve her alana o öğünde ne yeneceğini kısa yaz (yoksa boş bırak): kahvalti=Kahvaltı, ara1=Sabah ara öğün, ogle=Öğle, ikindi=Öğleden sonra ara, aksam=Akşam, gece=Gece ara öğün.`
+          content: `DİYET LİSTEM:\n${dietPlan.trim()}\n\nBunu şu öğünlere ayır ve her alana o öğünde ne yeneceğini kısa yaz (yoksa boş bırak): kahvalti=Kahvaltı, ara1=Sabah ara öğün, ogle=Öğle, ikindi=Öğleden sonra ara, aksam=Akşam, gece=Gece ara öğün. Aynılarını hafta sonu için de doldur: kahvalti_hs, ara1_hs, ogle_hs, ikindi_hs, aksam_hs, gece_hs.`
         }
       ],
       output_config: { format: { type: 'json_schema', schema: DIET_SPLIT_SCHEMA } }

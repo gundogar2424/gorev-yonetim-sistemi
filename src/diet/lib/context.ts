@@ -67,6 +67,20 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
     L.push(text)
   }
 
+  // BUGUN HANGI GUN? — bu bilgi HIC gonderilmiyordu.
+  //
+  // Diyet listeleri cogu zaman gune gore degisiyor: "Hafta sonu ogle ve aksam
+  // ana yemek menu: ...", "Haftada 5 gun su, haftada 2 gun bu". Model gunu
+  // bilmeden listenin hangi kolunu uygulayacagini secemez; cumartesi gunu hafta
+  // ici menusune gore kiyaslayip haksiz dusuk uyum veriyordu.
+  const dowNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
+  const todayDate = new Date(today + 'T12:00:00')
+  const dow = todayDate.getDay()
+  const isWeekend = dow === 0 || dow === 6
+  add(
+    `BUGÜN: ${today} ${dowNames[dow]} — ${isWeekend ? 'HAFTA SONU' : 'hafta içi'}. Diyet listesinde güne göre değişen bölümler varsa (ör. "hafta sonu öğle/akşam menüsü", "haftada 5 gün şu, 2 gün bu") BUGÜNE UYAN bölümü esas al; yanlış günün menüsüyle kıyaslayıp uyumu düşürme. Listede bir öğün için birden fazla alternatif varsa (VEYA ile ayrılmış), kullanıcının yediği HANGİ alternatife yakınsa ONA göre değerlendir — en yakın seçeneği bul, hepsini birden bekleme.`
+  )
+
   // SENI TANIYAN KALICI PROFIL (varsa) — en tepede, tum degerlendirmelerin temeli.
   // DIKKAT: profil ESKI olabilir; guncel sayilar (kilo/olcu/tarih) icin ASAGIDAKI
   // taze verileri esas al — profildeki sayilari "en son" sanma.

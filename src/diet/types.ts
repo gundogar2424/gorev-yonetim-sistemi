@@ -343,6 +343,10 @@ export interface DietSettings {
   // "Sıradaki öğün"de o ogunde ne yenecegi gosterilir). dietPlanMealsSrc, bu bolmenin
   // hangi diyet listesi metninden uretildigini tutar; liste degisince yeniden bolunur.
   dietPlanMeals?: Partial<Record<MealType, string>>
+  // Hafta sonu (Cumartesi-Pazar) icin ayri menu. Diyet listeleri sik sik
+  // "Hafta sonu ogle ve aksam menu: ..." diye ayriliyor; tek bir bolme bunu
+  // kaybediyor, cumartesi gunu hafta ici menusu gosteriliyordu.
+  dietPlanMealsWeekend?: Partial<Record<MealType, string>>
   dietPlanMealsSrc?: string
   reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)
   // HANGI OGUNLERI YIYORSUN? Bu, bildirimden AYRI bir sorudur. Onceden bu
