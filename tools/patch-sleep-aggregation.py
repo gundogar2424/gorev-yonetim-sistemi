@@ -20,10 +20,11 @@ Bunun iki hatasi var:
 COZUM
 -----
 Sureyi evre bazinda ve ust uste binmeleri birlestirerek hesapla:
-  - Oturumun evreleri varsa yalnizca gercekten UYKU olan evreleri al
-    (SLEEPING / LIGHT / DEEP / REM). AWAKE, AWAKE_IN_BED, OUT_OF_BED disarida
-    kalir. Beyaz liste kullaniyoruz; boylece kutuphanenin yeni surumlerinde
-    eklenen bir evre turu yanlislikla "uyku" sayilmaz.
+  - Oturumun evreleri varsa UYANIK evreleri (AWAKE / AWAKE_IN_BED /
+    OUT_OF_BED) cikar, GERISINI say. Kara liste kullaniyoruz: beyaz liste
+    (yalnizca SLEEPING/LIGHT/DEEP/REM) denendi ve Samsung'un baska/bilinmeyen
+    evre turleriyle yazdigi bolumleri sessizce dusurdu; 6sa 33dk'lik uyku
+    3,9 saat olarak geldi. Samsung'un "gercek uyku suresi" tanimi da budur.
   - Evre bilgisi hic yoksa (bazi kaynaklar yazmiyor) oturumun tamamini al —
     elimizdeki tek bilgi o.
   - Butun araliklari sirala ve BIRLESTIR; ust uste binen kisim bir kez sayilir.
@@ -47,11 +48,17 @@ NEW = """                // YAMA (tools/patch-sleep-aggregation.py): yatakta gec
                 // (saat + telefon ayni geceyi yazdiginda) bir kez sayiliyor.
                 val spans = ArrayList<Pair<Long, Long>>()
                 for (s in sessions) {
+                    // UYANIK OLANLARI CIKAR, GERISINI SAY.
+                    // Onceki surumde tersi yapiliyordu (yalnizca SLEEPING/LIGHT/
+                    // DEEP/REM sayiliyordu). Samsung bazi bolumleri baska/bilinmeyen
+                    // evre turleriyle yaziyor; beyaz liste bunlari sessizce
+                    // dusurunce 6sa 33dk'lik uyku 3,9 saat olarak geliyordu.
+                    // Samsung'un "gercek uyku suresi" tanimi da tam olarak budur:
+                    //   7sa 25dk (yatakta) - 52dk (uyanik) = 6sa 33dk
                     val asleep = s.stages.filter { st ->
-                        st.stage == SleepSessionRecord.STAGE_TYPE_SLEEPING ||
-                            st.stage == SleepSessionRecord.STAGE_TYPE_LIGHT ||
-                            st.stage == SleepSessionRecord.STAGE_TYPE_DEEP ||
-                            st.stage == SleepSessionRecord.STAGE_TYPE_REM
+                        st.stage != SleepSessionRecord.STAGE_TYPE_AWAKE &&
+                            st.stage != SleepSessionRecord.STAGE_TYPE_AWAKE_IN_BED &&
+                            st.stage != SleepSessionRecord.STAGE_TYPE_OUT_OF_BED
                     }
                     if (asleep.isEmpty()) {
                         spans.add(Pair(s.startTime.epochSecond, s.endTime.epochSecond))

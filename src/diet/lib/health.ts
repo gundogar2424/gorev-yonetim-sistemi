@@ -240,6 +240,52 @@ async function readSleepHours(H: HealthPlugin, dateStr: string): Promise<number>
   }
 }
 
+// UYKU TESHISI — Health Connect'in HAM olarak ne dondugunu gosterir.
+//
+// Neden var: uyku sayisi ust uste uc kez yanlis cikti (once 10,1 sa, sonra 14 sa,
+// sonra 3,9 sa) ve her seferinde hangi asamanin bozuk oldugunu tahmin etmek
+// zorunda kaldik. Bu fonksiyon tahmini bitirir: eklentinin donduğu her kovayi
+// tarihiyle birlikte listeler ve hangisinin sayildigini gosterir. Ekran
+// goruntusu tek basina teshis icin yeter.
+export async function sleepDebugText(dateStr: string): Promise<string> {
+  const mod = await getMod()
+  if (!mod) return 'Health Connect eklentisi yüklü değil.'
+  const H = mod.Health
+  const noonToday = new Date(dateStr + 'T12:00:00')
+  const eveningPrev = new Date(noonToday.getTime() - 18 * 3600_000)
+  const prevStr = dayStr(new Date(noonToday.getTime() - 86_400_000))
+  try {
+    const r = await H.queryAggregated({
+      startDate: eveningPrev.toISOString(),
+      endDate: noonToday.toISOString(),
+      dataType: 'sleep' as never,
+      bucket: 'day'
+    })
+    const rows = r.aggregatedData || []
+    if (!rows.length) return `İstenen: ${prevStr} 18:00 → ${dateStr} 12:00\nHealth Connect hiç kayıt döndürmedi.`
+    const lines = rows.map((a) => {
+      const d = String(a.startDate || '').slice(0, 10) || '(tarihsiz)'
+      const h = Math.round(((a.value || 0) / 3600) * 100) / 100
+      const used = d === prevStr || d === dateStr ? '✓ sayıldı' : '✗ atıldı'
+      return `${d} → ${h} sa  ${used}`
+    })
+    const kept = rows
+      .filter((a) => {
+        const d = String(a.startDate || '').slice(0, 10)
+        return d === prevStr || d === dateStr
+      })
+      .reduce((s, a) => s + (a.value || 0), 0)
+    return [
+      `İstenen: ${prevStr} 18:00 → ${dateStr} 12:00`,
+      `Health Connect ${rows.length} kova döndürdü:`,
+      ...lines,
+      `Toplam sayılan: ${Math.round((kept / 3600) * 100) / 100} sa`
+    ].join('\n')
+  } catch (e) {
+    return `Uyku okunamadı: ${e instanceof Error ? e.message : String(e)}`
+  }
+}
+
 // Bir gunun tum verisini Health Connect'ten oku (adim/mesafe/kalori/uyku + antrenmanlar).
 export async function importHealthDay(dateStr: string): Promise<HealthDay | null> {
   const mod = await getMod()

@@ -9,7 +9,8 @@ import {
   openHealthConnectStore,
   openHealthConnect,
   saveHealthDay,
-  sleepPermGranted
+  sleepPermGranted,
+  sleepDebugText
 } from '../lib/health'
 import { exercisePoints, exerciseBadges, todayStr } from '../streak'
 import { movementKcal, plausibleDistanceKm } from '../lib/movement'
@@ -199,6 +200,8 @@ function HealthConnectCard({ day }: { day: string }) {
   const [err, setErr] = useState('')
   // Uyku ozel durum: izin yoksa eklenti hata atmiyor, 0 donuyor. Ayirt edip soyluyoruz.
   const [sleepWarn, setSleepWarn] = useState('')
+  // Uyku sayisi yanlis geldiginde ham kovalari gosteren teshis metni.
+  const [sleepDebug, setSleepDebug] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -329,6 +332,17 @@ function HealthConnectCard({ day }: { day: string }) {
             Eski kayıtlardaki adım/uyku değerleri düzeltmelerden sonra kendiliğinden güncellenmez; bu düğme son 7 günü
             baştan alır. Elle girdiğin uyku süreleri korunur.
           </p>
+          <button
+            onClick={async () => setSleepDebug(await sleepDebugText(day))}
+            className="w-full text-[12px] font-semibold text-slate-500 py-1"
+          >
+            🔍 Uyku ayrıntısı (ham veri)
+          </button>
+          {sleepDebug && (
+            <pre className="text-[11px] leading-snug text-slate-600 bg-slate-50 rounded-lg p-2 whitespace-pre-wrap">
+              {sleepDebug}
+            </pre>
+          )}
         </div>
       )}
 
