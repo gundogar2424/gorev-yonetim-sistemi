@@ -3017,12 +3017,23 @@ function ComplianceBar({ analysis }: { analysis: FoodAnalysis }) {
 // kullanici bir kez tanimliyor, sonra tek dokunusla gunune ekliyor: HICBIR
 // API cagrisi yapilmaz. Kayit `quick` isaretiyle gider; ogun sayilmaz,
 // puana katilmaz, ama gunun kalori toplamina girer.
-const FAV_SUGGESTIONS: { emoji: string; name: string; kcal: number }[] = [
-  { emoji: '☕', name: 'Çay (şekersiz)', kcal: 0 },
-  { emoji: '☕', name: 'Türk kahvesi (sade)', kcal: 5 },
-  { emoji: '🥛', name: 'Ayran (200 ml)', kcal: 75 },
-  { emoji: '🥤', name: 'Soda (sade)', kcal: 0 },
-  { emoji: '🍎', name: 'Elma (1 orta)', kcal: 95 }
+// Hazir oneriler. Makro ve sivi (ml) degerleri de dolu — eskiden yalnizca
+// kalori vardi, bu yuzden ayran eklendiginde protein/karbonhidrat gunun
+// toplamina hic girmiyordu.
+const FAV_SUGGESTIONS: {
+  emoji: string
+  name: string
+  kcal: number
+  protein?: number
+  carb?: number
+  fat?: number
+  ml?: number
+}[] = [
+  { emoji: '☕', name: 'Çay (şekersiz)', kcal: 0, ml: 200 },
+  { emoji: '☕', name: 'Türk kahvesi (sade)', kcal: 5, ml: 60 },
+  { emoji: '🥛', name: 'Ayran (200 ml)', kcal: 75, protein: 4, carb: 6, fat: 4, ml: 200 },
+  { emoji: '🥤', name: 'Soda (sade)', kcal: 0, ml: 200 },
+  { emoji: '🍎', name: 'Elma (1 orta)', kcal: 95, protein: 0, carb: 25, fat: 0 }
 ]
 
 function Favorites() {
@@ -3032,6 +3043,14 @@ function Favorites() {
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('')
   const [kcal, setKcal] = useState('')
+  // Makro alanlari: elle eklenen sik tuketilenlerde SADECE kalori soruluyordu,
+  // makrolar 0 kaliyordu. Gunun protein/karbonhidrat/yag toplamina bu kayitlar
+  // da giriyor; bos birakilinca "makrolari saymiyor" gibi gorunuyordu.
+  const [prot, setProt] = useState('')
+  const [carbF, setCarbF] = useState('')
+  const [fatF, setFatF] = useState('')
+  // Sivi (ml): doldurulursa gunun SU toplamina da yazilir.
+  const [mlF, setMlF] = useState('')
   const [flash, setFlash] = useState('')
   // Veritabaninda ISIMLE arama (Open Food Facts, ucretsiz, yapay zeka YOK)
   const [q, setQ] = useState('')
@@ -3077,10 +3096,23 @@ function Favorites() {
   async function save() {
     const n = name.trim()
     if (!n) return
-    await addFavorite({ name: n, emoji: emoji.trim() || undefined, kcal: Math.max(0, Number(kcal) || 0) })
+    const num = (v: string) => Math.max(0, Math.round(Number(String(v).replace(',', '.')) || 0))
+    await addFavorite({
+      name: n,
+      emoji: emoji.trim() || undefined,
+      kcal: num(kcal),
+      protein: num(prot),
+      carb: num(carbF),
+      fat: num(fatF),
+      ml: num(mlF)
+    })
     setName('')
     setEmoji('')
     setKcal('')
+    setProt('')
+    setCarbF('')
+    setFatF('')
+    setMlF('')
     setAdding(false)
   }
 
@@ -3105,7 +3137,7 @@ function Favorites() {
             {FAV_SUGGESTIONS.map((sg) => (
               <button
                 key={sg.name}
-                onClick={() => addFavorite({ name: sg.name, emoji: sg.emoji, kcal: sg.kcal })}
+                onClick={() => addFavorite(sg)}
                 className="text-[12px] rounded-full px-2.5 py-1.5 bg-slate-100 dark:bg-[#2f3240] text-slate-700 dark:text-[#e0e1e6]"
               >
                 + {sg.emoji} {sg.name}
@@ -3208,6 +3240,18 @@ function Favorites() {
               onChange={(e) => setKcal(e.target.value)}
             />
           </div>
+          {/* Makro + sivi: bos birakilabilir. Makrolar gunun toplamina, sivi
+              gunun su toplamina girer. */}
+          <div className="grid grid-cols-4 gap-2">
+            <input className="field-input text-center" inputMode="numeric" placeholder="prot g" value={prot} onChange={(e) => setProt(e.target.value)} />
+            <input className="field-input text-center" inputMode="numeric" placeholder="karb g" value={carbF} onChange={(e) => setCarbF(e.target.value)} />
+            <input className="field-input text-center" inputMode="numeric" placeholder="yağ g" value={fatF} onChange={(e) => setFatF(e.target.value)} />
+            <input className="field-input text-center" inputMode="numeric" placeholder="ml su" value={mlF} onChange={(e) => setMlF(e.target.value)} />
+          </div>
+          <p className="text-[11px] text-slate-400 leading-tight">
+            Makroları boş bırakırsan yalnızca kalori sayılır. “ml su” yazarsan (çay 200, fincan kahve 60 gibi) o miktar
+            günün su toplamına da eklenir.
+          </p>
           <div className="flex gap-2">
             <button onClick={save} className="btn-primary flex-1">
               Kaydet

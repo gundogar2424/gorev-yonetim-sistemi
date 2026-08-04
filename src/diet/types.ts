@@ -291,6 +291,10 @@ export interface Favorite {
   carb?: number
   fat?: number
   sugar?: number
+  // Icecekse porsiyonun SIVI miktari (ml). Doldurulursa tek dokunusla
+  // eklendiginde gunun SU toplamina da yazilir — cay/kahve/ayran da sivi
+  // alimidir; kullanici bunlari ayrica su olarak isaretlemek zorunda kalmasin.
+  ml?: number
   uses?: number // kac kez eklendi — cok kullanilan basa gelir
   createdAt: number
 }

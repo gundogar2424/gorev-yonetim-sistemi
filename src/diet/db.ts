@@ -752,5 +752,7 @@ export async function addFavoriteToDay(f: Favorite, dateStr: string): Promise<vo
     createdAt: Date.now(),
     dateStr
   })
+  // Sivi miktari girilmisse gunun su toplamina da ekle (cay/kahve/ayran).
+  if (f.ml && f.ml > 0) await addWaterMl(dateStr, Math.round(f.ml))
   if (f.id != null) await dietDb.favorites.update(f.id, { uses: (f.uses ?? 0) + 1 })
 }
