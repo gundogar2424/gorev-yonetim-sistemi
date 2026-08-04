@@ -347,6 +347,12 @@ export interface DietSettings {
   // "Hafta sonu ogle ve aksam menu: ..." diye ayriliyor; tek bir bolme bunu
   // kaybediyor, cumartesi gunu hafta ici menusu gosteriliyordu.
   dietPlanMealsWeekend?: Partial<Record<MealType, string>>
+  // HAFTALIK PLAN: listenin 7 gune dagitilmis hali. Diyet listeleri "haftada
+  // 3 gun yumurtali, 2 gun yulafli" gibi yazildigi icin hangi gun hangisinin
+  // yenecegi ancak boyle belirli olur. Anahtar: '0'=Pazar ... '6'=Cumartesi
+  // (JS getDay ile ayni). `etiket` o gunu ayirt eden kisa isim ("Yulaflı
+  // kahvaltı günü"); sirdan gunlerde bostur.
+  dietPlanWeek?: Record<string, { etiket?: string } & Partial<Record<MealType, string>>>
   dietPlanMealsSrc?: string
   reminders?: Reminder[] // Ogun hatirlaticilari (APK bildirimleri)
   // HANGI OGUNLERI YIYORSUN? Bu, bildirimden AYRI bir sorudur. Onceden bu

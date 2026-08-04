@@ -7,7 +7,7 @@ import { dietDb } from '../db'
 import { todayStr, dayAdherence } from '../streak'
 import { mealLabel } from './meals'
 import { movementKcal, plausibleDistanceKm } from './movement'
-import type { DietEntry, DietSettings, Measurement } from '../types'
+import type { DietEntry, DietSettings, Measurement, MealType } from '../types'
 
 const fmt = (n: number) => Math.round(n * 10) / 10
 
@@ -80,6 +80,27 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
   add(
     `BUGÜN: ${today} ${dowNames[dow]} — ${isWeekend ? 'HAFTA SONU' : 'hafta içi'}. Diyet listesinde güne göre değişen bölümler varsa (ör. "hafta sonu öğle/akşam menüsü", "haftada 5 gün şu, 2 gün bu") BUGÜNE UYAN bölümü esas al; yanlış günün menüsüyle kıyaslayıp uyumu düşürme. Listede bir öğün için birden fazla alternatif varsa (VEYA ile ayrılmış), kullanıcının yediği HANGİ alternatife yakınsa ONA göre değerlendir — en yakın seçeneği bul, hepsini birden bekleme.`
   )
+
+  // BUGUNUN MENUSU — liste 7 gune dagitilmissa o gunun somut menusu.
+  // Modelin "haftada 3 gun su, 2 gun bu" ifadesini kendi basina cozmesini
+  // beklemek yerine bugun ne yenmesi gerektigini dogrudan veriyoruz.
+  const todayPlan = settings?.dietPlanWeek?.[String(dow)]
+  if (todayPlan) {
+    const MEALS: { k: MealType; l: string }[] = [
+      { k: 'kahvalti', l: 'Kahvaltı' },
+      { k: 'ara1', l: 'Sabah ara' },
+      { k: 'ogle', l: 'Öğle' },
+      { k: 'ikindi', l: 'İkindi' },
+      { k: 'aksam', l: 'Akşam' },
+      { k: 'gece', l: 'Gece ara' }
+    ]
+    const rows = MEALS.filter((m) => todayPlan[m.k]?.trim()).map((m) => `${m.l}: ${todayPlan[m.k]}`)
+    if (rows.length) {
+      add(
+        `BUGÜNÜN PLANI (diyet listesinin ${dowNames[dow]} gününe düşen hali${todayPlan.etiket ? ` — ${todayPlan.etiket}` : ''}) — uyumu BUNA göre hesapla:\n${rows.join('\n')}`
+      , ['shopping', 'quick'])
+    }
+  }
 
   // SENI TANIYAN KALICI PROFIL (varsa) — en tepede, tum degerlendirmelerin temeli.
   // DIKKAT: profil ESKI olabilir; guncel sayilar (kilo/olcu/tarih) icin ASAGIDAKI

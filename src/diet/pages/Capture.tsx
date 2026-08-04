@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay, getSleepRow, setSleepDay, clearSleepDay, listSleep } from '../db'
-import { analyzeFood, analyzeFoodByText, recheckCompliance, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals } from '../ai'
+import { analyzeFood, analyzeFoodByText, recheckCompliance, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals, splitDietPlanWeek } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { scheduleSugarReminder, applyNotifications, activeMealTypes, mergeReminders } from '../lib/notify'
@@ -169,10 +169,27 @@ export default function Capture() {
     // Bu liste zaten bölünmüş mü? Hafta sonu seti YOKSA bölme eski sürümden
     // kalmıştır (o sürüm tek set üretiyordu) — kullanıcı listeye dokunmak
     // zorunda kalmasın diye bir kez daha bölüyoruz.
-    const splitFresh = settings.dietPlanMealsSrc === plan && !!settings.dietPlanMealsWeekend
+    const splitFresh = settings.dietPlanMealsSrc === plan && !!settings.dietPlanWeek
     if (splitFresh) return
     splitBusy.current = true
-    void splitDietPlanMeals({ apiKey: settings.apiKey, dietPlan: plan, model: settings.model })
+    // ONCE haftalik dagitim (hangi gun hangi cesit), SONRA eski ogun bolmesi
+    // (bildirim ve geriye donuk uyum icin duruyor).
+    void splitDietPlanWeek({ apiKey: settings.apiKey, dietPlan: plan, model: settings.model })
+      .then(async (days) => {
+        const week: Record<string, { etiket?: string } & Partial<Record<MealType, string>>> = {}
+        for (const d of days) {
+          if (typeof d?.gun !== 'number' || d.gun < 0 || d.gun > 6) continue
+          const row: { etiket?: string } & Partial<Record<MealType, string>> = {}
+          if (d.etiket?.trim()) row.etiket = d.etiket.trim()
+          for (const m of ['kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece'] as MealType[]) {
+            const v = (d as unknown as Record<string, string>)[m]?.trim()
+            if (v) row[m] = v
+          }
+          week[String(d.gun)] = row
+        }
+        await saveDietSettings({ dietPlanWeek: week })
+        return splitDietPlanMeals({ apiKey: settings.apiKey!, dietPlan: plan, model: settings.model })
+      })
       .then((meals) => {
         // Model hem hafta ici hem "_hs" (hafta sonu) alanlarini doldurur.
         const MEALS: MealType[] = ['kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece']
@@ -2764,10 +2781,13 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
           : `${mm} dk sonra`
 
   const chosen = next.meal
-  // Hafta sonuysa hafta sonu menusu (yoksa hafta ici metnine duser).
+  // BUGUNUN planı önce: haftalık dağıtım varsa o günün menüsü kullanılır.
+  // Yoksa hafta sonu seti, o da yoksa tek set (eski sürümlerden kalma).
   const dow = new Date().getDay()
-  const planSet = dow === 0 || dow === 6 ? settings?.dietPlanMealsWeekend : settings?.dietPlanMeals
-  const planText = (planSet?.[chosen] ?? settings?.dietPlanMeals?.[chosen])?.trim()
+  const dayPlan = settings?.dietPlanWeek?.[String(dow)]
+  const weekendSet = dow === 0 || dow === 6 ? settings?.dietPlanMealsWeekend : undefined
+  const planText = (dayPlan?.[chosen] ?? weekendSet?.[chosen] ?? settings?.dietPlanMeals?.[chosen])?.trim()
+  const dayLabel = dayPlan?.etiket?.trim()
   return (
     <button onClick={() => onPick(chosen)} className="card p-5 w-full text-left active:scale-[0.995] transition">
       {/* Ust satir: etiket + saat. Emoji ogun simgesi olarak kucuk ve yardimci. */}
@@ -2787,10 +2807,19 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
         </div>
       </div>
 
-      {/* Diyet listende bu ogunde ne var */}
+      {/* Diyet listende bu ogunde ne var — BUGUNE ait olan.
+          `etiket` yalnizca o gun digerlerinden farkliysa dolu gelir
+          ("Yulaflı kahvaltı günü" gibi); kullanici yemeden once gorur. */}
       {planText ? (
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#2f3240]">
-          <p className="stat-label mb-1.5">Listende bu öğün</p>
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <p className="stat-label">Listende bugün bu öğün</p>
+            {dayLabel && (
+              <span className="text-[11px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-500/15 rounded-full px-2 py-0.5">
+                {dayLabel}
+              </span>
+            )}
+          </div>
           <p className="text-[15px] text-slate-800 leading-relaxed">{planText}</p>
         </div>
       ) : (

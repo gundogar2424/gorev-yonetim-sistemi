@@ -179,22 +179,45 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
   if (active.length === 0) return
 
   await ensureChannel()
-  await LocalNotifications.schedule({ notifications: active.map(mealNotification) })
+  await LocalNotifications.schedule({ notifications: active.map((r) => mealNotification(r)) })
 }
 
-// Tek bir ogun hatirlaticisini bildirim nesnesine cevirir
-function mealNotification(r: Reminder) {
+const DAY_INDEXES = [0, 1, 2, 3, 4, 5, 6]
+
+// Tek bir ogun hatirlaticisini bildirim nesnesine cevirir.
+//
+// dayIdx verilirse bildirim YALNIZCA o gun calisir ve govdesinde O GUNE ait
+// menu yazar ("Bugün yulaflı kahvaltı günü: 3 yk yulaf + ..."). Diyet listeleri
+// "haftada 3 gun su, 2 gun bu" diye yazildigi icin sabit tek bir metin
+// kullaniciya hangi cesidi yapacagini soyleyemiyordu.
+function mealNotification(
+  r: Reminder,
+  dayIdx?: number,
+  week?: Record<string, { etiket?: string } & Partial<Record<MealType, string>>>
+) {
   const { hour, minute } = notifyHM(r.time, r.lead)
-  const body =
-    (r.lead || 0) > 0
-      ? `${r.label} (${r.time}) yaklaşıyor — ${r.lead} dk var. Yemeden önce fotoğrafını çek!`
-      : `${r.label} vakti! Yemeden önce fotoğrafını çekmeyi unutma.`
+  const lead = (r.lead || 0) > 0 ? `${r.label} (${r.time}) yaklaşıyor — ${r.lead} dk var.` : `${r.label} vakti!`
+
+  let body = `${lead} Yemeden önce fotoğrafını çekmeyi unutma.`
+  if (dayIdx != null && week) {
+    const plan = week[String(dayIdx)]
+    const what = plan?.[r.id as MealType]?.trim()
+    if (what) {
+      const tag = plan?.etiket?.trim()
+      body = `${lead}${tag ? ` Bugün ${tag.toLocaleLowerCase('tr')}.` : ''} Listende: ${what}`
+    }
+  }
+
   return {
-    id: r.notifId,
+    id: dayIdx == null ? r.notifId : r.notifId * 10 + dayIdx,
     channelId: CHANNEL_ID,
     title: '🥗 Diyet Koçu',
     body,
-    schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true },
+    // weekday: 1=Pazar ... 7=Cumartesi (Capacitor). Bizim dayIdx 0=Pazar.
+    schedule:
+      dayIdx == null
+        ? { on: { hour, minute }, repeats: true, allowWhileIdle: true }
+        : { on: { weekday: dayIdx + 1, hour, minute }, repeats: true, allowWhileIdle: true },
     extra: { route: '/' }
   }
 }
@@ -585,9 +608,20 @@ export async function applyNotifications(settings: DietSettings): Promise<void> 
     /* okunamazsa hepsini normal kur */
   }
 
+  // HAFTALIK PLAN VARSA gune ozel bildirim: her ogun icin 7 ayri kayit kurulur
+  // ve her birinin govdesinde O GUNUN menusu yazar ("Bugün yulaflı kahvaltı
+  // günü: 3 yk yulaf + ..."). Liste "haftada 3 gun su, 2 gun bu" diye
+  // yazildiginda sabit tek metin hangi cesidi yapacagini soyleyemiyordu.
+  const week = settings.dietPlanWeek
   for (const r of reminders) {
     // Hatırlatıcı id'si öğün tipiyle aynı (kahvalti/ogle/aksam...); yendiyse atla
-    if (r.enabled && !eaten.has(r.id)) notifications.push(mealNotification({ ...r, lead: r.lead ?? 0 }))
+    if (!r.enabled || eaten.has(r.id)) continue
+    const rr = { ...r, lead: r.lead ?? 0 }
+    if (week) {
+      for (const d of DAY_INDEXES) notifications.push(mealNotification(rr, d, week))
+    } else {
+      notifications.push(mealNotification(rr))
+    }
   }
   if (settings.waterReminderEnabled) notifications.push(...waterNotifications())
   if (settings.motivationReminderEnabled) {

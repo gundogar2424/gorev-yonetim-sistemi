@@ -690,6 +690,90 @@ dietScore = 1-10 diyete uygunluk. scoreReason = puanı nereden kırdığın, tam
   }
 }
 
+// HAFTALIK PLAN — diyet listesini HAFTANIN GUNLERINE dagitir.
+//
+// Neden: diyet listeleri "haftada 3 gun yumurtali, 2 gun yulafli, hafta sonu
+// sebze yemegi" gibi yaziliyor. Tek bir ogun bolmesi bunu tasiyamiyor; hangi
+// gun hangisinin yenecegi belirsiz kaliyor ve uyum yanlis cesitle
+// kiyaslaniyordu. Burada model listeyi okuyup 7 gunun her birine somut bir
+// menu yaziyor: kullanici sabah uygulamayi actiginda "bugun yulafli gun"
+// gorur, uyum da o gunun menusune gore hesaplanir.
+const WEEK_DAY_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    gun: { type: 'integer' }, // 0=Pazar, 1=Pazartesi ... 6=Cumartesi (JS getDay ile ayni)
+    etiket: { type: 'string' }, // orn. "Yulaflı kahvaltı günü" — yoksa ""
+    kahvalti: { type: 'string' },
+    ara1: { type: 'string' },
+    ogle: { type: 'string' },
+    ikindi: { type: 'string' },
+    aksam: { type: 'string' },
+    gece: { type: 'string' }
+  },
+  required: ['gun', 'etiket', 'kahvalti', 'ara1', 'ogle', 'ikindi', 'aksam', 'gece']
+} as const
+
+const WEEK_PLAN_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    gunler: { type: 'array', items: WEEK_DAY_SCHEMA }
+  },
+  required: ['gunler']
+} as const
+
+export interface WeekDayPlan {
+  gun: number
+  etiket: string
+  kahvalti: string
+  ara1: string
+  ogle: string
+  ikindi: string
+  aksam: string
+  gece: string
+}
+
+export async function splitDietPlanWeek(opts: {
+  apiKey: string
+  dietPlan: string
+  model?: string
+}): Promise<WeekDayPlan[]> {
+  const { apiKey, dietPlan, model = DEFAULT_MODEL } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (!dietPlan.trim()) throw new Error('Diyet listesi boş.')
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 4000,
+      system: `Kullanıcının diyet listesini HAFTANIN 7 GÜNÜNE dağıtan bir diyetisyen asistanısın. Her gün için o günün her öğününde NE YENECEĞİNİ kısa ve okunaklı yaz.
+
+KURALLAR:
+1. "Haftada N gün şu, haftada M gün bu" gibi ifadeleri GÜNLERE DAĞIT. Örn. "haftada 5 gün yumurtalı kahvaltı, haftada 2 gün yulaflı" ise beş güne yumurtalı, iki güne yulaflı kahvaltı yaz. Yulaflı gibi farklı olan çeşidi hafta içine dengeli dağıt (üst üste değil).
+2. "Hafta sonu öğle/akşam menüsü" gibi bir bölüm varsa Cumartesi (6) ve Pazar (0) günlerine ONU yaz.
+3. Bir öğünde "VEYA" ile ayrılmış eşdeğer seçenekler varsa (örn. "1 dilim esmer ekmek veya 4 yk bulgur pilavı") ikisini de "veya" ile aynı metinde bırak — bunlar güne göre değişen bir şey değil, kullanıcının o an seçeceği alternatiftir.
+4. "etiket": o günü diğerlerinden AYIRAN kısa bir isim, yalnızca o gün farklıysa (örn. "Yulaflı kahvaltı günü", "Hafta sonu menüsü"). Gün sıradan/çoğunlukla aynıysa "" bırak.
+5. Listede olmayan bir öğün için "" bırak. UYDURMA; sadece listede yazanı düzenle ve dağıt.
+6. gun alanı: 0=Pazar, 1=Pazartesi, 2=Salı, 3=Çarşamba, 4=Perşembe, 5=Cuma, 6=Cumartesi. 7 günün HEPSİNİ döndür.`,
+      messages: [
+        {
+          role: 'user',
+          content: `DİYET LİSTEM:\n${dietPlan.trim()}\n\nBunu haftanın 7 gününe dağıt.`
+        }
+      ],
+      output_config: { format: { type: 'json_schema', schema: WEEK_PLAN_SCHEMA } }
+    })
+    if (response.stop_reason === 'max_tokens') throw new Error('Yanıt yarıda kesildi. Lütfen tekrar deneyin.')
+    const raw = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    const parsed = JSON.parse(cleaned) as { gunler?: WeekDayPlan[] }
+    return parsed.gunler || []
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
+
 // Diyet listesini OGUNLERE ayir (bir kez): her ogunde ne yenecegi kisa/okunakli.
 // Ana ekranda "Sıradaki öğün"de gosterilir. Liste degisince yeniden calisir.
 // HAFTA ICI + HAFTA SONU AYRI. Diyet listeleri sik sik "Hafta sonu ogle ve
