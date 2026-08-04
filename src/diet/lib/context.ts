@@ -95,10 +95,31 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
       { k: 'gece', l: 'Gece ara' }
     ]
     const rows = MEALS.filter((m) => todayPlan[m.k]?.trim()).map((m) => `${m.l}: ${todayPlan[m.k]}`)
+
+    // O OGUNUN HAFTADAKI DIGER CESITLERI.
+    // Yalnizca bugunun menusunu vermek yetmiyordu: model "bugun yulaf yazıyor,
+    // sen yumurta yemişsin" deyip uyumu %65'e dusuruyordu. Ayni ogunun diger
+    // gunlere dusen cesitlerini de ACIKCA veriyoruz ki bunlarin hepsinin
+    // gecerli oldugunu gorsun.
+    const alts: string[] = []
+    for (const m of MEALS) {
+      const mine = todayPlan[m.k]?.trim()
+      if (!mine) continue
+      const others = new Set<string>()
+      for (let d = 0; d < 7; d++) {
+        const t = settings?.dietPlanWeek?.[String(d)]?.[m.k]?.trim()
+        if (t && t !== mine) others.add(t)
+      }
+      if (others.size) alts.push(`${m.l}: ${[...others].join('  ||  ')}`)
+    }
+
     if (rows.length) {
       add(
         `BUGÜNÜN PLANI (diyet listesinin ${dowNames[dow]} gününe düşen hali${todayPlan.etiket ? ` — ${todayPlan.etiket}` : ''}):\n${rows.join('\n')}\n` +
-          `ÇOK ÖNEMLİ — BU DAĞITIM SADECE ÖNERİDİR, KURAL DEĞİL: "haftada 3 gün şu, 2 gün bu" diyen bir listeyi uygulama günlere kendisi dağıttı; diyetisyen "salı yulaf yiyeceksin" DEMEDİ. Kullanıcı bugün listenin BAŞKA bir gününe düşen çeşidi yerse (ör. bugün yulaflı gün yazıyorken yumurtalı kahvaltı yaparsa) bu TAM UYUMLUDUR — çeşitler haftanın içinde yer değiştirebilir. Böyle bir durumda compliancePercent'i DÜŞÜRME, "planına uymadın / yanlış gün" DEME, puan kırma. İstersen complianceNote'ta tek cümleyle "yulafı başka güne aldın, sorun yok" diye belirt. Uyumu yalnızca yenen şey listede HİÇ yoksa ya da kalori/makro belirgin saparsa kır.`
+          `ÇOK ÖNEMLİ — BU DAĞITIM SADECE ÖNERİDİR, KURAL DEĞİL: "haftada 3 gün şu, 2 gün bu" diyen bir listeyi uygulama günlere kendisi dağıttı; diyetisyen "salı yulaf yiyeceksin" DEMEDİ. Kullanıcı bugün listenin BAŞKA bir gününe düşen çeşidi yerse (ör. bugün yulaflı gün yazıyorken yumurtalı kahvaltı yaparsa) bu TAM UYUMLUDUR — çeşitler haftanın içinde yer değiştirebilir. Böyle bir durumda compliancePercent'i DÜŞÜRME, "planına uymadın / yanlış gün" DEME, puan kırma. İstersen complianceNote'ta tek cümleyle "yulafı başka güne aldın, sorun yok" diye belirt. Uyumu yalnızca yenen şey listede HİÇ yoksa ya da kalori/makro belirgin saparsa kır.` +
+          (alts.length
+            ? `\nAYNI ÖĞÜNÜN LİSTEDEKİ DİĞER ÇEŞİTLERİ (bunlar da TAM GEÇERLİDİR, hangisini yerse yesin uyumludur):\n${alts.join('\n')}`
+            : '')
       , ['shopping', 'quick'])
     }
   }
