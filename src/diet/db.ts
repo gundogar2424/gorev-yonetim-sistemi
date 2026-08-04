@@ -735,6 +735,7 @@ export async function addFavoriteToDay(f: Favorite, dateStr: string): Promise<vo
     carb: Math.max(0, Math.round(f.carb || 0)),
     fat: Math.max(0, Math.round(f.fat || 0)),
     sugar: Math.max(0, Math.round(f.sugar || 0)),
+    caffeineMg: Math.max(0, Math.round(f.caffeineMg || 0)),
     dietScore: 0,
     scoreReason: '',
     harms: [],
@@ -752,7 +753,5 @@ export async function addFavoriteToDay(f: Favorite, dateStr: string): Promise<vo
     createdAt: Date.now(),
     dateStr
   })
-  // Sivi miktari girilmisse gunun su toplamina da ekle (cay/kahve/ayran).
-  if (f.ml && f.ml > 0) await addWaterMl(dateStr, Math.round(f.ml))
   if (f.id != null) await dietDb.favorites.update(f.id, { uses: (f.uses ?? 0) + 1 })
 }

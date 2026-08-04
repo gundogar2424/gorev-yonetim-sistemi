@@ -27,6 +27,7 @@ export interface FoodAnalysis {
   fiber?: number // Lif (gram)
   sodium?: number // Sodyum (mg)
   cholesterol?: number // Kolesterol (mg)
+  caffeineMg?: number // Kafein (mg) — kahve/cay/enerji icecegi; yoksa 0
   dietScore: number // Diyete uygunluk puani 1-10 (10 = mukemmel, 1 = cok kotu); bilinmiyorsa 0
   scoreReason: string // Puani neden tam vermedigi / nereden kirdigi (10 ise bos)
   harms: string[] // Yemegin zararlari / olumsuz yanlari
@@ -291,10 +292,11 @@ export interface Favorite {
   carb?: number
   fat?: number
   sugar?: number
-  // Icecekse porsiyonun SIVI miktari (ml). Doldurulursa tek dokunusla
-  // eklendiginde gunun SU toplamina da yazilir — cay/kahve/ayran da sivi
-  // alimidir; kullanici bunlari ayrica su olarak isaretlemek zorunda kalmasin.
-  ml?: number
+  // Porsiyondaki KAFEIN (mg). Cay ~47, Turk kahvesi ~65, filtre kahve ~95.
+  // Gunun kafein toplami bundan cikar; sinir asilinca uyari verilir.
+  // NOT: sivi (ml) BILEREK tutulmuyor — su takibi yalnizca gercekten
+  // icilen suyu sayar, cay/kahve su yerine gecmez.
+  caffeineMg?: number
   uses?: number // kac kez eklendi — cok kullanilan basa gelir
   createdAt: number
 }
@@ -374,6 +376,9 @@ export interface DietSettings {
   weeklyExerciseGoal?: number // Haftalik egzersiz hedefi (adet)
   stepGoal?: number // Gunluk adim hedefi
   sleepGoal?: number // Gunluk uyku hedefi (saat)
+  // Gunluk kafein siniri (mg). Bos ise 400 varsayilir (yetiskin icin yaygin
+  // ust sinir). Asilinca ana ekranda uyari cikar ve koc buna gore konusur.
+  caffeineLimitMg?: number
   // Ek bildirimler (yalnizca APK)
   waterReminderEnabled?: boolean // Gun icinde su icme hatirlatmasi
   motivationReminderEnabled?: boolean // Gunluk motivasyon bildirimi

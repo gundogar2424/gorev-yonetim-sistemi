@@ -170,6 +170,7 @@ const OUTPUT_SCHEMA = {
     fiber: { type: 'integer' },
     sodium: { type: 'integer' },
     cholesterol: { type: 'integer' },
+    caffeineMg: { type: 'integer' },
     dietScore: { type: 'integer' },
     scoreReason: { type: 'string' },
     harms: { type: 'array', items: { type: 'string' } },
@@ -196,6 +197,7 @@ const OUTPUT_SCHEMA = {
     'fiber',
     'sodium',
     'cholesterol',
+    'caffeineMg',
     'dietScore',
     'scoreReason',
     'harms',
@@ -243,6 +245,8 @@ TÜRK DİYETİSYEN/EV ÖLÇÜLERİ: Kullanıcı miktarı şu ölçülerle verebi
 PORSİYON AĞIRLIĞI (portionGrams): Tabaktaki/bardaktaki her şeyin TOPLAM ağırlığını GRAM cinsinden tam sayı olarak tahmin et. Kalori ve makrolar bu ağırlık için olsun; ikisi birbiriyle tutarlı olmalı. Görseldeki referanslara (tabak/bardak/kaşık boyu) ve yukarıdaki ev ölçülerine dayan. Sıvılar için 1 ml ≈ 1 g say (1 su bardağı süt ≈ 200 g). Birden fazla şey varsa hepsini topla (örn. 1 muz ~120 g + 1 bardak süt ~200 g + 1 avuç kuruyemiş ~25 g → 345). Görselde yemek yoksa 0.
 
 MAKROLAR: Sadece kaloriyi değil, tahmini MAKRO besinleri de ver — protein, carb (karbonhidrat), fat (yağ); hepsi GRAM cinsinden tam sayı. Porsiyon büyüklüğüne göre gerçekçi tahmin et. Görselde yemek yoksa hepsi 0.
+
+KAFEİN (caffeineMg): İçecekte/yiyecekte kafein varsa MİLİGRAM olarak tahmin et; yoksa 0. Kabaca: 1 fincan Türk kahvesi ~65, 1 bardak çay ~47, filtre kahve (1 fincan) ~95, espresso ~63, kola (330 ml) ~35, enerji içeceği (250 ml) ~80, bitki çayı 0, sütlü kahvelerde kahve miktarına göre. Bardağın/fincanın büyüklüğüne göre ölçekle.
 
 EK BESİN DEĞERLERİ: Ayrıca şunları da tahmin et — sugar (şeker, GRAM), fiber (lif, GRAM), sodium (sodyum, MİLİGRAM), cholesterol (kolesterol, MİLİGRAM). Hepsi tam sayı. Dikkat: sugar karbonhidratın bir alt kümesidir (carb'dan büyük olamaz). Tuzlu/işlenmiş yiyeceklerde sodyumu küçümseme (bir porsiyon hazır çorba/turşu/salam kolayca 800-1500 mg olur). Bitkisel gıdalarda kolesterol 0'dır. Görselde yemek yoksa hepsi 0.
 

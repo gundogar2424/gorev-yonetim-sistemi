@@ -363,6 +363,28 @@ export async function buildHealthContext(settings?: DietSettings, scope: HealthS
     }
   }
 
+  // KAFEIN — gunun toplami ve siniri. Koc "bugun 3 kahve oldu, aksama kadar
+  // birak" gibi somut konusabilsin diye; ayrica gec saatte alinan kafein
+  // uykuyu bozdugu icin uyku yorumuyla birlikte kullanilir.
+  {
+    const todaysAll = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
+    const caf = todaysAll.reduce((s2, e) => s2 + (e.caffeineMg || 0), 0)
+    if (caf > 0) {
+      const limit = settings?.caffeineLimitMg && settings.caffeineLimitMg > 0 ? settings.caffeineLimitMg : 400
+      const last = todaysAll.filter((e) => (e.caffeineMg || 0) > 0).sort((a, b) => b.createdAt - a.createdAt)[0]
+      const lastTime = last ? new Date(last.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : ''
+      add(
+        `KAFEİN bugün: ${caf} mg / ${limit} mg sınır${lastTime ? ` (son alım ${lastTime})` : ''}.${
+          caf > limit
+            ? ' SINIR AŞILDI — bugün daha fazla kahve/çay içmemesini net ama nazikçe söyle.'
+            : caf > limit * 0.75
+              ? ' Sınıra yaklaştı — kalan hakkını hatırlat.'
+              : ''
+        } Kafein uykuya dalmayı geciktirir; öğleden sonra 16:00’dan sonra alınan kafein o geceki uykuyu bozabilir, uyku düşükse bunu bağla.`
+      , ['shopping', 'quick'])
+    }
+  }
+
   // Bugunku durum: kalori, su, spor, son moral
   const todays = entries.filter((e) => e.dateStr === today && e.decision === 'ate')
   const kcal = todays.reduce((s, e) => s + (e.estimatedCalories || 0), 0)

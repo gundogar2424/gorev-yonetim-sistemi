@@ -748,6 +748,7 @@ export default function Capture() {
         <StepExerciseRow exercises={exercises ?? []} stepGoal={settings?.stepGoal} />
 
         {/* Uyku (saatten gelir; ana ekranda görünmüyordu) */}
+        <CaffeineRow entries={entries ?? []} limit={settings?.caffeineLimitMg} />
         <SleepRow goal={settings?.sleepGoal} />
 
         {/* Su takibi (ml) */}
@@ -3027,14 +3028,73 @@ const FAV_SUGGESTIONS: {
   protein?: number
   carb?: number
   fat?: number
-  ml?: number
+  caffeineMg?: number
 }[] = [
-  { emoji: '☕', name: 'Çay (şekersiz)', kcal: 0, ml: 200 },
-  { emoji: '☕', name: 'Türk kahvesi (sade)', kcal: 5, ml: 60 },
-  { emoji: '🥛', name: 'Ayran (200 ml)', kcal: 75, protein: 4, carb: 6, fat: 4, ml: 200 },
-  { emoji: '🥤', name: 'Soda (sade)', kcal: 0, ml: 200 },
+  { emoji: '☕', name: 'Çay (şekersiz)', kcal: 0, caffeineMg: 47 },
+  { emoji: '☕', name: 'Türk kahvesi (sade)', kcal: 5, caffeineMg: 65 },
+  { emoji: '🥛', name: 'Ayran (200 ml)', kcal: 75, protein: 4, carb: 6, fat: 4 },
+  { emoji: '🥤', name: 'Soda (sade)', kcal: 0 },
   { emoji: '🍎', name: 'Elma (1 orta)', kcal: 95, protein: 0, carb: 25, fat: 0 }
 ]
+
+// KAFEIN — gunun toplami, siniri ve gec saat uyarisi.
+//
+// Neden: cay/kahve tek dokunusla ekleniyor ama hicbir yerde toplanmiyordu.
+// Kafein hem gunluk ust sinir (yetiskinde yaygin olarak 400 mg) hem de UYKU
+// acisindan onemli: gec saatte alinan kafein uykuya dalmayi geciktirir ve bu
+// uygulamada uyku zaten takip ediliyor.
+function CaffeineRow({ entries, limit }: { entries: DietEntry[]; limit?: number }) {
+  const today = todayStr()
+  const rows = entries.filter((e) => e.dateStr === today && e.decision === 'ate' && (e.caffeineMg || 0) > 0)
+  if (!rows.length) return null
+
+  const total = rows.reduce((s, e) => s + (e.caffeineMg || 0), 0)
+  const max = limit && limit > 0 ? limit : 400
+  const pct = Math.min(100, Math.round((total / max) * 100))
+  const over = total > max
+  const near = !over && total > max * 0.75
+
+  const last = rows.reduce((a, b) => (a.createdAt > b.createdAt ? a : b))
+  const lastDate = new Date(last.createdAt)
+  const lateHour = lastDate.getHours() >= 16
+  const lastTime = lastDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+
+  const bar = over ? 'bg-rose-500' : near ? 'bg-amber-500' : 'bg-amber-700'
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[17px] font-bold text-slate-900 dark:text-[#e0e1e6] leading-tight">☕ Kafein</p>
+        <span className="text-[12px] text-slate-500 dark:text-[#9b9ea7]">{rows.length} içecek</span>
+      </div>
+
+      <div className="flex items-baseline gap-2 mt-2">
+        <span
+          className={`text-[26px] font-bold tabular-nums leading-none ${
+            over ? 'text-rose-500' : 'text-slate-900 dark:text-[#e0e1e6]'
+          }`}
+        >
+          {total}
+        </span>
+        <span className="text-[14px] text-slate-500 dark:text-[#9b9ea7]">mg / {max} mg</span>
+      </div>
+
+      <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#151724] mt-2.5 overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${bar}`} style={{ width: `${pct}%` }} />
+      </div>
+
+      <p className="text-[12px] text-slate-500 dark:text-[#9b9ea7] mt-2 leading-snug">
+        {over
+          ? `Günlük sınırı aştın — bugün başka kahve/çay içme. Son alım ${lastTime}.`
+          : near
+            ? `Sınıra yaklaştın, ${max - total} mg kaldı (~1 fincan). Son alım ${lastTime}.`
+            : lateHour
+              ? `Son alım ${lastTime} — kafein bu saatten sonra uykuya dalmayı geciktirebilir.`
+              : `Son alım ${lastTime}. 16:00'dan sonrası uykunu etkileyebilir.`}
+      </p>
+    </div>
+  )
+}
 
 function Favorites() {
   const favs = useLiveQuery(() => listFavorites(), [], [])
@@ -3049,8 +3109,8 @@ function Favorites() {
   const [prot, setProt] = useState('')
   const [carbF, setCarbF] = useState('')
   const [fatF, setFatF] = useState('')
-  // Sivi (ml): doldurulursa gunun SU toplamina da yazilir.
-  const [mlF, setMlF] = useState('')
+  // Kafein (mg): gunun kafein toplamina girer, sinir asilinca uyari cikar.
+  const [caf, setCaf] = useState('')
   const [flash, setFlash] = useState('')
   // Veritabaninda ISIMLE arama (Open Food Facts, ucretsiz, yapay zeka YOK)
   const [q, setQ] = useState('')
@@ -3104,7 +3164,7 @@ function Favorites() {
       protein: num(prot),
       carb: num(carbF),
       fat: num(fatF),
-      ml: num(mlF)
+      caffeineMg: num(caf)
     })
     setName('')
     setEmoji('')
@@ -3112,7 +3172,7 @@ function Favorites() {
     setProt('')
     setCarbF('')
     setFatF('')
-    setMlF('')
+    setCaf('')
     setAdding(false)
   }
 
@@ -3246,11 +3306,11 @@ function Favorites() {
             <input className="field-input text-center" inputMode="numeric" placeholder="prot g" value={prot} onChange={(e) => setProt(e.target.value)} />
             <input className="field-input text-center" inputMode="numeric" placeholder="karb g" value={carbF} onChange={(e) => setCarbF(e.target.value)} />
             <input className="field-input text-center" inputMode="numeric" placeholder="yağ g" value={fatF} onChange={(e) => setFatF(e.target.value)} />
-            <input className="field-input text-center" inputMode="numeric" placeholder="ml su" value={mlF} onChange={(e) => setMlF(e.target.value)} />
+            <input className="field-input text-center" inputMode="numeric" placeholder="kafein mg" value={caf} onChange={(e) => setCaf(e.target.value)} />
           </div>
           <p className="text-[11px] text-slate-400 leading-tight">
-            Makroları boş bırakırsan yalnızca kalori sayılır. “ml su” yazarsan (çay 200, fincan kahve 60 gibi) o miktar
-            günün su toplamına da eklenir.
+            Makroları boş bırakırsan yalnızca kalori sayılır. Kafein yazarsan (çay ~47, Türk kahvesi ~65, filtre kahve
+            ~95 mg) günlük toplam takip edilir ve sınırı aşınca uyarılırsın.
           </p>
           <div className="flex gap-2">
             <button onClick={save} className="btn-primary flex-1">
