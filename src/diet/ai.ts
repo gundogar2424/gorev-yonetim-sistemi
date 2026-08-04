@@ -670,6 +670,8 @@ export async function recheckCompliance(opts: {
 
 TEMEL KURAL: Yemeğin ADI listedekiyle aynı mı diye BAKMA. Listede "ızgara tavuk + salata" varken kişi "ızgara köfte + salata" yediyse, kalori ve makro yakınsa uyum YÜKSEKTİR — isim farkı ceza sebebi DEĞİLDİR.
 
+GÜN DEĞİŞİMİ (çok önemli): Liste "haftada 3 gün şu, 2 gün bu" gibi çeşitler içeriyorsa, bunların hangi güne düştüğü SADECE BİR ÖNERİDİR. Kullanıcı bugün başka bir güne düşen çeşidi yerse (yulaflı gün yazarken yumurtalı kahvaltı yapmak gibi) bu TAM UYUMLUDUR; puanı düşürme, "yanlış gün" deme. Uyumu yalnızca yenen şey listede hiç yoksa ya da kalori/makro belirgin saparsa kır.
+
 BİRLEŞİK ÖĞÜN (çok önemli): Öğün bilgisi birden fazla öğün içeriyorsa (örn. "Kahvaltı + Öğle + İkindi"), kişi bunları TEK SEFERDE yemiştir. Karşılaştırmayı listedeki O ÖĞÜNLERİN TOPLAMINA göre yap; tek bir öğüne göre DEĞİL. Üç öğünlük yemeği tek öğünle kıyaslayıp "çok fazla" deme. "Öğün atladın / eksik" diye CEZALANDIRMA — birleşen öğünlerin hepsi bu kayıtla karşılanmıştır.
 
 compliancePercent = 0-100: 100 = ilgili öğün(ler)in TOPLAM kalori ve makrosuna çok yakın; 50 = kısmen sapmış; 0 = tamamen aykırı. Puanı sadece kalori/makro BELİRGİN saparsa kır.

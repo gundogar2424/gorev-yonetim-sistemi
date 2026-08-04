@@ -2822,6 +2822,11 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
             )}
           </div>
           <p className="text-[15px] text-slate-800 leading-relaxed">{planText}</p>
+          {dayLabel && (
+            <p className="text-[11px] text-slate-400 mt-1.5 leading-snug">
+              Gün dağılımı öneridir — canın başka günün çeşidini çekerse ye, uyumdan düşmez.
+            </p>
+          )}
         </div>
       ) : (
         <p className="mt-4 pt-4 border-t border-slate-100 dark:border-[#2f3240] text-[13px] text-slate-500 leading-relaxed">
