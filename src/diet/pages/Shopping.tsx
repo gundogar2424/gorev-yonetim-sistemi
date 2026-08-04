@@ -13,6 +13,7 @@ import {
 } from '../db'
 import { suggestShopping } from '../ai'
 import { buildHealthContext } from '../lib/context'
+import { formatWeekPlan } from '../lib/plan'
 import type { ShoppingItem, ShoppingSuggestion } from '../types'
 
 export default function Shopping() {
@@ -155,8 +156,11 @@ function SuggestFromPlan({
     setAdded(new Set())
     setBusy(true)
     try {
-      const health = await buildHealthContext(await readDietSettings(), 'shopping')
-      const res: ShoppingSuggestion = await suggestShopping({ apiKey: apiKey!, dietPlan: dietPlan ?? '', days, model, userName, goal, health })
+      const st = await readDietSettings()
+      const health = await buildHealthContext(st, 'shopping')
+      // Haftalik dagilim varsa miktarlar gun sayisina gore hesaplansin.
+      const weekPlan = formatWeekPlan(st)
+      const res: ShoppingSuggestion = await suggestShopping({ apiKey: apiKey!, dietPlan: dietPlan ?? '', days, weekPlan, model, userName, goal, health })
       // Kategorileri düz listeye indir + tekilleştir (öğün/kategori gösterme)
       const seen = new Set<string>()
       const flat: string[] = []

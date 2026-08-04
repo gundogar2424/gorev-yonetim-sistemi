@@ -1202,12 +1202,13 @@ export async function suggestShopping(opts: {
   apiKey: string
   dietPlan: string
   days?: number // Kac gunluk alisveris (varsayilan 7)
+  weekPlan?: string // Listenin 7 gune dagitilmis hali (varsa) — miktar sayimi icin
   model?: string
   userName?: string
   goal?: string
   health?: string
 }): Promise<ShoppingSuggestion> {
-  const { apiKey, dietPlan, days = 7, model = DEFAULT_MODEL, userName, goal, health } = opts
+  const { apiKey, dietPlan, days = 7, weekPlan, model = DEFAULT_MODEL, userName, goal, health } = opts
   if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
   if (!dietPlan.trim()) throw new Error('Önce Ayarlar/Menü bölümünden diyet listeni ekle.')
 
@@ -1222,6 +1223,7 @@ Kurallar:
 - Her kategoride, diyet listesinde geçen veya o öğünleri yapmak için gereken ürünleri yaz. Her ürün bir nesnedir: name (ürün adı) + meals (hangi öğünlerde geçtiği). Ürün adlarını KISA ve sade tut (örn. "yumurta", "tam buğday ekmeği", "yağsız yoğurt", "tavuk göğsü", "brokoli"). İstersen name içine yaklaşık miktar ekleyebilirsin (örn. "yulaf (1 paket)").
 - meals alanına, o ürünün diyet listesinde GEÇTİĞİ ÖĞÜNLERİN adlarını yaz (listedeki öğün başlıklarını kullan: örn. "Kahvaltı", "Ara öğün", "Öğle", "İkindi", "Akşam", "Gece"). Bir ürün birden çok öğünde geçiyorsa hepsini yaz (örn. ["Kahvaltı","Akşam"]). Hangi öğünde olduğu listeden net değilse en olası öğünü yaz; genel bir temel malzemeyse boş [] bırakabilirsin.
 - Yaklaşık ${days} günlük ihtiyaca göre düşün. Aşırıya kaçma; pratik ve gerçekçi bir liste olsun.
+${weekPlan?.trim() ? `- MİKTARLARI HAFTALIK PLANDAN SAY. Aşağıda listenin 7 güne dağıtılmış hali var. Bir ürünün kaç GÜN geçtiğini say ve miktarı ona göre yaz — her ürünü 7 günlükmüş gibi alma. Örn. yumurtalı kahvaltı 5 güne, yulaflı kahvaltı 2 güne düşüyorsa yumurtayı 5 güne, yulafı 2 güne göre hesapla. "VEYA" ile ayrılmış alternatiflerde (ör. "zeytin veya ceviz") ikisini de listeye koy ama miktarı BÖLÜŞTÜR, ikisini de tam hafta almış gibi yazma.` : ''}
 - Diyet listesinde olmayan, sağlıksız (şekerli/işlenmiş) ürünler EKLEME.
 - note alanına TEK kısa cümlelik bir bilgi yaz (örn. "Listene göre ~${days} günlük temel alışveriş.").
 
@@ -1236,7 +1238,9 @@ Kurallar:
       messages: [
         {
           role: 'user',
-          content: `İşte diyet listem. Bunu yapabilmem için kategorilere ayrılmış bir alışveriş listesi çıkar:\n\n${dietPlan.trim()}`
+          content: `İşte diyet listem. Bunu yapabilmem için kategorilere ayrılmış bir alışveriş listesi çıkar:\n\n${dietPlan.trim()}${
+            weekPlan?.trim() ? `\n\nLİSTENİN HAFTAYA DAĞILIMI (miktarları buradan say):\n${weekPlan.trim()}` : ''
+          }`
         }
       ],
       output_config: { format: { type: 'json_schema', schema: SHOPPING_SCHEMA } }
