@@ -2739,28 +2739,38 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
 
   if (meals.length === 0) return null
 
-  // 1) Saati GELMEMİŞ ve girilmemiş ilk öğün
-  let next = meals.find((x) => x.min >= nowMin && !covered.has(x.meal))
+  // SIRALAMA ÖNEMLİ — GİRİLMEMİŞ ÖĞÜN ÖNCE GELİR.
+  //
+  // Eskiden önce "saati gelmemiş ilk öğün" aranıyordu; ileride HERHANGİ bir
+  // öğün olduğu sürece geçmiş ama girilmemiş öğün hiç görünmüyordu. Saat
+  // 09:11'de 09:00'daki kahvaltı girilmemişken kart doğrudan 13:00 öğle
+  // yemeğini gösteriyordu — kahvaltı ancak günün sonunda, ileride hiç öğün
+  // kalmayınca ortaya çıkıyordu (o da 4 saatlik pencereyi çoktan aşmış olurdu).
+  //
+  // Yeni kural: makul süre içinde geçmiş ve girilmemiş bir öğün varsa ONU
+  // göster. Tek istisna, bir sonraki öğünün kapıda olması (30 dk içinde) —
+  // o zaman yaklaşan öğüne öncelik ver ki zamanında girebilesin.
+  const OVERDUE_GRACE_MIN = 4 * 60
+  const IMMINENT_MIN = 30
+
+  const future = meals.find((x) => x.min >= nowMin && !covered.has(x.meal))
+  const past = meals.filter((x) => x.min < nowMin && !covered.has(x.meal) && nowMin - x.min <= OVERDUE_GRACE_MIN)
+  // En SON geçen öğün: sabah atlanan kahvaltıyı akşam öne çıkarmak anlamsız.
+  const lateOne = past.length ? past[past.length - 1] : undefined
+
+  let next: typeof meals[number] | undefined
   let tomorrow = false
   let overdue = false
 
-  // 2) Yoksa: saati GEÇMİŞ ama hâlâ girilmemiş öğün.
-  //    Eskiden burası doğrudan yarına atlıyordu; saat 21:51'de 21:30'daki gece
-  //    öğünü girilmemişse öğün sessizce KAYBOLUYORDU. Girmediğin öğün
-  //    yarına atlamadan önce hâlâ önünde durmalı ki kaydedebilesin.
-  //    En SON geçen öğünü alıyoruz (sabah atlanan kahvaltıyı akşam öne
-  //    çıkarmak anlamsız olurdu) ve yalnızca makul bir süre içindeyse.
-  const OVERDUE_GRACE_MIN = 4 * 60
-  if (!next) {
-    const past = meals.filter((x) => x.min < nowMin && !covered.has(x.meal) && nowMin - x.min <= OVERDUE_GRACE_MIN)
-    if (past.length) {
-      next = past[past.length - 1]
-      overdue = true
-    }
-  }
-
-  // 3) O da yoksa: yarının ilk öğünü
-  if (!next) {
+  if (lateOne && (!future || future.min - nowMin > IMMINENT_MIN)) {
+    next = lateOne
+    overdue = true
+  } else if (future) {
+    next = future
+  } else if (lateOne) {
+    next = lateOne
+    overdue = true
+  } else {
     next = meals[0]
     tomorrow = true
   }
