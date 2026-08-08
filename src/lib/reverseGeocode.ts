@@ -8,9 +8,21 @@ export interface GeoResult {
   ilceCandidates: string[]
 }
 
-// Once BigDataCloud (anahtar/UA gerektirmez), olmazsa Nominatim denenir.
+// Once CEVRIMDISI (internetsiz) gomulu sinir verisiyle bulunur -> il her zaman gelir,
+// internet gerekmez, aninda calisir. Ilce cevrimdisi verilerde yoksa (buyuksehir
+// merkez ilceleri gibi) cevrimici servislerle zenginlestirilmeye calisilir.
 export async function reverseGeocode(gps: GpsPoint): Promise<GeoResult | null> {
-  return (await tryBigDataCloud(gps)) ?? (await tryNominatim(gps))
+  const { offlineReverseGeocode } = await import('./offlineGeo')
+  const offline = await offlineReverseGeocode(gps)
+  if (offline && offline.ilceCandidates.length > 0) return offline
+
+  // Ilce cevrimdisi bulunamadi; cevrimici servislerden ilce almayi dene.
+  const online = (await tryBigDataCloud(gps)) ?? (await tryNominatim(gps))
+  if (online) {
+    // Il'i cevrimdisi (guvenilir) sonuctan koru; ilce adaylarini cevrimiciden al.
+    return { il: offline?.il || online.il, ilceCandidates: online.ilceCandidates }
+  }
+  return offline // en azindan il (cevrimdisi)
 }
 
 // BigDataCloud: client tarafi icin tasarlanmis ucretsiz servis
@@ -81,6 +93,29 @@ async function fetchJson(url: string): Promise<unknown> {
   }
   const r = await fetch(url, { headers: { 'Accept-Language': 'tr' } })
   return r.json()
+}
+
+// Geocode sonucunu (il + ilce adaylari) uygulamanin il/ilce listesine (seed) esler.
+// Donen il/ilce degerleri listedeki resmi yazimla ayni olur.
+export interface SeedCityLike {
+  name: string
+  districts: string[]
+}
+export function matchToSeed(
+  geo: GeoResult,
+  cities: SeedCityLike[]
+): { city: string; district: string } | null {
+  const cityMatch = cities.find((c) => normTr(c.name) === normTr(geo.il))
+  if (!cityMatch) return null
+  let district = ''
+  for (const cand of geo.ilceCandidates) {
+    const dm = cityMatch.districts.find((d) => normTr(d) === normTr(cand))
+    if (dm) {
+      district = dm
+      break
+    }
+  }
+  return { city: cityMatch.name, district }
 }
 
 // Turkce duyarli normallestirme (esleme icin): buyuk/kucuk + aksan farkini yok say

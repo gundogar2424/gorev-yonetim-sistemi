@@ -7,7 +7,7 @@ import { fileToResizedDataUrl } from '../lib/image'
 import { getCurrentPosition } from '../lib/geo'
 import { resolveLocationAsync, isShortMapsLink } from '../lib/location'
 import { extractCoordsFromImage } from '../lib/aiLocation'
-import { reverseGeocode, normTr } from '../lib/reverseGeocode'
+import { reverseGeocode, matchToSeed } from '../lib/reverseGeocode'
 import Header from '../components/Header'
 
 const emptyCustomer: Customer = {
@@ -139,24 +139,17 @@ export default function CustomerForm() {
     try {
       const geo = await reverseGeocode(gps)
       if (!geo) return 'fail'
-      const cityMatch = (cities ?? []).find((c) => normTr(c.name) === normTr(geo.il))
-      if (!cityMatch) return 'nomatch'
-      let districtName: string | undefined
-      for (const cand of geo.ilceCandidates) {
-        const dm = cityMatch.districts.find((d) => normTr(d) === normTr(cand))
-        if (dm) {
-          districtName = dm
-          break
-        }
-      }
+      const match = matchToSeed(geo, cities ?? [])
+      if (!match) return 'nomatch'
+      const cityDistricts = (cities ?? []).find((c) => c.name === match.city)?.districts ?? []
       // Konum belirleyicidir: il/ilce'yi konumdan ALIR (uzerine yazar).
       setForm((f) => {
         // ilce eslesmediyse: eski ilce yeni ilin bir ilcesiyse koru, degilse temizle
-        const keepOld = cityMatch.districts.includes(f.district) ? f.district : ''
+        const keepOld = cityDistricts.includes(f.district) ? f.district : ''
         return {
           ...f,
-          city: cityMatch.name,
-          district: districtName ?? keepOld
+          city: match.city,
+          district: match.district || keepOld
         }
       })
       return 'ok'
