@@ -151,6 +151,11 @@ function CustomerCard({ c, onClick }: { c: Customer; onClick: () => void }) {
         )}
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-slate-800 leading-snug break-words line-clamp-2">
+            {c.gps && (
+              <span title="Konum kayıtlı" className="mr-0.5 align-middle">
+                📍
+              </span>
+            )}
             {c.companyTitle}
           </p>
           {(c.contactName || c.role) && (
