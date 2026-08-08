@@ -15,7 +15,7 @@ const tabs = [
 export default function App() {
   return (
     <div className="min-h-full flex flex-col max-w-xl mx-auto bg-slate-100">
-      <main className="flex-1 pb-20">
+      <main className="flex-1" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<CustomerList />} />
           <Route path="/yeni" element={<CustomerForm />} />
@@ -27,7 +27,10 @@ export default function App() {
       </main>
 
       {/* Alt gezinme cubugu (mobil icin sabit) */}
-      <nav className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-4 z-20">
+      <nav
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-4 z-20"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {tabs.map((t) => (
           <NavLink
             key={t.to}

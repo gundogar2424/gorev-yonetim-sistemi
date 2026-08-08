@@ -99,7 +99,7 @@ jobs:
           k=$(find node_modules/@flomentumsolutions/capacitor-health-extended/android/src/main/java -name 'HealthPlugin.kt')
           sed -i 's#HealthPermission\.PERMISSION_READ_EXERCISE_ROUTE#"android.permission.health.READ_EXERCISE_ROUTE"#g' "$k"
 
-      - name: İzinler (kamera + konum)
+      - name: İzinler (kamera + konum + rehber)
         run: |
           f=android/app/src/main/AndroidManifest.xml
           # Musteri/firma fotografi icin kamera + galeri
@@ -107,6 +107,8 @@ jobs:
           grep -q 'READ_MEDIA_IMAGES' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n</manifest>#' "$f"
           # GPS konumu ("Konumu Al")
           grep -q 'ACCESS_FINE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n</manifest>#' "$f"
+          # Telefon rehberinden ice aktarma
+          grep -q 'android.permission.READ_CONTACTS' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.READ_CONTACTS" />\n</manifest>#' "$f"
           echo "--- manifest izinleri ---"; grep -E "uses-permission|uses-feature" "$f" || true
 
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)

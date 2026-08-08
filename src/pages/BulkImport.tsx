@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { db } from '../db'
 import { parsePaste, toCustomer, type ParseResult } from '../lib/importPaste'
 import Header from '../components/Header'
+import ContactsImport from '../components/ContactsImport'
 
 const FIELD_LABELS: Record<string, string> = {
   companyTitle: 'Firma',
@@ -46,6 +47,11 @@ export default function BulkImport() {
       <Header title="Toplu İçe Aktar" subtitle="Excel/tablodan yapıştır" />
 
       <div className="p-3 space-y-3">
+        {/* Telefon rehberinden toplu ekleme (APK) */}
+        <ContactsImport />
+
+        <div className="text-center text-xs text-slate-400">— veya kopyala-yapıştır —</div>
+
         <div className="card p-3 text-sm text-slate-600 bg-brand-50 border-brand-100">
           📋 Excel veya tablodaki satırları kopyalayıp aşağıya yapıştırın. İlk satır başlık ise (Firma,
           Telefon, İl…) otomatik tanınır. Başlık yoksa sütunlar içerikten tahmin edilir.
