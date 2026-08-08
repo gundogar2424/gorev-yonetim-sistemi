@@ -99,9 +99,9 @@ jobs:
           v=android/variables.gradle
           sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
           sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
-          # Agir saglik eklentisi cikarildigindan minSdk'yi Capacitor 8
-          # varsayilanina (23) cekebiliriz; daha cok cihazi kapsar.
-          sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 23/" "$v"
+          # Bagimliliklardan biri (cordova framework) en az 24 istiyor;
+          # bu yuzden minSdk 24 (Android 7). Yine de cihazlarin ~%99'unu kapsar.
+          sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 24/" "$v"
           echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" "$v"
 
       - name: İzinler (kamera + konum + rehber)
