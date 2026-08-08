@@ -169,7 +169,14 @@ async function resolveNative(url: string): Promise<{ point: GpsPoint | null; not
       const finalUrl = (res as unknown as { url?: string }).url ?? ''
       notes.push(`HTTP ${res.status}${finalUrl ? ' → ' + finalUrl.slice(0, 80) : ''} (${body.length}b)`)
       const hay = `${finalUrl}\n${body}`
-      return parseLocationText(hay) ?? parseLocationText(safeDecode(hay))
+      // Google sayfayi kacisli (escaped) yazar: =, \/, !3d..!4d gizli kalir.
+      // Ham + kacissiz + kod-cozulmus tum bicimlerde ararsak koordinati yakalariz.
+      const unescaped = unescapeAll(hay)
+      for (const candidate of [hay, unescaped, safeDecode(hay), safeDecode(unescaped)]) {
+        const p = parseLocationText(candidate)
+        if (p) return p
+      }
+      return null
     }
 
     // 1) Dogrudan (yonlendirmeler takip edilir)
@@ -200,4 +207,17 @@ function safeDecode(s: string): string {
   } catch {
     return s
   }
+}
+
+// Google HTML/JSON kacislarini coz: = -> =, \/ -> /, \" -> " ...
+// Boylece gizli !3d..!4d / @lat,lng / =lat,lng kaliplari ortaya cikar.
+function unescapeAll(s: string): string {
+  let out = s
+  try {
+    out = out.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+  } catch {
+    /* yoksay */
+  }
+  out = out.replace(/\\\//g, '/').replace(/\\"/g, '"')
+  return out
 }
