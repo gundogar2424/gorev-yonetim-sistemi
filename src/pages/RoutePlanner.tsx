@@ -105,7 +105,10 @@ export default function RoutePlanner() {
 
       {/* Rota ozeti ve aksiyon */}
       {route && (
-        <div className="fixed bottom-16 inset-x-0 max-w-xl mx-auto p-3 z-10">
+        <div
+          className="fixed inset-x-0 max-w-xl mx-auto p-3 z-10"
+          style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom))' }}
+        >
           <div className="card p-3 shadow-lg space-y-2 bg-white">
             <p className="text-sm text-slate-600">
               <span className="font-semibold">{route.stops.length} durak</span> · yaklaşık{' '}

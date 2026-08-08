@@ -18,22 +18,19 @@ export default function Regions() {
   const [resolving, setResolving] = useState(false)
   const [resolveMsg, setResolveMsg] = useState('')
 
-  // GPS'i olup il/ilce'si eksik musteri sayisi (cozumlenebilecekler)
-  const pending = useMemo(
-    () => (customers ?? []).filter((c) => c.gps && (!c.city || !c.district)).length,
-    [customers]
-  )
+  // Konumu (GPS) olan tum musteriler - koordinattan yeniden cozumlenebilir
+  const gpsCount = useMemo(() => (customers ?? []).filter((c) => c.gps).length, [customers])
 
-  // Tum eksik konumlari CEVRIMDISI (internetsiz) coz: koordinattan il/ilce doldur.
+  // TUM konumlu musterileri CEVRIMDISI (internetsiz) yeniden coz: il/ilce koordinattan
+  // ALINIR (uzerine yazar). Konum belirleyicidir; yanlis girilmis il/ilce de duzelir.
   async function resolveAll() {
-    const targets = (customers ?? []).filter((c) => c.gps && (!c.city || !c.district))
+    const targets = (customers ?? []).filter((c) => c.gps)
     if (targets.length === 0) {
-      setResolveMsg('Çözümlenecek konum yok. Tüm konumlu müşterilerin il/ilçesi zaten dolu.')
+      setResolveMsg('Konumu (GPS) olan müşteri yok.')
       return
     }
     setResolving(true)
-    let ilDolan = 0
-    let ilceDolan = 0
+    let degisen = 0
     let bulunamayan = 0
     for (let i = 0; i < targets.length; i++) {
       const c = targets[i]
@@ -43,22 +40,17 @@ export default function Regions() {
         if (!match) {
           bulunamayan++
         } else {
-          const cityChanged = c.city !== match.city
-          // Konum belirleyicidir: il koordinattan alinir.
-          let newDistrict = c.district
-          if (match.district) newDistrict = match.district
-          else if (cityChanged) newDistrict = '' // eski ilce artik gecersiz (il degisti)
+          const cityDistricts = (cities ?? []).find((x) => x.name === match.city)?.districts ?? []
+          // ilce: cevrimdisi bulunduysa onu kullan; bulunamadiysa mevcut ilce yeni ilin
+          // gecerli bir ilcesiyse koru (buyuksehir merkezleri), degilse temizle.
+          let newDistrict = match.district
+          if (!newDistrict) newDistrict = cityDistricts.includes(c.district) ? c.district : ''
           const patch: Partial<Customer> = {}
-          if (cityChanged) {
-            patch.city = match.city
-            ilDolan++
-          }
-          if (newDistrict !== c.district) {
-            patch.district = newDistrict
-            if (newDistrict) ilceDolan++
-          }
+          if (c.city !== match.city) patch.city = match.city
+          if (c.district !== newDistrict) patch.district = newDistrict
           if (Object.keys(patch).length > 0 && c.id != null) {
             await db.customers.update(c.id, patch)
+            degisen++
           }
         }
       } catch {
@@ -68,7 +60,7 @@ export default function Regions() {
     }
     setResolving(false)
     setResolveMsg(
-      `✓ Bitti. ${ilDolan} müşteriye il, ${ilceDolan} müşteriye ilçe eklendi.` +
+      `✓ Bitti. ${degisen} müşterinin il/ilçesi konuma göre güncellendi.` +
         (bulunamayan ? ` ${bulunamayan} konum çözülemedi (Türkiye dışında olabilir).` : '')
     )
   }
@@ -126,12 +118,12 @@ export default function Regions() {
 
       <div className="p-3 space-y-3">
         {/* Konumdan il/ilce cozumleme (cevrimdisi calisir) */}
-        {(pending > 0 || resolveMsg) && (
+        {(gpsCount > 0 || resolveMsg) && (
           <div className="card p-3 space-y-2">
-            {pending > 0 && (
+            {gpsCount > 0 && (
               <p className="text-sm text-slate-600">
-                {pending} müşterinin konumu var ama il/ilçesi eksik. Tek dokunuşla
-                koordinatlarından bulunabilir (internet gerekmez).
+                Konumu olan {gpsCount} müşterinin il/ilçesini koordinatına göre
+                güncelle. Yanlış girilmiş il/ilçe de düzelir (internet gerekmez).
               </p>
             )}
             <button onClick={resolveAll} disabled={resolving} className="btn-primary w-full">
