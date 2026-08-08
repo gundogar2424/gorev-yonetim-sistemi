@@ -147,11 +147,16 @@ export default function CustomerForm() {
           break
         }
       }
-      setForm((f) => ({
-        ...f,
-        city: f.city || cityMatch.name,
-        district: f.district || districtName || f.district
-      }))
+      // Konum belirleyicidir: il/ilce'yi konumdan ALIR (uzerine yazar).
+      setForm((f) => {
+        // ilce eslesmediyse: eski ilce yeni ilin bir ilcesiyse koru, degilse temizle
+        const keepOld = cityMatch.districts.includes(f.district) ? f.district : ''
+        return {
+          ...f,
+          city: cityMatch.name,
+          district: districtName ?? keepOld
+        }
+      })
     } catch {
       /* il/ilce bulunamazsa sessizce gec */
     }
