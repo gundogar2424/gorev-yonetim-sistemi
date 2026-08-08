@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { db } from '../db'
+import { db, getIgnoredPhoneSet } from '../db'
 import { toCustomer } from '../lib/importPaste'
 import { fetchPhoneContacts, isContactsAvailable, type PhoneContact } from '../lib/contactsImport'
 
@@ -70,11 +70,13 @@ export default function ContactsImport() {
       const chosen = contacts.filter((c) => selected.has(c.id))
       // Mevcut numaralarla cakisanlari atla (tekrar eklenmesin)
       const existing = new Set((await db.customers.toArray()).map((c) => c.phone).filter(Boolean))
+      // Daha once silinip "engellenen" numaralari da atla (geri gelmesinler)
+      const ignored = await getIgnoredPhoneSet()
       const now = Date.now()
       const records = []
       let atlandi = 0
       for (const c of chosen) {
-        if (existing.has(c.phone)) {
+        if (existing.has(c.phone) || ignored.has(c.phone)) {
           atlandi++
           continue
         }

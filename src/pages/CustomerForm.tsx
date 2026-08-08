@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, getSettings } from '../db'
+import { db, getSettings, addIgnoredPhones } from '../db'
 import type { Customer, GpsPoint, Ownership, PaymentType } from '../types'
 import { fileToResizedDataUrl } from '../lib/image'
 import { getCurrentPosition } from '../lib/geo'
@@ -226,6 +226,8 @@ export default function CustomerForm() {
   async function remove() {
     if (!editing) return
     if (!confirm('Bu müşteriyi silmek istediğinize emin misiniz?')) return
+    // Numarayi engelle: rehber tekrar aktarilinca geri gelmesin
+    if (form.phone?.trim()) await addIgnoredPhones([form.phone.trim()])
     await db.customers.delete(Number(id))
     navigate('/')
   }

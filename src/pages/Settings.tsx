@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, getSettings, saveSettings } from '../db'
+import { db, getSettings, saveSettings, clearIgnoredPhones } from '../db'
 import { getCurrentPosition } from '../lib/geo'
 import { exportBackup, downloadBackup, restoreBackup, parseBackupFile } from '../lib/backup'
 import Header from '../components/Header'
@@ -8,6 +8,7 @@ import Header from '../components/Header'
 export default function Settings() {
   const settings = useLiveQuery(() => getSettings(), [], undefined)
   const cities = useLiveQuery(() => db.cities.orderBy('name').toArray(), [], [])
+  const ignoredCount = useLiveQuery(() => db.ignoredPhones.count(), [], 0)
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [gpsBusy, setGpsBusy] = useState(false)
@@ -131,6 +132,32 @@ export default function Settings() {
             ⬆️ Yedekten Geri Yükle
           </button>
           <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onRestoreFile} />
+        </section>
+
+        {/* Engellenen numaralar */}
+        <section className="card p-3 space-y-3">
+          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">
+            Engellenen Numaralar
+          </h2>
+          <p className="text-xs text-slate-500">
+            Sildiğin müşterilerin numaraları buraya eklenir; rehberi tekrar içe aktardığında{' '}
+            <b>geri gelmezler</b>. Şu an <b>{ignoredCount}</b> numara engelli. Listeyi temizlersen,
+            bu numaralar bir sonraki rehber aktarımında yeniden eklenebilir hâle gelir.
+          </p>
+          <button
+            onClick={async () => {
+              if (ignoredCount === 0) {
+                flash('Engelli numara yok.')
+                return
+              }
+              if (!confirm(`${ignoredCount} numaranın engeli kaldırılsın mı?`)) return
+              await clearIgnoredPhones()
+              flash('Engelli numara listesi temizlendi.')
+            }}
+            className="btn-ghost w-full"
+          >
+            Engeli Kaldır (listeyi temizle)
+          </button>
         </section>
 
         {/* Il / Ilce yonetimi */}

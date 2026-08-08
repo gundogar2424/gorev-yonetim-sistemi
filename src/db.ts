@@ -4,10 +4,16 @@ import Dexie, { type Table } from 'dexie'
 import type { AppSettings, CityRecord, Customer } from './types'
 import { seedCities } from './data/turkeyCities'
 
+// Rehberden bir daha eklenmemesi icin engellenen telefon numaralari
+export interface IgnoredPhone {
+  phone: string
+}
+
 export class SahaCrmDB extends Dexie {
   customers!: Table<Customer, number>
   settings!: Table<AppSettings, number>
   cities!: Table<CityRecord, number>
+  ignoredPhones!: Table<IgnoredPhone, string>
 
   constructor() {
     super('saha-crm')
@@ -16,6 +22,10 @@ export class SahaCrmDB extends Dexie {
       customers: '++id, companyTitle, contactName, phone, city, district, birthDate, updatedAt',
       settings: '++id',
       cities: '++id, &name'
+    })
+    // v2: silinen/istenmeyen numaralari sakla; rehber tekrar aktarilinca gelmesinler
+    this.version(2).stores({
+      ignoredPhones: '&phone'
     })
   }
 }
@@ -44,4 +54,17 @@ export async function getSettings(): Promise<AppSettings> {
 export async function saveSettings(patch: Partial<AppSettings>) {
   const s = await getSettings()
   await db.settings.update(s.id!, patch)
+}
+
+// --- Engellenen numaralar (rehberden tekrar eklenmesin) ---
+export async function addIgnoredPhones(phones: string[]) {
+  const clean = phones.filter((p) => p && p.trim())
+  if (clean.length === 0) return
+  await db.ignoredPhones.bulkPut(clean.map((phone) => ({ phone })))
+}
+export async function getIgnoredPhoneSet(): Promise<Set<string>> {
+  return new Set((await db.ignoredPhones.toArray()).map((r) => r.phone))
+}
+export async function clearIgnoredPhones() {
+  await db.ignoredPhones.clear()
 }
