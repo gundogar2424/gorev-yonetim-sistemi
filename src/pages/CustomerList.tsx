@@ -149,15 +149,24 @@ function CustomerCard({ c, onClick }: { c: Customer; onClick: () => void }) {
             {(c.companyTitle || '?').slice(0, 1).toLocaleUpperCase('tr-TR')}
           </div>
         )}
-        <div className="min-w-0">
-          <p className="font-semibold text-slate-800 truncate">{c.companyTitle}</p>
-          <p className="text-sm text-slate-500 truncate">
-            {c.contactName}
-            {c.role ? ` · ${c.role}` : ''}
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-slate-800 leading-snug break-words line-clamp-2">
+            {c.companyTitle}
           </p>
-          <p className="text-xs text-slate-400 truncate">
-            {[c.district, c.city].filter(Boolean).join(', ')}
-          </p>
+          {(c.contactName || c.role) && (
+            <p className="text-sm text-slate-500 truncate">
+              {c.contactName}
+              {c.role ? ` · ${c.role}` : ''}
+            </p>
+          )}
+          {!c.contactName && c.phone && (
+            <p className="text-sm text-slate-500 truncate">{c.phone}</p>
+          )}
+          {(c.district || c.city) && (
+            <p className="text-xs text-slate-400 truncate">
+              {[c.district, c.city].filter(Boolean).join(', ')}
+            </p>
+          )}
         </div>
       </button>
 
