@@ -1,8 +1,30 @@
 // Konum (GPS) yardimcilari
 import type { GpsPoint } from '../types'
+import { Capacitor } from '@capacitor/core'
 
-// Cihazdan anlik konum al
-export function getCurrentPosition(): Promise<GpsPoint> {
+// Cihazdan anlik konum al.
+// APK (native) icinde Capacitor Geolocation eklentisini, web tarayicisinda
+// standart navigator.geolocation'i kullanir.
+export async function getCurrentPosition(): Promise<GpsPoint> {
+  if (Capacitor.isNativePlatform()) {
+    const { Geolocation } = await import('@capacitor/geolocation')
+    try {
+      const perm = await Geolocation.requestPermissions({ permissions: ['location'] })
+      if (perm.location === 'denied' && perm.coarseLocation === 'denied') {
+        throw new Error('Konum izni verilmedi. Uygulama ayarlarindan izin verin.')
+      }
+      const pos = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      })
+      return { lat: pos.coords.latitude, lng: pos.coords.longitude }
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : 'Konum alinamadi.')
+    }
+  }
+
+  // Web tarayici
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) {
       reject(new Error('Bu cihaz konum servisini desteklemiyor.'))
