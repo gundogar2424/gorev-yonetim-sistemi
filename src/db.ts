@@ -7,6 +7,7 @@ import { seedCities } from './data/turkeyCities'
 // Rehberden bir daha eklenmemesi icin engellenen telefon numaralari
 export interface IgnoredPhone {
   phone: string
+  name?: string // listede taninabilsin diye (indexlenmez)
 }
 
 export class SahaCrmDB extends Dexie {
@@ -57,13 +58,18 @@ export async function saveSettings(patch: Partial<AppSettings>) {
 }
 
 // --- Engellenen numaralar (rehberden tekrar eklenmesin) ---
-export async function addIgnoredPhones(phones: string[]) {
-  const clean = phones.filter((p) => p && p.trim())
+export async function addIgnoredPhones(items: { phone: string; name?: string }[]) {
+  const clean = items
+    .filter((i) => i.phone && i.phone.trim())
+    .map((i) => ({ phone: i.phone.trim(), name: i.name?.trim() || undefined }))
   if (clean.length === 0) return
-  await db.ignoredPhones.bulkPut(clean.map((phone) => ({ phone })))
+  await db.ignoredPhones.bulkPut(clean)
 }
 export async function getIgnoredPhoneSet(): Promise<Set<string>> {
   return new Set((await db.ignoredPhones.toArray()).map((r) => r.phone))
+}
+export async function removeIgnoredPhone(phone: string) {
+  await db.ignoredPhones.delete(phone)
 }
 export async function clearIgnoredPhones() {
   await db.ignoredPhones.clear()

@@ -80,8 +80,10 @@ export default function CustomerList() {
     try {
       const ids = Array.from(sel)
       const picked = (customers ?? []).filter((c) => c.id != null && sel.has(c.id))
-      const phones = picked.map((c) => c.phone?.trim()).filter((p): p is string => !!p)
-      await addIgnoredPhones(phones)
+      const items = picked
+        .filter((c) => c.phone?.trim())
+        .map((c) => ({ phone: c.phone.trim(), name: c.companyTitle || c.contactName }))
+      await addIgnoredPhones(items)
       await db.customers.bulkDelete(ids)
       exitSelect()
     } finally {

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, getSettings, addIgnoredPhones } from '../db'
+import { db, addIgnoredPhones } from '../db'
 import type { Customer, GpsPoint, Ownership, PaymentType } from '../types'
 import { fileToResizedDataUrl } from '../lib/image'
 import { getCurrentPosition } from '../lib/geo'
 import { resolveLocationAsync, isShortMapsLink } from '../lib/location'
-import { extractCoordsFromImage } from '../lib/aiLocation'
 import { reverseGeocode, matchToSeed } from '../lib/reverseGeocode'
 import Header from '../components/Header'
 
@@ -43,7 +42,6 @@ export default function CustomerForm() {
   const editing = id != null
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
-  const shotRef = useRef<HTMLInputElement>(null)
 
   const cities = useLiveQuery(() => db.cities.toArray(), [], [])
   // Daha once girilen sektorler (yazarken oneri olarak cikar)
@@ -63,7 +61,6 @@ export default function CustomerForm() {
   const [locInput, setLocInput] = useState('')
   const [locMsg, setLocMsg] = useState('')
   const [locBusy, setLocBusy] = useState(false)
-  const [aiBusy, setAiBusy] = useState(false)
   const [geoBusy, setGeoBusy] = useState(false)
   const [geoMsg, setGeoMsg] = useState('')
 
@@ -177,37 +174,6 @@ export default function CustomerForm() {
     setGeoBusy(false)
   }
 
-  // Ekran goruntusunden konum: goruntudeki yazili koordinati yapay zeka okur
-  async function onScreenshot(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (shotRef.current) shotRef.current.value = '' // ayni dosya tekrar secilebilsin
-    if (!file) return
-    setLocMsg('')
-    setAiBusy(true)
-    try {
-      const settings = await getSettings()
-      if (!settings.anthropicApiKey) {
-        setLocMsg('Bunun için Ayarlar → Yapay Zeka bölümünden bir API anahtarı girmelisin.')
-        return
-      }
-      setLocMsg('Görüntü okunuyor…')
-      // Metin okunabilsin diye yuksek cozunurluk (fazla kucultme)
-      const dataUrl = await fileToResizedDataUrl(file, 1568, 0.92)
-      const point = await extractCoordsFromImage(dataUrl, settings.anthropicApiKey)
-      if (point) {
-        update('gps', point)
-        applyGeo(point)
-        setLocMsg(`✓ Konum alındı (${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}).`)
-      } else {
-        setLocMsg('Görüntüde yazılı bir koordinat bulunamadı. Haritalar’da iğneyi bırakıp, ' +
-          'koordinat sayıları ekranda görünürken ekran görüntüsü al.')
-      }
-    } catch (err) {
-      setLocMsg(err instanceof Error ? err.message : 'Görüntü okunamadı.')
-    } finally {
-      setAiBusy(false)
-    }
-  }
 
   async function save() {
     if (!form.companyTitle.trim() && !form.contactName.trim()) {
@@ -227,7 +193,8 @@ export default function CustomerForm() {
     if (!editing) return
     if (!confirm('Bu müşteriyi silmek istediğinize emin misiniz?')) return
     // Numarayi engelle: rehber tekrar aktarilinca geri gelmesin
-    if (form.phone?.trim()) await addIgnoredPhones([form.phone.trim()])
+    if (form.phone?.trim())
+      await addIgnoredPhones([{ phone: form.phone.trim(), name: form.companyTitle || form.contactName }])
     await db.customers.delete(Number(id))
     navigate('/')
   }
@@ -391,23 +358,6 @@ export default function CustomerForm() {
               İpucu: Koordinat çıkmıyorsa, işletme adının olduğu bir yere basmışsındır. Haritalar’da
               biraz <b>yakınlaş</b> ve binanın <b>boş bir noktasına parmağını basılı tut</b> →
               kırmızı bir iğne düşer ve altta koordinatlar çıkar → dokununca kopyalanır → buraya yapıştır.
-            </p>
-          </Field>
-
-          <Field label="Ekran Görüntüsünden Konum (yapay zeka)">
-            <button onClick={() => shotRef.current?.click()} disabled={aiBusy} className="btn-ghost w-full">
-              {aiBusy ? 'Okunuyor…' : '📷 Ekran Görüntüsü Seç'}
-            </button>
-            <input
-              ref={shotRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={onScreenshot}
-            />
-            <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-              Haritalar’da konumu aç, <b>koordinat sayıları ekranda görünürken</b> ekran görüntüsü al;
-              sonra buradan o görüntüyü seç. Yapay zeka koordinatı okuyup yazar. (Ayarlar’dan API anahtarı gerekir.)
             </p>
           </Field>
         </Section>

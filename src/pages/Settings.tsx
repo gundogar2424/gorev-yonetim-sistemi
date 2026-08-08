@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, getSettings, saveSettings, clearIgnoredPhones } from '../db'
+import { db, getSettings, saveSettings, clearIgnoredPhones, removeIgnoredPhone } from '../db'
 import { getCurrentPosition } from '../lib/geo'
 import { exportBackup, downloadBackup, restoreBackup, parseBackupFile } from '../lib/backup'
 import Header from '../components/Header'
@@ -8,7 +8,6 @@ import Header from '../components/Header'
 export default function Settings() {
   const settings = useLiveQuery(() => getSettings(), [], undefined)
   const cities = useLiveQuery(() => db.cities.orderBy('name').toArray(), [], [])
-  const ignoredCount = useLiveQuery(() => db.ignoredPhones.count(), [], 0)
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [gpsBusy, setGpsBusy] = useState(false)
@@ -95,29 +94,6 @@ export default function Settings() {
           )}
         </section>
 
-        {/* Yapay zeka (ekran goruntusunden konum) */}
-        <section className="card p-3 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">
-            Yapay Zeka (isteğe bağlı)
-          </h2>
-          <p className="text-xs text-slate-500">
-            Bir <b>API anahtarı</b> girersen, müşteri formunda <b>“Ekran görüntüsünden konum”</b>
-            ile Google Haritalar ekran görüntüsündeki koordinatı yapay zeka okur. Anahtar yalnızca
-            bu cihazda saklanır. Anahtarı console.anthropic.com adresinden alabilirsin.
-          </p>
-          <div>
-            <label className="field-label">Claude API anahtarı</label>
-            <input
-              className="field-input"
-              type="password"
-              placeholder="sk-ant-…"
-              value={settings?.anthropicApiKey ?? ''}
-              onChange={(e) => saveSettings({ anthropicApiKey: e.target.value.trim() })}
-              autoComplete="off"
-            />
-          </div>
-        </section>
-
         {/* Yedekleme */}
         <section className="card p-3 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme</h2>
@@ -135,30 +111,7 @@ export default function Settings() {
         </section>
 
         {/* Engellenen numaralar */}
-        <section className="card p-3 space-y-3">
-          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">
-            Engellenen Numaralar
-          </h2>
-          <p className="text-xs text-slate-500">
-            Sildiğin müşterilerin numaraları buraya eklenir; rehberi tekrar içe aktardığında{' '}
-            <b>geri gelmezler</b>. Şu an <b>{ignoredCount}</b> numara engelli. Listeyi temizlersen,
-            bu numaralar bir sonraki rehber aktarımında yeniden eklenebilir hâle gelir.
-          </p>
-          <button
-            onClick={async () => {
-              if (ignoredCount === 0) {
-                flash('Engelli numara yok.')
-                return
-              }
-              if (!confirm(`${ignoredCount} numaranın engeli kaldırılsın mı?`)) return
-              await clearIgnoredPhones()
-              flash('Engelli numara listesi temizlendi.')
-            }}
-            className="btn-ghost w-full"
-          >
-            Engeli Kaldır (listeyi temizle)
-          </button>
-        </section>
+        <BlockedManager onFlash={flash} />
 
         {/* Il / Ilce yonetimi */}
         <CityManager cities={cities ?? []} onFlash={flash} />
@@ -166,6 +119,90 @@ export default function Settings() {
         <p className="text-center text-xs text-slate-400 pt-2">Saha CRM · Verileriniz yalnızca bu cihazda saklanır.</p>
       </div>
     </div>
+  )
+}
+
+function BlockedManager({ onFlash }: { onFlash: (m: string) => void }) {
+  const blocked = useLiveQuery(() => db.ignoredPhones.toArray(), [], [])
+  const [search, setSearch] = useState('')
+  const [open, setOpen] = useState(false)
+
+  const list = useMemo(() => {
+    const arr = [...(blocked ?? [])].sort((a, b) =>
+      (a.name || a.phone).localeCompare(b.name || b.phone, 'tr')
+    )
+    const q = search.trim().toLocaleLowerCase('tr-TR')
+    if (!q) return arr
+    return arr.filter(
+      (b) => (b.name ?? '').toLocaleLowerCase('tr-TR').includes(q) || b.phone.includes(q)
+    )
+  }, [blocked, search])
+
+  const total = blocked?.length ?? 0
+
+  return (
+    <section className="card p-3 space-y-3">
+      <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">
+        Engellenen Numaralar
+      </h2>
+      <p className="text-xs text-slate-500">
+        Sildiğin müşterilerin numaraları buraya eklenir; rehberi tekrar içe aktardığında{' '}
+        <b>geri gelmezler</b>. Şu an <b>{total}</b> numara engelli. Bir numaranın <b>“Geri al”</b>{' '}
+        düğmesine basarsan, o kişi bir sonraki rehber aktarımında tekrar eklenebilir.
+      </p>
+
+      {total > 0 && (
+        <button onClick={() => setOpen((o) => !o)} className="btn-ghost w-full">
+          {open ? 'Listeyi gizle' : `Listeyi göster (${total})`}
+        </button>
+      )}
+
+      {open && total > 0 && (
+        <div className="space-y-2">
+          <input
+            className="field-input"
+            placeholder="Engellenenlerde ara…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <ul className="max-h-80 overflow-auto divide-y divide-slate-100 border border-slate-100 rounded-xl">
+            {list.map((b) => (
+              <li key={b.phone} className="flex items-center gap-3 p-2.5">
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium text-slate-800 truncate">
+                    {b.name || b.phone}
+                  </span>
+                  {b.name && <span className="block text-xs text-slate-500">{b.phone}</span>}
+                </span>
+                <button
+                  onClick={async () => {
+                    await removeIgnoredPhone(b.phone)
+                    onFlash('Numaranın engeli kaldırıldı.')
+                  }}
+                  className="text-brand-700 text-sm font-medium px-2 shrink-0"
+                >
+                  Geri al
+                </button>
+              </li>
+            ))}
+            {list.length === 0 && (
+              <li className="p-3 text-center text-xs text-slate-400">Eşleşen numara yok.</li>
+            )}
+          </ul>
+          <button
+            onClick={async () => {
+              if (!confirm(`${total} numaranın tamamının engeli kaldırılsın mı?`)) return
+              await clearIgnoredPhones()
+              onFlash('Tüm engeller kaldırıldı.')
+              setOpen(false)
+            }}
+            className="text-red-500 text-sm w-full py-1"
+          >
+            Tümünün engelini kaldır
+          </button>
+        </div>
+      )}
+    </section>
   )
 }
 
