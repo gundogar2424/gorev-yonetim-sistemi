@@ -104,8 +104,9 @@ export default function CustomerForm() {
         setLocMsg('✓ Konum alındı.')
       } else if (res.status === 'short-link') {
         setLocMsg(
-          'Kısa link otomatik çözülemedi (internet/güvenlik engeli). Lütfen Haritalar’da konuma ' +
-            'parmağını basılı tutup “dropped pin” oluştur, çıkan koordinatları (örn. 41.0082, 28.9784) kopyalayıp yapıştır.'
+          'Kısa link otomatik çözülemedi. Lütfen Haritalar’da konuma parmağını basılı tutup ' +
+            '“dropped pin” oluştur, çıkan koordinatları (örn. 41.0082, 28.9784) kopyalayıp yapıştır.' +
+            (res.note ? `\n\n[teşhis: ${res.note}]` : '')
         )
       } else {
         setLocMsg('Konum bulunamadı. Koordinat (41.0082, 28.9784) veya tam harita bağlantısı yapıştırın.')
@@ -264,7 +265,11 @@ export default function CustomerForm() {
               </button>
             </div>
             {locMsg && (
-              <p className={`text-xs mt-1 ${locMsg.startsWith('✓') ? 'text-green-700' : 'text-amber-700'}`}>
+              <p
+                className={`text-xs mt-1 whitespace-pre-line break-words ${
+                  locMsg.startsWith('✓') ? 'text-green-700' : 'text-amber-700'
+                }`}
+              >
                 {locMsg}
               </p>
             )}

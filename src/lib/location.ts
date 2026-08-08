@@ -58,6 +58,20 @@ export function parseLocationText(input: string): GpsPoint | null {
     if (valid(lat, lng)) return { lat, lng }
   }
 
+  // 6) Etiketli JSON: "latitude":X ... "longitude":Y (iki sirada da) - GUVENLI
+  const j1 = text.match(/"latitude"\s*:\s*(-?\d{1,2}\.\d+)[^}]{0,40}?"longitude"\s*:\s*(-?\d{1,3}\.\d+)/i)
+  if (j1) {
+    const lat = num(j1[1])
+    const lng = num(j1[2])
+    if (valid(lat, lng)) return { lat, lng }
+  }
+  const j2 = text.match(/"longitude"\s*:\s*(-?\d{1,3}\.\d+)[^}]{0,40}?"latitude"\s*:\s*(-?\d{1,2}\.\d+)/i)
+  if (j2) {
+    const lng = num(j2[1])
+    const lat = num(j2[2])
+    if (valid(lat, lng)) return { lat, lng }
+  }
+
   return null
 }
 
@@ -74,6 +88,8 @@ export interface ResolveResult {
   point: GpsPoint | null
   // 'ok' = cozuldu, 'short-link' = kisa link cozulemedi, 'not-found' = anlasilmadi
   status: 'ok' | 'short-link' | 'not-found'
+  // Teshis: native deneme sirasinda ne oldugu (hata/nihai URL ozeti)
+  note?: string
 }
 
 // Senkron deneme: dogrudan metinden cozer.
@@ -102,9 +118,11 @@ export async function resolveLocationAsync(input: string): Promise<ResolveResult
 
   // APK (native): Capacitor'in kendi HTTP katmani CORS engeline takilmaz;
   // kisa linki dogrudan acip icindeki koordinati bulabiliriz.
+  let note = ''
   if (Capacitor.isNativePlatform()) {
-    const p = await resolveNative(url)
-    if (p) return { point: p, status: 'ok' }
+    const r = await resolveNative(url)
+    if (r.point) return { point: r.point, status: 'ok' }
+    note = r.note
   }
 
   // Birkac araci servis sirayla denenir
@@ -126,7 +144,7 @@ export async function resolveLocationAsync(input: string): Promise<ResolveResult
       // bu araciyi atla, sonrakini dene
     }
   }
-  return { point: null, status: 'short-link' }
+  return { point: null, status: 'short-link', note }
 }
 
 function fetchWithTimeout(url: string, ms: number): Promise<Response> {
@@ -136,38 +154,44 @@ function fetchWithTimeout(url: string, ms: number): Promise<Response> {
 }
 
 // Native (APK) icin: Capacitor HTTP ile kisa linki acip koordinat cikar.
-// Tarayici CORS engeli burada gecerli degildir.
-async function resolveNative(url: string): Promise<GpsPoint | null> {
-  const UA = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 Chrome/120 Mobile'
+// Tarayici CORS engeli burada gecerli degildir. Teshis icin 'note' doner.
+async function resolveNative(url: string): Promise<{ point: GpsPoint | null; note: string }> {
+  const UA = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36'
+  const headers = { 'User-Agent': UA, 'Accept-Language': 'tr,en', 'Accept-Encoding': 'identity' }
+  const notes: string[] = []
   try {
     const { CapacitorHttp } = await import('@capacitor/core')
 
-    // 1) Yonlendirmeleri takip et; nihai URL + sayfa icerigini tara
-    const res = await CapacitorHttp.get({ url, headers: { 'User-Agent': UA } })
-    const body = typeof res.data === 'string' ? res.data : JSON.stringify(res.data ?? '')
-    const finalUrl = (res as unknown as { url?: string }).url ?? ''
-    const hay1 = `${finalUrl}\n${body}`
-    const p1 = parseLocationText(hay1) ?? parseLocationText(safeDecode(hay1))
-    if (p1) return p1
+    // Bir URL'i ac, nihai URL + govdeden koordinat aramayi dene
+    const tryUrl = async (u: string): Promise<GpsPoint | null> => {
+      const res = await CapacitorHttp.get({ url: u, headers, responseType: 'text' })
+      const body = typeof res.data === 'string' ? res.data : JSON.stringify(res.data ?? '')
+      const finalUrl = (res as unknown as { url?: string }).url ?? ''
+      notes.push(`HTTP ${res.status}${finalUrl ? ' → ' + finalUrl.slice(0, 80) : ''} (${body.length}b)`)
+      const hay = `${finalUrl}\n${body}`
+      return parseLocationText(hay) ?? parseLocationText(safeDecode(hay))
+    }
 
-    // 2) Yonlendirme basligindan (Location) hedef URL'i al
-    const first = await CapacitorHttp.get({ url, disableRedirects: true, headers: { 'User-Agent': UA } })
+    // 1) Dogrudan (yonlendirmeler takip edilir)
+    const p1 = await tryUrl(url)
+    if (p1) return { point: p1, note: notes.join(' | ') }
+
+    // 2) Yonlendirme basligindan hedef URL'i al, onu da dene
+    const first = await CapacitorHttp.get({ url, disableRedirects: true, headers })
     const loc = (first.headers?.Location ?? first.headers?.location ?? '') as string
     if (loc) {
+      notes.push(`Location: ${loc.slice(0, 80)}`)
       const pLoc = parseLocationText(loc) ?? parseLocationText(safeDecode(loc))
-      if (pLoc) return pLoc
-      // Location baska bir URL ise onu da bir kez daha ac
-      const res2 = await CapacitorHttp.get({ url: loc, headers: { 'User-Agent': UA } })
-      const body2 = typeof res2.data === 'string' ? res2.data : ''
-      const finalUrl2 = (res2 as unknown as { url?: string }).url ?? ''
-      const hay2 = `${finalUrl2}\n${body2}`
-      const p2 = parseLocationText(hay2) ?? parseLocationText(safeDecode(hay2))
-      if (p2) return p2
+      if (pLoc) return { point: pLoc, note: notes.join(' | ') }
+      const p2 = await tryUrl(loc)
+      if (p2) return { point: p2, note: notes.join(' | ') }
+    } else {
+      notes.push('Location bos')
     }
-  } catch {
-    // sessizce basarisiz; disaridaki araci-servis denemesine dusulur
+  } catch (e) {
+    notes.push('hata: ' + (e instanceof Error ? e.message : String(e)))
   }
-  return null
+  return { point: null, note: notes.join(' | ') }
 }
 
 function safeDecode(s: string): string {
