@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getSettings } from '../db'
-import type { Customer, Ownership, PaymentType } from '../types'
+import type { Customer, GpsPoint, Ownership, PaymentType } from '../types'
 import { fileToResizedDataUrl } from '../lib/image'
 import { getCurrentPosition } from '../lib/geo'
 import { resolveLocationAsync, isShortMapsLink } from '../lib/location'
 import { extractCoordsFromImage } from '../lib/aiLocation'
+import { reverseGeocode, normTr } from '../lib/reverseGeocode'
 import Header from '../components/Header'
 
 const emptyCustomer: Customer = {
@@ -45,6 +46,16 @@ export default function CustomerForm() {
   const shotRef = useRef<HTMLInputElement>(null)
 
   const cities = useLiveQuery(() => db.cities.toArray(), [], [])
+  // Daha once girilen sektorler (yazarken oneri olarak cikar)
+  const sectorOptions = useLiveQuery(async () => {
+    const all = await db.customers.toArray()
+    const set = new Set<string>()
+    for (const c of all) {
+      const s = c.sector?.trim()
+      if (s) set.add(s)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'tr'))
+  }, [], [])
   const [form, setForm] = useState<Customer>(emptyCustomer)
   const [loaded, setLoaded] = useState(!editing)
   const [gpsBusy, setGpsBusy] = useState(false)
@@ -88,6 +99,7 @@ export default function CustomerForm() {
     try {
       const gps = await getCurrentPosition()
       update('gps', gps)
+      applyGeo(gps)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Konum alınamadı.')
     } finally {
@@ -103,6 +115,7 @@ export default function CustomerForm() {
       const res = await resolveLocationAsync(locInput)
       if (res.status === 'ok' && res.point) {
         update('gps', res.point)
+        applyGeo(res.point)
         setLocInput('')
         setLocMsg('✓ Konum alındı.')
       } else if (res.status === 'short-link') {
@@ -116,6 +129,31 @@ export default function CustomerForm() {
       }
     } finally {
       setLocBusy(false)
+    }
+  }
+
+  // Koordinattan il/ilce'yi otomatik doldur (bos olan alanlar icin).
+  async function applyGeo(gps: GpsPoint) {
+    try {
+      const geo = await reverseGeocode(gps)
+      if (!geo) return
+      const cityMatch = (cities ?? []).find((c) => normTr(c.name) === normTr(geo.il))
+      if (!cityMatch) return
+      let districtName: string | undefined
+      for (const cand of geo.ilceCandidates) {
+        const dm = cityMatch.districts.find((d) => normTr(d) === normTr(cand))
+        if (dm) {
+          districtName = dm
+          break
+        }
+      }
+      setForm((f) => ({
+        ...f,
+        city: f.city || cityMatch.name,
+        district: f.district || districtName || f.district
+      }))
+    } catch {
+      /* il/ilce bulunamazsa sessizce gec */
     }
   }
 
@@ -138,6 +176,7 @@ export default function CustomerForm() {
       const point = await extractCoordsFromImage(dataUrl, settings.anthropicApiKey)
       if (point) {
         update('gps', point)
+        applyGeo(point)
         setLocMsg(`✓ Konum alındı (${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}).`)
       } else {
         setLocMsg('Görüntüde yazılı bir koordinat bulunamadı. Haritalar’da iğneyi bırakıp, ' +
@@ -334,7 +373,18 @@ export default function CustomerForm() {
 
         <Section title="Ticari Bilgiler">
           <Field label="Sektör">
-            <input className="field-input" value={form.sector} onChange={(e) => update('sector', e.target.value)} />
+            <input
+              className="field-input"
+              list="sektor-list"
+              value={form.sector}
+              onChange={(e) => update('sector', e.target.value)}
+              placeholder="Yaz ya da önceki sektörlerden seç"
+            />
+            <datalist id="sektor-list">
+              {(sectorOptions ?? []).map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
           </Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label="m² Alanı">
