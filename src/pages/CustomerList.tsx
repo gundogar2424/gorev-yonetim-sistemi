@@ -12,6 +12,7 @@ export default function CustomerList() {
   const cities = useLiveQuery(() => db.cities.toArray(), [], [])
 
   const [search, setSearch] = useState('')
+  const [matchMode, setMatchMode] = useState<'contains' | 'excludes'>('contains')
   const [city, setCity] = useState('')
   const [district, setDistrict] = useState('')
 
@@ -33,13 +34,14 @@ export default function CustomerList() {
       if (city && c.city !== city) return false
       if (district && c.district !== district) return false
       if (!q) return true
-      return (
+      const hit =
         c.companyTitle.toLocaleLowerCase('tr-TR').includes(q) ||
         c.contactName.toLocaleLowerCase('tr-TR').includes(q) ||
         c.phone.replace(/\s/g, '').includes(q.replace(/\s/g, ''))
-      )
+      // "içermeyen" modunda: kelimeyi taşımayanları göster
+      return matchMode === 'excludes' ? !hit : hit
     })
-  }, [customers, search, city, district])
+  }, [customers, search, matchMode, city, district])
 
   function toggleSel(id: number) {
     setSel((prev) => {
@@ -154,6 +156,32 @@ export default function CustomerList() {
           inputMode="search"
         />
 
+        {/* Iceren / Icermeyen anahtari (kelime yazilinca gorunur) */}
+        {search.trim() && (
+          <div className="flex gap-2 text-sm">
+            <button
+              onClick={() => setMatchMode('contains')}
+              className={`flex-1 rounded-xl px-3 py-2 border ${
+                matchMode === 'contains'
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 font-semibold'
+                  : 'border-slate-200 text-slate-600'
+              }`}
+            >
+              İçeren
+            </button>
+            <button
+              onClick={() => setMatchMode('excludes')}
+              className={`flex-1 rounded-xl px-3 py-2 border ${
+                matchMode === 'excludes'
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 font-semibold'
+                  : 'border-slate-200 text-slate-600'
+              }`}
+            >
+              İçermeyen
+            </button>
+          </div>
+        )}
+
         {/* Il / Ilce filtre */}
         <div className="grid grid-cols-2 gap-2">
           <select
@@ -185,6 +213,10 @@ export default function CustomerList() {
             ))}
           </select>
         </div>
+
+        {(search.trim() || city || district) && (
+          <p className="text-xs text-slate-500">{filtered.length} kayıt görünüyor</p>
+        )}
 
         {selectMode && filtered.length > 0 && (
           <button onClick={selectAllVisible} className="text-brand-700 font-medium text-sm">
