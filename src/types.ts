@@ -44,6 +44,8 @@ export interface AppSettings {
   startName: string
   startGps?: GpsPoint
   startAddress?: string
+  // Yapay zeka (Claude) API anahtari - ekran goruntusunden konum okuma icin
+  anthropicApiKey?: string
 }
 
 // Il/ilce listesi: il adi -> ilce adlari

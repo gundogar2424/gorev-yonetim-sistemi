@@ -94,6 +94,29 @@ export default function Settings() {
           )}
         </section>
 
+        {/* Yapay zeka (ekran goruntusunden konum) */}
+        <section className="card p-3 space-y-3">
+          <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">
+            Yapay Zeka (isteğe bağlı)
+          </h2>
+          <p className="text-xs text-slate-500">
+            Bir <b>API anahtarı</b> girersen, müşteri formunda <b>“Ekran görüntüsünden konum”</b>
+            ile Google Haritalar ekran görüntüsündeki koordinatı yapay zeka okur. Anahtar yalnızca
+            bu cihazda saklanır. Anahtarı console.anthropic.com adresinden alabilirsin.
+          </p>
+          <div>
+            <label className="field-label">Claude API anahtarı</label>
+            <input
+              className="field-input"
+              type="password"
+              placeholder="sk-ant-…"
+              value={settings?.anthropicApiKey ?? ''}
+              onChange={(e) => saveSettings({ anthropicApiKey: e.target.value.trim() })}
+              autoComplete="off"
+            />
+          </div>
+        </section>
+
         {/* Yedekleme */}
         <section className="card p-3 space-y-3">
           <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Yedekleme</h2>
