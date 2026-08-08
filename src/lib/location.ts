@@ -1,6 +1,7 @@
 // Google Haritalar konum cozumleme.
 // Yapistirilan metinden (koordinat veya harita baglantisi) enlem/boylam cikarir.
 import type { GpsPoint } from '../types'
+import { Capacitor } from '@capacitor/core'
 
 function valid(lat: number, lng: number): boolean {
   return (
@@ -99,6 +100,13 @@ export async function resolveLocationAsync(input: string): Promise<ResolveResult
   const url = extractUrl(input)
   if (!url) return { point: null, status: 'short-link' }
 
+  // APK (native): Capacitor'in kendi HTTP katmani CORS engeline takilmaz;
+  // kisa linki dogrudan acip icindeki koordinati bulabiliriz.
+  if (Capacitor.isNativePlatform()) {
+    const p = await resolveNative(url)
+    if (p) return { point: p, status: 'ok' }
+  }
+
   // Birkac araci servis sirayla denenir
   const proxies = [
     (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
@@ -125,4 +133,47 @@ function fetchWithTimeout(url: string, ms: number): Promise<Response> {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), ms)
   return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t))
+}
+
+// Native (APK) icin: Capacitor HTTP ile kisa linki acip koordinat cikar.
+// Tarayici CORS engeli burada gecerli degildir.
+async function resolveNative(url: string): Promise<GpsPoint | null> {
+  const UA = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 Chrome/120 Mobile'
+  try {
+    const { CapacitorHttp } = await import('@capacitor/core')
+
+    // 1) Yonlendirmeleri takip et; nihai URL + sayfa icerigini tara
+    const res = await CapacitorHttp.get({ url, headers: { 'User-Agent': UA } })
+    const body = typeof res.data === 'string' ? res.data : JSON.stringify(res.data ?? '')
+    const finalUrl = (res as unknown as { url?: string }).url ?? ''
+    const hay1 = `${finalUrl}\n${body}`
+    const p1 = parseLocationText(hay1) ?? parseLocationText(safeDecode(hay1))
+    if (p1) return p1
+
+    // 2) Yonlendirme basligindan (Location) hedef URL'i al
+    const first = await CapacitorHttp.get({ url, disableRedirects: true, headers: { 'User-Agent': UA } })
+    const loc = (first.headers?.Location ?? first.headers?.location ?? '') as string
+    if (loc) {
+      const pLoc = parseLocationText(loc) ?? parseLocationText(safeDecode(loc))
+      if (pLoc) return pLoc
+      // Location baska bir URL ise onu da bir kez daha ac
+      const res2 = await CapacitorHttp.get({ url: loc, headers: { 'User-Agent': UA } })
+      const body2 = typeof res2.data === 'string' ? res2.data : ''
+      const finalUrl2 = (res2 as unknown as { url?: string }).url ?? ''
+      const hay2 = `${finalUrl2}\n${body2}`
+      const p2 = parseLocationText(hay2) ?? parseLocationText(safeDecode(hay2))
+      if (p2) return p2
+    }
+  } catch {
+    // sessizce basarisiz; disaridaki araci-servis denemesine dusulur
+  }
+  return null
+}
+
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return s
+  }
 }
