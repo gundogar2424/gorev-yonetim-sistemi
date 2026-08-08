@@ -219,5 +219,9 @@ function unescapeAll(s: string): string {
     /* yoksay */
   }
   out = out.replace(/\\\//g, '/').replace(/\\"/g, '"')
+  out = out.replace(/&amp;/gi, '&') // HTML entity -> & (center= yakalansin)
+  // Kodlanmis virgul: staticmap "center=LAT%2CLNG" -> "center=LAT,LNG"
+  // (center= sirasi lat,lng olarak belli; guvenli)
+  out = out.replace(/%2C/gi, ',')
   return out
 }
