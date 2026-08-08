@@ -64,6 +64,8 @@ export default function CustomerForm() {
   const [locMsg, setLocMsg] = useState('')
   const [locBusy, setLocBusy] = useState(false)
   const [aiBusy, setAiBusy] = useState(false)
+  const [geoBusy, setGeoBusy] = useState(false)
+  const [geoMsg, setGeoMsg] = useState('')
 
   useEffect(() => {
     if (!editing) return
@@ -133,12 +135,12 @@ export default function CustomerForm() {
   }
 
   // Koordinattan il/ilce'yi otomatik doldur (bos olan alanlar icin).
-  async function applyGeo(gps: GpsPoint) {
+  async function applyGeo(gps: GpsPoint): Promise<'ok' | 'nomatch' | 'fail'> {
     try {
       const geo = await reverseGeocode(gps)
-      if (!geo) return
+      if (!geo) return 'fail'
       const cityMatch = (cities ?? []).find((c) => normTr(c.name) === normTr(geo.il))
-      if (!cityMatch) return
+      if (!cityMatch) return 'nomatch'
       let districtName: string | undefined
       for (const cand of geo.ilceCandidates) {
         const dm = cityMatch.districts.find((d) => normTr(d) === normTr(cand))
@@ -157,9 +159,29 @@ export default function CustomerForm() {
           district: districtName ?? keepOld
         }
       })
+      return 'ok'
     } catch {
-      /* il/ilce bulunamazsa sessizce gec */
+      return 'fail'
     }
+  }
+
+  // Manuel: kayitli GPS'ten il/ilce bul (sonucu ekranda goster)
+  async function findRegion() {
+    if (!form.gps) {
+      setGeoMsg('Önce konum ekle (📍 Konumu Al ya da Konum Yapıştır).')
+      return
+    }
+    setGeoBusy(true)
+    setGeoMsg('Konumdan il/ilçe aranıyor…')
+    const r = await applyGeo(form.gps)
+    setGeoMsg(
+      r === 'ok'
+        ? '✓ İl/ilçe konumdan dolduruldu.'
+        : r === 'nomatch'
+          ? 'Bu konumun ili listede yok. Aşağıdan elle seçebilir ya da Ayarlar’dan ili ekleyebilirsin.'
+          : 'Harita servisine ulaşılamadı (internet?). Aşağıdan elle seçebilirsin.'
+    )
+    setGeoBusy(false)
   }
 
   // Ekran goruntusunden konum: goruntudeki yazili koordinati yapay zeka okur
@@ -303,6 +325,25 @@ export default function CustomerForm() {
               </select>
             </Field>
           </div>
+
+          {/* Kayitli konumdan il/ilce doldur (geri bildirimli) */}
+          <div>
+            <button
+              onClick={findRegion}
+              disabled={geoBusy || !form.gps}
+              className="btn-ghost w-full"
+            >
+              {geoBusy ? 'Aranıyor…' : '📍 Konumdan İl/İlçe Bul'}
+            </button>
+            {geoMsg && (
+              <p
+                className={`text-xs mt-1 ${geoMsg.startsWith('✓') ? 'text-green-700' : 'text-amber-700'}`}
+              >
+                {geoMsg}
+              </p>
+            )}
+          </div>
+
           <Field label="GPS Konumu">
             <div className="flex items-center gap-2">
               <button onClick={captureGps} disabled={gpsBusy} className="btn-ghost flex-1">
