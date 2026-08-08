@@ -151,11 +151,6 @@ function CustomerCard({ c, onClick }: { c: Customer; onClick: () => void }) {
         )}
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-slate-800 leading-snug break-words line-clamp-2">
-            {c.gps && (
-              <span title="Konum kayıtlı" className="mr-0.5 align-middle">
-                📍
-              </span>
-            )}
             {c.companyTitle}
           </p>
           {(c.contactName || c.role) && (
@@ -167,9 +162,10 @@ function CustomerCard({ c, onClick }: { c: Customer; onClick: () => void }) {
           {!c.contactName && c.phone && (
             <p className="text-sm text-slate-500 truncate">{c.phone}</p>
           )}
-          {(c.district || c.city) && (
-            <p className="text-xs text-slate-400 truncate">
-              {[c.district, c.city].filter(Boolean).join(', ')}
+          {/* Konum satiri: ili/ilcesi varsa göster; yoksa ama GPS varsa "Konum kayıtlı" */}
+          {(c.district || c.city || c.gps) && (
+            <p className="text-xs font-medium text-brand-700 truncate mt-0.5">
+              📍 {[c.district, c.city].filter(Boolean).join(', ') || 'Konum kayıtlı'}
             </p>
           )}
         </div>
