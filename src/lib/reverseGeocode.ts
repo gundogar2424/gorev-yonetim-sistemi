@@ -8,7 +8,43 @@ export interface GeoResult {
   ilceCandidates: string[]
 }
 
+// Once BigDataCloud (anahtar/UA gerektirmez), olmazsa Nominatim denenir.
 export async function reverseGeocode(gps: GpsPoint): Promise<GeoResult | null> {
+  return (await tryBigDataCloud(gps)) ?? (await tryNominatim(gps))
+}
+
+// BigDataCloud: client tarafi icin tasarlanmis ucretsiz servis
+async function tryBigDataCloud(gps: GpsPoint): Promise<GeoResult | null> {
+  const url =
+    `https://api.bigdatacloud.net/data/reverse-geocode-client` +
+    `?latitude=${gps.lat}&longitude=${gps.lng}&localityLanguage=tr`
+  try {
+    const j = (await fetchJson(url)) as {
+      principalSubdivision?: string
+      city?: string
+      locality?: string
+      localityInfo?: { administrative?: { name?: string; adminLevel?: number }[]; informative?: { name?: string }[] }
+    } | null
+    if (!j) return null
+    const admins = j.localityInfo?.administrative ?? []
+    const byLevel = (lvl: number) => admins.find((a) => a.adminLevel === lvl)?.name
+    const il = j.principalSubdivision || byLevel(4) || ''
+    if (!il) return null
+    const ilceCandidates = [
+      byLevel(6),
+      byLevel(5),
+      j.city,
+      j.locality,
+      ...admins.map((a) => a.name),
+      ...(j.localityInfo?.informative ?? []).map((a) => a.name)
+    ].filter((x): x is string => typeof x === 'string' && x.length > 0)
+    return { il, ilceCandidates }
+  } catch {
+    return null
+  }
+}
+
+async function tryNominatim(gps: GpsPoint): Promise<GeoResult | null> {
   const url =
     `https://nominatim.openstreetmap.org/reverse?format=jsonv2` +
     `&lat=${gps.lat}&lon=${gps.lng}&addressdetails=1&accept-language=tr`
@@ -18,7 +54,6 @@ export async function reverseGeocode(gps: GpsPoint): Promise<GeoResult | null> {
     if (!a) return null
     const il: string = a.province || a.state || a.city || ''
     if (!il) return null
-    // Ilce farkli alanlarda gelebilir; hepsini aday olarak topla
     const ilceCandidates: string[] = [
       a.county,
       a.town,
