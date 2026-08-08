@@ -69,6 +69,18 @@ jobs:
       - name: Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: CRM'de kullanılmayan ağır eklentileri çıkar (APK küçülsün)
+        run: |
+          # Web derlemesi yukarida bitti; bu eklentileri CRM kullanmiyor.
+          # cap sync'ten ONCE kaldirinca APK ~33 MB'tan ~10 MB'a duser.
+          # Once package.json'dan dusur (Capacitor eklenti listesini buradan okur),
+          # sonra klasorleri sil. Bu yalnizca CI kopyasinda olur; depo degismez.
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor/local-notifications']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          rm -rf node_modules/@capacitor-mlkit/barcode-scanning
+          rm -rf node_modules/@flomentumsolutions/capacitor-health-extended
+          rm -rf node_modules/@capacitor/local-notifications
+          echo "Cikarildi: barcode-scanning, health-extended, local-notifications"
+
       - name: Android projesini oluştur (Capacitor)
         run: npx cap add android
 
@@ -82,22 +94,15 @@ jobs:
           npx @capacitor/assets generate --android --iconBackgroundColor '#0f766e' --iconBackgroundColorDark '#0f766e'
           echo "--- uretilen mipmap dosyalari ---"; ls -1 android/app/src/main/res/mipmap-xxxhdpi/ || true
 
-      - name: SDK sürümleri + eklenti yaması
+      - name: SDK sürümleri
         run: |
           v=android/variables.gradle
           sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
           sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
-          # Depodaki health-extended eklentisi minSdk 26 ister (CRM kullanmasa da
-          # node_modules'ta oldugundan senkronlanir); uyumluluk icin 26'ya cek.
-          sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 26/" "$v"
+          # Agir saglik eklentisi cikarildigindan minSdk'yi Capacitor 8
+          # varsayilanina (23) cekebiliriz; daha cok cihazi kapsar.
+          sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 23/" "$v"
           echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" "$v"
-          # health-extended build.gradle'i Kotlin eklentisini uygulamayi unutmus;
-          # eksik satiri ekle ki derleme patlamasin (CRM bu eklentiyi cagirmasa da).
-          h=node_modules/@flomentumsolutions/capacitor-health-extended/android/build.gradle
-          grep -q "kotlin-android" "$h" || sed -i "s#^apply plugin: 'com.android.library'#apply plugin: 'com.android.library'\napply plugin: 'kotlin-android'#" "$h"
-          # Ayni eklentideki cozulmeyen sabiti resmi izin metniyle degistir.
-          k=$(find node_modules/@flomentumsolutions/capacitor-health-extended/android/src/main/java -name 'HealthPlugin.kt')
-          sed -i 's#HealthPermission\.PERMISSION_READ_EXERCISE_ROUTE#"android.permission.health.READ_EXERCISE_ROUTE"#g' "$k"
 
       - name: İzinler (kamera + konum + rehber)
         run: |
