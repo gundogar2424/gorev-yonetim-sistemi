@@ -3,8 +3,48 @@ import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, addIgnoredPhones } from '../db'
 import { whatsappLink, todaysBirthdays, calcAge } from '../lib/contact'
+import type { Customer } from '../types'
 import Header from '../components/Header'
 import CustomerCard from '../components/CustomerCard'
+
+// Gelismis filtre: alan + kosul
+type FieldType = 'text' | 'number' | 'geo'
+const ADV_FIELDS: { key: keyof Customer; label: string; type: FieldType }[] = [
+  { key: 'companyTitle', label: 'Firma adı', type: 'text' },
+  { key: 'contactName', label: 'Yetkili adı', type: 'text' },
+  { key: 'phone', label: 'Telefon', type: 'text' },
+  { key: 'city', label: 'İl', type: 'text' },
+  { key: 'district', label: 'İlçe', type: 'text' },
+  { key: 'sector', label: 'Sektör', type: 'text' },
+  { key: 'role', label: 'Görev', type: 'text' },
+  { key: 'notes', label: 'Notlar', type: 'text' },
+  { key: 'areaM2', label: 'm² alanı', type: 'number' },
+  { key: 'employeeCount', label: 'Çalışan sayısı', type: 'number' },
+  { key: 'riskScore', label: 'Risk puanı', type: 'number' },
+  { key: 'gps', label: 'Konum (GPS)', type: 'geo' }
+]
+type OpKey = 'contains' | 'ncontains' | 'eq' | 'gt' | 'lt' | 'empty' | 'notempty'
+const OPS_TEXT: { key: OpKey; label: string }[] = [
+  { key: 'contains', label: 'İçeren' },
+  { key: 'ncontains', label: 'İçermeyen' },
+  { key: 'eq', label: 'Eşittir' },
+  { key: 'empty', label: 'Boş' },
+  { key: 'notempty', label: 'Dolu' }
+]
+const OPS_NUM: { key: OpKey; label: string }[] = [
+  { key: 'eq', label: 'Eşittir' },
+  { key: 'gt', label: 'Büyüktür' },
+  { key: 'lt', label: 'Küçüktür' },
+  { key: 'empty', label: 'Boş' },
+  { key: 'notempty', label: 'Dolu' }
+]
+const OPS_GEO: { key: OpKey; label: string }[] = [
+  { key: 'notempty', label: 'Var (konum kayıtlı)' },
+  { key: 'empty', label: 'Yok (konum yok)' }
+]
+function opsFor(type: FieldType) {
+  return type === 'number' ? OPS_NUM : type === 'geo' ? OPS_GEO : OPS_TEXT
+}
 
 export default function CustomerList() {
   const navigate = useNavigate()
@@ -15,6 +55,15 @@ export default function CustomerList() {
   const [matchMode, setMatchMode] = useState<'contains' | 'excludes'>('contains')
   const [city, setCity] = useState('')
   const [district, setDistrict] = useState('')
+
+  // Gelismis filtre
+  const [advOpen, setAdvOpen] = useState(false)
+  const [advField, setAdvField] = useState<keyof Customer | ''>('')
+  const [advOp, setAdvOp] = useState<OpKey>('contains')
+  const [advValue, setAdvValue] = useState('')
+
+  const advFieldDef = useMemo(() => ADV_FIELDS.find((f) => f.key === advField), [advField])
+  const advNeedsValue = advOp !== 'empty' && advOp !== 'notempty'
 
   // Toplu secim/silme modu
   const [selectMode, setSelectMode] = useState(false)
@@ -28,11 +77,40 @@ export default function CustomerList() {
     return cities?.find((c) => c.name === city)?.districts ?? []
   }, [city, cities])
 
+  // Gelismis filtre kosulu bir musteriye uyuyor mu?
+  function matchAdvanced(c: Customer): boolean {
+    if (!advField || !advFieldDef) return true
+    const type = advFieldDef.type
+    const raw = c[advField]
+    const isEmpty = type === 'geo' ? !c.gps : raw === undefined || raw === null || String(raw).trim() === ''
+    if (advOp === 'empty') return isEmpty
+    if (advOp === 'notempty') return !isEmpty
+    if (type === 'number') {
+      const v = parseFloat(advValue.replace(',', '.'))
+      if (isNaN(v)) return true // deger girilmediyse suz
+      const num = typeof raw === 'number' ? raw : parseFloat(String(raw))
+      if (isNaN(num)) return false
+      if (advOp === 'eq') return num === v
+      if (advOp === 'gt') return num > v
+      if (advOp === 'lt') return num < v
+      return true
+    }
+    // metin
+    const s = String(raw ?? '').toLocaleLowerCase('tr-TR')
+    const v = advValue.trim().toLocaleLowerCase('tr-TR')
+    if (!v) return true
+    if (advOp === 'contains') return s.includes(v)
+    if (advOp === 'ncontains') return !s.includes(v)
+    if (advOp === 'eq') return s === v
+    return true
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLocaleLowerCase('tr-TR')
     return (customers ?? []).filter((c) => {
       if (city && c.city !== city) return false
       if (district && c.district !== district) return false
+      if (!matchAdvanced(c)) return false
       if (!q) return true
       const hit =
         c.companyTitle.toLocaleLowerCase('tr-TR').includes(q) ||
@@ -41,7 +119,8 @@ export default function CustomerList() {
       // "içermeyen" modunda: kelimeyi taşımayanları göster
       return matchMode === 'excludes' ? !hit : hit
     })
-  }, [customers, search, matchMode, city, district])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customers, search, matchMode, city, district, advField, advOp, advValue])
 
   function toggleSel(id: number) {
     setSel((prev) => {
@@ -216,7 +295,73 @@ export default function CustomerList() {
           </select>
         </div>
 
-        {(search.trim() || city || district) && (
+        {/* Gelismis filtre */}
+        <div>
+          <button
+            onClick={() => setAdvOpen((o) => !o)}
+            className="text-sm text-brand-700 font-medium flex items-center gap-1"
+          >
+            ⚙️ Gelişmiş filtre {advField ? '(açık)' : ''} {advOpen ? '▾' : '▸'}
+          </button>
+          {advOpen && (
+            <div className="card p-3 mt-2 space-y-2 bg-slate-50">
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  className="field-input"
+                  value={advField}
+                  onChange={(e) => {
+                    const key = e.target.value as keyof Customer | ''
+                    setAdvField(key)
+                    const def = ADV_FIELDS.find((f) => f.key === key)
+                    setAdvOp(def ? opsFor(def.type)[0].key : 'contains')
+                    setAdvValue('')
+                  }}
+                >
+                  <option value="">Alan seç…</option>
+                  {ADV_FIELDS.map((f) => (
+                    <option key={f.key} value={f.key}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="field-input"
+                  value={advOp}
+                  onChange={(e) => setAdvOp(e.target.value as OpKey)}
+                  disabled={!advFieldDef}
+                >
+                  {(advFieldDef ? opsFor(advFieldDef.type) : OPS_TEXT).map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {advFieldDef && advNeedsValue && (
+                <input
+                  className="field-input"
+                  inputMode={advFieldDef.type === 'number' ? 'numeric' : 'text'}
+                  placeholder={advFieldDef.type === 'number' ? 'Sayı gir…' : 'Değer gir…'}
+                  value={advValue}
+                  onChange={(e) => setAdvValue(e.target.value)}
+                />
+              )}
+              {advField && (
+                <button
+                  onClick={() => {
+                    setAdvField('')
+                    setAdvValue('')
+                  }}
+                  className="text-sm text-red-500"
+                >
+                  Filtreyi temizle
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {(search.trim() || city || district || advField) && (
           <p className="text-xs text-slate-500">{filtered.length} kayıt görünüyor</p>
         )}
 
