@@ -4,9 +4,11 @@ import CustomerForm from './pages/CustomerForm'
 import RoutePlanner from './pages/RoutePlanner'
 import BulkImport from './pages/BulkImport'
 import Settings from './pages/Settings'
+import Regions from './pages/Regions'
 
 const tabs = [
   { to: '/', label: 'Müşteriler', icon: '👥', end: true },
+  { to: '/bolge', label: 'Bölge', icon: '📍', end: false },
   { to: '/rota', label: 'Rota', icon: '🗺️', end: false },
   { to: '/ice-aktar', label: 'İçe Aktar', icon: '📋', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: '⚙️', end: false }
@@ -18,6 +20,7 @@ export default function App() {
       <main className="flex-1" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<CustomerList />} />
+          <Route path="/bolge" element={<Regions />} />
           <Route path="/yeni" element={<CustomerForm />} />
           <Route path="/duzenle/:id" element={<CustomerForm />} />
           <Route path="/rota" element={<RoutePlanner />} />
@@ -28,7 +31,7 @@ export default function App() {
 
       {/* Alt gezinme cubugu (mobil icin sabit) */}
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-4 z-20"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white border-t border-slate-200 grid grid-cols-5 z-20"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
