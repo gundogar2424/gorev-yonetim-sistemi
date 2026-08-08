@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getSettings } from '../db'
 import { planRoute, googleMapsUrl } from '../lib/route'
+import type { Customer } from '../types'
 import Header from '../components/Header'
 
 export default function RoutePlanner() {
@@ -23,6 +24,31 @@ export default function RoutePlanner() {
         (c.city ?? '').toLocaleLowerCase('tr-TR').includes(q)
     )
   }, [withGps, search])
+
+  // Rota listesini il -> ilce gruplu goster (ayni bolgedekiler bir arada)
+  const grouped = useMemo(() => {
+    const byCity = new Map<string, Map<string, Customer[]>>()
+    for (const c of list) {
+      const cityKey = c.city?.trim() || 'İl belirsiz'
+      const distKey = c.district?.trim() || 'İlçe belirsiz'
+      if (!byCity.has(cityKey)) byCity.set(cityKey, new Map())
+      const dm = byCity.get(cityKey)!
+      if (!dm.has(distKey)) dm.set(distKey, [])
+      dm.get(distKey)!.push(c)
+    }
+    return Array.from(byCity.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'tr'))
+      .map(([city, dm]) => ({
+        city,
+        count: Array.from(dm.values()).reduce((n, arr) => n + arr.length, 0),
+        districts: Array.from(dm.entries())
+          .sort((a, b) => a[0].localeCompare(b[0], 'tr'))
+          .map(([district, arr]) => ({
+            district,
+            list: arr.sort((x, y) => x.companyTitle.localeCompare(y.companyTitle, 'tr'))
+          }))
+      }))
+  }, [list])
 
   function toggle(id: number) {
     setSelected((prev) => {
@@ -82,24 +108,39 @@ export default function RoutePlanner() {
             Rota için GPS konumu kaydedilmiş müşteri yok. Müşteri düzenleyip “Konumu Al” ile ekleyin.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {list.map((c) => (
-              <li key={c.id} className="card p-3 flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 accent-brand-700"
-                  checked={selected.has(c.id!)}
-                  onChange={() => toggle(c.id!)}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-800 truncate">{c.companyTitle}</p>
-                  <p className="text-xs text-slate-400 truncate">
-                    {[c.district, c.city].filter(Boolean).join(', ')}
-                  </p>
-                </div>
-              </li>
+          <div className="space-y-4">
+            {grouped.map((g) => (
+              <div key={g.city}>
+                <p className="font-bold text-slate-800 mb-1">
+                  📍 {g.city}
+                  <span className="ml-2 text-xs font-medium text-slate-400">({g.count})</span>
+                </p>
+                {g.districts.map((d) => (
+                  <div key={d.district} className="mb-2">
+                    <p className="section-title mb-1 ml-1">
+                      {d.district} <span className="text-slate-400">({d.list.length})</span>
+                    </p>
+                    <ul className="space-y-2">
+                      {d.list.map((c) => (
+                        <li key={c.id} className="card p-3 flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            className="w-5 h-5 accent-brand-700"
+                            checked={selected.has(c.id!)}
+                            onChange={() => toggle(c.id!)}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-slate-800 truncate">{c.companyTitle}</p>
+                            <p className="text-xs text-slate-400 truncate">{c.contactName}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
