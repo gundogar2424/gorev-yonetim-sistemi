@@ -105,6 +105,18 @@ export async function buildSnapshot(): Promise<SyncSnapshot> {
     delete settings.syncToken
     delete settings.syncGistId
     delete settings.lastSyncAt
+    // API ANAHTARI ASLA SENKRONA GIRMEZ.
+    //
+    // Iki ayri zarari vardi:
+    //  1) Anahtar cihazdan cikip GitHub gist'ine yaziliyordu. Gizli bir sir
+    //     olmasi gereken sey uzak bir sunucuda duruyordu.
+    //  2) Geri birlestirmede ESKI anahtar yenisinin uzerine yaziliyordu:
+    //     kullanici yeni anahtar yapistiriyor, ilk senkronda gist'teki iptal
+    //     edilmis anahtar geri geliyor ve butun cagrilar 401 veriyordu
+    //     ("invalid x-api-key"). Anahtar test dugmesi ise baska bir anda
+    //     calistigi icin bazen geciyor, teshisi imkansizlastiriyordu.
+    // Anahtar artik syncToken gibi CIHAZA OZEL kabul edilir.
+    delete settings.apiKey
   }
   return { app: 'diet-coach-sync', version: 1, savedAt: Date.now(), tables, settings }
 }
@@ -197,6 +209,9 @@ export async function mergeSnapshot(remote: SyncSnapshot): Promise<number> {
       delete patch.syncToken
       delete patch.syncGistId
       delete patch.lastSyncAt
+      // Eski surumlerin yazdigi anlik goruntulerde apiKey HALA var. Onlari da
+      // yok say, yoksa iptal edilmis anahtar yenisinin uzerine yazilir.
+      delete patch.apiKey
       if (cur?.id != null) await dietDb.settings.update(cur.id, patch)
       else await dietDb.settings.add(patch as DietSettings)
       added++
