@@ -302,7 +302,10 @@ function friendlyError(err: unknown): Error {
   const status = typeof e?.status === 'number' ? e.status : undefined
   const detail = e?.message ?? ''
 
-  if (status === 401) return new Error('API anahtarı geçersiz. Ayarlardan anahtarınızı kontrol edin.')
+  if (status === 401)
+    return new Error(
+      'API anahtarı kabul edilmedi (401).\nAnahtar silinmiş/iptal edilmiş olabilir ya da eksik kopyalanmıştır.\nAyarlar > API anahtarı bölümünden "Anahtarı test et" düğmesine bas; gerekiyorsa console.anthropic.com/settings/keys adresinden yeni bir anahtar oluştur.'
+    )
   if (status === 403) return new Error('API anahtarınızın bu modele erişim izni yok ya da bakiyeniz yetersiz.')
   if (status === 429) return new Error('Çok fazla istek gönderildi. Lütfen birazdan tekrar deneyin.')
   if (status === 404) {
@@ -613,6 +616,34 @@ export async function analyzeFoodByText(opts: {
     }
   } catch (err) {
     throw friendlyError(err)
+  }
+}
+
+// API ANAHTARINI TEST ET.
+//
+// Neden gerekli: anahtar reddedildiginde (401) sebebi tahmin etmek zorunda
+// kaliyorduk — anahtar mi yanlis, model mi erisilemiyor, bakiye mi bitti?
+// Bu fonksiyon en ucuz cagriyi yapip sonucu Turkce tek cumleyle soyler.
+// max_tokens 1 + thinking kapali: maliyeti neredeyse sifir.
+export async function testApiKey(apiKey: string, model?: string): Promise<string> {
+  if (!apiKey.trim()) return 'Anahtar boş.'
+  const client = await createClient(apiKey.trim())
+  try {
+    await client.messages.create({
+      model: model || DEFAULT_MODEL,
+      max_tokens: 1,
+      thinking: { type: 'disabled' },
+      messages: [{ role: 'user', content: 'ping' }]
+    })
+    return `✓ Anahtar çalışıyor (${model || DEFAULT_MODEL}).`
+  } catch (err) {
+    const e = err as { status?: number; message?: string }
+    if (e?.status === 401) return '✗ Anahtar geçersiz veya iptal edilmiş. Yeni bir anahtar oluşturup yapıştır.'
+    if (e?.status === 403) return '✗ Anahtar geçerli ama bu modele erişimi yok ya da bakiyen yetersiz.'
+    if (e?.status === 429) return '⏳ Anahtar geçerli ama şu an istek sınırındasın. Birazdan tekrar dene.'
+    if (e?.status === 404) return `✗ Model bulunamadı (${model || DEFAULT_MODEL}). Ayarlardan modeli değiştir.`
+    if (e?.status === 400) return `✗ İstek reddedildi (400): ${e.message ?? ''}`
+    return `✗ Bağlanılamadı: ${e?.message ?? 'bilinmeyen hata'}`
   }
 }
 

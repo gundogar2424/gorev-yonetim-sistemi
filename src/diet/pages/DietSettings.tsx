@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, saveDietSettings } from '../db'
 import { badgesForStreak, computeStats } from '../streak'
-import { DEFAULT_MODEL, extractDietPlan } from '../ai'
+import { DEFAULT_MODEL, extractDietPlan, testApiKey } from '../ai'
 import { fileToResizedDataUrl } from '../../lib/image'
 import { buildBackupData, parseDietBackup, restoreDietBackup, clearOldPhotos } from '../lib/backup'
 import { saveJsonSmart } from '../lib/share'
@@ -19,6 +19,7 @@ export default function DietSettings() {
   const { earned, locked } = badgesForStreak(stats.streak)
 
   const [showKey, setShowKey] = useState(false)
+  const [keyTest, setKeyTest] = useState('')
   const [msg, setMsg] = useState('')
   const [planBusy, setPlanBusy] = useState(false)
   const planCameraRef = useRef<HTMLInputElement>(null)
@@ -154,6 +155,22 @@ export default function DietSettings() {
             <button onClick={() => setShowKey((s) => !s)} className="btn-ghost px-3">
               {showKey ? '🙈' : '👁️'}
             </button>
+          </div>
+          {/* ANAHTARI TEST ET. 401 geldiginde sebebi tahmin etmek yerine
+              (anahtar mi, model mi, bakiye mi) tek dokunusla ogreniliyor.
+              En ucuz cagri: max_tokens 1, dusunme kapali. */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                setKeyTest('Deneniyor…')
+                setKeyTest(await testApiKey(settings?.apiKey ?? '', settings?.model))
+              }}
+              disabled={!settings?.apiKey}
+              className="btn-secondary text-[13px] px-3 py-1.5 disabled:opacity-50"
+            >
+              Anahtarı test et
+            </button>
+            {keyTest && <span className="text-[12px] text-slate-600 dark:text-[#9b9ea7] flex-1">{keyTest}</span>}
           </div>
           <a
             href="https://console.anthropic.com/settings/keys"
