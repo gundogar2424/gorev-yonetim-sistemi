@@ -156,6 +156,20 @@ export default function DietSettings() {
               {showKey ? '🙈' : '👁️'}
             </button>
           </div>
+          {/* KAYITLI ANAHTARIN OZETI.
+              Neden gerekli: kutu yildizli (password) gosterdigi icin yapistirma
+              islemi TUTTU MU belli olmuyordu; "kaydedemiyorum" hissi bundan
+              dogdu. Kaydet dugmesi yok — yazdikca kaydediliyor — ama bunun
+              gorunur bir kaniti da yoktu. Tam anahtar YAZILMAZ; uzunluk ve son
+              4 karakter, hata ekranindaki "Gonderilen anahtar" satiriyla
+              karsilastirmaya yeter. */}
+          {settings?.apiKey ? (
+            <p className="text-[12px] text-emerald-700 dark:text-emerald-400">
+              ✓ Kayıtlı: {settings.apiKey.length} karakter, sonu …{settings.apiKey.slice(-4)}
+            </p>
+          ) : (
+            <p className="text-[12px] text-amber-600">Kayıtlı anahtar yok.</p>
+          )}
           {/* ANAHTARI TEST ET. 401 geldiginde sebebi tahmin etmek yerine
               (anahtar mi, model mi, bakiye mi) tek dokunusla ogreniliyor.
               En ucuz cagri: max_tokens 1, dusunme kapali. */}
