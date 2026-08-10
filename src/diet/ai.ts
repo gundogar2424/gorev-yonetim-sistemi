@@ -62,7 +62,18 @@ function rejectsDisabledThinking(model?: string): boolean {
 // her cevaptan gelen token kullanimi merkezi olarak kaydedilir (Ayarlar'da
 // gosterilir) ve yukaridaki iki tasarruf ayari uygulanir. Boylece 27 ayri
 // cagriya dokunmadan tek yerden yonetilir.
+// SON KULLANILAN ANAHTARIN PARMAK IZI — 401 teshisi icin.
+//
+// Neden gerekli: "Anahtari test et" GECIYOR ama yemek analizi 401 veriyor.
+// Ikisi de ayni ayardan okuyor, yani ya gonderilen anahtar gercekten farkli
+// (kopyalama/otomatik doldurma kirpmasi) ya da reddedilme sebebi baska. Tam
+// anahtar ekrana YAZILMAZ; yalnizca uzunluk + son 4 karakter yazilir. Bu
+// kadari Ayarlar'daki kutuyla karsilastirmaya yeter, ekran goruntusu
+// paylasilirsa anahtar sizmaz.
+let lastKeyInfo = ''
+
 async function createClient(apiKey: string) {
+  lastKeyInfo = `${apiKey.length} karakter, sonu …${apiKey.slice(-4)}`
   const mod = await import('@anthropic-ai/sdk')
   const Anthropic = mod.default
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
@@ -302,9 +313,16 @@ function friendlyError(err: unknown): Error {
   const status = typeof e?.status === 'number' ? e.status : undefined
   const detail = e?.message ?? ''
 
+  // 401'de SUNUCUNUN KENDI METNI de yazilir. Sebebi: "Anahtari test et"
+  // gecerken analizin 401 vermesi, "anahtar gecersiz" aciklamasiyla
+  // celisiyor. Sunucu metni ("invalid x-api-key" vb.) ile anahtarin parmak
+  // izi olmadan hangisinin dogru oldugu tahminle bulunamiyor.
   if (status === 401)
     return new Error(
-      'API anahtarı kabul edilmedi (401).\nAnahtar silinmiş/iptal edilmiş olabilir ya da eksik kopyalanmıştır.\nAyarlar > API anahtarı bölümünden "Anahtarı test et" düğmesine bas; gerekiyorsa console.anthropic.com/settings/keys adresinden yeni bir anahtar oluştur.'
+      'API anahtarı kabul edilmedi (401).\n' +
+        `Sunucu: ${detail || 'metin yok'}\n` +
+        `Gönderilen anahtar: ${lastKeyInfo || 'bilinmiyor'}\n` +
+        'Ayarlar > API anahtarı bölümünden "Anahtarı test et" düğmesine bas. Testte de aynı hata çıkıyorsa console.anthropic.com/settings/keys adresinden yeni bir anahtar oluştur.'
     )
   if (status === 403) return new Error('API anahtarınızın bu modele erişim izni yok ya da bakiyeniz yetersiz.')
   if (status === 429) return new Error('Çok fazla istek gönderildi. Lütfen birazdan tekrar deneyin.')
@@ -635,10 +653,10 @@ export async function testApiKey(apiKey: string, model?: string): Promise<string
       thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: 'ping' }]
     })
-    return `✓ Anahtar çalışıyor (${model || DEFAULT_MODEL}).`
+    return `✓ Anahtar çalışıyor (${model || DEFAULT_MODEL}) — ${lastKeyInfo}.`
   } catch (err) {
     const e = err as { status?: number; message?: string }
-    if (e?.status === 401) return '✗ Anahtar geçersiz veya iptal edilmiş. Yeni bir anahtar oluşturup yapıştır.'
+    if (e?.status === 401) return `✗ Anahtar reddedildi (401). Sunucu: ${e.message ?? 'metin yok'} — ${lastKeyInfo}`
     if (e?.status === 403) return '✗ Anahtar geçerli ama bu modele erişimi yok ya da bakiyen yetersiz.'
     if (e?.status === 429) return '⏳ Anahtar geçerli ama şu an istek sınırındasın. Birazdan tekrar dene.'
     if (e?.status === 404) return `✗ Model bulunamadı (${model || DEFAULT_MODEL}). Ayarlardan modeli değiştir.`
