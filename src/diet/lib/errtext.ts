@@ -12,11 +12,15 @@ export function describeError(err: unknown, step?: string): string {
   const head = err.name && err.name !== 'Error' ? `${err.name}: ${err.message}` : err.message
 
   // Yiginin ilk iki satiri: kucultulmus de olsa dosya/satir bilgisi kalir.
+  //
+  // DIKKAT: `stack` MESAJLA BASLAR. Mesaj cok satirliysa (bizim uzun Turkce
+  // hata metinlerimiz gibi) `slice(1)` yalnizca ilk satiri atar; geri kalan
+  // mesaj satirlari "Konum:" altinda TEKRAR gosteriliyordu. Gercek yigin
+  // satirlari "at " ile basladigi icin yalnizca onlari aliyoruz.
   const frames = (err.stack || '')
     .split('\n')
-    .slice(1)
     .map((l) => l.trim())
-    .filter(Boolean)
+    .filter((l) => l.startsWith('at '))
     .slice(0, 2)
     .join('  ←  ')
 
