@@ -869,7 +869,9 @@ export async function splitDietPlanMeals(opts: {
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 1500,
+      // Ayni kesilme riski: uzun bir diyet listesi cikti tavanini asiyordu
+      // (stop_reason: max_tokens). Tavan sinirdir, harcama degil.
+      max_tokens: 3000,
       system:
         `Kullanıcının diyet listesini öğünlere ayıran bir asistansın. Her öğün için O ÖĞÜNDE YENECEK şeyleri KISA ve OKUNAKLI yaz (örn. "2 dilim tam buğday ekmek, süzme peynir, 5 zeytin, çay"). Listede o öğün belirtilmemişse o alanı "" (boş) bırak. Uydurma; sadece listede yazanı düzenle.
 
@@ -1288,7 +1290,11 @@ ${weekPlan?.trim() ? `- MİKTARLARI HAFTALIK PLANDAN SAY. Aşağıda listenin 7 
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 1500,
+      // 1500 YETMIYORDU. 7 gunluk listede cikti kategorilere ayrilmis onlarca
+      // satir oluyor ve yanit yarida kesiliyordu (stop_reason: max_tokens).
+      // Tavan bir SINIRDIR, harcama degil: model kisa liste yazarsa fazlasi
+      // kullanilmaz, fatura uzayan cikti kadar olur.
+      max_tokens: 4000,
       system,
       messages: [
         {
@@ -1721,7 +1727,9 @@ export async function extractDietPlan(opts: {
   try {
     const response = await client.messages.create({
       model,
-      max_tokens: 1500,
+      // Ayni kesilme riski: uzun bir diyet listesi cikti tavanini asiyordu
+      // (stop_reason: max_tokens). Tavan sinirdir, harcama degil.
+      max_tokens: 4000,
       system:
         'Sen bir diyet listesi okuyucususun. Verilen görseldeki diyet listesini/öğün planını OLDUĞU GİBI, düzenli ve okunaklı bir metne dökersin. Öğünleri (Kahvaltı, Ara Öğün, Öğle, Akşam vb.) başlıklarıyla, maddeler hâlinde yaz. Yorum ekleme, sadece listeyi metne çevir. Görselde diyet listesi yoksa "Listede okunabilir bir diyet planı bulunamadı." yaz.',
       messages: [
