@@ -335,3 +335,59 @@ textarea {
 .dark textarea::placeholder {
   color: #6b6e78;
 }
+
+/* =========================================================================
+   OKUNABILIRLIK — koyu temada soluk gri metinler + cok kucuk puntolar.
+
+   Sikayet: "Koc'a sor" ve baska yerlerde yazilar okunmuyor, renkler cok
+   koyu. Sebep iki kat:
+     1) Ikincil metinler (.text-slate-500/600) koyu zeminde #9b9ea7 idi;
+        kart zemini #252733 uzerinde kontrast ~4.4:1. Ucuncul metinler
+        (.text-slate-400/300) #7c8089 ile ~3.2:1 — WCAG'in kucuk yazi icin
+        istedigi 4.5:1'in ALTINDA, yani gercekten okunmuyor.
+     2) Arayuzde 10-12px'lik puntolar cok yaygin (text-[11px] tek basina
+        100'den fazla yerde). Dusuk kontrast + kucuk punto birlesince
+        yazi kayboluyor.
+
+   Cozum: gri tonlari acmak ve en kucuk puntolara TABAN koymak. Tailwind
+   siniflarinin kendisi yeniden tanimlaniyor; boylece yuzlerce satiri tek
+   tek degistirmeye gerek kalmiyor. Bu kurallar `@tailwind utilities`ten
+   SONRA geldigi icin ayni ozgullukte kazanir.
+   ========================================================================= */
+
+/* 1) Koyu temada gri metinleri ac */
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #b9bcc4; /* eski #9b9ea7 — kart zemininde ~7.4:1 */
+}
+.dark .text-slate-400,
+.dark .text-slate-300 {
+  color: #9aa0aa; /* eski #7c8089 — ~5.2:1 */
+}
+.dark .stat-label,
+.dark .section-title {
+  color: #b9bcc4;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #8b8f99; /* eski #6b6e78 — yer tutucu da okunsun */
+}
+
+/* 2) En kucuk puntolara taban. 10-12px'ler telefonda okunmuyordu. */
+.text-\[10px\] {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.text-\[11px\] {
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.text-\[12px\],
+.text-xs {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.text-\[13px\] {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
