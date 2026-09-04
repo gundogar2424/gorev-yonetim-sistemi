@@ -391,3 +391,51 @@ textarea {
   font-size: 13.5px;
   line-height: 1.5;
 }
+
+/* 3) -900 tonlari ve atlanan renk aileleri.
+   "Koc baksin" cevabi `bg-emerald-500/10 text-emerald-900` ile ciziliyordu;
+   koyu zemin kurallari yalnizca -800/-700'u kapsadigi icin yazi KOYU YESIL
+   kalip zemine karisiyordu ve hic okunmuyordu. Ayni bosluk amber/rose/violet
+   -900 tonlarinda ve violet/purple/pink ailelerinde de vardi. */
+.dark .text-emerald-900,
+.dark .text-green-900,
+.dark .text-teal-900,
+.dark .text-teal-800 {
+  color: #6ee7b7;
+}
+.dark .text-rose-900,
+.dark .text-red-900 {
+  color: #fda4af;
+}
+.dark .text-amber-900,
+.dark .text-orange-900,
+.dark .text-yellow-900 {
+  color: #fcd34d;
+}
+.dark .text-violet-900,
+.dark .text-violet-800,
+.dark .text-violet-700,
+.dark .text-violet-600,
+.dark .text-purple-900,
+.dark .text-purple-800,
+.dark .text-purple-700,
+.dark .text-purple-600 {
+  color: #c4b5fd;
+}
+.dark .text-violet-400,
+.dark .text-violet-300 {
+  color: #ddd6fe;
+}
+.dark .text-pink-700,
+.dark .text-pink-600 {
+  color: #f9a8d4;
+}
+.dark .text-indigo-900,
+.dark .text-indigo-800,
+.dark .text-blue-900,
+.dark .text-blue-700,
+.dark .text-blue-600,
+.dark .text-cyan-800,
+.dark .text-cyan-700 {
+  color: #7dd3fc;
+}
