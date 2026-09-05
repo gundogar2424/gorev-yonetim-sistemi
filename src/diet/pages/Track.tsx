@@ -16,8 +16,9 @@ import {
   getStepsRow,
   setActivityDay
 } from '../db'
-import { analyzeMealSugar, quickMealSugarNote } from '../ai'
+import { analyzeMealSugar, quickMealSugarNote, commentMeasurements } from '../ai'
 import { buildHealthContext } from '../lib/context'
+import { describeError } from '../lib/errtext'
 import { todayStr } from '../streak'
 import { movementKcal, plausibleDistanceKm } from '../lib/movement'
 import { buildMeasurementsReport } from '../lib/report'
@@ -103,6 +104,9 @@ export default function Track() {
 
         {tab === 'olcu' ? <MeasurePanel range={range} /> : <VitalPanel range={range} />}
 
+        {/* Kocun olcu yorumu (yalnizca olcu sekmesinde) */}
+        {tab === 'olcu' && <MeasureComment />}
+
         {/* Günlük aktivite (Samsung Health vb.'den elle) — her iki sekmede de görünür */}
         <ActivityPanel />
 
@@ -113,6 +117,99 @@ export default function Track() {
         <SendMeasurements />
       </div>
     </div>
+  )
+}
+
+// KOC OLCU YORUMU — "Son Olculer" tablosunun altinda.
+//
+// Neden: tabloda yalnizca sayilar var. Kilo dururken bel/kalca daralmasi
+// (yag gidip kas kalmasi) tabloda GORUNUYOR ama okunmuyor; kullanici bunu
+// kendi cikaramiyor ve sadece kiloya bakip moralini bozuyor. Koc son iki
+// olcumun farkini alip hangi yonun iyi gittigini soyluyor.
+//
+// Token dostu: fotograf yok, yalnizca son 6 olcum satiri gider ve ancak
+// dugmeye basilinca calisir (kendiliginden istek atmaz).
+const MEASURE_FIELDS: { key: keyof Measurement; label: string; unit: string }[] = [
+  { key: 'weight', label: 'Kilo', unit: 'kg' },
+  { key: 'arm', label: 'Kol', unit: 'cm' },
+  { key: 'chest', label: 'Göğüs', unit: 'cm' },
+  { key: 'fold', label: 'Bel kıvrımı', unit: 'cm' },
+  { key: 'navel', label: 'Göbek deliği', unit: 'cm' },
+  { key: 'hip', label: 'Kalça', unit: 'cm' },
+  { key: 'leg', label: 'Bacak', unit: 'cm' }
+]
+
+function measureTable(rows: Measurement[]): string {
+  return rows
+    .map((m) => {
+      const vals = MEASURE_FIELDS.filter((f) => typeof m[f.key] === 'number')
+        .map((f) => `${f.label} ${m[f.key]}${f.unit}`)
+        .join(', ')
+      return `${m.dateStr}: ${vals || '(boş)'}`
+    })
+    .join('\n')
+}
+
+function MeasureComment() {
+  const measurements = useLiveQuery(() => listMeasurements(), [], [])
+  const settings = useLiveQuery(() => readDietSettings(), [], undefined)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  // Ayni gune birden fazla olcum girilebiliyor; her gunun EN SON girisini al.
+  const rows = (() => {
+    const byDay = new Map<string, Measurement>()
+    for (const m of [...(measurements ?? [])].sort((a, b) => a.createdAt - b.createdAt)) byDay.set(m.dateStr, m)
+    return [...byDay.values()].slice(-6)
+  })()
+
+  const hasKey = !!settings?.apiKey
+
+  async function run() {
+    setBusy(true)
+    setError('')
+    setText('')
+    try {
+      const reply = await commentMeasurements({
+        apiKey: settings!.apiKey!,
+        table: measureTable(rows),
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        targetWeight: settings?.targetWeight,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings, 'quick')
+      })
+      setText(reply)
+    } catch (err) {
+      setError(describeError(err, 'ölçü yorumu'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!rows.length) return null
+
+  return (
+    <section className="card p-4 space-y-3">
+      <h3 className="section-title">Koçun ölçü yorumu</h3>
+      {!hasKey ? (
+        <p className="text-xs text-slate-500">Bu yorum için Ayarlar’dan API anahtarı ekle.</p>
+      ) : (
+        <button onClick={run} disabled={busy} className="btn-primary w-full disabled:opacity-50">
+          {busy ? 'Koç bakıyor…' : '🧑‍🍳 Ölçülerimi yorumla'}
+        </button>
+      )}
+      <p className="text-[11px] text-slate-400">
+        Son {rows.length} ölçüm karşılaştırılır. Yapay zeka kullanır. Tıbbi teşhis değildir.
+      </p>
+      {error && <p className="text-xs text-rose-600 font-semibold whitespace-pre-wrap">{error}</p>}
+      {text && (
+        <p className="text-sm text-slate-800 bg-slate-50 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">{text}</p>
+      )}
+    </section>
   )
 }
 

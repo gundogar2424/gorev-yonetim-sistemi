@@ -2138,3 +2138,65 @@ KİŞİYE GÖRE YAZ: Aşağıda kişinin sağlık verisi (tahlilleri, şeker/tan
     throw friendlyError(err)
   }
 }
+
+// OLCU YORUMU — "Son Olculer" sayfasinda kocun yorumu.
+//
+// Neden ayri bir fonksiyon: kilo tek basina yaniltici. Kilo dururken bel ve
+// kalca daralabilir (yag gidip kas kalmasi), ya da tersi olabilir. Kullanici
+// tabloya bakip bunu kendi cikaramiyor. Model ONCEKI olcumlerle farki alip
+// hangi yonun iyi gittigini soylesin diye tam tablo veriliyor.
+//
+// Tibbi teshis DEGIL: yorum beslenme/olcu takibi duzeyinde kalir.
+export async function commentMeasurements(opts: {
+  apiKey: string
+  table: string // Olcum tablosu (eskiden yeniye, her satir bir olcum)
+  model?: string
+  userName?: string
+  goal?: string
+  targetWeight?: number
+  dietPlan?: string
+  dietitianNotes?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, table, model = DEFAULT_MODEL, userName, goal, targetWeight, dietPlan, dietitianNotes, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcının adı: ${userName}.`)
+  if (goal?.trim()) ctx.push(`Hedefi: ${goal.trim()}.`)
+  if (typeof targetWeight === 'number' && targetWeight > 0) ctx.push(`Hedef kilo: ${targetWeight} kg.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyen notları: ${dietitianNotes.trim()}.`)
+  if (dietPlan?.trim()) ctx.push(`Diyet listesi (özet için):\n${dietPlan.trim()}`)
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcının vücut ölçüm tablosunu yorumluyorsun.
+
+NASIL YAZ:
+- Türkçe, sade, 4-6 kısa cümle. Madde işareti kullanabilirsin.
+- ÖNCE en son ölçümü bir öncekiyle karşılaştır: hangi ölçü ne kadar değişmiş, SAYIYLA yaz (örn. "kalça 122 → 120, 2 cm inmiş").
+- Sadece kiloya bakma. Kilo aynı kalıp bel/kalça daralıyorsa bu İYİdir, bunu açıkça söyle. Tersi de geçerli.
+- Bel/göbek çevresi sağlık açısından kilodan daha belirleyicidir; değişimi varsa mutlaka an.
+- Sonda tek bir somut öneri ver (ölçü/beslenme düzeyinde).
+- Övgüyü hak ediyorsa ver ama abartma; kötü gidiyorsa suçlamadan, yapıcı söyle.
+
+YAPMA:
+- Tıbbi teşhis koyma, hastalık adı verme, ilaç/doz önerme.
+- Tabloda olmayan sayı uydurma. Tek ölçüm varsa karşılaştırma yapma, sadece mevcut duruma göre kısa yorum yap ve düzenli ölçmeyi öner.
+- Vücut şekli/görünüş üzerinden yorum yapma; yalnızca sayılara bak.
+${ctx.join(' ')}${healthSys(health)}`
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 900,
+      system,
+      messages: [{ role: 'user', content: `Ölçüm tablom (eskiden yeniye):\n\n${table}\n\nSon durumu yorumla.` }]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Yorum üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
