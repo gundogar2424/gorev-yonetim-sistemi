@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import TmHeader from '../TmHeader'
 import { addRecipe } from '../db'
-import { parseRecipeCode } from '../lib/recipeIO'
+import { gramDisiOlculer, parseRecipeCode } from '../lib/recipeIO'
 import { stepSummary } from '../lib/tm7'
 import type { TmConversion } from '../types'
 
@@ -152,6 +152,20 @@ function Onizleme({ liste }: { liste: TmConversion[] }) {
                 </li>
               ))}
             </ol>
+
+            {gramDisiOlculer(r).length > 0 && (
+              <div className="mt-3 p-3 rounded-2xl bg-amber-50 dark:bg-[#2a2413] text-[13px] text-amber-800 dark:text-amber-300">
+                <div className="font-semibold mb-1">Gram olmayan ölçüler var</div>
+                <div className="opacity-90">
+                  Thermomix’te su dahil her şey kaba tartılır. Şu satırlar bardak/kaşık cinsinden:
+                </div>
+                <ul className="mt-1 space-y-0.5">
+                  {gramDisiOlculer(r).slice(0, 6).map((x, k) => (
+                    <li key={k}>• {x}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {r.warnings.length > 0 && (
               <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-[#252733] text-[13px] text-amber-800 space-y-1">

@@ -41,6 +41,31 @@ export function normalizeConversion(p: Partial<TmConversion>): TmConversion {
   }
 }
 
+// GRAM KONTROLU. Thermomix'te olculer gramdir: su, sut, yag dahil her sey
+// kaba TARTILARAK konur (1 ml su = 1 g). "2 su bardagi", "1 yemek kasigi"
+// gibi olculer cihazin mantigina uymaz ve tartiyla calisirken ise yaramaz.
+// Bu islev, yapistirilan kodda kalmis boyle olculeri bulup uyarir; engellemez
+// (adet/tutam gibi mesru olculer de var), yalnizca gozden kacmasin diye.
+const OLCU_KALIPLARI = [
+  /\bsu bardağı\b/i,
+  /\bçay bardağı\b/i,
+  /\bbardak\b/i,
+  /\bfincan\b/i,
+  /\byemek kaşığı\b/i,
+  /\btatlı kaşığı\b/i,
+  /\bçay kaşığı\b/i,
+  /\bkaşık\b/i,
+  /\byk\b/i,
+  /\btk\b/i,
+  /\bölçek\b/i,
+  /\bpaket\b/i
+]
+
+export function gramDisiOlculer(r: TmConversion): string[] {
+  const satirlar = [...r.ingredients, ...r.steps.map((s) => s.ingredients)]
+  return satirlar.filter((satir) => satir && OLCU_KALIPLARI.some((k) => k.test(satir)))
+}
+
 export interface ParsedRecipe {
   recipe: TmConversion
   source: string // Kod icinde "source" yazdiysa onu tasi
