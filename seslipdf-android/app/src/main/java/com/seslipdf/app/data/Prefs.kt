@@ -36,9 +36,13 @@ class Prefs(context: Context) {
         get() = sp.getString("lang", "tr-TR") ?: "tr-TR"
         set(v) = sp.edit().putString("lang", v).apply()
 
-    /** Okurken ekran acik kalsin mi. */
+    /**
+     * Okuma ekrani acikken ekran acik kalsin mi. Varsayilan ACIK: kullanici
+     * metni ekrandan takip ederken telefon "kullanilmiyor" sanip karartiyordu.
+     * Ekrani kapatmak isteyen guc dugmesine basar; okuma yine surer.
+     */
     var keepAwake: Boolean
-        get() = sp.getBoolean("keepAwake", false)
+        get() = sp.getBoolean("keepAwake", true)
         set(v) = sp.edit().putBoolean("keepAwake", v).apply()
 
     /** Okunan cumle ekranda ortalansin mi. */

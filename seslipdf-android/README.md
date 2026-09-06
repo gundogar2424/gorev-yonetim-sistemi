@@ -23,6 +23,7 @@ seslendirme motoruyla sana okuyor — ekran kapalıyken de.
 | 🏃 **Hız ve ton** | 0.5× – 2.5× okuma hızı, ses tonu ayarı |
 | 🗣️ **Ses seçimi** | Cihazda kurulu Türkçe (ve diğer) seslerden istediğini seç |
 | 🔔 **Bildirim kumandası** | Oku/duraklat, ileri/geri, kapat — telefon kilitliyken de |
+| 🔆 **Ekran kararmaz** | Okuma ekranı açıkken telefon ekranı kendiliğinden kapanmaz (kapatmak için güç düğmesi yeter; okuma sürer) |
 | 🌙 **Ekran kapalıyken** | Ön plan servisi + wake-lock sayesinde cepteyken de okumaya devam eder |
 | 💾 **Kaldığın yer** | Her cümlede kaydedilir; uygulamayı kapatsan da aynı yerden devam |
 | ⏰ **Uyku sayacı** | 5–90 dakika sonra okuma kendiliğinden duraklar |

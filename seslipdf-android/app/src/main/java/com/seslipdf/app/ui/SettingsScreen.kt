@@ -132,9 +132,9 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     )
                 }
                 SwitchRow(
-                    title = "Sesli okurken ekran açık kalsın",
-                    description = "Kapalıyken de okuma sürer; bu seçenek yalnızca ekranı açık " +
-                        "tutar. Sessiz okuma modunda ekran zaten hiç kararmaz.",
+                    title = "Okuma ekranında ekran kararmasın",
+                    description = "Okuma ekranı açıkken telefon ekranı kendiliğinden kapanmaz. " +
+                        "Ekranı kapatmak istersen güç düğmesine bas; okuma yine sürer.",
                     checked = vm.keepAwake,
                     onChange = { vm.updateKeepAwake(it) }
                 )
