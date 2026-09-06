@@ -36,6 +36,21 @@ export default {
           800: '#065c28',
           900: '#0a4a22'
         },
+        // ZIHIN JIMNASTIGI'nin kendi rengi: sakin, sicak bir mor. Yasli gozler
+        // icin beyaz yaziyla yuksek kontrast verecek koyulukta secildi (600).
+        // Yalnizca src/zihin/** kullanir; diger programlarin renkleri degismez.
+        zn: {
+          50: '#f3effd',
+          100: '#e6dffb',
+          200: '#cfc2f7',
+          300: '#b09af0',
+          400: '#9276e8',
+          500: '#7a5be0',
+          600: '#6647cc', // eylem rengi (butonlar, secili sekme)
+          700: '#5439ab',
+          800: '#432e88',
+          900: '#35256b'
+        },
         // MFP paletinden ORNEKLENEN renkler
         mfp: {
           bg: '#151724', // sayfa zemini
