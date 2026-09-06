@@ -43,6 +43,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("stopAnswered", true)
         set(v) = sp.edit().putBoolean("stopAnswered", v).apply()
 
+    /** Cagri kurulunca hoparlor acilsin mi. */
+    var speaker: Boolean
+        get() = sp.getBoolean("speaker", false)
+        set(v) = sp.edit().putBoolean("speaker", v).apply()
+
     /** Sure dolunca cagriyi uygulama kapatsin mi. */
     var hangUpOnTimeout: Boolean
         get() = sp.getBoolean("hangup", true)
@@ -55,7 +60,8 @@ class Prefs(context: Context) {
         repeats = repeats,
         ringSec = ringSec,
         stopWhenAnswered = stopWhenAnswered,
-        hangUpOnTimeout = hangUpOnTimeout
+        hangUpOnTimeout = hangUpOnTimeout,
+        speaker = speaker
     )
 }
 
@@ -67,7 +73,8 @@ data class RedialConfig(
     val repeats: Int,
     val ringSec: Int,
     val stopWhenAnswered: Boolean,
-    val hangUpOnTimeout: Boolean
+    val hangUpOnTimeout: Boolean,
+    val speaker: Boolean = false
 ) {
     companion object {
         /** Sebekeyi bogmamak icin en kisa bekleme. */

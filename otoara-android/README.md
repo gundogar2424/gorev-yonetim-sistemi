@@ -19,6 +19,7 @@ aralıklarla tekrar tekrar arayan** native Android uygulaması.
 | 🔁 **Tekrar sayısı** | Toplam kaç kez aranacağı |
 | ⏳ **Çağrı süresi** | Bir çağrının en fazla ne kadar çalacağı — dolunca kapatılıp yeniden aranır |
 | ✅ **Cevaplanınca dur** | Karşı taraf açtığında döngü kendiliğinden biter ve bildirim gelir |
+| 🔊 **Hoparlör** | Çağrı kurulunca ses otomatik hoparlöre verilir (isteğe bağlı) |
 | 🔔 **Kalıcı bildirim** | Kaçıncı denemede olunduğu, kalan saniye ve **Durdur** düğmesi |
 | 🌙 **Ekran kapalıyken** | Ön plan servisi + wake-lock sayesinde telefon cebindeyken de sürer |
 | 📋 **Geçmiş** | Her denemenin zamanı, süresi ve sonucu kayıt altında |
@@ -51,6 +52,7 @@ Her deneme için sırayla:
 | **Telefon durumu** (`READ_PHONE_STATE`) | Zorunlu — çağrının kurulduğunu/bittiğini anlamak için |
 | **Çağrıları yönetme** (`ANSWER_PHONE_CALLS`) | Süre dolunca çağrıyı kapatabilmek için (Android 9+) |
 | **Arama kayıtları** (`READ_CALL_LOG`) | İsteğe bağlı — "cevaplanınca dur" özelliğinin güvenilir çalışması için |
+| **Ses ayarları** (`MODIFY_AUDIO_SETTINGS`) | "Hoparlörü aç" seçeneği için (kurulumda otomatik verilir) |
 | **Bildirimler** | Kalıcı durum bildirimi ve sonuç uyarısı |
 | **Pil optimizasyonu muafiyeti** | Ekran kapalıyken döngünün durmaması için (önerilir) |
 
@@ -64,6 +66,11 @@ Tüm veriler telefonda kalır (Room/SQLite). Sunucu yoktur, internet gerekmez.
 - **Aralık** en az 5 saniye, **tekrar sayısı** en çok 500'dür.
 - Android, uygulamalara "karşı taraf açtı mı?" bilgisini canlı olarak vermez;
   bu yüzden cevaplanma çağrı bittikten sonra arama kaydından anlaşılır.
+- **Hoparlör**: gerçek bir telefon çağrısının ses yolunu değiştirmek aslında
+  varsayılan telefon uygulamasının işidir. Uygulama bunu Android'in ses
+  yöneticisi üzerinden dener (Android 12+ için `setCommunicationDevice`,
+  öncesi için `isSpeakerphoneOn`) ve çoğu cihazda çalışır, ama bazı
+  marka/sürümlerde sistem izin vermeyebilir.
 - Android 8 (API 26) ve üstü gerekir. Çağrıyı programla kapatmak Android 9+
   ister; daha eski sürümlerde süre dolunca çağrıyı elle kapatmanız gerekir.
 

@@ -194,6 +194,7 @@ class RedialService : Service() {
 
         // 2) Cagri suresi boyunca bekle.
         RedialState.update { it.copy(phase = Phase.IN_CALL) }
+        if (cfg.speaker) enableSpeaker()
         val connectStart = SystemClock.elapsedRealtime()
         val deadline = connectStart + cfg.ringSec * 1000L
         var weHungUp = false
@@ -221,6 +222,10 @@ class RedialService : Service() {
 
         // 3) Cevaplandi mi? Once arama kaydi (guvenilir), yoksa sure tahmini.
         delay(1500)
+        // Cagri bittiyse ses yolunu telefonun kendi secimine geri birak.
+        if (cfg.speaker && Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) {
+            Speaker.off(this)
+        }
         val logged = Phone.lastOutgoingDuration(this, cfg.number)
         val answered = when {
             logged != null -> logged > 0
@@ -234,6 +239,18 @@ class RedialService : Service() {
             connectedSec = connectedSec,
             result = if (answered) AttemptResult.ANSWERED else AttemptResult.NO_ANSWER
         )
+    }
+
+    /**
+     * Hoparloru acar. Cagri kurulduktan hemen sonra ses yolu her zaman hazir
+     * olmadigi icin kisa araliklarla birkac kez denenir.
+     */
+    private suspend fun enableSpeaker() {
+        repeat(4) {
+            if (!active) return
+            if (Speaker.on(this) || Speaker.isOn(this)) return
+            delay(700)
+        }
     }
 
     /** Belirtilen cagri durumuna gecilene kadar bekler. */
@@ -263,6 +280,9 @@ class RedialService : Service() {
             it.copy(running = false, phase = Phase.FINISHED, secondsLeft = 0, finishedReason = reason)
         }
         if (alert) postResultNotification(reason, answered)
+        // Gorusme surmuyorsa hoparloru birak; cevaplandiysa konusma devam
+        // ettigi icin ses yoluna dokunulmaz.
+        if (Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) Speaker.off(this)
         releaseWakeLock()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -380,6 +400,7 @@ class RedialService : Service() {
         private const val EXTRA_RING = "ring"
         private const val EXTRA_STOP_ANSWERED = "stopAnswered"
         private const val EXTRA_HANGUP = "hangup"
+        private const val EXTRA_SPEAKER = "speaker"
         private const val EXTRA_LABEL = "label"
 
         fun start(context: Context, config: RedialConfig, label: String = "") {
@@ -392,6 +413,7 @@ class RedialService : Service() {
                 putExtra(EXTRA_RING, cfg.ringSec)
                 putExtra(EXTRA_STOP_ANSWERED, cfg.stopWhenAnswered)
                 putExtra(EXTRA_HANGUP, cfg.hangUpOnTimeout)
+                putExtra(EXTRA_SPEAKER, cfg.speaker)
                 putExtra(EXTRA_LABEL, label)
             }
             ContextCompat.startForegroundService(context, i)
@@ -418,7 +440,8 @@ class RedialService : Service() {
                 repeats = getIntExtra(EXTRA_REPEATS, 10),
                 ringSec = getIntExtra(EXTRA_RING, 30),
                 stopWhenAnswered = getBooleanExtra(EXTRA_STOP_ANSWERED, true),
-                hangUpOnTimeout = getBooleanExtra(EXTRA_HANGUP, true)
+                hangUpOnTimeout = getBooleanExtra(EXTRA_HANGUP, true),
+                speaker = getBooleanExtra(EXTRA_SPEAKER, false)
             ).sanitized()
         }
 

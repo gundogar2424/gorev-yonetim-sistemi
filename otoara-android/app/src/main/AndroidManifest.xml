@@ -13,6 +13,9 @@
          verilmezse uygulama sureye dayali tahmine duser. -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
 
+    <!-- Gorusme sesini hoparlore vermek icin -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
     <!-- Ekran kapaliyken de dongu devam etsin -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />

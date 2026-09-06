@@ -269,6 +269,14 @@ fun HomeScreen(
                 enabled = !status.running,
                 onChange = vm::updateHangUpOnTimeout
             )
+            SwitchRow(
+                title = "Hoparlörü aç",
+                subtitle = "Çağrı kurulunca ses hoparlöre verilir. Bazı " +
+                    "telefonlarda sistem buna izin vermeyebilir.",
+                checked = vm.speaker,
+                enabled = !status.running,
+                onChange = vm::updateSpeaker
+            )
         }
 
         // ------------------------------------------------------- pil uyarisi

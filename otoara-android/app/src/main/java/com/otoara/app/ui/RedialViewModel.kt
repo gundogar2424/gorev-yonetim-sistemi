@@ -41,6 +41,8 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var hangUpOnTimeout by mutableStateOf(prefs.hangUpOnTimeout)
         private set
+    var speaker by mutableStateOf(prefs.speaker)
+        private set
 
     /** Kisilerden secilen numaranin adi (varsa) — gecmiste gorunur. */
     var label by mutableStateOf("")
@@ -66,6 +68,7 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
     fun updateRingSec(v: String) { ringSec = digits(v, 2); persist() }
     fun updateStopWhenAnswered(v: Boolean) { stopWhenAnswered = v; prefs.stopWhenAnswered = v }
     fun updateHangUpOnTimeout(v: Boolean) { hangUpOnTimeout = v; prefs.hangUpOnTimeout = v }
+    fun updateSpeaker(v: Boolean) { speaker = v; prefs.speaker = v }
 
     private fun digits(v: String, max: Int) = v.filter { it.isDigit() }.take(max)
 
@@ -86,7 +89,8 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
         repeats = repeats.toIntOrNull() ?: 10,
         ringSec = totalRingSec().let { if (it <= 0) 30 else it },
         stopWhenAnswered = stopWhenAnswered,
-        hangUpOnTimeout = hangUpOnTimeout
+        hangUpOnTimeout = hangUpOnTimeout,
+        speaker = speaker
     ).sanitized()
 
     /** Formda eksik/hatali bir sey varsa aciklamasini doner, yoksa null. */
