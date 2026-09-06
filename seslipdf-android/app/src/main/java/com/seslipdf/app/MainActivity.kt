@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
                     // Okuma ekrani acikken ekran kendiliginden kararmasin: metin
                     // ekranda akiyor, kullanici telefona dokunmuyor. Karar tamamen
                     // kullanicinin: ayar kapatilirsa telefon her zamanki gibi uyur.
-                    val keepAwake = vm.readerVisible && vm.keepAwake
+                    val keepAwake = vm.readerVisible && vm.keepAwake && !vm.screenAsleep
                     DisposableEffect(keepAwake) {
                         if (keepAwake) {
                             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

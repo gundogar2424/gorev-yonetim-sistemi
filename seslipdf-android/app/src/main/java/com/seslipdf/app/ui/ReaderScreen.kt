@@ -126,6 +126,20 @@ fun ReaderScreen(
     val text by ReaderState.text.collectAsStateWithLifecycle()
 
     var showSleep by remember { mutableStateOf(false) }
+
+    /** Uyku sayacinin bitis ani (SystemClock.elapsedRealtime); 0 = kapali. */
+    var sleepDeadline by remember { mutableLongStateOf(0L) }
+
+    // Sure dolunca: okuma/akis durur ve ekran uyanik tutulmayi birakir; telefon
+    // kendi zaman asimiyla ekrani kapatir.
+    LaunchedEffect(sleepDeadline) {
+        if (sleepDeadline <= 0L) return@LaunchedEffect
+        val remaining = sleepDeadline - SystemClock.elapsedRealtime()
+        if (remaining > 0) delay(remaining)
+        vm.flowing = false
+        vm.screenAsleep = true
+        sleepDeadline = 0L
+    }
     var showPage by remember { mutableStateOf(false) }
 
     if (status.docId == 0L && !status.loading) {
@@ -368,6 +382,7 @@ fun ReaderScreen(
                 else ReaderService.previous(context)
             },
             onToggle = {
+                vm.screenAsleep = false
                 if (vm.silentMode) {
                     vm.flowing = !vm.flowing
                 } else if (status.playing) {
@@ -384,7 +399,10 @@ fun ReaderScreen(
             onPage = { showPage = true },
             onClose = { ReaderService.close(context) },
             keepAwake = vm.keepAwake,
-            onToggleKeepAwake = { vm.updateKeepAwake(!vm.keepAwake) },
+            onToggleKeepAwake = {
+                vm.screenAsleep = false
+                vm.updateKeepAwake(!vm.keepAwake)
+            },
             onToggleMode = {
                 val goingSilent = !vm.silentMode
                 vm.updateSilentMode(goingSilent)
@@ -398,7 +416,7 @@ fun ReaderScreen(
                     ReaderService.seek(context, anchorIndex)
                 }
             },
-            sleepAt = status.sleepAt
+            sleepAt = if (sleepDeadline > 0L) sleepDeadline else status.sleepAt
         )
 
         if (vm.silentMode) {
@@ -418,10 +436,14 @@ fun ReaderScreen(
 
     if (showSleep) {
         SleepDialog(
-            current = status.sleepAt,
+            current = if (sleepDeadline > 0L) sleepDeadline else status.sleepAt,
             onPick = { minutes ->
                 vm.updateSleepMinutes(minutes)
+                // Sesli okuma servisi de duraklatsin (ekran kapaliyken bile).
                 ReaderService.sleepTimer(context, minutes)
+                sleepDeadline =
+                    if (minutes > 0) SystemClock.elapsedRealtime() + minutes * 60_000L else 0L
+                vm.screenAsleep = false
                 showSleep = false
             },
             onDismiss = { showSleep = false }
@@ -581,13 +603,11 @@ private fun Controls(
                 label = { Text("Sayfaya git") },
                 leadingIcon = { Icon(Icons.Filled.MenuBook, contentDescription = null) }
             )
-            if (!silent) {
-                AssistChip(
-                    onClick = onSleep,
-                    label = { Text(sleepLabel(sleepAt)) },
-                    leadingIcon = { Icon(Icons.Filled.Bedtime, contentDescription = null) }
-                )
-            }
+            AssistChip(
+                onClick = onSleep,
+                label = { Text(sleepLabel(sleepAt)) },
+                leadingIcon = { Icon(Icons.Filled.Bedtime, contentDescription = null) }
+            )
             AssistChip(
                 onClick = onClose,
                 label = { Text("Kapat") },
@@ -687,7 +707,10 @@ private fun SleepDialog(current: Long, onPick: (Int) -> Unit, onDismiss: () -> U
         title = { Text("Uyku sayacı") },
         text = {
             Column {
-                Text("Seçilen süre dolunca okuma kendiliğinden duraklar.")
+                Text(
+                    "Seçilen süre dolunca okuma (ve sessiz moddaki akış) durur, " +
+                        "ekran da uyur."
+                )
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     options.take(4).forEach { minutes ->
