@@ -56,6 +56,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -71,11 +72,31 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seslipdf.app.tts.ReaderService
 import com.seslipdf.app.tts.ReaderState
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.foundation.interaction.DragInteraction
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import android.os.SystemClock
+
+/**
+ * Programli kaydirma yapar. Kullanici tam o sirada parmagiyla kaydirirsa Compose
+ * bizim kaydirmamizi iptal eder; bu iptal akis dongusunu OLDURMEMELI — yoksa
+ * okunan satir bir daha takip edilmez. Ekran kapandiysa (kapsam iptal edildiyse)
+ * iptal gercekten yukari birakilir.
+ */
+private suspend fun CoroutineScope.scrollSafely(block: suspend () -> Unit) {
+    try {
+        block()
+    } catch (e: CancellationException) {
+        if (!isActive) throw e
+    }
+}
+
+/** Kullanici elle kaydirdiktan sonra takibin bekleyecegi sure (milisaniye). */
+private const val USER_SCROLL_GRACE = 3_000L
 
 /** Okunan cumlenin ekranda durmasi istenen yer (ustten oran). */
 private const val LINE_POSITION = 0.34f
@@ -120,6 +141,20 @@ fun ReaderScreen(
         onDispose { vm.readerVisible = false }
     }
 
+    // Kullanici en son ne zaman parmagiyla kaydirdi: hemen ardindan takip
+    // devreye girip onu geri cekmesin, birkac saniye baksin.
+    var userScrolledAt by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Start ||
+                interaction is DragInteraction.Stop ||
+                interaction is DragInteraction.Cancel
+            ) {
+                userScrolledAt = SystemClock.elapsedRealtime()
+            }
+        }
+    }
+
     // Ekranda hedef cizgideki cumle: sessiz modda "okunan" cumle budur.
     val anchorIndex by remember {
         derivedStateOf {
@@ -155,7 +190,9 @@ fun ReaderScreen(
             val seconds = if (lastFrame == 0L) 0f
                 else ((now - lastFrame) / 1_000_000_000f).coerceIn(0f, 0.1f)
             lastFrame = now
-            if (seconds > 0f) listState.scrollBy(vm.flowPixelsPerSecond * seconds)
+            if (seconds > 0f) {
+                scrollSafely { listState.scrollBy(vm.flowPixelsPerSecond * seconds) }
+            }
         }
     }
 
@@ -199,13 +236,21 @@ fun ReaderScreen(
             }
             if (state.playing) within += seconds
 
+            // Kullanici az once elle kaydirdiysa birkac saniye karismayalim.
+            if (SystemClock.elapsedRealtime() - userScrolledAt < USER_SCROLL_GRACE) {
+                velocity = 0f
+                continue
+            }
+
             val info = listState.layoutInfo
             val line = info.visibleItemsInfo.firstOrNull { it.index == state.index }
 
             if (line == null) {
-                // Okunan cumle ekranda degil (cumleye dokunuldu, sayfaya gidildi):
-                // akisla degil, dogrudan oraya gidilir.
-                listState.scrollToItem(state.index.coerceIn(0, sentences.lastIndex))
+                // Okunan cumle ekranda degil (cumleye dokunuldu, sayfaya gidildi,
+                // elle kaydirildi): akisla degil, dogrudan oraya gidilir.
+                scrollSafely {
+                    listState.scrollToItem(state.index.coerceIn(0, sentences.lastIndex))
+                }
                 velocity = 0f
                 continue
             }
@@ -225,7 +270,9 @@ fun ReaderScreen(
 
             val goal = (flow + error * vm.scrollGain).coerceIn(-MAX_SPEED, MAX_SPEED)
             velocity += (goal - velocity) * (seconds * SMOOTHING).coerceAtMost(1f)
-            if (abs(velocity) > 0.2f) listState.scrollBy(velocity * seconds)
+            if (abs(velocity) > 0.2f) {
+                scrollSafely { listState.scrollBy(velocity * seconds) }
+            }
         }
     }
 
