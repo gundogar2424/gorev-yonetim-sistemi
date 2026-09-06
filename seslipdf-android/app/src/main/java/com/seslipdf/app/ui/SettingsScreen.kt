@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.seslipdf.app.BuildConfig
 import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.tts.VoiceInfo
 
@@ -170,6 +171,11 @@ fun SettingsScreen(vm: LibraryViewModel) {
         item {
             Panel("Hakkında") {
                 Spacer(Modifier.height(8.dp))
+                Text(
+                    "Sürüm ${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(Modifier.height(6.dp))
                 Text(
                     "Sesli PDF, seçtiğiniz PDF'in metnini telefonun içinde çıkarır ve " +
                         "Android'in kendi seslendirme motoruyla okur. Belgeleriniz hiçbir " +
