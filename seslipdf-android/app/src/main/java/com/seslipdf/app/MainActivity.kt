@@ -32,7 +32,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.seslipdf.app.tts.ReaderService
-import com.seslipdf.app.tts.ReaderState
 import com.seslipdf.app.ui.BottomBar
 import com.seslipdf.app.ui.LibraryScreen
 import com.seslipdf.app.ui.LibraryViewModel
@@ -71,7 +70,6 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val nav = rememberNavController()
                     val docs by vm.docs.collectAsStateWithLifecycle()
-                    val status by ReaderState.status.collectAsStateWithLifecycle()
 
                     // Yeni eklenen belge hazir olur olmaz okuma ekranina gecilir.
                     LaunchedEffect(docs, pendingOpen) {
@@ -84,11 +82,11 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Sessiz okuma modunda ekran zaten okunuyordur: kararmamali.
-                    // Sesli okumada ise kullanicinin ayarina bakilir (telefon
-                    // cepteyken ekranin kapanmasi normaldir).
-                    val keepAwake = (vm.silentMode && vm.readerVisible) ||
-                        (vm.keepAwake && status.playing)
+                    // Okuma ekrani acikken ekran kendiliginden kararmasin: metin
+                    // ekranda akiyor, kullanici telefona dokunmuyor. Ayar kapatilsa
+                    // bile sessiz moddaki akis sirasinda ekran acik tutulur.
+                    val keepAwake = vm.readerVisible &&
+                        (vm.keepAwake || (vm.silentMode && vm.flowing))
                     DisposableEffect(keepAwake) {
                         if (keepAwake) {
                             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
