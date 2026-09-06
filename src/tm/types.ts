@@ -48,7 +48,8 @@ export interface TmRecipe {
   warnings: string[] // Donusumde dikkat edilecekler (kap dolulugu, sicaklik vb.)
   source: string // Nereden alindi (site adi / kisi / defter)
   originalText: string // Yapistirilan ORIJINAL tarif (karsilastirmak icin saklanir)
-  origin: 'ai' | 'manual' // Yapay zeka uyarlamasi mi, elle mi yazildi
+  origin: 'ai' | 'manual' // Hazir koddan mi geldi, elle mi yazildi
+  photo: string // Tarif fotografi (data URI). Bos olabilir.
   favorite: 0 | 1 // Dexie boolean'i indeksleyemez; 0/1 tutulur
   cookCount: number // Kac kez pisirildi
   lastCookedAt: number // Son pisirme zamani (0 = hic)
@@ -58,14 +59,12 @@ export interface TmRecipe {
 
 export interface TmSettings {
   id?: number // Her zaman 1
-  apiKey: string // Claude API anahtari — YALNIZCA cihazda saklanir
-  model: string
   autoAdvance: boolean // Pisirme modunda sure bitince kendiliginden sonraki adima gec
   sound: boolean // Sure bitince sesli uyari + titresim
   keepAwake: boolean // Pisirirken ekran acik kalsin
 }
 
-// Yapay zekanin dondurdugu ham uyarlama (kaydedilmeden once onizlenir)
+// Disaridan gelen (yapistirilan koddaki) ham tarif — kaydedilmeden once onizlenir
 export interface TmConversion {
   title: string
   category: string
@@ -75,4 +74,5 @@ export interface TmConversion {
   steps: TmStep[]
   notes: string
   warnings: string[]
+  photo: string
 }

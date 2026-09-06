@@ -1,13 +1,18 @@
 // Tarif "kodu" (JSON) okuma/yazma.
 //
-// Neden var: uyarlamayi yapay zekaya yaptirmak API anahtari ve internet
-// gerektiriyor. Kullanici tarifi baska bir yerde (orn. sohbette) uyarlatip
-// sonucu buraya YAPISTIRARAK da ekleyebilsin diye, tarifleri tek bir JSON
-// metninden okuyan ortak bir cozumleyici tutuyoruz. Ayni normalize islevi
-// yapay zeka yanitinda da kullanilir; boylece iki yol da ayni kurallardan gecer.
+// Tarif baska bir yerde (orn. sohbette) TM7 adimlarina cevrilir; sonuc buraya
+// YAPISTIRILARAK deftere eklenir. Uygulamanin icinde yapay zeka yok, API
+// anahtari istemez, internetsiz calisir. Bu dosya yapistirilan metni okur.
 import type { TmConversion, TmStep } from '../types'
 
-// Modelden ya da yapistirilan metinden gelen nesneyi guvene al:
+function fotoTemizle(v: string): string {
+  if (!v) return ''
+  if (v.startsWith('data:image/')) return v
+  if (/^https:\/\//i.test(v)) return v
+  return ''
+}
+
+// Yapistirilan metinden gelen nesneyi guvene al:
 // eksik alanlari doldur, tipleri duzelt, bos adimlari at.
 export function normalizeConversion(p: Partial<TmConversion>): TmConversion {
   const steps: TmStep[] = Array.isArray(p.steps)
@@ -30,7 +35,9 @@ export function normalizeConversion(p: Partial<TmConversion>): TmConversion {
     ingredients: Array.isArray(p.ingredients) ? p.ingredients.map((i) => String(i).trim()).filter(Boolean) : [],
     steps: steps.filter((s) => s.text),
     notes: String(p.notes ?? '').trim(),
-    warnings: Array.isArray(p.warnings) ? p.warnings.map((w) => String(w).trim()).filter(Boolean) : []
+    warnings: Array.isArray(p.warnings) ? p.warnings.map((w) => String(w).trim()).filter(Boolean) : [],
+    // Fotograf: data URI ya da https adresi olabilir; baska bir sey gelirse yok sayilir.
+    photo: fotoTemizle(String(p.photo ?? '').trim())
   }
 }
 
