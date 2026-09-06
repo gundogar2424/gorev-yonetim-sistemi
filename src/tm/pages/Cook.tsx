@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import TmHeader from '../TmHeader'
 import { getRecipe, markCooked, readTmSettings } from '../db'
 import { durationLabel, modeLabel, speedLabel, tempLabel } from '../lib/tm7'
+import StepVisual from '../components/StepVisual'
 
 // Sure bitince kisa bir uyari sesi (dosya gerekmez; ses tarayicida uretilir).
 function beep(): void {
@@ -144,8 +145,11 @@ export default function Cook() {
           />
         </div>
 
+        {/* Kapta ne oluyor: bicak yonu/hizi, isitma, buhar */}
+        <StepVisual step={step} running={calisiyor} />
+
         {/* Adim metni */}
-        <div className="card p-5">
+        <div key={i} className="card p-5 tm-step-in">
           <p className="text-[22px] leading-snug font-semibold text-slate-800 dark:text-[#e0e1e6]">{step.text}</p>
           {step.ingredients && (
             <p className="mt-3 text-[15px] text-slate-600 dark:text-slate-300">
