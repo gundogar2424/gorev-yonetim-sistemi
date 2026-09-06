@@ -84,8 +84,11 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // "Ekran açık kalsın" ayari yalnizca okuma surerken islesin.
-                    val keepAwake = vm.keepAwake && status.playing
+                    // Sessiz okuma modunda ekran zaten okunuyordur: kararmamali.
+                    // Sesli okumada ise kullanicinin ayarina bakilir (telefon
+                    // cepteyken ekranin kapanmasi normaldir).
+                    val keepAwake = (vm.silentMode && vm.readerVisible) ||
+                        (vm.keepAwake && status.playing)
                     DisposableEffect(keepAwake) {
                         if (keepAwake) {
                             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

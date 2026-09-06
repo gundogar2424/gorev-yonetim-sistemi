@@ -51,6 +51,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -113,8 +114,11 @@ fun ReaderScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    /** Sessiz modda akisin surup surmedigi. */
-    var flowing by remember { mutableStateOf(false) }
+    // Okuma ekrani acikken sessiz modda ekran kararmasin diye isaretlenir.
+    DisposableEffect(Unit) {
+        vm.readerVisible = true
+        onDispose { vm.readerVisible = false }
+    }
 
     // Ekranda hedef cizgideki cumle: sessiz modda "okunan" cumle budur.
     val anchorIndex by remember {
@@ -143,8 +147,8 @@ fun ReaderScreen(
 
     // Sessiz mod: yazi, secilen sabit hizda kesintisiz akar. Ses yoktur, hizi
     // tamamen kullanici belirler.
-    LaunchedEffect(vm.silentMode, flowing, sentences.size) {
-        if (!vm.silentMode || !flowing) return@LaunchedEffect
+    LaunchedEffect(vm.silentMode, vm.flowing, sentences.size) {
+        if (!vm.silentMode || !vm.flowing) return@LaunchedEffect
         var lastFrame = 0L
         while (isActive) {
             val now = withFrameNanos { it }
@@ -281,14 +285,14 @@ fun ReaderScreen(
 
         Controls(
             silent = vm.silentMode,
-            playing = if (vm.silentMode) flowing else status.playing,
+            playing = if (vm.silentMode) vm.flowing else status.playing,
             onPrev = {
                 if (vm.silentMode) scope.launch { pageBy(listState, -0.8f) }
                 else ReaderService.previous(context)
             },
             onToggle = {
                 if (vm.silentMode) {
-                    flowing = !flowing
+                    vm.flowing = !vm.flowing
                 } else if (status.playing) {
                     ReaderService.pause(context)
                 } else {
@@ -308,10 +312,10 @@ fun ReaderScreen(
                 if (goingSilent) {
                     // Ses sussun; akis kullanici baslatana kadar beklesin.
                     ReaderService.pause(context)
-                    flowing = false
+                    vm.flowing = false
                 } else {
                     // Okuma, gozun kaldigi satirdan devam etsin.
-                    flowing = false
+                    vm.flowing = false
                     ReaderService.seek(context, anchorIndex)
                 }
             },
