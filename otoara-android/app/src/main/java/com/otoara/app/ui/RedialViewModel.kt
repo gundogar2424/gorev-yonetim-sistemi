@@ -10,8 +10,6 @@ import com.otoara.app.data.AppDatabase
 import com.otoara.app.data.ContactEntry
 import com.otoara.app.data.ContactsRepo
 import com.otoara.app.data.Plan
-import com.otoara.app.data.ContactEntry
-import com.otoara.app.data.ContactsRepo
 import com.otoara.app.data.PlanRepeat
 import com.otoara.app.data.Prefs
 import com.otoara.app.data.RedialConfig
