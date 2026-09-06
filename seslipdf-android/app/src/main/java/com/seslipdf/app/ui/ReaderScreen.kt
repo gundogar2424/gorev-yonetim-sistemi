@@ -1,7 +1,10 @@
 package com.seslipdf.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,18 +18,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -44,7 +52,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -62,6 +72,7 @@ import com.seslipdf.app.tts.ReaderState
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import android.os.SystemClock
 
@@ -100,13 +111,56 @@ fun ReaderScreen(
 
     val sentences = text?.sentences.orEmpty()
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    /** Sessiz modda akisin surup surmedigi. */
+    var flowing by remember { mutableStateOf(false) }
+
+    // Ekranda hedef cizgideki cumle: sessiz modda "okunan" cumle budur.
+    val anchorIndex by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val viewport = info.viewportEndOffset - info.viewportStartOffset
+            val desired = info.viewportStartOffset + viewport * LINE_POSITION
+            info.visibleItemsInfo.lastOrNull { it.offset <= desired }?.index
+                ?: info.visibleItemsInfo.firstOrNull()?.index
+                ?: 0
+        }
+    }
+
+    // Vurgulanan ve baslikta gosterilen cumle.
+    val shownIndex = if (vm.silentMode) anchorIndex else status.index
+
+    // Sessiz modda okunan yer, biraz duraklayinca kaydedilir; sesli moda
+    // gecildiginde okuma gozun kaldigi satirdan devam eder.
+    LaunchedEffect(vm.silentMode, anchorIndex) {
+        if (!vm.silentMode) return@LaunchedEffect
+        delay(1200)
+        if (anchorIndex != ReaderState.status.value.index) {
+            ReaderService.seek(context, anchorIndex)
+        }
+    }
+
+    // Sessiz mod: yazi, secilen sabit hizda kesintisiz akar. Ses yoktur, hizi
+    // tamamen kullanici belirler.
+    LaunchedEffect(vm.silentMode, flowing, sentences.size) {
+        if (!vm.silentMode || !flowing) return@LaunchedEffect
+        var lastFrame = 0L
+        while (isActive) {
+            val now = withFrameNanos { it }
+            val seconds = if (lastFrame == 0L) 0f
+                else ((now - lastFrame) / 1_000_000_000f).coerceIn(0f, 0.1f)
+            lastFrame = now
+            if (seconds > 0f) listState.scrollBy(vm.flowPixelsPerSecond * seconds)
+        }
+    }
 
     // Metin, film jenerigi gibi kesintisiz akar: her karede biraz kaydirilir.
     // Hiz, okunan cumlenin ne kadar surecegine gore hesaplanir (sesin temposu) ve
     // cumle ekrandaki hedef yerinden sapinca kendini duzeltir. Boylece akis hem
     // durmadan surer hem de sesle ayni yerde kalir.
-    LaunchedEffect(vm.autoScroll, sentences.size) {
-        if (!vm.autoScroll || sentences.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(vm.autoScroll, vm.silentMode, sentences.size) {
+        if (!vm.autoScroll || vm.silentMode || sentences.isEmpty()) return@LaunchedEffect
         var velocity = 0f
         var lastFrame = 0L
         while (isActive) {
@@ -156,20 +210,24 @@ fun ReaderScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                if (status.pageCount > 0) "Sayfa ${status.page} / ${status.pageCount}"
+                if (status.pageCount > 0)
+                    "Sayfa ${text?.pageOf(shownIndex) ?: status.page} / ${status.pageCount}"
                 else "Hazırlanıyor…",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                "${status.index + 1} / ${status.total} cümle",
+                "${shownIndex + 1} / ${status.total} cümle",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(
-            progress = { status.progress },
+            progress = {
+                if (status.total <= 0) 0f
+                else (shownIndex.toFloat() / status.total).coerceIn(0f, 1f)
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -195,14 +253,14 @@ fun ReaderScreen(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             itemsIndexed(sentences) { index, sentence ->
-                val active = index == status.index
+                val active = index == shownIndex
                 Text(
                     sentence,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                     color = when {
                         active -> MaterialTheme.colorScheme.onPrimaryContainer
-                        index < status.index -> MaterialTheme.colorScheme.onSurfaceVariant
+                        index < shownIndex -> MaterialTheme.colorScheme.onSurfaceVariant
                         else -> MaterialTheme.colorScheme.onSurface
                     },
                     modifier = Modifier
@@ -212,29 +270,66 @@ fun ReaderScreen(
                             if (active) MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.background
                         )
-                        .clickable { ReaderService.seek(context, index) }
+                        .clickable {
+                            ReaderService.seek(context, index)
+                            if (vm.silentMode) scope.launch { listState.scrollToItem(index) }
+                        }
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                 )
             }
         }
 
         Controls(
-            playing = status.playing,
-            onPrev = { ReaderService.previous(context) },
-            onToggle = {
-                if (status.playing) ReaderService.pause(context) else ReaderService.play(context)
+            silent = vm.silentMode,
+            playing = if (vm.silentMode) flowing else status.playing,
+            onPrev = {
+                if (vm.silentMode) scope.launch { pageBy(listState, -0.8f) }
+                else ReaderService.previous(context)
             },
-            onNext = { ReaderService.next(context) },
+            onToggle = {
+                if (vm.silentMode) {
+                    flowing = !flowing
+                } else if (status.playing) {
+                    ReaderService.pause(context)
+                } else {
+                    ReaderService.play(context)
+                }
+            },
+            onNext = {
+                if (vm.silentMode) scope.launch { pageBy(listState, 0.8f) }
+                else ReaderService.next(context)
+            },
             onSleep = { showSleep = true },
             onPage = { showPage = true },
             onClose = { ReaderService.close(context) },
+            onToggleMode = {
+                val goingSilent = !vm.silentMode
+                vm.updateSilentMode(goingSilent)
+                if (goingSilent) {
+                    // Ses sussun; akis kullanici baslatana kadar beklesin.
+                    ReaderService.pause(context)
+                    flowing = false
+                } else {
+                    // Okuma, gozun kaldigi satirdan devam etsin.
+                    flowing = false
+                    ReaderService.seek(context, anchorIndex)
+                }
+            },
             sleepAt = status.sleepAt
         )
 
-        SpeedRow(
-            rate = vm.rate,
-            onRate = { vm.updateRate(it) }
-        )
+        if (vm.silentMode) {
+            FlowSpeedRow(
+                step = vm.flowStep,
+                value = vm.flowSpeed,
+                onValue = { value, persist -> vm.updateFlowSpeed(value, persist) }
+            )
+        } else {
+            SpeedRow(
+                rate = vm.rate,
+                onRate = { vm.updateRate(it) }
+            )
+        }
         Spacer(Modifier.height(10.dp))
     }
 
@@ -312,6 +407,7 @@ private fun EmptyReader(onGoLibrary: () -> Unit) {
 
 @Composable
 private fun Controls(
+    silent: Boolean,
     playing: Boolean,
     onPrev: () -> Unit,
     onToggle: () -> Unit,
@@ -319,6 +415,7 @@ private fun Controls(
     onSleep: () -> Unit,
     onPage: () -> Unit,
     onClose: () -> Unit,
+    onToggleMode: () -> Unit,
     sleepAt: Long
 ) {
     Column {
@@ -330,7 +427,7 @@ private fun Controls(
             IconButton(onClick = onPrev, modifier = Modifier.size(56.dp)) {
                 Icon(
                     Icons.Filled.SkipPrevious,
-                    contentDescription = "Önceki cümle",
+                    contentDescription = if (silent) "Bir ekran geri" else "Önceki cümle",
                     modifier = Modifier.size(34.dp)
                 )
             }
@@ -344,7 +441,11 @@ private fun Controls(
             ) {
                 Icon(
                     if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (playing) "Duraklat" else "Oku",
+                    contentDescription = when {
+                        playing -> "Duraklat"
+                        silent -> "Akışı başlat"
+                        else -> "Oku"
+                    },
                     modifier = Modifier.size(38.dp)
                 )
             }
@@ -352,27 +453,44 @@ private fun Controls(
             IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) {
                 Icon(
                     Icons.Filled.SkipNext,
-                    contentDescription = "Sonraki cümle",
+                    contentDescription = if (silent) "Bir ekran ileri" else "Sonraki cümle",
                     modifier = Modifier.size(34.dp)
                 )
             }
         }
 
         Row(
-            Modifier.fillMaxWidth().padding(top = 6.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp)
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Sesli okuma <-> sessiz (kendi hizinda) okuma
+            FilterChip(
+                selected = silent,
+                onClick = onToggleMode,
+                label = { Text(if (silent) "Sessiz okuma" else "Sesli okuma") },
+                leadingIcon = {
+                    Icon(
+                        if (silent) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                        contentDescription = null
+                    )
+                }
+            )
             AssistChip(
                 onClick = onPage,
                 label = { Text("Sayfaya git") },
                 leadingIcon = { Icon(Icons.Filled.MenuBook, contentDescription = null) }
             )
-            AssistChip(
-                onClick = onSleep,
-                label = { Text(sleepLabel(sleepAt)) },
-                leadingIcon = { Icon(Icons.Filled.Bedtime, contentDescription = null) }
-            )
+            if (!silent) {
+                AssistChip(
+                    onClick = onSleep,
+                    label = { Text(sleepLabel(sleepAt)) },
+                    leadingIcon = { Icon(Icons.Filled.Bedtime, contentDescription = null) }
+                )
+            }
             AssistChip(
                 onClick = onClose,
                 label = { Text("Kapat") },
@@ -397,6 +515,46 @@ private fun sleepLabel(sleepAt: Long): String {
     val minutes = (remaining / 60_000).toInt()
     val seconds = ((remaining % 60_000) / 1000).toInt()
     return "%d:%02d".format(minutes, seconds)
+}
+
+/** Sessiz modda akis hizi: kademe gosterilir, -/+ ile ince ayar yapilir. */
+@Composable
+private fun FlowSpeedRow(step: Int, value: Float, onValue: (Float, Boolean) -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Akış hızı",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { onValue((value - 0.05f).coerceAtLeast(0f), true) }) {
+                    Icon(Icons.Filled.Remove, contentDescription = "Yavaşlat")
+                }
+                Text("$step", style = MaterialTheme.typography.titleMedium)
+                IconButton(onClick = { onValue((value + 0.05f).coerceAtMost(1f), true) }) {
+                    Icon(Icons.Filled.Add, contentDescription = "Hızlandır")
+                }
+            }
+        }
+        Slider(
+            value = value,
+            onValueChange = { onValue(it, false) },
+            onValueChangeFinished = { onValue(value, true) },
+            valueRange = 0f..1f
+        )
+    }
+}
+
+/** Sessiz modda ileri/geri dugmeleri bir ekran kaydirir. */
+private suspend fun pageBy(state: LazyListState, fraction: Float) {
+    val info = state.layoutInfo
+    val height = (info.viewportEndOffset - info.viewportStartOffset).toFloat()
+    if (height > 0f) state.animateScrollBy(height * fraction)
 }
 
 @Composable

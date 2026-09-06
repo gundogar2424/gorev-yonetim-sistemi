@@ -55,6 +55,10 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var scrollSpeed by mutableStateOf(prefs.scrollSpeed)
         private set
+    var silentMode by mutableStateOf(prefs.silentMode)
+        private set
+    var flowSpeed by mutableStateOf(prefs.flowSpeed)
+        private set
     var sleepMinutes by mutableStateOf(prefs.sleepMinutes)
         private set
 
@@ -202,6 +206,25 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         prefs.autoScroll = value
     }
 
+    fun updateSilentMode(value: Boolean) {
+        silentMode = value
+        prefs.silentMode = value
+    }
+
+    /** [persist] = false: kaydirac surukleneriken yalnizca ekrandaki deger degisir. */
+    fun updateFlowSpeed(value: Float, persist: Boolean = true) {
+        flowSpeed = value.coerceIn(0f, 1f)
+        if (persist) prefs.flowSpeed = flowSpeed
+    }
+
+    /** Sessiz modda akisin hizi (piksel/saniye). */
+    val flowPixelsPerSecond: Float
+        get() = FLOW_MIN + (FLOW_MAX - FLOW_MIN) * flowSpeed.coerceIn(0f, 1f).let { it * it }
+
+    /** Kullaniciya gosterilen 1-10 arasi hiz kademesi. */
+    val flowStep: Int
+        get() = (flowSpeed * 9f).toInt() + 1
+
     fun updateScrollSpeed(value: Float) {
         scrollSpeed = value
         prefs.scrollSpeed = value
@@ -223,6 +246,10 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         /** Akisin en yumusak ve en keskin takip degerleri. */
         const val GAIN_MIN = 0.35f
         const val GAIN_MAX = 8f
+
+        /** Sessiz moddaki en yavas ve en hizli akis (piksel/saniye). */
+        const val FLOW_MIN = 5f
+        const val FLOW_MAX = 150f
     }
 
     fun loadVoices() {

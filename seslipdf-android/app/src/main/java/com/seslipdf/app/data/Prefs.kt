@@ -54,6 +54,16 @@ class Prefs(context: Context) {
         get() = sp.getFloat("scrollSpeed", 0.55f)
         set(v) = sp.edit().putFloat("scrollSpeed", v.coerceIn(0f, 1f)).apply()
 
+    /** Sessiz okuma modu: ses kapali, yazi kendi kendine akar. */
+    var silentMode: Boolean
+        get() = sp.getBoolean("silent", false)
+        set(v) = sp.edit().putBoolean("silent", v).apply()
+
+    /** Sessiz moddaki akis hizi (0 = cok yavas, 1 = cok hizli). */
+    var flowSpeed: Float
+        get() = sp.getFloat("flowSpeed", 0.45f)
+        set(v) = sp.edit().putFloat("flowSpeed", v.coerceIn(0f, 1f)).apply()
+
     /** Uyku sayaci icin son secilen sure (dakika). */
     var sleepMinutes: Int
         get() = sp.getInt("sleepMinutes", 30)
