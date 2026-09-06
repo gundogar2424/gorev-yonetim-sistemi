@@ -68,6 +68,7 @@ export async function addRecipe(
     notes: data.notes ?? '',
     warnings: data.warnings ?? [],
     photo: data.photo ?? '',
+    video: data.video ?? '',
     source: extra.source ?? '',
     originalText: extra.originalText ?? '',
     origin: extra.origin ?? 'ai',

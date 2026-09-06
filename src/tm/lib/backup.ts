@@ -50,6 +50,7 @@ function tamamla(r: TmRecipe): TmRecipe {
     originalText: r.originalText ?? '',
     origin: r.origin ?? 'ai',
     photo: r.photo ?? '',
+    video: r.video ?? '',
     favorite: r.favorite ? 1 : 0,
     cookCount: r.cookCount ?? 0,
     lastCookedAt: r.lastCookedAt ?? 0,

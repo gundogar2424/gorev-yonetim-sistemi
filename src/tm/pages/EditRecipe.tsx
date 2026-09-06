@@ -19,6 +19,7 @@ export default function EditRecipe() {
   const [ingredients, setIngredients] = useState('') // her satir bir malzeme
   const [notes, setNotes] = useState('')
   const [source, setSource] = useState('')
+  const [video, setVideo] = useState('')
   const [steps, setSteps] = useState<TmStep[]>([emptyStep()])
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function EditRecipe() {
       setIngredients(r.ingredients.join('\n'))
       setNotes(r.notes)
       setSource(r.source)
+      setVideo(r.video ?? '')
       setSteps(r.steps.length ? r.steps : [emptyStep()])
       setYuklendi(true)
     })
@@ -72,7 +74,8 @@ export default function EditRecipe() {
       steps: steps.filter((s) => s.text.trim()),
       notes: notes.trim(),
       warnings: [] as string[],
-      photo: '' // Fotograf tarif sayfasindan eklenir; burada dokunulmaz
+      photo: '', // Fotograf tarif sayfasindan eklenir; burada dokunulmaz
+      video: video.trim()
     }
     if (rid) {
       // Duzenlemede mevcut fotografa dokunma

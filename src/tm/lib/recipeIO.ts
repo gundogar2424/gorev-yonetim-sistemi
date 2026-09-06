@@ -37,7 +37,9 @@ export function normalizeConversion(p: Partial<TmConversion>): TmConversion {
     notes: String(p.notes ?? '').trim(),
     warnings: Array.isArray(p.warnings) ? p.warnings.map((w) => String(w).trim()).filter(Boolean) : [],
     // Fotograf: data URI ya da https adresi olabilir; baska bir sey gelirse yok sayilir.
-    photo: fotoTemizle(String(p.photo ?? '').trim())
+    photo: fotoTemizle(String(p.photo ?? '').trim()),
+    // Video: yalnizca https adresi; baska bir sey gelirse yok sayilir.
+    video: /^https:\/\//i.test(String(p.video ?? '').trim()) ? String(p.video).trim() : ''
   }
 }
 

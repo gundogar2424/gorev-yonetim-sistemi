@@ -143,6 +143,19 @@ export default function RecipeDetail() {
           ▶︎ Pişirmeye başla
         </Link>
 
+        {/* Tarif videosu: takilinca cihazin basindan acilabilsin.
+            target=_blank -> APK'da telefonun tarayicisinda/YouTube uygulamasinda acilir. */}
+        {r.video && (
+          <a
+            href={r.video}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="tm-btn-soft w-full py-3 text-sm"
+          >
+            🎬 Tarif videosunu aç
+          </a>
+        )}
+
         {r.warnings.length > 0 && (
           <div className="tm-card p-3 bg-amber-50 dark:bg-[#252733] text-[13px] text-amber-800 space-y-1">
             {r.warnings.map((w, k) => (

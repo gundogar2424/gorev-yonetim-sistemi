@@ -268,6 +268,18 @@ export default function Cook() {
           )}
         </div>
 
+        {/* Takilirsan videoyu buradan da acabil */}
+        {recipe.video && (
+          <a
+            href={recipe.video}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="tm-btn-soft w-full py-2.5 text-[13px]"
+          >
+            🎬 Videoyu aç
+          </a>
+        )}
+
         {/* Sonraki adimin onizlemesi — elini hazirlayabilesin diye */}
         {!sonAdim && (
           <div className="tm-card p-3 text-[13px] text-slate-500">

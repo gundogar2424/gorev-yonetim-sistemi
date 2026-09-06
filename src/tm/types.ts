@@ -47,6 +47,7 @@ export interface TmRecipe {
   notes: string
   warnings: string[] // Donusumde dikkat edilecekler (kap dolulugu, sicaklik vb.)
   source: string // Nereden alindi (site adi / kisi / defter)
+  video: string // Tarif videosunun adresi (https). Bos olabilir.
   originalText: string // Yapistirilan ORIJINAL tarif (karsilastirmak icin saklanir)
   origin: 'ai' | 'manual' // Hazir koddan mi geldi, elle mi yazildi
   photo: string // Tarif fotografi (data URI). Bos olabilir.
@@ -76,4 +77,5 @@ export interface TmConversion {
   notes: string
   warnings: string[]
   photo: string
+  video: string
 }
