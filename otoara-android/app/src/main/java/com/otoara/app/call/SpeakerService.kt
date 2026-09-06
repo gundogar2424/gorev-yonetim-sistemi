@@ -35,6 +35,7 @@ class SpeakerService : AccessibilityService() {
 
     private var lastClickAt = 0L
     private var handledTry = -1
+    private var clicksThisTry = 0
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
@@ -43,7 +44,7 @@ class SpeakerService : AccessibilityService() {
         val status = RedialState.status.value
         if (!status.running || status.phase != Phase.IN_CALL) return
 
-        CallScreen.dialerPackage = event.packageName?.toString()
+        CallScreen.noteEvent(event.packageName?.toString())
 
         val root = rootInActiveWindow ?: return
 
@@ -52,18 +53,38 @@ class SpeakerService : AccessibilityService() {
 
         // 2) Hoparlor
         if (!Prefs(this).speaker) return
-        if (Speaker.isOn(this)) return
-        if (handledTry == status.tryNo) return
+
+        // Yeni deneme baslamissa sayaclar sifirlanir.
+        if (handledTry != status.tryNo) {
+            handledTry = status.tryNo
+            clicksThisTry = 0
+        }
+        if (clicksThisTry >= MAX_CLICKS_PER_CALL) return
 
         val now = SystemClock.elapsedRealtime()
         if (now - lastClickAt < CLICK_COOLDOWN_MS) return
 
-        val target = findSpeakerNode(root, 0) ?: return
-        if (target.isChecked) return
+        val target = findSpeakerNode(root, 0)
+        if (target == null) {
+            CallScreen.noteSpeaker(found = false, alreadyOn = false, clicked = false)
+            return
+        }
 
-        if (clickSelfOrParent(target)) {
+        // "Zaten acik mi" karari EKRANDAKI dugmenin durumundan verilir.
+        // AudioManager'in isSpeakerphoneOn degeri bazi cihazlarda yaniltiyor
+        // (bayat "acik" degeri donduren cihazlarda dugmeye hic basilmiyordu).
+        val alreadyOn = target.isChecked || target.isSelected
+        if (alreadyOn) {
+            CallScreen.noteSpeaker(found = true, alreadyOn = true, clicked = false)
+            RedialState.update { it.copy(speakerOn = true) }
+            return
+        }
+
+        val clicked = clickSelfOrParent(target)
+        CallScreen.noteSpeaker(found = true, alreadyOn = false, clicked = clicked)
+        if (clicked) {
             lastClickAt = now
-            handledTry = status.tryNo
+            clicksThisTry++
             RedialState.update { it.copy(speakerOn = true) }
         }
     }
@@ -129,7 +150,10 @@ class SpeakerService : AccessibilityService() {
     }
 
     companion object {
-        private const val CLICK_COOLDOWN_MS = 2000L
+        private const val CLICK_COOLDOWN_MS = 1500L
+
+        /** Bir cagri icinde en fazla kac kez denenir (acip kapatmayi onler). */
+        private const val MAX_CLICKS_PER_CALL = 3
         private const val MAX_DEPTH = 30
         private val TR = Locale("tr")
         private val TIMER = Regex("""^\d{1,2}:\d{2}(:\d{2})?$""")

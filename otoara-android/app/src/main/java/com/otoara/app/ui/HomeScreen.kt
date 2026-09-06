@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.otoara.app.call.CallScreen
 import com.otoara.app.call.Phase
 import com.otoara.app.call.RedialStatus
 import com.otoara.app.data.AttemptResult
@@ -345,6 +346,11 @@ fun HomeScreen(
             }
         }
 
+        // ---------------------------------------------------- hoparlor tanilama
+        if (vm.speaker && status.tryNo > 0) {
+            SpeakerDiagnostics(perms)
+        }
+
         // ------------------------------------------------------- pil uyarisi
         if (!perms.batteryFree && !status.running) {
             Panel {
@@ -594,5 +600,69 @@ private fun PermissionPanel(perms: PermState, onRequest: () -> Unit) {
             }
             TextButton(onClick = onRequest) { Text("İzin ver") }
         }
+    }
+}
+
+/**
+ * Hoparlorun neden acilmadigini tahmin etmek yerine gostermek icin: hangi
+ * adima kadar gelindigi burada yazar.
+ */
+@Composable
+private fun SpeakerDiagnostics(perms: PermState) {
+    Panel(title = "Hoparlör tanılama") {
+        Spacer(Modifier.height(8.dp))
+        DiagRow("Erişilebilirlik izni", if (perms.speakerService) "AÇIK" else "KAPALI", perms.speakerService)
+        DiagRow(
+            "Arama ekranı okundu",
+            if (CallScreen.events > 0) "${CallScreen.events} olay" else "hiç olay yok",
+            CallScreen.events > 0
+        )
+        CallScreen.dialerPackage?.let { DiagRow("Arama ekranı", it, true) }
+        DiagRow(
+            "Hoparlör düğmesi",
+            if (CallScreen.speakerFound) "bulundu" else "bulunamadı",
+            CallScreen.speakerFound
+        )
+        DiagRow(
+            "Düğmeye basıldı",
+            when {
+                CallScreen.speakerClicked -> "evet"
+                CallScreen.speakerAlreadyOn -> "gerekmedi (zaten açıktı)"
+                else -> "hayır"
+            },
+            CallScreen.speakerClicked || CallScreen.speakerAlreadyOn
+        )
+        DiagRow(
+            "Görüşme sayacı",
+            CallScreen.timerText ?: "görülmedi",
+            CallScreen.timerText != null
+        )
+        Text(
+            "Bu bilgiler son arama denemesine aittir; hiçbir yere gönderilmez.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 10.dp)
+        )
+    }
+}
+
+@Composable
+private fun DiagRow(label: String, value: String, ok: Boolean) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (ok) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+        )
     }
 }

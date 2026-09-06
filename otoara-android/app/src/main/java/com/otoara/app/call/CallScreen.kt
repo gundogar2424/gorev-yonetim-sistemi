@@ -3,7 +3,8 @@ package com.otoara.app.call
 import android.os.SystemClock
 
 /**
- * Arama ekranindan okunan canli bilgiler. [SpeakerService] yazar, servis okur.
+ * Arama ekranindan okunan canli bilgiler ve tanilama sayaclari.
+ * [SpeakerService] yazar; [RedialService] ve ekran okur.
  *
  * Android, varsayilan telefon uygulamasi olmayan uygulamalara "karsi taraf
  * acti" bilgisini vermez. Ama arama ekranindaki **gorusme sayaci** (00:12
@@ -17,11 +18,33 @@ object CallScreen {
     @Volatile var answeredAt: Long = 0L
         private set
 
-    /** En son gorulen sayac metni — ilerledigini anlamak icin. */
     @Volatile private var lastTimer: String? = null
 
-    /** Arama ekraninin paket adi — tanilama icin. */
+    // ------------------------------------------------------------ tanilama
+
+    /** Cagri sirasinda arama ekranindan kac olay alindi. */
+    @Volatile var events: Int = 0
+        private set
+
+    /** Arama ekraninin paket adi (or. com.samsung.android.incallui). */
     @Volatile var dialerPackage: String? = null
+        private set
+
+    /** Hoparlor dugmesi ekranda bulundu mu. */
+    @Volatile var speakerFound: Boolean = false
+        private set
+
+    /** Dugmeye basildi mi. */
+    @Volatile var speakerClicked: Boolean = false
+        private set
+
+    /** Dugme "zaten acik" olarak isaretli miydi. */
+    @Volatile var speakerAlreadyOn: Boolean = false
+        private set
+
+    /** Ekranda gorulen sayac (cevaplanma gostergesi). */
+    @Volatile var timerText: String? = null
+        private set
 
     val answered: Boolean get() = answeredAt > 0L
 
@@ -29,6 +52,22 @@ object CallScreen {
     fun reset() {
         answeredAt = 0L
         lastTimer = null
+        events = 0
+        speakerFound = false
+        speakerClicked = false
+        speakerAlreadyOn = false
+        timerText = null
+    }
+
+    fun noteEvent(packageName: String?) {
+        events++
+        if (packageName != null) dialerPackage = packageName
+    }
+
+    fun noteSpeaker(found: Boolean, alreadyOn: Boolean, clicked: Boolean) {
+        if (found) speakerFound = true
+        if (alreadyOn) speakerAlreadyOn = true
+        if (clicked) speakerClicked = true
     }
 
     /**
@@ -38,6 +77,7 @@ object CallScreen {
     fun reportTimer(text: String) {
         val previous = lastTimer
         lastTimer = text
+        timerText = text
         if (previous != null && previous != text && answeredAt == 0L) {
             answeredAt = SystemClock.elapsedRealtime()
         }
