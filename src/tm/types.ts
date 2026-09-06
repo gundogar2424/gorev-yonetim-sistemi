@@ -60,7 +60,8 @@ export interface TmRecipe {
 export interface TmSettings {
   id?: number // Her zaman 1
   autoAdvance: boolean // Pisirme modunda sure bitince kendiliginden sonraki adima gec
-  sound: boolean // Sure bitince sesli uyari + titresim
+  sound: boolean // Sure bitince sesli uyari + titresim (uygulama ondeyken)
+  notify: boolean // Ekran kapaliyken/arka planda sistem bildirimiyle uyar
   keepAwake: boolean // Pisirirken ekran acik kalsin
 }
 

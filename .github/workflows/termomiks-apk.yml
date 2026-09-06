@@ -75,14 +75,14 @@ jobs:
 
       - name: Kullanılmayan ağır eklentileri çıkar (APK küçülsün)
         run: |
-          # Web derlemesi yukarida bitti. Termomiks Defteri yalnizca @capacitor/core
-          # ve @capacitor/status-bar kullanir; digerlerini APK'ya koymaya gerek yok.
+          # Web derlemesi yukarida bitti. Termomiks Defteri @capacitor/core,
+          # @capacitor/status-bar ve @capacitor/local-notifications (pisirme
+          # sayaci alarmi) kullanir; digerlerini APK'ya koymaya gerek yok.
           # Once package.json'dan dusur (Capacitor eklenti listesini buradan okur),
           # sonra klasorleri sil. Bu yalnizca CI kopyasinda olur; depo degismez.
-          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor/local-notifications','@capacitor-community/contacts','@capacitor/geolocation','@capacitor/camera','@capacitor/filesystem','@capacitor/share']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor-community/contacts','@capacitor/geolocation','@capacitor/camera','@capacitor/filesystem','@capacitor/share']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
           rm -rf node_modules/@capacitor-mlkit/barcode-scanning
           rm -rf node_modules/@flomentumsolutions/capacitor-health-extended
-          rm -rf node_modules/@capacitor/local-notifications
           rm -rf node_modules/@capacitor-community/contacts
           rm -rf node_modules/@capacitor/geolocation
           rm -rf node_modules/@capacitor/camera
@@ -110,6 +110,12 @@ jobs:
           sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
           sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 24/" "$v"
           echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" "$v"
+
+      - name: İzinler (sayaç alarmı için bildirim + kesin zamanlama)
+        run: |
+          f=android/app/src/main/AndroidManifest.xml
+          grep -q 'POST_NOTIFICATIONS' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
+          echo "--- manifest izinleri ---"; grep -E "uses-permission" "$f" || true
 
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
         run: |

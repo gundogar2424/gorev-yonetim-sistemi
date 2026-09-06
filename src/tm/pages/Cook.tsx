@@ -5,9 +5,14 @@ import TmHeader from '../TmHeader'
 import { getRecipe, markCooked, readTmSettings } from '../db'
 import { durationLabel, modeLabel, speedLabel, tempLabel } from '../lib/tm7'
 import StepVisual from '../components/StepVisual'
+import { alarmIptal, alarmKur } from '../lib/alarm'
 
 // Sure bitince kisa bir uyari sesi (dosya gerekmez; ses tarayicida uretilir).
-function beep(): void {
+function beep(kez = 3): void {
+  for (let n = 0; n < kez; n++) setTimeout(() => tekBip(), n * 700)
+}
+
+function tekBip(): void {
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     const ctx = new Ctx()
@@ -53,6 +58,24 @@ export default function Cook() {
     setBitti(false)
   }, [i, step?.seconds])
 
+  // Sayac calisirken isletim sistemine alarm kur: ekran kapali olsa da calsin.
+  // Duraklatinca / adim degisince / ekrandan cikinca iptal edilir.
+  useEffect(() => {
+    if (!calisiyor || !step || settings?.notify === false) return
+    const sirada = steps[i + 1]?.text
+    void alarmKur(
+      kalan,
+      `${recipe?.title ?? 'Tarif'} — süre doldu`,
+      sirada ? `Sıradaki adım: ${sirada}` : 'Son adım bitti.'
+    )
+    return () => {
+      void alarmIptal()
+    }
+    // kalan her saniye degisiyor; alarm YALNIZCA baslat/duraklat/adim
+    // degisiminde yeniden kurulmali, o yuzden bagimliliklarda kalan yok.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calisiyor, i, settings?.notify])
+
   // Geri sayim
   useEffect(() => {
     if (!calisiyor) return
@@ -76,7 +99,7 @@ export default function Cook() {
     if (settings?.sound !== false) {
       beep()
       try {
-        navigator.vibrate?.([200, 100, 200])
+        navigator.vibrate?.([300, 150, 300, 150, 500])
       } catch {
         /* titresim yok */
       }
@@ -107,6 +130,13 @@ export default function Cook() {
       wakeRef.current = null
     }
   }, [settings?.keepAwake])
+
+  // Ekrandan cikilinca bekleyen alarm kalmasin
+  useEffect(() => {
+    return () => {
+      void alarmIptal()
+    }
+  }, [])
 
   const bitir = useCallback(async () => {
     await markCooked(rid)
@@ -211,6 +241,7 @@ export default function Cook() {
                   setKalan(step.seconds)
                   setCalisiyor(false)
                   setBitti(false)
+                  void alarmIptal()
                 }}
                 className="tm-btn-soft px-4 py-2.5"
               >

@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS: TmSettings = {
   id: 1,
   autoAdvance: true,
   sound: true,
+  notify: true,
   keepAwake: true
 }
 

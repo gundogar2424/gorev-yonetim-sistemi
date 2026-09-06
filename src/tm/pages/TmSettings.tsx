@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import TmHeader from '../TmHeader'
 import { readTmSettings, saveTmSettings, tmDb } from '../db'
 import { downloadBackup, restoreBackup } from '../lib/backup'
+import { alarmIzniAl } from '../lib/alarm'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 
 export default function TmSettings() {
   const [autoAdvance, setAutoAdvance] = useState(true)
   const [sound, setSound] = useState(true)
+  const [notify, setNotify] = useState(true)
   const [keepAwake, setKeepAwake] = useState(true)
   const [tema, setTema] = useState<ThemePref>(getThemePref())
   const [durum, setDurum] = useState('')
@@ -18,6 +20,7 @@ export default function TmSettings() {
     void readTmSettings().then((s) => {
       setAutoAdvance(s.autoAdvance)
       setSound(s.sound)
+      setNotify(s.notify)
       setKeepAwake(s.keepAwake)
     })
     void tmDb.recipes.count().then(setTarifSayisi)
@@ -66,6 +69,19 @@ export default function TmSettings() {
             onChange={(v) => {
               setSound(v)
               void kaydet({ sound: v })
+            }}
+          />
+          <Switch
+            label="Ekran kapalıyken bildirimle uyar"
+            checked={notify}
+            onChange={async (v) => {
+              setNotify(v)
+              await kaydet({ notify: v })
+              // Acarken izin iste: izin yoksa bildirim hic gelmez
+              if (v) {
+                const izin = await alarmIzniAl()
+                if (!izin) setHata('Bildirim izni verilmedi. Telefon ayarlarından bu uygulamaya bildirim izni ver.')
+              }
             }}
           />
           <Switch
