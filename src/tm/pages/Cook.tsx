@@ -162,7 +162,7 @@ export default function Cook() {
           <Kutu
             baslik="Devir"
             deger={step.speed ? speedLabel(step.speed).replace('Devir ', '') : '—'}
-            alt={step.reverse ? 'ters yön ↺' : ''}
+            alt={step.speed ? (step.reverse ? 'ters bıçak ↺' : 'düz bıçak') : ''}
           />
         </div>
         {step.mode && (
@@ -232,7 +232,11 @@ function Kutu({ baslik, deger, alt }: { baslik: string; deger: string; alt?: str
     <div className="card p-3 text-center">
       <div className="stat-label">{baslik}</div>
       <div className="stat-num text-[18px] mt-1 dark:text-[#e0e1e6]">{deger}</div>
-      {alt && <div className="text-[11px] text-amber-600 mt-0.5">{alt}</div>}
+      {alt && (
+        <div className={`text-[11px] mt-0.5 ${alt.startsWith('ters') ? 'text-amber-600 font-semibold' : 'text-slate-400'}`}>
+          {alt}
+        </div>
+      )}
     </div>
   )
 }

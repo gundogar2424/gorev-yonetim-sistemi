@@ -96,15 +96,18 @@ export function durationLabel(seconds: number): string {
 }
 
 // Bir adimin cihaz ayarlarini tek satirda ozetler:
-// "20 sn · Varoma · devir 2 · ters yön"
+// "20 sn · Varoma · devir 2 · ters bıçak"
 export function stepSummary(step: TmStep): string {
   const bits: string[] = []
   const d = durationLabel(step.seconds)
   if (d) bits.push(d)
   const t = tempLabel(step.temp)
   if (t) bits.push(t)
-  if (step.speed) bits.push(speedLabel(step.speed).replace('Devir', 'devir'))
-  if (step.reverse) bits.push('ters yön')
+  if (step.speed) {
+    bits.push(speedLabel(step.speed).replace('Devir', 'devir'))
+    // Bicak yonu HER ZAMAN yazilir: "belirtilmemis" ile "duz" karismasin.
+    bits.push(step.reverse ? 'ters bıçak' : 'düz bıçak')
+  }
   if (step.mode) bits.push(modeLabel(step.mode))
   return bits.join(' · ')
 }
