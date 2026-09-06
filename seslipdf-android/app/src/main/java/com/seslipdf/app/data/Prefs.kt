@@ -26,6 +26,11 @@ class Prefs(context: Context) {
         get() = sp.getString("voice", "") ?: ""
         set(v) = sp.edit().putString("voice", v).apply()
 
+    /** En iyi ses bir kez otomatik secildi mi (kullanici sonra degistirebilir). */
+    var voiceAutoPicked: Boolean
+        get() = sp.getBoolean("voiceAuto", false)
+        set(v) = sp.edit().putBoolean("voiceAuto", v).apply()
+
     /** Dil kodu (ornegin tr-TR). */
     var language: String
         get() = sp.getString("lang", "tr-TR") ?: "tr-TR"

@@ -16,8 +16,19 @@ data class VoiceInfo(
     val localeTag: String,
     val localeLabel: String,
     /** Internet gerektiren (bulut) ses mi. */
-    val networkOnly: Boolean
+    val networkOnly: Boolean,
+    /** TextToSpeech.Voice.QUALITY_* degeri (buyukse daha iyi). */
+    val quality: Int = 0
 ) {
+    /** Kullaniciya gosterilecek kalite etiketi. */
+    val qualityLabel: String
+        get() = when {
+            quality >= 400 -> "yüksek kalite"
+            quality >= 300 -> "normal kalite"
+            quality > 0 -> "düşük kalite"
+            else -> ""
+        }
+
     /** "Türkçe · ses 3" gibi okunakli ad. */
     val label: String
         get() {
@@ -48,11 +59,13 @@ object VoiceCatalog {
                                     name = voice.name,
                                     localeTag = voice.locale.toLanguageTag(),
                                     localeLabel = voice.locale.getDisplayName(Locale("tr")),
-                                    networkOnly = voice.isNetworkConnectionRequired
+                                    networkOnly = voice.isNetworkConnectionRequired,
+                                    quality = voice.quality
                                 )
                             }
                             .sortedWith(
                                 compareByDescending<VoiceInfo> { it.localeTag.startsWith("tr") }
+                                    .thenByDescending { it.quality }
                                     .thenBy { it.localeLabel }
                                     .thenBy { it.name }
                             )

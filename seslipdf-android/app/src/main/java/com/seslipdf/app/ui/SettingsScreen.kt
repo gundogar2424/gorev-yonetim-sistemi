@@ -223,9 +223,13 @@ private fun VoicePicker(
                     text = {
                         Column {
                             Text(voice.label)
-                            if (voice.networkOnly) {
+                            val notes = listOfNotNull(
+                                voice.qualityLabel.takeIf { it.isNotBlank() },
+                                "internet gerektirir".takeIf { voice.networkOnly }
+                            )
+                            if (notes.isNotEmpty()) {
                                 Text(
-                                    "internet gerektirir",
+                                    notes.joinToString(" · "),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

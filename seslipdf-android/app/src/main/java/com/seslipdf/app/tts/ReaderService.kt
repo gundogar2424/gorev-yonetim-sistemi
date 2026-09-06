@@ -19,6 +19,7 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
@@ -66,6 +67,9 @@ class ReaderService : Service() {
     private var docTitle = ""
     private var docText: DocText? = null
     private val sentences: List<String> get() = docText?.sentences ?: emptyList()
+
+    /** Sayfa basi olan cumle siralari — gecislerde biraz daha uzun duraklanir. */
+    private var pageBreaks: Set<Int> = emptySet()
 
     /** Su an okunan cumle. */
     private var current = 0
@@ -172,6 +176,7 @@ class ReaderService : Service() {
             main.post {
                 docTitle = doc.title
                 docText = text
+                pageBreaks = text.pageStarts.toSet()
                 current = doc.position.coerceIn(0, text.sentences.lastIndex)
                 nextToQueue = current
                 ReaderState.setText(text)
@@ -243,6 +248,14 @@ class ReaderService : Service() {
             } catch (e: Exception) {
                 // Bazi motorlar ses listesini vermez; varsayilan ses kullanilir.
             }
+        } else if (!prefs.voiceAutoPicked) {
+            // Sistem varsayilani cogu telefonda en iyi ses degildir; ilk acilista
+            // dil icin en kaliteli, cihazda kurulu (internetsiz calisan) ses secilir.
+            pickBestVoice(engine, locale)?.let { best ->
+                engine.voice = best
+                prefs.voice = best.name
+            }
+            prefs.voiceAutoPicked = true
         }
         engine.setSpeechRate(prefs.rate)
         engine.setPitch(prefs.pitch)
@@ -250,6 +263,25 @@ class ReaderService : Service() {
         // Hiz/ton degisikligi ancak yeni cumlede duyulur; okuma suruyorsa
         // bulunulan cumle bastan soylenir.
         if (wantPlay) seekTo(current, keepPlaying = true)
+    }
+
+    /**
+     * Dil icin en iyi sesi secer: once cihazda kurulu (internet istemeyen) sesler,
+     * sonra en yuksek kalite. Bulut sesleri daha dogal olabilir ama internet
+     * gerektirir; kullanici isterse Ayarlar'dan secebilir.
+     */
+    private fun pickBestVoice(engine: TextToSpeech, locale: Locale): Voice? = try {
+        engine.voices
+            ?.filter { voice ->
+                voice.locale.language.equals(locale.language, ignoreCase = true) &&
+                    TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in voice.features.orEmpty()
+            }
+            ?.maxWithOrNull(
+                compareBy<Voice> { if (it.isNetworkConnectionRequired) 0 else 1 }
+                    .thenBy { it.quality }
+            )
+    } catch (e: Exception) {
+        null
     }
 
     private val progressListener = object : UtteranceProgressListener() {
@@ -338,8 +370,22 @@ class ReaderService : Service() {
                 index.toString()
             )
             if (result != TextToSpeech.SUCCESS) break
+            // Cumlenin ardina kisa bir sessizlik: baslik ve paragraf sonlarinda
+            // daha uzun. Metin tek nefeste akmaz, kulak takip edebilir.
+            engine.playSilentUtterance(pauseAfter(index), TextToSpeech.QUEUE_ADD, null)
             pending++
             nextToQueue++
+        }
+    }
+
+    /** Cumleden sonra verilecek sessizlik (milisaniye). */
+    private fun pauseAfter(index: Int): Long {
+        val sentence = sentences.getOrNull(index) ?: return SHORT_PAUSE
+        return when {
+            (index + 1) in pageBreaks -> PAGE_PAUSE
+            sentence.endsWith(":") -> HEADING_PAUSE
+            sentence.length < 60 && sentence.lastOrNull() !in ".!?…" -> HEADING_PAUSE
+            else -> SHORT_PAUSE
         }
     }
 
@@ -583,6 +629,11 @@ class ReaderService : Service() {
         private const val NOTIF_ID = 41
         /** Motor kuyrugunda kac cumle bekletilsin (akici gecis icin). */
         private const val QUEUE_AHEAD = 2
+
+        /** Cumleler arasi dogal nefes paylari (milisaniye). */
+        private const val SHORT_PAUSE = 130L
+        private const val HEADING_PAUSE = 420L
+        private const val PAGE_PAUSE = 520L
 
         fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

@@ -45,12 +45,50 @@ object TextCleaner {
         text = Regex("(\\p{L})[-‐‑­]\\n\\s*(\\p{L})")
             .replace(text) { m -> m.groupValues[1] + m.groupValues[2] }
 
-        // Paragraflar bos satirla ayrilir; paragraf icindeki satir sonlari bosluk olur.
-        val blocks = text.split(Regex("\n[ \t]*\n+")).map { block ->
-            block.replace('\n', ' ').replace(Regex("[ \t]+"), " ").trim()
-        }.filter { it.isNotBlank() }
+        // PDF'te her gorsel satir ayri bir satirdir; paragraf sonlari bos satirla
+        // belli olmaz. Satirlar birlestirilir, yalnizca gercekten paragraf/baslik
+        // biten yerlerde bolunur — boylece baslik metne yapismaz ve okuma sirasinda
+        // dogru yerde nefes alinir.
+        val lines = text.split("\n").map { it.replace(Regex("[ \t]+"), " ").trim() }
+        val lengths = lines.filter { it.isNotBlank() }.map { it.length }
+        val average = if (lengths.isEmpty()) 0 else lengths.sum() / lengths.size
 
-        return blocks.joinToString("\n\n")
+        val paragraphs = mutableListOf<String>()
+        val current = StringBuilder()
+
+        fun flushParagraph() {
+            val done = current.toString().trim()
+            if (done.isNotBlank()) paragraphs += done
+            current.setLength(0)
+        }
+
+        for ((index, line) in lines.withIndex()) {
+            if (line.isBlank()) {
+                flushParagraph()
+                continue
+            }
+            if (current.isNotEmpty()) current.append(' ')
+            current.append(line)
+
+            val next = lines.drop(index + 1).firstOrNull { it.isNotBlank() }
+            if (next == null) {
+                flushParagraph()
+                continue
+            }
+
+            // 1) Satir gercek bir cumle sonuyla bitiyorsa ("Dr." gibi kisaltmalar haric)
+            val endsSentence = line.isNotEmpty() &&
+                line.last() in ".!?…" && isBoundary(line, line.length - 1)
+            // 2) Satir belirgin sekilde kisaysa ve sonraki satir buyuk harf/rakamla
+            //    basliyorsa: paragraf sonu ya da baslik.
+            val short = average > 0 && line.length < average * 0.6
+            val nextStartsBig = next.first().let { it.isUpperCase() || it.isDigit() }
+
+            if (endsSentence || (short && nextStartsBig)) flushParagraph()
+        }
+        flushParagraph()
+
+        return paragraphs.joinToString("\n\n")
     }
 
     /**
