@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import TmHeader from '../TmHeader'
 import { addRecipe } from '../db'
 import { gramDisiOlculer, parseRecipeCode } from '../lib/recipeIO'
+import { tarifDosyasiYukle } from '../lib/backup'
 import { stepSummary } from '../lib/tm7'
 import type { TmConversion } from '../types'
 
@@ -14,6 +15,22 @@ export default function AddRecipe() {
   const [kod, setKod] = useState('')
   const [hata, setHata] = useState('')
   const [onizleme, setOnizleme] = useState<TmConversion[] | null>(null)
+  const [bilgi, setBilgi] = useState('')
+  const dosyaRef = useRef<HTMLInputElement>(null)
+
+  // Hazir bir tarif dosyasi (fotografi gomulu olabilir) tek dokunusla eklenir
+  async function dosyadanEkle(file?: File) {
+    if (!file) return
+    setHata('')
+    setBilgi('')
+    try {
+      const { eklendi, atlandi } = await tarifDosyasiYukle(file)
+      if (eklendi === 0 && atlandi > 0) setBilgi('Bu tarif zaten defterde.')
+      else navigate('/')
+    } catch (e) {
+      setHata((e as Error).message)
+    }
+  }
 
   function kontrolEt() {
     setHata('')
@@ -65,9 +82,9 @@ export default function AddRecipe() {
 
       <div className="px-4 py-3 space-y-3">
         <div className="tm-card p-3 text-[13px] text-slate-600 dark:text-slate-300">
-          Tarifi TM7 adımlarına çevirttiğinde sana bir <b>tarif kodu</b> verilir. Kodu buraya
-          yapıştır, tarif fotoğrafı ve uyarılarıyla birlikte deftere insin. İnternet ya da ücretli
-          bir anahtar gerekmez. Bir kodun içinde birden fazla tarif de olabilir.
+          Hazır <b>tarif kodunu</b> buraya yapıştır ya da <b>tarif dosyasını</b> seç; tarif
+          fotoğrafı ve uyarılarıyla deftere insin. İnternet ya da ücretli bir anahtar gerekmez.
+          Bir kodun/dosyanın içinde birden fazla tarif de olabilir.
         </div>
 
         <textarea
@@ -77,10 +94,20 @@ export default function AddRecipe() {
           onChange={(e) => setKod(e.target.value)}
         />
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={panodanAl} className="tm-btn-soft px-3 py-2.5 text-sm">
             📋 Panodan yapıştır
           </button>
+          <button onClick={() => dosyaRef.current?.click()} className="tm-btn-soft px-3 py-2.5 text-sm">
+            📄 Dosyadan ekle
+          </button>
+          <input
+            ref={dosyaRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => void dosyadanEkle(e.target.files?.[0])}
+          />
           {kod && (
             <button onClick={() => { setKod(''); setOnizleme(null); setHata('') }} className="tm-btn-soft px-3 py-2.5 text-sm">
               Temizle
@@ -96,6 +123,10 @@ export default function AddRecipe() {
             Deftere ekle
           </button>
         </div>
+
+        {bilgi && (
+          <div className="tm-card p-3 text-sm text-slate-600 dark:text-slate-300">{bilgi}</div>
+        )}
 
         {hata && (
           <div className="tm-card p-3 text-sm text-rose-600 whitespace-pre-wrap bg-rose-50 dark:bg-[#252733]">{hata}</div>

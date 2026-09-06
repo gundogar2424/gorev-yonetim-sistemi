@@ -39,9 +39,13 @@ export async function saveTmSettings(patch: Partial<TmSettings>): Promise<void> 
 
 // --- Tarifler -------------------------------------------------------------
 
-export function listRecipes(): Promise<TmRecipe[]> {
-  // En son guncellenen en ustte
-  return tmDb.recipes.orderBy('updatedAt').reverse().toArray()
+export async function listRecipes(): Promise<TmRecipe[]> {
+  // En son guncellenen en ustte.
+  // NOT: orderBy('updatedAt') kullanilmiyor — disaridan gelen bir dosyada bu
+  // alan eksikse Dexie o kaydi indeks sonucundan ATAR ve tarif listede hic
+  // gorunmez. Hepsini alip elde siralamak kucuk defterde zaten hizli.
+  const hepsi = await tmDb.recipes.toArray()
+  return hepsi.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
 }
 
 export function getRecipe(id: number): Promise<TmRecipe | undefined> {
