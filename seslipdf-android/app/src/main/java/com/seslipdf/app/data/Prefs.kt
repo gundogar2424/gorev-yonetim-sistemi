@@ -46,6 +46,14 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("autoScroll", true)
         set(v) = sp.edit().putBoolean("autoScroll", v).apply()
 
+    /**
+     * Okunan cumleye gecerken listenin kayma hizi (0 = agir agir suzulur,
+     * 1 = hemen atlar). Metnin akisini goz takip edebilsin diye ayarlanabilir.
+     */
+    var scrollSpeed: Float
+        get() = sp.getFloat("scrollSpeed", 0.55f)
+        set(v) = sp.edit().putFloat("scrollSpeed", v.coerceIn(0f, 1f)).apply()
+
     /** Uyku sayaci icin son secilen sure (dakika). */
     var sleepMinutes: Int
         get() = sp.getInt("sleepMinutes", 30)

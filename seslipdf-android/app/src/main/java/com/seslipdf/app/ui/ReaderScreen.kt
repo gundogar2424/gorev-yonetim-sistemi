@@ -1,6 +1,9 @@
 package com.seslipdf.app.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,10 +88,21 @@ fun ReaderScreen(
     val sentences = text?.sentences.orEmpty()
     val listState = rememberLazyListState()
 
-    // Okunan cumle ekranin ustune dogru kaydirilir.
+    // Okunan cumle ekranin ustune dogru, ayarlanan hizda suzulerek kayar.
     LaunchedEffect(status.index, vm.autoScroll, sentences.size) {
-        if (vm.autoScroll && sentences.isNotEmpty()) {
-            listState.animateScrollToItem((status.index - 2).coerceAtLeast(0))
+        if (!vm.autoScroll || sentences.isEmpty()) return@LaunchedEffect
+        val target = (status.index - 2).coerceAtLeast(0)
+        val info = listState.layoutInfo
+        val visible = info.visibleItemsInfo.firstOrNull { it.index == target }
+        if (visible != null) {
+            // Hedef zaten ekrandaysa: sabit hizda, goz takip edebilecegi bir kayma.
+            listState.animateScrollBy(
+                (visible.offset - info.viewportStartOffset).toFloat(),
+                animationSpec = tween(durationMillis = vm.scrollMillis, easing = LinearEasing)
+            )
+        } else {
+            // Uzaga atlandiysa (cumleye dokunma, sayfaya gitme) dogrudan git.
+            listState.scrollToItem(target)
         }
     }
 

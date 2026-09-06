@@ -53,6 +53,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var autoScroll by mutableStateOf(prefs.autoScroll)
         private set
+    var scrollSpeed by mutableStateOf(prefs.scrollSpeed)
+        private set
     var sleepMinutes by mutableStateOf(prefs.sleepMinutes)
         private set
 
@@ -200,9 +202,24 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         prefs.autoScroll = value
     }
 
+    fun updateScrollSpeed(value: Float) {
+        scrollSpeed = value
+        prefs.scrollSpeed = value
+    }
+
+    /** Bir cumleden digerine kayarken gecen sure (milisaniye). */
+    val scrollMillis: Int
+        get() = (SCROLL_SLOWEST - (SCROLL_SLOWEST - SCROLL_FASTEST) * scrollSpeed.coerceIn(0f, 1f)).toInt()
+
     fun updateSleepMinutes(value: Int) {
         sleepMinutes = value
         prefs.sleepMinutes = value
+    }
+
+    companion object {
+        /** En yavas ve en hizli kayma sureleri (milisaniye). */
+        const val SCROLL_SLOWEST = 2200f
+        const val SCROLL_FASTEST = 250f
     }
 
     fun loadVoices() {
