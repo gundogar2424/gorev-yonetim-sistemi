@@ -503,3 +503,83 @@ textarea {
     animation: none !important;
   }
 }
+
+/* --- Termomiks Defteri: gorunum -------------------------------------------
+   Ortak .card / .btn / .field-input siniflarina DOKUNULMAZ (CRM ve Diyet Kocu
+   onlari kullaniyor). Termomiks kendi tm-* siniflarini kullanir: daha yumusak
+   koseler, cerceve yerine ince golge, yesil tonlu notr zemin. */
+.tm-app {
+  background-color: #f4f7f5;
+}
+.dark .tm-app {
+  background-color: #0e1513;
+}
+@layer components {
+  .tm-card {
+    @apply bg-white rounded-[22px] p-4;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 24px -18px rgba(16, 24, 40, 0.25);
+  }
+  .tm-input {
+    @apply w-full rounded-2xl bg-slate-100/70 px-4 py-3 text-slate-800 outline-none transition;
+    @apply focus:bg-white focus:ring-4 focus:ring-tm-100 border border-transparent focus:border-tm-500;
+  }
+  .tm-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold transition;
+    @apply active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
+  }
+  .tm-btn-primary {
+    @apply tm-btn bg-tm-600 text-white hover:bg-tm-700;
+  }
+  .tm-btn-soft {
+    @apply tm-btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  }
+  .tm-btn-danger {
+    @apply tm-btn bg-rose-50 text-rose-600 hover:bg-rose-100;
+  }
+  .tm-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400;
+  }
+  .tm-chip {
+    @apply inline-flex items-center rounded-full px-3.5 py-1.5 text-[13px] font-medium transition;
+    @apply bg-slate-100 text-slate-600;
+  }
+  .tm-chip-on {
+    @apply bg-tm-600 text-white;
+  }
+  .tm-pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold bg-tm-50 text-tm-700;
+  }
+}
+.dark .tm-card {
+  background-color: #171f1c;
+  box-shadow: none;
+}
+.dark .tm-input {
+  background-color: #1c2622;
+  color: #e6ece9;
+}
+.dark .tm-input:focus {
+  background-color: #1c2622;
+}
+.dark .tm-btn-soft {
+  background-color: #1c2622;
+  color: #cdd6d1;
+}
+.dark .tm-btn-danger {
+  background-color: #2a1a1d;
+}
+.dark .tm-chip {
+  background-color: #1c2622;
+  color: #a9b5af;
+}
+.dark .tm-chip-on {
+  background-color: #00873a;
+  color: #ffffff;
+}
+.dark .tm-pill {
+  background-color: #12261b;
+  color: #4fd68c;
+}
+.dark .tm-label {
+  color: #7d8b84;
+}

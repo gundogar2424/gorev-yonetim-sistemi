@@ -107,11 +107,11 @@ export default function RecipeDetail() {
           }}
         />
         <div className="flex gap-2">
-          <button onClick={() => fotoRef.current?.click()} className="btn-ghost flex-1 py-2 text-sm">
+          <button onClick={() => fotoRef.current?.click()} className="tm-btn-soft flex-1 py-2 text-sm">
             {r.photo ? '📷 Fotoğrafı değiştir' : '📷 Fotoğraf ekle'}
           </button>
           {r.photo && (
-            <button onClick={() => updateRecipe(rid, { photo: '' })} className="btn-ghost px-3 py-2 text-sm">
+            <button onClick={() => updateRecipe(rid, { photo: '' })} className="tm-btn-soft px-3 py-2 text-sm">
               Kaldır
             </button>
           )}
@@ -132,19 +132,19 @@ export default function RecipeDetail() {
               }
             }}
             disabled={indiriliyor}
-            className="btn-ghost w-full py-2 text-sm"
+            className="tm-btn-soft w-full py-2 text-sm"
           >
             {indiriliyor ? 'İndiriliyor…' : '⬇️ Fotoğrafı indir (internetsiz de görünsün)'}
           </button>
         )}
-        {fotoHata && <div className="card p-3 text-sm text-rose-600">{fotoHata}</div>}
+        {fotoHata && <div className="tm-card p-3 text-sm text-rose-600">{fotoHata}</div>}
 
-        <Link to={`/pisir/${rid}`} className="btn-tm w-full py-3">
+        <Link to={`/pisir/${rid}`} className="tm-btn-primary w-full py-3">
           ▶︎ Pişirmeye başla
         </Link>
 
         {r.warnings.length > 0 && (
-          <div className="card p-3 bg-amber-50 dark:bg-[#252733] text-[13px] text-amber-800 space-y-1">
+          <div className="tm-card p-3 bg-amber-50 dark:bg-[#252733] text-[13px] text-amber-800 space-y-1">
             {r.warnings.map((w, k) => (
               <div key={k}>⚠️ {w}</div>
             ))}
@@ -152,8 +152,8 @@ export default function RecipeDetail() {
         )}
 
         {r.ingredients.length > 0 && (
-          <section className="card p-4">
-            <h3 className="section-title mb-2">Malzemeler</h3>
+          <section className="tm-card">
+            <h3 className="tm-label mb-2">Malzemeler</h3>
             <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
               {r.ingredients.map((i, k) => (
                 <li key={k}>• {i}</li>
@@ -163,9 +163,9 @@ export default function RecipeDetail() {
         )}
 
         <section className="space-y-2">
-          <h3 className="section-title px-1">TM7 adımları</h3>
+          <h3 className="tm-label px-1">TM7 adımları</h3>
           {r.steps.map((s, k) => (
-            <div key={k} className="card p-3">
+            <div key={k} className="tm-card p-3">
               <div className="flex gap-3">
                 <div className="w-7 h-7 rounded-full bg-tm-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
                   {k + 1}
@@ -185,9 +185,9 @@ export default function RecipeDetail() {
           ))}
         </section>
 
-        {r.notes && <div className="card p-3 text-[13px] text-slate-600 dark:text-slate-300">📝 {r.notes}</div>}
+        {r.notes && <div className="tm-card p-3 text-[13px] text-slate-600 dark:text-slate-300">📝 {r.notes}</div>}
 
-        <div className="card p-3 text-[12px] text-slate-500 space-y-1">
+        <div className="tm-card p-3 text-[12px] text-slate-500 space-y-1">
           {r.source && <div>Kaynak: {r.source}</div>}
           <div>{r.origin === 'ai' ? 'Hazır tarif kodundan eklendi' : 'Elle yazıldı'}</div>
           {r.cookCount > 0 && (
@@ -199,7 +199,7 @@ export default function RecipeDetail() {
         </div>
 
         {r.originalText && (
-          <div className="card p-3">
+          <div className="tm-card p-3">
             <button
               onClick={() => setOrijinalAcik((v) => !v)}
               className="text-sm font-semibold text-tm-600 w-full text-left"
@@ -213,13 +213,13 @@ export default function RecipeDetail() {
         )}
 
         <div className="grid grid-cols-3 gap-2 pt-1">
-          <Link to={`/duzenle/${rid}`} className="btn-ghost py-2.5 text-sm">
+          <Link to={`/duzenle/${rid}`} className="tm-btn-soft py-2.5 text-sm">
             Düzenle
           </Link>
-          <button onClick={paylas} className="btn-ghost py-2.5 text-sm">
+          <button onClick={paylas} className="tm-btn-soft py-2.5 text-sm">
             {kopyalandi ? 'Kopyalandı' : 'Paylaş'}
           </button>
-          <button onClick={sil} className="btn-danger py-2.5 text-sm">
+          <button onClick={sil} className="tm-btn-danger py-2.5 text-sm">
             Sil
           </button>
         </div>

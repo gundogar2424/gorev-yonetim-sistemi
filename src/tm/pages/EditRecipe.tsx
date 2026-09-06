@@ -101,13 +101,13 @@ export default function EditRecipe() {
       <div className="px-4 py-3 space-y-3">
         <div>
           <label className="field-label">Tarif adı</label>
-          <input className="field-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="örn. Mercimek çorbası" />
+          <input className="tm-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="örn. Mercimek çorbası" />
         </div>
 
         <div className="grid grid-cols-3 gap-2">
           <div>
             <label className="field-label">Kategori</label>
-            <select className="field-input" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <select className="tm-input" value={category} onChange={(e) => setCategory(e.target.value)}>
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -117,18 +117,18 @@ export default function EditRecipe() {
           </div>
           <div>
             <label className="field-label">Kişi</label>
-            <input className="field-input" inputMode="numeric" value={servings} onChange={(e) => setServings(e.target.value)} />
+            <input className="tm-input" inputMode="numeric" value={servings} onChange={(e) => setServings(e.target.value)} />
           </div>
           <div>
             <label className="field-label">Süre (dk)</label>
-            <input className="field-input" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+            <input className="tm-input" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
           </div>
         </div>
 
         <div>
           <label className="field-label">Malzemeler (her satıra bir tane)</label>
           <textarea
-            className="field-input min-h-[110px]"
+            className="tm-input min-h-[110px]"
             value={ingredients}
             onChange={(e) => setIngredients(e.target.value)}
             placeholder={'1 su bardağı kırmızı mercimek\n1 soğan\n2 yemek kaşığı zeytinyağı'}
@@ -136,7 +136,7 @@ export default function EditRecipe() {
         </div>
 
         <section className="space-y-2">
-          <h3 className="section-title px-1">Adımlar</h3>
+          <h3 className="tm-label px-1">Adımlar</h3>
           {steps.map((s, i) => (
             <StepEditor
               key={i}
@@ -147,21 +147,21 @@ export default function EditRecipe() {
               onMove={(y) => stepTasi(i, y)}
             />
           ))}
-          <button onClick={() => setSteps((p) => [...p, emptyStep()])} className="btn-ghost w-full py-2.5 text-sm">
+          <button onClick={() => setSteps((p) => [...p, emptyStep()])} className="tm-btn-soft w-full py-2.5 text-sm">
             + Adım ekle
           </button>
         </section>
 
         <div>
           <label className="field-label">Not</label>
-          <input className="field-input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Servis / saklama notu" />
+          <input className="tm-input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Servis / saklama notu" />
         </div>
         <div>
           <label className="field-label">Kaynak</label>
-          <input className="field-input" value={source} onChange={(e) => setSource(e.target.value)} placeholder="örn. anneannemin tarifi" />
+          <input className="tm-input" value={source} onChange={(e) => setSource(e.target.value)} placeholder="örn. anneannemin tarifi" />
         </div>
 
-        <button onClick={kaydet} className="btn-tm w-full py-3">
+        <button onClick={kaydet} className="tm-btn-primary w-full py-3">
           Kaydet
         </button>
       </div>
@@ -186,7 +186,7 @@ function StepEditor({
   const sn = s.seconds % 60
 
   return (
-    <div className="card p-3 space-y-2">
+    <div className="tm-card p-3 space-y-2">
       <div className="flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-tm-600 text-white text-xs font-bold flex items-center justify-center">
           {i + 1}
@@ -203,9 +203,9 @@ function StepEditor({
         </button>
       </div>
 
-      <input className="field-input" placeholder="Ne yapılacak?" value={s.text} onChange={(e) => onChange({ text: e.target.value })} />
+      <input className="tm-input" placeholder="Ne yapılacak?" value={s.text} onChange={(e) => onChange({ text: e.target.value })} />
       <input
-        className="field-input"
+        className="tm-input"
         placeholder="Bu adımda kaba giren malzemeler"
         value={s.ingredients}
         onChange={(e) => onChange({ ingredients: e.target.value })}
@@ -235,7 +235,7 @@ function StepEditor({
         </div>
         <div>
           <label className="field-label">Sıcaklık</label>
-          <select className="field-input" value={s.temp} onChange={(e) => onChange({ temp: e.target.value })}>
+          <select className="tm-input" value={s.temp} onChange={(e) => onChange({ temp: e.target.value })}>
             {TEMPS.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
@@ -245,7 +245,7 @@ function StepEditor({
         </div>
         <div>
           <label className="field-label">Devir</label>
-          <select className="field-input" value={s.speed} onChange={(e) => onChange({ speed: e.target.value as TmStep['speed'] })}>
+          <select className="tm-input" value={s.speed} onChange={(e) => onChange({ speed: e.target.value as TmStep['speed'] })}>
             {SPEEDS.map((x) => (
               <option key={x.value} value={x.value}>
                 {x.label}
@@ -255,7 +255,7 @@ function StepEditor({
         </div>
         <div>
           <label className="field-label">Mod</label>
-          <select className="field-input" value={s.mode} onChange={(e) => onChange({ mode: e.target.value as TmStep['mode'] })}>
+          <select className="tm-input" value={s.mode} onChange={(e) => onChange({ mode: e.target.value as TmStep['mode'] })}>
             {MODES.map((m) => (
               <option key={m.value} value={m.value}>
                 {m.label}
@@ -270,7 +270,7 @@ function StepEditor({
         Ters yön (bıçak tersine dönsün)
       </label>
 
-      <input className="field-input" placeholder="İpucu (isteğe bağlı)" value={s.tip} onChange={(e) => onChange({ tip: e.target.value })} />
+      <input className="tm-input" placeholder="İpucu (isteğe bağlı)" value={s.tip} onChange={(e) => onChange({ tip: e.target.value })} />
     </div>
   )
 }

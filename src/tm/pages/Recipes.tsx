@@ -34,18 +34,18 @@ export default function Recipes({ onlyFavorites }: Props) {
         subtitle={onlyFavorites ? 'Yıldızladığın tarifler' : `${list.length} tarif · Thermomix TM7`}
         right={
           !onlyFavorites ? (
-            <Link to="/ekle" className="btn-tm px-3.5 py-2 text-sm">
+            <Link to="/ekle" className="tm-btn-primary px-3.5 py-2 text-sm">
               + Tarif
             </Link>
           ) : undefined
         }
       />
 
-      <div className="px-4 py-3 space-y-3">
+      <div className="px-4 pb-3 space-y-3">
         {base.length > 0 && (
           <>
             <input
-              className="field-input"
+              className="tm-input"
               placeholder="Tarif ya da malzeme ara…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -62,7 +62,7 @@ export default function Recipes({ onlyFavorites }: Props) {
         )}
 
         {base.length === 0 && (
-          <div className="card p-6 text-center">
+          <div className="tm-card p-6 text-center">
             <div className="text-5xl mb-2">🍲</div>
             <p className="text-slate-600 dark:text-slate-300 font-medium mb-1">
               {onlyFavorites ? 'Henüz favori tarif yok.' : 'Defter boş.'}
@@ -74,10 +74,10 @@ export default function Recipes({ onlyFavorites }: Props) {
             </p>
             {!onlyFavorites && (
               <div className="flex gap-2 justify-center">
-                <Link to="/ekle" className="btn-tm px-4 py-2 text-sm">
+                <Link to="/ekle" className="tm-btn-primary px-4 py-2 text-sm">
                   Tarif ekle
                 </Link>
-                <Link to="/yeni" className="btn-ghost px-4 py-2 text-sm">
+                <Link to="/yeni" className="tm-btn-soft px-4 py-2 text-sm">
                   Elle yaz
                 </Link>
               </div>
@@ -86,7 +86,7 @@ export default function Recipes({ onlyFavorites }: Props) {
         )}
 
         {base.length > 0 && gorunen.length === 0 && (
-          <div className="card p-6 text-center text-slate-400 text-sm">Aramana uyan tarif yok.</div>
+          <div className="tm-card p-6 text-center text-slate-400 text-sm">Aramana uyan tarif yok.</div>
         )}
 
         {/* Kategori secili degilse tarifler kategori basliklari altinda toplanir;
@@ -100,8 +100,8 @@ export default function Recipes({ onlyFavorites }: Props) {
         ) : (
           gruplaKategoriye(gorunen).map(([kategori, tarifler]) => (
             <section key={kategori} className="space-y-2">
-              <h3 className="section-title px-1 pt-1">
-                {kategori} <span className="text-slate-400 font-normal">({tarifler.length})</span>
+              <h3 className="tm-label px-2 pt-2">
+                {kategori} <span className="opacity-60">· {tarifler.length}</span>
               </h3>
               {tarifler.map((r) => (
                 <RecipeRow key={r.id} r={r} />
@@ -120,7 +120,7 @@ function Kucukfoto({ src }: { src: string }) {
   const [hata, setHata] = useState(false)
   if (!src || hata) {
     return (
-      <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-[#2f3240] flex items-center justify-center text-xl flex-shrink-0">
+      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-[#1c2622] flex items-center justify-center text-2xl flex-shrink-0">
         🍲
       </div>
     )
@@ -130,7 +130,7 @@ function Kucukfoto({ src }: { src: string }) {
       src={src}
       alt=""
       onError={() => setHata(true)}
-      className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+      className="w-16 h-16 rounded-2xl object-cover flex-shrink-0"
     />
   )
 }
@@ -159,11 +159,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
   return (
     <button
       onClick={onClick}
-      className={`chip flex-shrink-0 border ${
-        active
-          ? 'bg-tm-600 text-white border-tm-600'
-          : 'bg-white dark:bg-[#252733] text-slate-600 border-slate-200 dark:border-[#2f3240]'
-      }`}
+      className={`tm-chip flex-shrink-0 ${active ? 'tm-chip-on' : ''}`}
     >
       {label}
     </button>
@@ -181,30 +177,34 @@ function RecipeRow({ r }: { r: TmRecipe }) {
     .join(' · ')
 
   return (
-    <div className="card p-3 flex items-center gap-3">
+    <div className="tm-tm-card p-3 flex items-center gap-3">
       <Kucukfoto src={r.photo} />
       <Link to={`/tarif/${r.id}`} className="flex-1 min-w-0">
-        <div className="font-semibold text-slate-800 dark:text-[#e0e1e6] truncate">{r.title}</div>
-        <div className="text-[12px] text-slate-500 truncate">{meta}</div>
-        {r.cookCount > 0 && <div className="text-[11px] text-emerald-600 mt-0.5">{r.cookCount} kez pişirildi</div>}
+        <div className="font-semibold text-[16px] leading-tight text-slate-800 dark:text-[#e7ece9] truncate">
+          {r.title}
+        </div>
+        <div className="text-[12.5px] text-slate-400 dark:text-[#7d8b84] truncate mt-0.5">{meta}</div>
+        {r.cookCount > 0 && <div className="text-[11px] text-tm-600 mt-1">{r.cookCount} kez pişirildi</div>}
       </Link>
       <button
         onClick={() => r.id && toggleFavorite(r.id)}
-        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-          r.favorite ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'
+        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition ${
+          r.favorite ? 'text-amber-400' : 'text-slate-300 dark:text-[#3a463f]'
         }`}
         aria-label={r.favorite ? 'Favoriden çıkar' : 'Favoriye ekle'}
       >
-        <svg viewBox="0 0 24 24" className="w-6 h-6" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px]" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
           <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8z" strokeLinejoin="round" />
         </svg>
       </button>
       <Link
         to={`/pisir/${r.id}`}
-        className="flex-shrink-0 btn-tm px-3 py-2 text-sm"
-        aria-label="Pişirme modunu başlat"
+        className="flex-shrink-0 w-11 h-11 rounded-full bg-tm-600 text-white flex items-center justify-center active:scale-95 transition"
+        aria-label="Pişirmeye başla"
       >
-        Pişir
+        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+          <path d="M8 5.5v13l11-6.5z" />
+        </svg>
       </Link>
     </div>
   )

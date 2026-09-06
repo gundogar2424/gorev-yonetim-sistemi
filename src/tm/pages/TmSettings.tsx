@@ -46,12 +46,12 @@ export default function TmSettings() {
       <TmHeader title="Ayarlar" subtitle={`Termomiks Defteri · sürüm ${__APP_BUILD__}`} />
 
       <div className="px-4 py-3 space-y-4">
-        {durum && <div className="card p-3 text-sm text-emerald-600 bg-emerald-50 dark:bg-[#252733]">{durum}</div>}
-        {hata && <div className="card p-3 text-sm text-rose-600 whitespace-pre-wrap bg-rose-50 dark:bg-[#252733]">{hata}</div>}
+        {durum && <div className="tm-card p-3 text-sm text-emerald-600 bg-emerald-50 dark:bg-[#252733]">{durum}</div>}
+        {hata && <div className="tm-card p-3 text-sm text-rose-600 whitespace-pre-wrap bg-rose-50 dark:bg-[#252733]">{hata}</div>}
 
         {/* Pisirme modu */}
-        <section className="card p-4 space-y-3">
-          <h3 className="section-title">Pişirme modu</h3>
+        <section className="tm-card space-y-3">
+          <h3 className="tm-label">Pişirme modu</h3>
           <Switch
             label="Süre bitince sonraki adıma geç"
             checked={autoAdvance}
@@ -79,8 +79,8 @@ export default function TmSettings() {
         </section>
 
         {/* Gorunum */}
-        <section className="card p-4 space-y-2">
-          <h3 className="section-title">Görünüm</h3>
+        <section className="tm-card space-y-2">
+          <h3 className="tm-label">Görünüm</h3>
           <div className="grid grid-cols-3 gap-2">
             {(['auto', 'light', 'dark'] as ThemePref[]).map((p) => (
               <button
@@ -102,16 +102,16 @@ export default function TmSettings() {
         </section>
 
         {/* Yedek */}
-        <section className="card p-4 space-y-3">
-          <h3 className="section-title">Yedekleme</h3>
+        <section className="tm-card space-y-3">
+          <h3 className="tm-label">Yedekleme</h3>
           <p className="text-[12px] text-slate-500">
             Defterde {tarifSayisi} tarif var. Yedek tek bir dosyaya iner; telefon değişince geri yüklersin.
           </p>
           <div className="flex gap-2">
-            <button onClick={() => void downloadBackup()} className="btn-ghost flex-1 py-2.5 text-sm">
+            <button onClick={() => void downloadBackup()} className="tm-btn-soft flex-1 py-2.5 text-sm">
               Yedeği indir
             </button>
-            <button onClick={() => dosyaRef.current?.click()} className="btn-ghost flex-1 py-2.5 text-sm">
+            <button onClick={() => dosyaRef.current?.click()} className="tm-btn-soft flex-1 py-2.5 text-sm">
               Yedekten yükle
             </button>
           </div>

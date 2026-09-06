@@ -38,8 +38,8 @@ export default function StepVisual({ step, running }: Props) {
   const sicak = isitma && !varoma
 
   return (
-    <div className="card p-2 flex items-center justify-center">
-      <svg viewBox="0 0 200 170" className="h-[104px] w-auto" role="img" aria-label="Adım görseli">
+    <div className="tm-card p-2 flex items-center justify-center">
+      <svg viewBox="0 0 200 170" className="h-[92px] w-auto" role="img" aria-label="Adım görseli">
         {/* Varoma / buhar */}
         {varoma && (
           <g className="tm-steam" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.8">

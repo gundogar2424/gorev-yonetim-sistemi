@@ -149,7 +149,7 @@ export default function Cook() {
         <StepVisual step={step} running={calisiyor} />
 
         {/* Adim metni */}
-        <div key={i} className="card p-5 tm-step-in">
+        <div key={i} className="tm-card p-5 tm-step-in">
           <p className="text-[22px] leading-snug font-semibold text-slate-800 dark:text-[#e0e1e6]">{step.text}</p>
           {step.ingredients && (
             <p className="mt-3 text-[15px] text-slate-600 dark:text-slate-300">
@@ -170,22 +170,39 @@ export default function Cook() {
           />
         </div>
         {step.mode && (
-          <div className="card p-3 text-center text-sm font-semibold text-tm-600">Mod: {modeLabel(step.mode)}</div>
+          <div className="tm-card p-3 text-center text-sm font-semibold text-tm-600">Mod: {modeLabel(step.mode)}</div>
         )}
 
-        {/* Sayac */}
+        {/* Sayac: kalan sure hem rakamla hem dolan halkayla */}
         {step.seconds > 0 && (
-          <div className="card p-5 text-center">
-            <div
-              className={`text-[52px] font-bold tabular-nums leading-none ${
-                bitti ? 'text-emerald-500' : 'text-slate-900 dark:text-[#e0e1e6]'
-              }`}
-            >
-              {String(Math.floor(kalan / 60)).padStart(2, '0')}:{String(kalan % 60).padStart(2, '0')}
+          <div className="tm-card p-4 text-center">
+            <div className="relative mx-auto w-[146px] h-[146px]">
+              <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                <circle cx="60" cy="60" r="54" fill="none" strokeWidth="8" className="stroke-slate-100 dark:stroke-[#1c2622]" />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="54"
+                  fill="none"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  className={bitti ? 'stroke-tm-500' : 'stroke-tm-600'}
+                  strokeDasharray={2 * Math.PI * 54}
+                  strokeDashoffset={2 * Math.PI * 54 * (1 - kalan / Math.max(1, step.seconds))}
+                  style={{ transition: 'stroke-dashoffset 1s linear' }}
+                />
+              </svg>
+              <div
+                className={`absolute inset-0 flex items-center justify-center text-[38px] font-bold tabular-nums tracking-tight ${
+                  bitti ? 'text-tm-500' : 'text-slate-900 dark:text-[#e7ece9]'
+                }`}
+              >
+                {String(Math.floor(kalan / 60)).padStart(2, '0')}:{String(kalan % 60).padStart(2, '0')}
+              </div>
             </div>
             <div className="mt-4 flex gap-2 justify-center">
               {!bitti && (
-                <button onClick={() => setCalisiyor((v) => !v)} className="btn-tm px-6 py-2.5">
+                <button onClick={() => setCalisiyor((v) => !v)} className="tm-btn-primary px-6 py-2.5">
                   {calisiyor ? 'Duraklat' : kalan === step.seconds ? 'Başlat' : 'Devam et'}
                 </button>
               )}
@@ -195,7 +212,7 @@ export default function Cook() {
                   setCalisiyor(false)
                   setBitti(false)
                 }}
-                className="btn-ghost px-4 py-2.5"
+                className="tm-btn-soft px-4 py-2.5"
               >
                 Sıfırla
               </button>
@@ -206,15 +223,15 @@ export default function Cook() {
 
         {/* Gezinme */}
         <div className="flex gap-2">
-          <button onClick={() => setI((v) => Math.max(0, v - 1))} disabled={i === 0} className="btn-ghost flex-1 py-3">
+          <button onClick={() => setI((v) => Math.max(0, v - 1))} disabled={i === 0} className="tm-btn-soft flex-1 py-3">
             ← Önceki
           </button>
           {sonAdim ? (
-            <button onClick={bitir} className="btn-tm flex-1 py-3">
+            <button onClick={bitir} className="tm-btn-primary flex-1 py-3">
               Bitir ✔
             </button>
           ) : (
-            <button onClick={() => setI((v) => Math.min(steps.length - 1, v + 1))} className="btn-tm flex-1 py-3">
+            <button onClick={() => setI((v) => Math.min(steps.length - 1, v + 1))} className="tm-btn-primary flex-1 py-3">
               Sonraki →
             </button>
           )}
@@ -222,7 +239,7 @@ export default function Cook() {
 
         {/* Sonraki adimin onizlemesi — elini hazirlayabilesin diye */}
         {!sonAdim && (
-          <div className="card p-3 text-[13px] text-slate-500">
+          <div className="tm-card p-3 text-[13px] text-slate-500">
             <span className="font-semibold">Sırada:</span> {steps[i + 1].text}
           </div>
         )}
@@ -233,7 +250,7 @@ export default function Cook() {
 
 function Kutu({ baslik, deger, alt }: { baslik: string; deger: string; alt?: string }) {
   return (
-    <div className="card p-3 text-center">
+    <div className="tm-card p-3 text-center">
       <div className="stat-label">{baslik}</div>
       <div className="stat-num text-[18px] mt-1 dark:text-[#e0e1e6]">{deger}</div>
       {alt && (

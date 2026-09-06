@@ -59,7 +59,7 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
 
 export default function TmApp() {
   return (
-    <div className="min-h-full flex flex-col max-w-xl mx-auto bg-[#f6f8fa] dark:bg-[#151724]">
+    <div className="tm-app min-h-full flex flex-col max-w-xl mx-auto">
       <main className="flex-1" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<Recipes />} />
@@ -76,24 +76,24 @@ export default function TmApp() {
       </main>
 
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto bg-white/95 dark:bg-[#151724]/95 backdrop-blur border-t border-slate-200/80 dark:border-[#2f3240] grid grid-cols-4 z-20"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-4 z-20 backdrop-blur-xl bg-white/80 dark:bg-[#0e1513]/85"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
-          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1">
+          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-3 pb-2 gap-1.5">
             {({ isActive }) => (
               <>
                 <NavIcon
                   name={t.icon}
-                  className={`h-[22px] w-[22px] ${
-                    isActive ? 'text-tm-600 dark:text-[#e0e1e6]' : 'text-slate-400 dark:text-[#9b9ea7]'
+                  className={`h-[21px] w-[21px] transition-colors ${
+                    isActive ? 'text-tm-600 dark:text-tm-400' : 'text-slate-400 dark:text-[#7d8b84]'
                   }`}
                 />
                 <span
-                  className={`text-[11px] leading-none ${
+                  className={`text-[11px] leading-none transition-colors ${
                     isActive
-                      ? 'text-tm-600 dark:text-[#e0e1e6] font-semibold'
-                      : 'text-slate-500 dark:text-[#9b9ea7] font-medium'
+                      ? 'text-tm-600 dark:text-tm-400 font-semibold'
+                      : 'text-slate-400 dark:text-[#7d8b84] font-medium'
                   }`}
                 >
                   {t.label}
