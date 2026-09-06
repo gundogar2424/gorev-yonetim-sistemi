@@ -15,6 +15,7 @@ export default function RecipeDetail() {
   const [kopyalandi, setKopyalandi] = useState(false)
   const [fotoHata, setFotoHata] = useState('')
   const [indiriliyor, setIndiriliyor] = useState(false)
+  const [fotoYuklenemedi, setFotoYuklenemedi] = useState(false)
   const fotoRef = useRef<HTMLInputElement>(null)
 
   if (!r) {
@@ -75,8 +76,19 @@ export default function RecipeDetail() {
 
       <div className="px-4 py-3 space-y-3">
         {/* Tarif fotografi: kodla gelmis olabilir ya da galeriden secilir */}
-        {r.photo && (
-          <img src={r.photo} alt={r.title} className="w-full h-52 object-cover rounded-2xl" />
+        {r.photo && !fotoYuklenemedi && (
+          <img
+            src={r.photo}
+            alt={r.title}
+            onError={() => setFotoYuklenemedi(true)}
+            className="w-full h-52 object-cover rounded-2xl"
+          />
+        )}
+        {r.photo && fotoYuklenemedi && (
+          <div className="w-full h-32 rounded-2xl bg-slate-100 dark:bg-[#2f3240] flex flex-col items-center justify-center text-slate-400 text-sm gap-1">
+            <span className="text-3xl">🍲</span>
+            Fotoğraf yüklenemedi (internet yok)
+          </div>
         )}
         <input
           ref={fotoRef}

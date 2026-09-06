@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import TmHeader from '../TmHeader'
 import { listRecipes, toggleFavorite } from '../db'
-import { durationLabel } from '../lib/tm7'
+import { CATEGORIES, durationLabel } from '../lib/tm7'
 import type { TmRecipe } from '../types'
 
 interface Props {
@@ -50,7 +50,7 @@ export default function Recipes({ onlyFavorites }: Props) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
-            {kategoriler.length > 1 && (
+            {kategoriler.length > 0 && (
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 <Chip active={cat === ''} onClick={() => setCat('')} label="Hepsi" />
                 {kategoriler.map((k) => (
@@ -89,14 +89,70 @@ export default function Recipes({ onlyFavorites }: Props) {
           <div className="card p-6 text-center text-slate-400 text-sm">Aramana uyan tarif yok.</div>
         )}
 
-        <div className="space-y-2">
-          {gorunen.map((r) => (
-            <RecipeRow key={r.id} r={r} />
-          ))}
-        </div>
+        {/* Kategori secili degilse tarifler kategori basliklari altinda toplanir;
+            secildiginde ya da arama yapilirken duz liste daha okunakli. */}
+        {cat || arama ? (
+          <div className="space-y-2">
+            {gorunen.map((r) => (
+              <RecipeRow key={r.id} r={r} />
+            ))}
+          </div>
+        ) : (
+          gruplaKategoriye(gorunen).map(([kategori, tarifler]) => (
+            <section key={kategori} className="space-y-2">
+              <h3 className="section-title px-1 pt-1">
+                {kategori} <span className="text-slate-400 font-normal">({tarifler.length})</span>
+              </h3>
+              {tarifler.map((r) => (
+                <RecipeRow key={r.id} r={r} />
+              ))}
+            </section>
+          ))
+        )}
       </div>
     </div>
   )
+}
+
+// Liste satirindaki kucuk fotograf. Uzaktaki bir adres internetsizken
+// yuklenemez; kirik resim simgesi yerine tencere simgesi gosterilir.
+function Kucukfoto({ src }: { src: string }) {
+  const [hata, setHata] = useState(false)
+  if (!src || hata) {
+    return (
+      <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-[#2f3240] flex items-center justify-center text-xl flex-shrink-0">
+        🍲
+      </div>
+    )
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      onError={() => setHata(true)}
+      className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+    />
+  )
+}
+
+// Tarifleri kategoriye gore grupla. Sira CATEGORIES listesindeki sira; listede
+// olmayan bir kategori (elle yazilmis olabilir) sonda, alfabetik durur.
+function gruplaKategoriye(liste: TmRecipe[]): [string, TmRecipe[]][] {
+  const gruplar = new Map<string, TmRecipe[]>()
+  for (const r of liste) {
+    const k = r.category?.trim() || 'Diğer'
+    const mevcut = gruplar.get(k)
+    if (mevcut) mevcut.push(r)
+    else gruplar.set(k, [r])
+  }
+  return Array.from(gruplar.entries()).sort(([a], [b]) => {
+    const ia = CATEGORIES.indexOf(a)
+    const ib = CATEGORIES.indexOf(b)
+    if (ia === -1 && ib === -1) return a.localeCompare(b, 'tr')
+    if (ia === -1) return 1
+    if (ib === -1) return -1
+    return ia - ib
+  })
 }
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
@@ -126,13 +182,7 @@ function RecipeRow({ r }: { r: TmRecipe }) {
 
   return (
     <div className="card p-3 flex items-center gap-3">
-      {r.photo ? (
-        <img src={r.photo} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
-      ) : (
-        <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-[#2f3240] flex items-center justify-center text-xl flex-shrink-0">
-          🍲
-        </div>
-      )}
+      <Kucukfoto src={r.photo} />
       <Link to={`/tarif/${r.id}`} className="flex-1 min-w-0">
         <div className="font-semibold text-slate-800 dark:text-[#e0e1e6] truncate">{r.title}</div>
         <div className="text-[12px] text-slate-500 truncate">{meta}</div>
