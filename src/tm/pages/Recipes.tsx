@@ -34,7 +34,7 @@ export default function Recipes({ onlyFavorites }: Props) {
         subtitle={onlyFavorites ? 'Yıldızladığın tarifler' : `${list.length} tarif · Thermomix TM7`}
         right={
           !onlyFavorites ? (
-            <Link to="/uyarla" className="btn-primary px-3.5 py-2 text-sm">
+            <Link to="/ekle" className="btn-primary px-3.5 py-2 text-sm">
               + Tarif
             </Link>
           ) : undefined
@@ -70,12 +70,12 @@ export default function Recipes({ onlyFavorites }: Props) {
             <p className="text-sm text-slate-500 mb-4">
               {onlyFavorites
                 ? 'Bir tarifi açıp yıldıza basınca burada görünür.'
-                : 'İnternette bulduğun bir tarifi yapıştır, TM7 adımlarına uyarlayayım.'}
+                : 'Hazır tarif kodunu yapıştır ya da tarifini elle yaz.'}
             </p>
             {!onlyFavorites && (
               <div className="flex gap-2 justify-center">
-                <Link to="/uyarla" className="btn-primary px-4 py-2 text-sm">
-                  Tarif uyarla
+                <Link to="/ekle" className="btn-primary px-4 py-2 text-sm">
+                  Tarif ekle
                 </Link>
                 <Link to="/yeni" className="btn-ghost px-4 py-2 text-sm">
                   Elle yaz
@@ -126,6 +126,13 @@ function RecipeRow({ r }: { r: TmRecipe }) {
 
   return (
     <div className="card p-3 flex items-center gap-3">
+      {r.photo ? (
+        <img src={r.photo} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+      ) : (
+        <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-[#2f3240] flex items-center justify-center text-xl flex-shrink-0">
+          🍲
+        </div>
+      )}
       <Link to={`/tarif/${r.id}`} className="flex-1 min-w-0">
         <div className="font-semibold text-slate-800 dark:text-[#e0e1e6] truncate">{r.title}</div>
         <div className="text-[12px] text-slate-500 truncate">{meta}</div>

@@ -58,19 +58,21 @@ Bu depodaki **üçüncü bağımsız program**: **Termomiks Defteri**. Kendi gir
 
 - **Termomiks Defteri** → `termomiks.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/termomiks.html`)
 
-**Ne yapar?** İnternette bulduğun **normal (ocak/tencere usulü) bir tarifi** programa yapıştırırsın; yapay zeka (Claude) onu **Thermomix TM7**'ye uyarlar: hangi adım kaç saniye, kaç devirde, kaç derecede, ne zaman ters yön, hangi özel mod (sote, hamur, Varoma, sous-vide…). Beğenirsen deftere kaydedersin, sonra mutfakta **adım adım pişirirsin**.
+**Ne yapar?** İnternette bulduğun **normal (ocak/tencere usulü) bir tarifi** Thermomix TM7'ye uyarlanmış haliyle deftere alırsın: hangi adım kaç saniye, kaç devirde, kaç derecede, ne zaman ters yön, hangi özel mod (sote, hamur, Varoma, sous-vide…). Sonra mutfakta **adım adım pişirirsin**.
+
+Uygulamanın içinde yapay zeka **yok**: API anahtarı, internet ya da abonelik gerekmez. Uyarlama başka bir yerde yapılır, sonuç bir **tarif kodu** (JSON) olarak verilir; sen kodu uygulamaya yapıştırırsın.
 
 | Özellik | Açıklama |
 |---|---|
-| ✨ **TM7'ye uyarlama** | Tarifi yapıştır ya da ekran görüntüsünü seç; cihaz diline (süre + devir + sıcaklık) çevrilsin |
-| 📥 **Hazır tarif kodu** | Uyarlama başka bir yerde yapıldıysa, tarif kodunu (JSON) yapıştır: API anahtarı ve internet gerekmeden deftere eklenir |
-| 📖 **Tarif defteri** | Uyarlanan tarifler kaydedilir; ara, kategoriye göre süz, favorile |
+| 📥 **Tarif kodu yapıştır** | Hazır TM7 kodunu yapıştır, tarif fotoğrafı ve uyarılarıyla deftere insin. Bir kodun içinde birden fazla tarif olabilir |
+| 📖 **Tarif defteri** | Ara, kategoriye göre süz, favorile; her tarifin küçük fotoğrafı listede görünür |
+| 📷 **Fotoğraf** | Tarif fotoğrafı kodun içinde gelebilir ya da telefonun galerisinden seçilir (cihazda saklanır) |
 | ▶︎ **Pişirme modu** | Adımlar tek tek büyük yazıyla; her adımda geri sayım, süre bitince sesli uyarı + titreşim, sonraki adıma otomatik geçiş, ekran açık kalır |
 | ✍️ **Elle tarif** | Kendi tarifini de adım adım (devir/sıcaklık/mod seçerek) yazabilirsin |
 | ⚠️ **Uyarılar** | Kap doluluğu, sıcak sıvıyı yüksek devirde çekme gibi durumlarda uyarı satırı |
-| 💾 **Yedekleme** | Tüm defteri tek dosyaya indir, telefon değişince geri yükle |
+| 💾 **Yedekleme** | Tüm defteri (fotoğraflar dahil) tek dosyaya indir, telefon değişince geri yükle |
 
-**Kurulum:** *Yapay zekayla* uyarlama için bir **Anthropic (Claude) API anahtarı** gerekir (anahtar istemeyen, tarifi başka bir yerde uyarlatıp **Uyarla → Hazır kodu yapıştır** sekmesinden ekleyebilir). Termomiks Defteri → **Ayarlar** bölümünden girilir; anahtar **yalnızca cihazda** saklanır, hiçbir sunucuya gönderilmez. Anahtar [console.anthropic.com](https://console.anthropic.com/settings/keys) üzerinden alınır. Defteri karıştırmak, tarif okumak ve pişirme modu **internetsiz** çalışır; yalnızca yeni tarif uyarlarken internet gerekir.
+**Kurulum:** Sadece APK'yı kur, hesap/anahtar yok. Uygulama tamamen **çevrimdışı** çalışır; hiçbir veri sunucuya gitmez.
 
 > Termomiks Defteri kendi yerel veritabanını (`termomiks-defter`) kullanır; CRM ve Diyet Koçu verilerine dokunmaz.
 

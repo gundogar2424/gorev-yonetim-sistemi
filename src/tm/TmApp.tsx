@@ -1,6 +1,6 @@
 import { NavLink, Route, Routes } from 'react-router-dom'
 import Recipes from './pages/Recipes'
-import Convert from './pages/Convert'
+import AddRecipe from './pages/AddRecipe'
 import RecipeDetail from './pages/RecipeDetail'
 import EditRecipe from './pages/EditRecipe'
 import Cook from './pages/Cook'
@@ -52,7 +52,7 @@ function NavIcon({ name, className }: { name: IconName; className?: string }) {
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Tarifler', icon: 'book', end: true },
-  { to: '/uyarla', label: 'Uyarla', icon: 'wand', end: false },
+  { to: '/ekle', label: 'Tarif Ekle', icon: 'wand', end: false },
   { to: '/favoriler', label: 'Favoriler', icon: 'star', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: 'settings', end: false }
 ]
@@ -64,7 +64,9 @@ export default function TmApp() {
         <Routes>
           <Route path="/" element={<Recipes />} />
           <Route path="/favoriler" element={<Recipes onlyFavorites />} />
-          <Route path="/uyarla" element={<Convert />} />
+          <Route path="/ekle" element={<AddRecipe />} />
+          {/* Eski adres: kisayol/yer imi kirilmasin */}
+          <Route path="/uyarla" element={<AddRecipe />} />
           <Route path="/tarif/:id" element={<RecipeDetail />} />
           <Route path="/duzenle/:id" element={<EditRecipe />} />
           <Route path="/yeni" element={<EditRecipe />} />

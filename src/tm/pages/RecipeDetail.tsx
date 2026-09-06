@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import TmHeader from '../TmHeader'
-import { deleteRecipe, getRecipe, toggleFavorite } from '../db'
+import { deleteRecipe, getRecipe, toggleFavorite, updateRecipe } from '../db'
 import { recipeToText, stepSummary } from '../lib/tm7'
+import { fotoOku, uzaktanFotoIndir } from '../lib/image'
 
 export default function RecipeDetail() {
   const { id } = useParams()
@@ -12,6 +13,9 @@ export default function RecipeDetail() {
   const r = useLiveQuery(() => getRecipe(rid), [rid], undefined)
   const [orijinalAcik, setOrijinalAcik] = useState(false)
   const [kopyalandi, setKopyalandi] = useState(false)
+  const [fotoHata, setFotoHata] = useState('')
+  const [indiriliyor, setIndiriliyor] = useState(false)
+  const fotoRef = useRef<HTMLInputElement>(null)
 
   if (!r) {
     return (
@@ -70,6 +74,59 @@ export default function RecipeDetail() {
       />
 
       <div className="px-4 py-3 space-y-3">
+        {/* Tarif fotografi: kodla gelmis olabilir ya da galeriden secilir */}
+        {r.photo && (
+          <img src={r.photo} alt={r.title} className="w-full h-52 object-cover rounded-2xl" />
+        )}
+        <input
+          ref={fotoRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0]
+            if (!f) return
+            setFotoHata('')
+            try {
+              await updateRecipe(rid, { photo: await fotoOku(f) })
+            } catch (err) {
+              setFotoHata((err as Error).message)
+            }
+          }}
+        />
+        <div className="flex gap-2">
+          <button onClick={() => fotoRef.current?.click()} className="btn-ghost flex-1 py-2 text-sm">
+            {r.photo ? '📷 Fotoğrafı değiştir' : '📷 Fotoğraf ekle'}
+          </button>
+          {r.photo && (
+            <button onClick={() => updateRecipe(rid, { photo: '' })} className="btn-ghost px-3 py-2 text-sm">
+              Kaldır
+            </button>
+          )}
+        </div>
+        {/* Fotograf uzaktaki bir adresten geliyorsa internetsiz gorunmez;
+            tek dokunusla indirilip cihazda saklanabilir. */}
+        {r.photo.startsWith('http') && (
+          <button
+            onClick={async () => {
+              setFotoHata('')
+              setIndiriliyor(true)
+              try {
+                await updateRecipe(rid, { photo: await uzaktanFotoIndir(r.photo) })
+              } catch (err) {
+                setFotoHata((err as Error).message)
+              } finally {
+                setIndiriliyor(false)
+              }
+            }}
+            disabled={indiriliyor}
+            className="btn-ghost w-full py-2 text-sm"
+          >
+            {indiriliyor ? 'İndiriliyor…' : '⬇️ Fotoğrafı indir (internetsiz de görünsün)'}
+          </button>
+        )}
+        {fotoHata && <div className="card p-3 text-sm text-rose-600">{fotoHata}</div>}
+
         <Link to={`/pisir/${rid}`} className="btn-primary w-full py-3">
           ▶︎ Pişirmeye başla
         </Link>
@@ -120,7 +177,7 @@ export default function RecipeDetail() {
 
         <div className="card p-3 text-[12px] text-slate-500 space-y-1">
           {r.source && <div>Kaynak: {r.source}</div>}
-          <div>{r.origin === 'ai' ? 'Yapay zeka ile TM7’ye uyarlandı' : 'Elle yazıldı'}</div>
+          <div>{r.origin === 'ai' ? 'Hazır tarif kodundan eklendi' : 'Elle yazıldı'}</div>
           {r.cookCount > 0 && (
             <div>
               {r.cookCount} kez pişirildi

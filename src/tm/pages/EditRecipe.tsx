@@ -71,10 +71,13 @@ export default function EditRecipe() {
         .filter(Boolean),
       steps: steps.filter((s) => s.text.trim()),
       notes: notes.trim(),
-      warnings: [] as string[]
+      warnings: [] as string[],
+      photo: '' // Fotograf tarif sayfasindan eklenir; burada dokunulmaz
     }
     if (rid) {
-      await updateRecipe(rid, { ...veri, source: source.trim() })
+      // Duzenlemede mevcut fotografa dokunma
+      const { photo: _foto, ...duzenlenen } = veri
+      await updateRecipe(rid, { ...duzenlenen, source: source.trim() })
       navigate(`/tarif/${rid}`)
     } else {
       const yeni = await addRecipe(veri, { source: source.trim(), origin: 'manual' })

@@ -21,8 +21,6 @@ export const tmDb = new TermomiksDB()
 
 const DEFAULT_SETTINGS: TmSettings = {
   id: 1,
-  apiKey: '',
-  model: 'claude-opus-5',
   autoAdvance: true,
   sound: true,
   keepAwake: true
@@ -49,7 +47,7 @@ export function getRecipe(id: number): Promise<TmRecipe | undefined> {
   return tmDb.recipes.get(id)
 }
 
-// Yapay zeka uyarlamasini (ya da elle girilen tarifi) deftere kaydeder.
+// Yapistirilan koddan gelen (ya da elle girilen) tarifi deftere kaydeder.
 export async function addRecipe(
   data: TmConversion,
   extra: { source?: string; originalText?: string; origin?: 'ai' | 'manual' } = {}
@@ -64,6 +62,7 @@ export async function addRecipe(
     steps: data.steps ?? [],
     notes: data.notes ?? '',
     warnings: data.warnings ?? [],
+    photo: data.photo ?? '',
     source: extra.source ?? '',
     originalText: extra.originalText ?? '',
     origin: extra.origin ?? 'ai',

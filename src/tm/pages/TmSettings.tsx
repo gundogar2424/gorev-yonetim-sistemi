@@ -1,27 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import TmHeader from '../TmHeader'
 import { readTmSettings, saveTmSettings, tmDb } from '../db'
-import { DEFAULT_MODEL, testApiKey } from '../ai'
 import { downloadBackup, restoreBackup } from '../lib/backup'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 
 export default function TmSettings() {
-  const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState(DEFAULT_MODEL)
   const [autoAdvance, setAutoAdvance] = useState(true)
   const [sound, setSound] = useState(true)
   const [keepAwake, setKeepAwake] = useState(true)
   const [tema, setTema] = useState<ThemePref>(getThemePref())
   const [durum, setDurum] = useState('')
   const [hata, setHata] = useState('')
-  const [test, setTest] = useState('')
   const [tarifSayisi, setTarifSayisi] = useState(0)
   const dosyaRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     void readTmSettings().then((s) => {
-      setApiKey(s.apiKey)
-      setModel(s.model || DEFAULT_MODEL)
       setAutoAdvance(s.autoAdvance)
       setSound(s.sound)
       setKeepAwake(s.keepAwake)
@@ -33,17 +27,6 @@ export default function TmSettings() {
     await saveTmSettings(patch)
     setDurum(mesaj)
     setTimeout(() => setDurum(''), 1800)
-  }
-
-  async function anahtariTestEt() {
-    setTest('')
-    setHata('')
-    try {
-      const cevap = await testApiKey(apiKey.trim(), model || DEFAULT_MODEL)
-      setTest(`Bağlantı kuruldu ✔ (${cevap})`)
-    } catch (e) {
-      setHata((e as Error).message)
-    }
   }
 
   async function geriYukle(file?: File) {
@@ -65,35 +48,6 @@ export default function TmSettings() {
       <div className="px-4 py-3 space-y-4">
         {durum && <div className="card p-3 text-sm text-emerald-600 bg-emerald-50 dark:bg-[#252733]">{durum}</div>}
         {hata && <div className="card p-3 text-sm text-rose-600 whitespace-pre-wrap bg-rose-50 dark:bg-[#252733]">{hata}</div>}
-
-        {/* API anahtari */}
-        <section className="card p-4 space-y-3">
-          <h3 className="section-title">Claude API anahtarı</h3>
-          <p className="text-[12px] text-slate-500">
-            Tarif uyarlaması bunu kullanır. Anahtar <b>yalnızca bu cihazda</b> saklanır, hiçbir sunucuya gönderilmez.
-            console.anthropic.com/settings/keys adresinden alınır.
-          </p>
-          <input
-            className="field-input"
-            type="password"
-            placeholder="sk-ant-…"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-          />
-          <div>
-            <label className="field-label">Model</label>
-            <input className="field-input" value={model} onChange={(e) => setModel(e.target.value)} placeholder={DEFAULT_MODEL} />
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => kaydet({ apiKey: apiKey.trim(), model: model.trim() || DEFAULT_MODEL })} className="btn-primary flex-1 py-2.5 text-sm">
-              Kaydet
-            </button>
-            <button onClick={anahtariTestEt} className="btn-ghost flex-1 py-2.5 text-sm">
-              Anahtarı test et
-            </button>
-          </div>
-          {test && <p className="text-[12px] text-emerald-600">{test}</p>}
-        </section>
 
         {/* Pisirme modu */}
         <section className="card p-4 space-y-3">
