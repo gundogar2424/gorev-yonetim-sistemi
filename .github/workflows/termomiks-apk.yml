@@ -1,0 +1,161 @@
+name: APK Derle (Termomiks Defteri)
+
+on:
+  workflow_dispatch: {}
+  push:
+    # Dal adi 'claude/**' olanlarda da derlenir: yeni ozellik main'e girmeden
+    # telefonda denenebilsin. Surum olarak yayinlama yalnizca main'de yapilir.
+    branches: [main, 'claude/**']
+    paths:
+      - 'src/tm/**'
+      - 'src/index.css'
+      - 'src/fonts/**'
+      - 'termomiks.html'
+      - 'assets-termomiks/**'
+      - 'capacitor.config.ts'
+      - 'tailwind.config.js'
+      - 'postcss.config.js'
+      - 'vite.config.ts'
+      - 'tsconfig*.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/termomiks-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node kurulumu
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - name: Web derlemesi
+        run: npm run build
+        env:
+          APP_BUILD: ${{ github.run_number }}
+
+      - name: Termomiks uygulamasını APK girişi yap
+        run: cp dist/termomiks.html dist/index.html
+
+      - name: Termomiks Capacitor ayarı (ayrı uygulama kimliği/adı)
+        run: |
+          # Diyet Kocu ve CRM'den AYRI kimlik/ad: telefonda ucu de yan yana durur,
+          # biri digerinin uzerine yazmaz. Bu dosya yalnizca CI kopyasinda degisir.
+          cat > capacitor.config.ts <<'CFG'
+          import type { CapacitorConfig } from '@capacitor/cli'
+
+          const config: CapacitorConfig = {
+            appId: 'com.termomiks.defter',
+            appName: 'Termomiks Defteri',
+            webDir: 'dist'
+          }
+
+          export default config
+          CFG
+          echo "--- capacitor.config.ts ---"; cat capacitor.config.ts
+
+      - name: Java (JDK 21)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Kullanılmayan ağır eklentileri çıkar (APK küçülsün)
+        run: |
+          # Web derlemesi yukarida bitti. Termomiks Defteri yalnizca @capacitor/core
+          # ve @capacitor/status-bar kullanir; digerlerini APK'ya koymaya gerek yok.
+          # Once package.json'dan dusur (Capacitor eklenti listesini buradan okur),
+          # sonra klasorleri sil. Bu yalnizca CI kopyasinda olur; depo degismez.
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor/local-notifications','@capacitor-community/contacts','@capacitor/geolocation','@capacitor/camera','@capacitor/filesystem','@capacitor/share']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          rm -rf node_modules/@capacitor-mlkit/barcode-scanning
+          rm -rf node_modules/@flomentumsolutions/capacitor-health-extended
+          rm -rf node_modules/@capacitor/local-notifications
+          rm -rf node_modules/@capacitor-community/contacts
+          rm -rf node_modules/@capacitor/geolocation
+          rm -rf node_modules/@capacitor/camera
+          rm -rf node_modules/@capacitor/filesystem
+          rm -rf node_modules/@capacitor/share
+          echo "Eklentiler cikarildi."
+
+      - name: Android projesini oluştur (Capacitor)
+        run: npx cap add android
+
+      - name: Web varlıklarını senkronla
+        run: npx cap sync android
+
+      - name: Uygulama simgesi (Termomiks'e özel amblem)
+        run: |
+          # Kaynak: assets-termomiks/ (CRM ve Diyet Kocu'nun ortak assets/ klasoru
+          # DEGISMEZ; onlarin simgesi eskisi gibi kalir).
+          npx @capacitor/assets generate --assetPath assets-termomiks --android --iconBackgroundColor '#1f2430' --iconBackgroundColorDark '#1f2430'
+          echo "--- uretilen mipmap dosyalari ---"; ls -1 android/app/src/main/res/mipmap-xxxhdpi/ || true
+
+      - name: SDK sürümleri
+        run: |
+          v=android/variables.gradle
+          sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
+          sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
+          sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 24/" "$v"
+          echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" "$v"
+
+      - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
+        run: |
+          cd android/app
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" build.gradle
+          sed -i -E "s/versionName \"[^\"]+\"/versionName \"1.0.${{ github.run_number }}\"/" build.gradle
+          grep -E "versionCode|versionName" build.gradle
+
+      - name: Sabit debug imza anahtarı (güncellemeler üstüne kurulabilsin)
+        run: |
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
+
+      - name: APK derle (debug, sabit imza)
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon -I ../signing.gradle
+
+      - name: APK'yı yeniden adlandır
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk termomiks-defteri.apk
+
+      - name: APK'yı ziple (Chrome APK indirme takılmasını atlatmak için)
+        run: zip -j termomiks-defteri-apk.zip termomiks-defteri.apk
+
+      - name: APK'yı artifact olarak yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: termomiks-defteri-apk
+          path: termomiks-defteri.apk
+
+      - name: Sürüm olarak yayınla (indirilebilir bağlantı)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: termomiks-latest
+          name: Termomiks Defteri APK
+          body: |
+            İnternette bulduğun tarifi yapıştır, Thermomix TM7 adımlarına uyarlansın;
+            defterine kaydet, adım adım pişir.
+
+            İndir, telefonda aç, "bilinmeyen kaynaklara izin ver" diyip kur.
+
+            Chrome APK indirmede %100'de takılıyorsa termomiks-defteri-apk.zip'i indir,
+            Dosyalarım'da çıkart, içindeki .apk'yı kur.
+          files: |
+            termomiks-defteri.apk
+            termomiks-defteri-apk.zip
+          make_latest: false

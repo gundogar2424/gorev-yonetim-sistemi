@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="224" fill="#1f2430"/>
+  
+  <!-- taban govdesi (kumanda birimi) -->
+  <path d="M212 624 h600 a64 64 0 0 1 64 64 v122 a64 64 0 0 1 -64 64 h-600 a64 64 0 0 1 -64 -64 v-122 a64 64 0 0 1 64 -64 z" fill="#ffffff"/>
+  <!-- kadran -->
+  <circle cx="742" cy="749" r="54" fill="#1f2430"/>
+  <path d="M742 715 v34" stroke="#ffffff" stroke-width="19" stroke-linecap="round"/>
+  <!-- ekran satirlari -->
+  <rect x="228" y="702" width="272" height="28" rx="14" fill="#1f2430" opacity="0.3"/>
+  <rect x="228" y="766" width="180" height="28" rx="14" fill="#1f2430" opacity="0.3"/>
+  <!-- kap -->
+  <path d="M356 262 h312 l-38 362 h-236 z" fill="#ffffff"/>
+  <!-- kapak -->
+  <rect x="326" y="196" width="372" height="58" rx="29" fill="#ffffff"/>
+  <!-- kulp -->
+  <path d="M686 320 c82 20 82 136 0 156" fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round"/>
+  <!-- kaptaki karisim -->
+  <path d="M408 436 q52 -46 104 0 q52 46 104 0" fill="none" stroke="#4d9bff" stroke-width="34" stroke-linecap="round"/>
+
+</svg>
