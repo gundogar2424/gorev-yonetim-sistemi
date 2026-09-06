@@ -381,10 +381,12 @@ class ReaderService : Service() {
     /** Cumleden sonra verilecek sessizlik (milisaniye). */
     private fun pauseAfter(index: Int): Long {
         val sentence = sentences.getOrNull(index) ?: return SHORT_PAUSE
+        val last = sentence.lastOrNull() ?: ' '
         return when {
             (index + 1) in pageBreaks -> PAGE_PAUSE
-            sentence.endsWith(":") -> HEADING_PAUSE
-            sentence.length < 60 && sentence.lastOrNull() !in ".!?…" -> HEADING_PAUSE
+            last == ':' -> HEADING_PAUSE
+            // Noktalama ile bitmeyen kisa satir genellikle bir basliktir.
+            sentence.length < 60 && last !in ".!?…" -> HEADING_PAUSE
             else -> SHORT_PAUSE
         }
     }
