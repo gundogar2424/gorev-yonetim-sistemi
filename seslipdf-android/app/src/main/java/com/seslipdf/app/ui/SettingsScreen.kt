@@ -60,7 +60,7 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     loading = vm.voicesLoading,
                     selected = vm.voice,
                     language = vm.language,
-                    onPick = { vm.setVoice(it) }
+                    onPick = { vm.updateVoice(it) }
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -92,26 +92,26 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     value = vm.rate,
                     range = Prefs.MIN_RATE..Prefs.MAX_RATE,
                     format = { "%.1f×".format(it) },
-                    onChange = { vm.setRate(it) }
+                    onChange = { vm.updateRate(it) }
                 )
                 SliderRow(
                     label = "Ses tonu",
                     value = vm.pitch,
                     range = Prefs.MIN_PITCH..Prefs.MAX_PITCH,
                     format = { "%.1f".format(it) },
-                    onChange = { vm.setPitch(it) }
+                    onChange = { vm.updatePitch(it) }
                 )
                 SwitchRow(
                     title = "Okunan cümleyi takip et",
                     description = "Liste kendiliğinden kayar, okunan cümle ekranda kalır.",
                     checked = vm.autoScroll,
-                    onChange = { vm.setAutoScroll(it) }
+                    onChange = { vm.updateAutoScroll(it) }
                 )
                 SwitchRow(
                     title = "Okurken ekran açık kalsın",
                     description = "Kapalıyken de okuma sürer; bu seçenek yalnızca ekranı açık tutar.",
                     checked = vm.keepAwake,
-                    onChange = { vm.setKeepAwake(it) }
+                    onChange = { vm.updateKeepAwake(it) }
                 )
             }
         }
@@ -124,13 +124,13 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     description = "Metin katmanı olmayan (fotoğraf/tarama) sayfalar " +
                         "görüntüden okunur. Daha yavaştır ama taranmış kitapları da açar.",
                     checked = vm.ocrFallback,
-                    onChange = { vm.setOcrFallback(it) }
+                    onChange = { vm.updateOcrFallback(it) }
                 )
                 SwitchRow(
                     title = "Sayfa başlık ve numaralarını atla",
                     description = "Her sayfada tekrar eden kitap adı ve sayfa numarası okunmaz.",
                     checked = vm.stripHeads,
-                    onChange = { vm.setStripHeads(it) }
+                    onChange = { vm.updateStripHeads(it) }
                 )
                 Text(
                     "Bu ayarlar yeni eklenen belgeler için geçerlidir. Eklenmiş bir " +

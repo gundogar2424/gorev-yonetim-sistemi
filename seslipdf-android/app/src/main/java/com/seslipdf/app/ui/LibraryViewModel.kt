@@ -149,19 +149,19 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
 
     // -------------------------------------------------------------- ayarlar
 
-    fun setRate(value: Float) {
+    fun updateRate(value: Float) {
         rate = value
         prefs.rate = value
         ReaderService.refreshVoice(getApplication())
     }
 
-    fun setPitch(value: Float) {
+    fun updatePitch(value: Float) {
         pitch = value
         prefs.pitch = value
         ReaderService.refreshVoice(getApplication())
     }
 
-    fun setVoice(info: VoiceInfo?) {
+    fun updateVoice(info: VoiceInfo?) {
         voice = info?.name.orEmpty()
         prefs.voice = voice
         if (info != null) {
@@ -171,7 +171,7 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         ReaderService.refreshVoice(getApplication())
     }
 
-    fun setLanguage(tag: String) {
+    fun updateLanguage(tag: String) {
         language = tag
         prefs.language = tag
         // Dil degisince eski ses gecersiz olur; sistem varsayilanina donulur.
@@ -180,27 +180,27 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         ReaderService.refreshVoice(getApplication())
     }
 
-    fun setOcrFallback(value: Boolean) {
+    fun updateOcrFallback(value: Boolean) {
         ocrFallback = value
         prefs.ocrFallback = value
     }
 
-    fun setStripHeads(value: Boolean) {
+    fun updateStripHeads(value: Boolean) {
         stripHeads = value
         prefs.stripRunningHeads = value
     }
 
-    fun setKeepAwake(value: Boolean) {
+    fun updateKeepAwake(value: Boolean) {
         keepAwake = value
         prefs.keepAwake = value
     }
 
-    fun setAutoScroll(value: Boolean) {
+    fun updateAutoScroll(value: Boolean) {
         autoScroll = value
         prefs.autoScroll = value
     }
 
-    fun setSleepMinutes(value: Int) {
+    fun updateSleepMinutes(value: Int) {
         sleepMinutes = value
         prefs.sleepMinutes = value
     }

@@ -182,7 +182,7 @@ fun ReaderScreen(
 
         SpeedRow(
             rate = vm.rate,
-            onRate = { vm.setRate(it) }
+            onRate = { vm.updateRate(it) }
         )
         Spacer(Modifier.height(10.dp))
     }
@@ -191,7 +191,7 @@ fun ReaderScreen(
         SleepDialog(
             current = status.sleepAt,
             onPick = { minutes ->
-                vm.setSleepMinutes(minutes)
+                vm.updateSleepMinutes(minutes)
                 ReaderService.sleepTimer(context, minutes)
                 showSleep = false
             },
