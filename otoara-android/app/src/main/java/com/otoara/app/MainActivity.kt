@@ -104,6 +104,7 @@ class MainActivity : ComponentActivity() {
                                     onRequestPerms = { askPermissions.launch(PermState.requestList()) },
                                     onBatteryExempt = { requestBatteryExemption() },
                                     onOverlaySettings = { openOverlaySettings() },
+                                    onSpeakerService = { openAccessibilitySettings() },
                                     onPickContact = { openContactPicker() },
                                     onStart = {
                                         vm.rememberTarget()
@@ -176,6 +177,15 @@ class MainActivity : ComponentActivity() {
      * tekrarsiz gosterir; bunun icin "Kişiler" izni gerekir. Izin verilmezse
      * sistemin kendi (numara listeleyen) ekranina dusulur.
      */
+    /** Hoparlor otomatigi icin erisilebilirlik ayarlarini acar. */
+    private fun openAccessibilitySettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (e: Exception) {
+            // Bazi cihazlarda bu ekran yok; sessizce gec.
+        }
+    }
+
     private fun openContactPicker() {
         if (Phone.has(this, Manifest.permission.READ_CONTACTS)) {
             vm.openContacts()

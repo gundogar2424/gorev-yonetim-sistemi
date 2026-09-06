@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Oto Ara</string>
+    <string name="speaker_service_summary">Arama ekranındaki hoparlör düğmesine sizin yerinize basar</string>
+    <string name="speaker_service_desc">Bazı telefonlarda (özellikle Samsung) çağrının sesini hoparlöre vermek yalnızca arama ekranındaki düğmeyle mümkündür. Bu izin verilirse Oto Ara, kendi tekrar arama döngüsü çalışırken ve \"Hoparlörü aç\" seçeneği işaretliyken o düğmeye sizin yerinize basar. Yalnızca telefon uygulamasının ekranı görülür; başka hiçbir içerik okunmaz, kaydedilmez veya gönderilmez.</string>
 </resources>

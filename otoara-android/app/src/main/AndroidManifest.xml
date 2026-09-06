@@ -85,6 +85,21 @@
             </intent-filter>
         </receiver>
 
+        <!-- Hoparloru arama ekranindaki dugmeye basarak acan hizmet.
+             Kullanici Ayarlar > Erisilebilirlik'ten acmadikca hicbir sey yapmaz. -->
+        <service
+            android:name=".call.SpeakerService"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/speaker_service" />
+        </service>
+
         <!-- Bildirimdeki "Durdur" dugmesi -->
         <receiver
             android:name=".call.StopReceiver"

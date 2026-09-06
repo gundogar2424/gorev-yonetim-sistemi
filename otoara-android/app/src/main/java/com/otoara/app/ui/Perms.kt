@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import com.otoara.app.call.Phone
+import com.otoara.app.call.SpeakerService
 
 /** Uygulamanin ihtiyac duydugu izinlerin o anki durumu. */
 data class PermState(
@@ -15,7 +16,9 @@ data class PermState(
     val callLog: Boolean = false,
     val notifications: Boolean = false,
     val batteryFree: Boolean = false,
-    val overlay: Boolean = false
+    val overlay: Boolean = false,
+    /** Hoparloru arama ekranindan acan erisilebilirlik hizmeti acik mi. */
+    val speakerService: Boolean = false
 ) {
     /** Bunlar olmadan uygulama hic calismaz. */
     val ready: Boolean get() = call && phoneState
@@ -30,7 +33,8 @@ data class PermState(
                 Phone.has(context, Manifest.permission.POST_NOTIFICATIONS),
             batteryFree = context.getSystemService(PowerManager::class.java)
                 ?.isIgnoringBatteryOptimizations(context.packageName) ?: false,
-            overlay = Settings.canDrawOverlays(context)
+            overlay = Settings.canDrawOverlays(context),
+            speakerService = SpeakerService.isEnabled(context)
         )
 
         /** Tek seferde istenecek izinler. */

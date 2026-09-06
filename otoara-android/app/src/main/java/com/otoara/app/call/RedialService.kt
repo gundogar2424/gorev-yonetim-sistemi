@@ -271,7 +271,8 @@ class RedialService : Service() {
             // gorulemiyor; hoparlor durumu bildirimde yazar.
             val speakerNote = when {
                 !cfg.speaker -> ""
-                Speaker.isOn(this) -> "  ·  🔊 hoparlör açık"
+                RedialState.status.value.speakerOn == true || Speaker.isOn(this) ->
+                    "  ·  🔊 hoparlör açık"
                 else -> "  ·  hoparlör açılamadı"
             }
             updateNotification(

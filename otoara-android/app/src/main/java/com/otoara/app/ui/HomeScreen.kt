@@ -62,6 +62,7 @@ fun HomeScreen(
     onRequestPerms: () -> Unit,
     onBatteryExempt: () -> Unit,
     onOverlaySettings: () -> Unit,
+    onSpeakerService: () -> Unit,
     onPickContact: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
@@ -292,6 +293,32 @@ fun HomeScreen(
                 enabled = !status.running,
                 onChange = vm::updateSpeaker
             )
+
+            if (vm.speaker && !perms.speakerService) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Samsung ve benzeri telefonlarda hoparlörü ancak arama " +
+                                "ekranındaki düğme açar. Uygulamanın bu düğmeye sizin " +
+                                "yerinize basabilmesi için Erişilebilirlik izni gerekir.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(onClick = onSpeakerService) { Text("Ayarla") }
+                }
+            } else if (vm.speaker && perms.speakerService) {
+                Text(
+                    "Hoparlör otomatiği açık: arama ekranındaki düğmeye sizin " +
+                        "yerinize basılacak.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
 
         // ------------------------------------------------------- pil uyarisi

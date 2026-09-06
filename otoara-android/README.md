@@ -130,7 +130,17 @@ Tüm veriler telefonda kalır (Room/SQLite). Sunucu yoktur, internet gerekmez.
 - **Aralık** en az 5 saniye, **tekrar sayısı** en çok 500'dür.
 - Android, uygulamalara "karşı taraf açtı mı?" bilgisini canlı olarak vermez;
   bu yüzden cevaplanma çağrı bittikten sonra arama kaydından anlaşılır.
-- **Hoparlör**: gerçek bir telefon çağrısının ses yolunu değiştirmek aslında
+- **Hoparlör (Samsung ve benzerleri)**: bazı üreticilerde çağrının ses yolu
+  tamamen varsayılan telefon uygulamasının kontrolündedir ve dışarıdan yapılan
+  çağrılar yok sayılır. Bunun için isteğe bağlı bir **erişilebilirlik hizmeti**
+  vardır: izin verilirse uygulama, arama ekranındaki hoparlör düğmesine sizin
+  yerinize basar. Hizmet yalnızca telefon/arama uygulamalarından olay alacak
+  şekilde sınırlandırılmıştır (`res/xml/speaker_service.xml` → `packageNames`),
+  yalnızca kendi tekrar arama döngüsü çalışırken ve "Hoparlörü aç" işaretliyken
+  iş yapar, her çağrı için en fazla bir kez basar ve hoparlör zaten açıksa
+  dokunmaz. Hiçbir ekran içeriği kaydedilmez veya gönderilmez. İzin verilmezse
+  uygulama hiçbir şey yapmaz.
+- **Hoparlör (genel)**: gerçek bir telefon çağrısının ses yolunu değiştirmek aslında
   varsayılan telefon uygulamasının işidir. Uygulama iki yolu birden dener
   (Android 12+ için `setCommunicationDevice`, ayrıca eski `isSpeakerphoneOn`)
   ve çağrı bağlandığında telefonun kendi arama uygulaması ayarı geri
