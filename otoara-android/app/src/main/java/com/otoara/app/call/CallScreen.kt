@@ -18,7 +18,11 @@ object CallScreen {
     @Volatile var answeredAt: Long = 0L
         private set
 
-    @Volatile private var lastTimer: String? = null
+    /** En son gorulen sayac degeri (saniye). */
+    @Volatile private var lastSeconds: Int? = null
+
+    /** Pes pese kac kez birer saniye artti. */
+    @Volatile private var increments = 0
 
     // ------------------------------------------------------------ tanilama
 
@@ -51,7 +55,8 @@ object CallScreen {
     /** Her yeni arama denemesinden once temizlenir. */
     fun reset() {
         answeredAt = 0L
-        lastTimer = null
+        lastSeconds = null
+        increments = 0
         events = 0
         speakerFound = false
         speakerClicked = false
@@ -71,15 +76,61 @@ object CallScreen {
     }
 
     /**
-     * Ekranda gorulen sayac metnini bildirir. Ayni deger tekrar gelirse bir sey
-     * olmaz; **degisirse** sayac ilerliyor demektir, yani cagri cevaplanmistir.
+     * Ekranda gorulen "dd:dd" metnini bildirir.
+     *
+     * Her `dd:dd` metni gorusme sayaci degildir — arama ekraninda saat gibi
+     * baska metinler de bu bicimde olabiliyor ve bunlari sayac sanmak yanlis
+     * "cevaplandi" sonucuna yol aciyordu. Bu yuzden sayac sayilmasi icin:
+     *
+     *  1. **sifira yakin** bir degerden baslamali (gorusme 00:00'dan sayar),
+     *  2. **saniye saniye artmali**,
+     *  3. bu artis pes pese en az [NEEDED_INCREMENTS] kez gorulmeli.
      */
     fun reportTimer(text: String) {
-        val previous = lastTimer
-        lastTimer = text
+        val seconds = parseSeconds(text) ?: return
         timerText = text
-        if (previous != null && previous != text && answeredAt == 0L) {
-            answeredAt = SystemClock.elapsedRealtime()
+
+        val previous = lastSeconds
+        if (previous == null) {
+            // Ilk deger: sayac ancak bastan yakalanirsa guvenilir.
+            if (seconds <= FIRST_MAX_SECONDS) {
+                lastSeconds = seconds
+                increments = 0
+            }
+            return
+        }
+
+        when (seconds - previous) {
+            0 -> return // ayni saniye, yeni bilgi yok
+            in 1..3 -> {
+                lastSeconds = seconds
+                increments++
+                if (increments >= NEEDED_INCREMENTS && answeredAt == 0L) {
+                    answeredAt = SystemClock.elapsedRealtime()
+                }
+            }
+            else -> {
+                // Sicrama: bu metin gorusme sayaci degil. Bastan basla.
+                lastSeconds = if (seconds <= FIRST_MAX_SECONDS) seconds else null
+                increments = 0
+            }
         }
     }
+
+    /** "0:07" / "00:07" / "1:02:03" -> saniye. Uymayan metin icin null. */
+    fun parseSeconds(text: String): Int? {
+        val parts = text.split(':')
+        if (parts.size !in 2..3) return null
+        val numbers = parts.map { it.toIntOrNull() ?: return null }
+        return when (numbers.size) {
+            2 -> numbers[0] * 60 + numbers[1]
+            else -> numbers[0] * 3600 + numbers[1] * 60 + numbers[2]
+        }
+    }
+
+    /** Sayacin yakalandigi kabul edilecek en buyuk baslangic degeri. */
+    private const val FIRST_MAX_SECONDS = 15
+
+    /** "Cevaplandi" demek icin gereken pes pese artis sayisi. */
+    private const val NEEDED_INCREMENTS = 3
 }

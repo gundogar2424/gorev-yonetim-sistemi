@@ -51,7 +51,12 @@ class SpeakerService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
 
         // 1) Cevaplandi mi? (gorusme sayaci ilerliyor mu)
-        findTimer(root, 0)?.let { CallScreen.reportTimer(it) }
+        // Ekranda birden fazla "dd:dd" metni olabilir (or. saat). Gorusme
+        // sayaci bunlarin en kucugudur, cunku sifirdan saymaya baslar.
+        val timers = mutableListOf<String>()
+        collectTimers(root, 0, timers)
+        timers.minByOrNull { CallScreen.parseSeconds(it) ?: Int.MAX_VALUE }
+            ?.let { CallScreen.reportTimer(it) }
 
         // 2) Hoparlor
         if (!Prefs(this).speaker) return
@@ -72,11 +77,12 @@ class SpeakerService : AccessibilityService() {
             return
         }
 
-        // "Zaten acik mi" karari EKRANDAKI dugmenin durumundan verilir.
-        // AudioManager'in isSpeakerphoneOn degeri bazi cihazlarda yaniltiyor
-        // (bayat "acik" degeri donduren cihazlarda dugmeye hic basilmiyordu).
-        val alreadyOn = target.isChecked || target.isSelected
-        if (alreadyOn) {
+        // Hedef: sesin GERCEKTEN hoparlorden cikmasi.
+        //
+        // Karar ekrandaki dugmenin "isaretli" gorunusune bakilarak verilemiyor:
+        // Samsung ilk cagridan sonra dugmeyi isaretli birakip sesi ahizeye geri
+        // aliyor; bu yuzden ikinci ve sonraki aramalarda hoparlor acilmiyordu.
+        if (Speaker.isOn(this)) {
             CallScreen.noteSpeaker(found = true, alreadyOn = true, clicked = false)
             RedialState.update { it.copy(speakerOn = true) }
             return
@@ -87,7 +93,8 @@ class SpeakerService : AccessibilityService() {
         if (clicked) {
             lastClickAt = now
             clicksThisTry++
-            RedialState.update { it.copy(speakerOn = true) }
+            // Gercekten acildi mi, bir sonraki olayda tekrar bakilacak.
+            RedialState.update { it.copy(speakerOn = Speaker.isOn(this@SpeakerService)) }
         }
     }
 
@@ -95,18 +102,21 @@ class SpeakerService : AccessibilityService() {
 
     // ------------------------------------------------------------ arama
 
-    /** Ekranda "0:12" / "00:12" / "1:02:03" bicimindeki sayaci arar. */
-    private fun findTimer(node: AccessibilityNodeInfo?, depth: Int): String? {
-        if (node == null || depth > MAX_DEPTH) return null
+    /** Ekrandaki tum "0:12" / "00:12" / "1:02:03" bicimli metinleri toplar. */
+    private fun collectTimers(
+        node: AccessibilityNodeInfo?,
+        depth: Int,
+        out: MutableList<String>
+    ) {
+        if (node == null || depth > MAX_DEPTH || out.size > 8) return
 
         node.text?.toString()?.trim()?.let { text ->
-            if (TIMER.matches(text)) return text
+            if (TIMER.matches(text)) out += text
         }
 
         for (i in 0 until node.childCount) {
-            findTimer(node.getChild(i), depth + 1)?.let { return it }
+            collectTimers(node.getChild(i), depth + 1, out)
         }
-        return null
     }
 
     /** Ekranda hoparlor dugmesini arar. */
