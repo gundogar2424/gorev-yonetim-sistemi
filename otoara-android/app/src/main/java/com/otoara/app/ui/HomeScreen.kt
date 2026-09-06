@@ -117,7 +117,7 @@ fun HomeScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = vm.number,
-                    onValueChange = { vm.setNumber(it, "") },
+                    onValueChange = { vm.updateNumber(it, "") },
                     singleLine = true,
                     enabled = !status.running,
                     placeholder = { Text("05xx xxx xx xx") },
@@ -154,11 +154,11 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(top = 6.dp)
-                    .clickable(enabled = !status.running) { vm.setExtensionOn(!vm.extensionOn) }
+                    .clickable(enabled = !status.running) { vm.updateExtensionOn(!vm.extensionOn) }
             ) {
                 Checkbox(
                     checked = vm.extensionOn,
-                    onCheckedChange = { vm.setExtensionOn(it) },
+                    onCheckedChange = { vm.updateExtensionOn(it) },
                     enabled = !status.running
                 )
                 Text("Dahili Numara Ekle", style = MaterialTheme.typography.titleSmall)
@@ -167,7 +167,7 @@ fun HomeScreen(
             if (vm.extensionOn) {
                 OutlinedTextField(
                     value = vm.extension,
-                    onValueChange = { vm.setExtension(it) },
+                    onValueChange = { vm.updateExtension(it) },
                     singleLine = true,
                     enabled = !status.running,
                     label = { Text("Dahili") },
@@ -190,7 +190,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { vm.setNumber(t.number, t.label) }
+                            .clickable { vm.updateNumber(t.number, t.label) }
                             .padding(vertical = 8.dp)
                     ) {
                         Icon(
@@ -216,22 +216,22 @@ fun HomeScreen(
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 NumberField(
-                    "Aralık (sn)", vm.interval, vm::setInterval,
+                    "Aralık (sn)", vm.interval, vm::updateInterval,
                     Modifier.weight(1f), enabled = !status.running
                 )
                 NumberField(
-                    "Tekrar Sayısı", vm.repeats, vm::setRepeats,
+                    "Tekrar Sayısı", vm.repeats, vm::updateRepeats,
                     Modifier.weight(1f), enabled = !status.running
                 )
             }
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 NumberField(
-                    "Süre (dk)", vm.ringMin, vm::setRingMin,
+                    "Süre (dk)", vm.ringMin, vm::updateRingMin,
                     Modifier.weight(1f), enabled = !status.running
                 )
                 NumberField(
-                    "Süre (sn)", vm.ringSec, vm::setRingSec,
+                    "Süre (sn)", vm.ringSec, vm::updateRingSec,
                     Modifier.weight(1f), enabled = !status.running
                 )
             }
@@ -256,7 +256,7 @@ fun HomeScreen(
                 },
                 checked = vm.stopWhenAnswered,
                 enabled = !status.running,
-                onChange = vm::setStopWhenAnswered
+                onChange = vm::updateStopWhenAnswered
             )
             SwitchRow(
                 title = "Süre dolunca kapat",
@@ -267,7 +267,7 @@ fun HomeScreen(
                 },
                 checked = vm.hangUpOnTimeout,
                 enabled = !status.running,
-                onChange = vm::setHangUpOnTimeout
+                onChange = vm::updateHangUpOnTimeout
             )
         }
 

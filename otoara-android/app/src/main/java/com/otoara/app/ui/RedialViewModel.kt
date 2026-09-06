@@ -52,20 +52,20 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
     val targets = db.targetDao().recent()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun setNumber(v: String, name: String = label) {
+    fun updateNumber(v: String, name: String = label) {
         number = v.take(24)
         label = name
         prefs.number = number
     }
 
-    fun setExtensionOn(v: Boolean) { extensionOn = v; prefs.extensionOn = v }
-    fun setExtension(v: String) { extension = v.take(12); prefs.extension = extension }
-    fun setInterval(v: String) { interval = digits(v, 4); persist() }
-    fun setRepeats(v: String) { repeats = digits(v, 3); persist() }
-    fun setRingMin(v: String) { ringMin = digits(v, 2); persist() }
-    fun setRingSec(v: String) { ringSec = digits(v, 2); persist() }
-    fun setStopWhenAnswered(v: Boolean) { stopWhenAnswered = v; prefs.stopWhenAnswered = v }
-    fun setHangUpOnTimeout(v: Boolean) { hangUpOnTimeout = v; prefs.hangUpOnTimeout = v }
+    fun updateExtensionOn(v: Boolean) { extensionOn = v; prefs.extensionOn = v }
+    fun updateExtension(v: String) { extension = v.take(12); prefs.extension = extension }
+    fun updateInterval(v: String) { interval = digits(v, 4); persist() }
+    fun updateRepeats(v: String) { repeats = digits(v, 3); persist() }
+    fun updateRingMin(v: String) { ringMin = digits(v, 2); persist() }
+    fun updateRingSec(v: String) { ringSec = digits(v, 2); persist() }
+    fun updateStopWhenAnswered(v: Boolean) { stopWhenAnswered = v; prefs.stopWhenAnswered = v }
+    fun updateHangUpOnTimeout(v: Boolean) { hangUpOnTimeout = v; prefs.hangUpOnTimeout = v }
 
     private fun digits(v: String, max: Int) = v.filter { it.isDigit() }.take(max)
 

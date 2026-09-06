@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
                 if (c.moveToFirst()) {
                     val raw = c.getString(0) ?: return
                     val name = c.getString(1).orEmpty()
-                    vm.setNumber(raw.filter { it.isDigit() || it == '+' }, name)
+                    vm.updateNumber(raw.filter { it.isDigit() || it == '+' }, name)
                 }
             }
         } catch (e: Exception) {
