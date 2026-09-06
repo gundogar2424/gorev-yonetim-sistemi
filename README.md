@@ -52,6 +52,27 @@ Kullanıcı sonra **"💪 Vazgeçtim"** veya **"😋 Yine de yedim"** kararını
 
 > Diyet Koçu kendi yerel veritabanını (`diet-coach`) kullanır; CRM verilerine dokunmaz.
 
+## 🍲 Termomiks Defteri (ayrı program)
+
+Bu depodaki **üçüncü bağımsız program**: **Termomiks Defteri**. Kendi giriş sayfası (`termomiks.html`) ve kendi veritabanı vardır; CRM'in ve Diyet Koçu'nun hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **Termomiks Defteri** → `termomiks.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/termomiks.html`)
+
+**Ne yapar?** İnternette bulduğun **normal (ocak/tencere usulü) bir tarifi** programa yapıştırırsın; yapay zeka (Claude) onu **Thermomix TM7**'ye uyarlar: hangi adım kaç saniye, kaç devirde, kaç derecede, ne zaman ters yön, hangi özel mod (sote, hamur, Varoma, sous-vide…). Beğenirsen deftere kaydedersin, sonra mutfakta **adım adım pişirirsin**.
+
+| Özellik | Açıklama |
+|---|---|
+| ✨ **TM7'ye uyarlama** | Tarifi yapıştır ya da ekran görüntüsünü seç; cihaz diline (süre + devir + sıcaklık) çevrilsin |
+| 📖 **Tarif defteri** | Uyarlanan tarifler kaydedilir; ara, kategoriye göre süz, favorile |
+| ▶︎ **Pişirme modu** | Adımlar tek tek büyük yazıyla; her adımda geri sayım, süre bitince sesli uyarı + titreşim, sonraki adıma otomatik geçiş, ekran açık kalır |
+| ✍️ **Elle tarif** | Kendi tarifini de adım adım (devir/sıcaklık/mod seçerek) yazabilirsin |
+| ⚠️ **Uyarılar** | Kap doluluğu, sıcak sıvıyı yüksek devirde çekme gibi durumlarda uyarı satırı |
+| 💾 **Yedekleme** | Tüm defteri tek dosyaya indir, telefon değişince geri yükle |
+
+**Kurulum:** Uyarlama için bir **Anthropic (Claude) API anahtarı** gerekir. Termomiks Defteri → **Ayarlar** bölümünden girilir; anahtar **yalnızca cihazda** saklanır, hiçbir sunucuya gönderilmez. Anahtar [console.anthropic.com](https://console.anthropic.com/settings/keys) üzerinden alınır. Defteri karıştırmak, tarif okumak ve pişirme modu **internetsiz** çalışır; yalnızca yeni tarif uyarlarken internet gerekir.
+
+> Termomiks Defteri kendi yerel veritabanını (`termomiks-defter`) kullanır; CRM ve Diyet Koçu verilerine dokunmaz.
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz
