@@ -24,9 +24,11 @@ import java.util.Locale
  *     kesmez ve tekrar aramayi durdurur.
  *
  * Sinirlar (bilerek dar tutuldu):
- *  - Hicbir sey yapmaz — ta ki uygulamanin **kendi tekrar arama dongusu**
- *    calisip bir cagri surene kadar. Diger tum zamanlarda gelen olaylar ilk
- *    satirda birakilir.
+ *  - Yalnizca telefon/arama ekranlarindan olay alir
+ *    (bkz. res/xml/speaker_service.xml — `packageNames`).
+ *  - Bunun uzerine, hicbir sey yapmaz — ta ki uygulamanin **kendi tekrar arama
+ *    dongusu** calisip bir cagri surene kadar. Diger tum zamanlarda gelen
+ *    olaylar ilk satirda birakilir.
  *  - Ekranda yalnizca hoparlor dugmesi ve gorusme sayaci aranir.
  *  - Hicbir icerik kaydedilmez, saklanmaz, hicbir yere gonderilmez.
  *  - Hoparlor zaten aciksa dokunulmaz; her cagri icin en fazla bir kez basilir.
