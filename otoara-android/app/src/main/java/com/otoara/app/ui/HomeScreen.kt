@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,7 +64,8 @@ fun HomeScreen(
     onOverlaySettings: () -> Unit,
     onPickContact: () -> Unit,
     onStart: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onKeepCall: () -> Unit
 ) {
     var error by remember { mutableStateOf<String?>(null) }
     val targets by vm.targets.collectAsState()
@@ -90,6 +92,30 @@ fun HomeScreen(
         // -------------------------------------------------------- calisiyor
         if (status.running) {
             RunningPanel(status)
+            if (status.phase == Phase.IN_CALL) {
+                // Android, "karsi taraf acti" bilgisini bu uygulamaya canli
+                // vermiyor; acildiysa gorusmeyi korumak kullanicinin bir
+                // dokunusuna bakiyor.
+                Button(
+                    onClick = onKeepCall,
+                    modifier = Modifier.fillMaxWidth().height(58.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = Color(0xFF04211A)
+                    )
+                ) {
+                    Icon(Icons.Filled.RecordVoiceOver, contentDescription = null)
+                    Spacer(Modifier.width(10.dp))
+                    Text("GÖRÜŞMEDEYİM — KESME", style = MaterialTheme.typography.titleMedium)
+                }
+                Text(
+                    "Karşı taraf açtıysa buna basın: çağrı kapatılmaz ve tekrar " +
+                        "arama durur.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         } else if (status.finishedReason != null) {
             FinishedPanel(status)
         }
@@ -249,7 +275,8 @@ fun HomeScreen(
             SwitchRow(
                 title = "Süre dolunca kapat",
                 subtitle = if (perms.hangUp) {
-                    "Çağrı süresi dolunca uygulama çağrıyı kapatır."
+                    "Süre dolunca çağrı kapatılır. Karşı taraf açtıysa " +
+                        "\"Görüşmedeyim\" düğmesine basın; yoksa kapatılır."
                 } else {
                     "Bunun için \"Telefon çağrılarını yönet\" izni gerekir."
                 },

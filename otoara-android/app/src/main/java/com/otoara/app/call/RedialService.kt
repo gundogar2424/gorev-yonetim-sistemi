@@ -51,6 +51,13 @@ class RedialService : Service() {
     /** Dongu suruyor mu. finish() ile kapanir; donguler bunu kontrol eder. */
     @Volatile private var active = false
 
+    /**
+     * Kullanici "Görüşmedeyim" dedi: suren cagri kapatilmaz, dongu biter.
+     * Android, varsayilan telefon uygulamasi olmayan uygulamalara "karsi taraf
+     * acti" bilgisini canli vermedigi icin bu karar kullaniciya birakilir.
+     */
+    @Volatile private var keepCall = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -62,6 +69,17 @@ class RedialService : Service() {
                 buildRunningNotification(RedialState.status.value.number, "Durduruluyor…", 0, 0)
             )
             finish("Durduruldu")
+            return START_NOT_STICKY
+        }
+
+        if (intent?.action == ACTION_KEEP) {
+            keepCall = true
+            ensureChannels(this)
+            startForegroundSafely(
+                buildRunningNotification(
+                    RedialState.status.value.number, "Görüşme korunuyor…", 0, 0
+                )
+            )
             return START_NOT_STICKY
         }
 
@@ -89,6 +107,7 @@ class RedialService : Service() {
 
         job?.cancel()
         active = true
+        keepCall = false
         job = scope.launch { runLoop(cfg, label) }
         return START_NOT_STICKY
     }
@@ -142,6 +161,11 @@ class RedialService : Service() {
             )
             RedialState.update { it.copy(lastResult = outcome.result) }
 
+            if (keepCall) {
+                answered = true
+                reason = "Görüşme sürüyor — tekrar arama durduruldu"
+                break
+            }
             if (outcome.result == AttemptResult.FAILED) {
                 reason = "Arama başlatılamadı — izinleri kontrol edin"
                 break
@@ -212,6 +236,8 @@ class RedialService : Service() {
         var weHungUp = false
 
         while (active) {
+            // Kullanici "Görüşmedeyim" dediyse cagriya hic dokunmadan cikilir.
+            if (keepCall) break
             val now = SystemClock.elapsedRealtime()
             if (monitoring && Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) break
             if (now >= deadline) {
@@ -228,7 +254,9 @@ class RedialService : Service() {
             }
             val left = ((deadline - now) / 1000).toInt() + 1
             RedialState.update { it.copy(secondsLeft = left) }
-            updateNotification(cfg.number, "Görüşmede — $left sn", tryNo, cfg.repeats)
+            updateNotification(
+                cfg.number, "Görüşmede — $left sn", tryNo, cfg.repeats, inCall = true
+            )
             delay(400)
         }
 
@@ -348,11 +376,18 @@ class RedialService : Service() {
         ServiceCompat.startForeground(this, NOTIF_ID, notification, type)
     }
 
+    private fun keepAction(): PendingIntent = PendingIntent.getBroadcast(
+        this, 3,
+        Intent(this, StopReceiver::class.java).setAction(StopReceiver.ACTION_KEEP),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+    )
+
     private fun buildRunningNotification(
         number: String,
         text: String,
         tryNo: Int,
-        total: Int
+        total: Int,
+        inCall: Boolean = false
     ): android.app.Notification {
         val open = PendingIntent.getActivity(
             this, 0,
@@ -373,16 +408,27 @@ class RedialService : Service() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(open)
+            .apply {
+                if (inCall) {
+                    addAction(0, "Görüşmedeyim", keepAction())
+                }
+            }
             .addAction(0, "Durdur", stop)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .build()
     }
 
-    private fun updateNotification(number: String, text: String, tryNo: Int, total: Int) {
+    private fun updateNotification(
+        number: String,
+        text: String,
+        tryNo: Int,
+        total: Int,
+        inCall: Boolean = false
+    ) {
         val nm = NotificationManagerCompat.from(this)
         try {
-            nm.notify(NOTIF_ID, buildRunningNotification(number, text, tryNo, total))
+            nm.notify(NOTIF_ID, buildRunningNotification(number, text, tryNo, total, inCall))
         } catch (e: SecurityException) {
             // Bildirim izni yoksa sessizce gec; dongu calismaya devam eder.
         }
@@ -434,6 +480,7 @@ class RedialService : Service() {
 
     companion object {
         const val ACTION_STOP = "com.otoara.app.action.STOP"
+        private const val ACTION_KEEP = StopReceiver.ACTION_KEEP
         const val CHANNEL_RUN = "redial_running"
         const val CHANNEL_DONE = "redial_done"
         private const val NOTIF_ID = 41
@@ -472,6 +519,16 @@ class RedialService : Service() {
                 putExtra(EXTRA_LABEL, label)
             }
             ContextCompat.startForegroundService(context, i)
+        }
+
+        /** "Görüşmedeyim": suren cagriyi kapatmadan donguyu bitirir. */
+        fun keepCall(context: Context) {
+            val i = Intent(context, RedialService::class.java).setAction(ACTION_KEEP)
+            try {
+                ContextCompat.startForegroundService(context, i)
+            } catch (e: Exception) {
+                context.startService(i)
+            }
         }
 
         fun stop(context: Context) {

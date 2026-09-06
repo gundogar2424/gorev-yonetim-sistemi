@@ -66,6 +66,27 @@ Zamanı gelince telefon bir bildirimle **sorar**:
   kendiliğinden bir sonraki zamana kayar.
 - Alarmlar telefon yeniden başlatıldığında otomatik olarak yeniden kurulur.
 
+## Karşı taraf açarsa görüşme kesilmesin
+
+Bu tür uygulamaların bilinen sıkıntısı: karşı taraf açar, süre dolar, uygulama
+görüşmeyi keser ve yeniden arar. Sebebi teknik: **Android, varsayılan telefon
+uygulaması olmayan bir uygulamaya "karşı taraf açtı" bilgisini canlı vermez** —
+yalnızca "hat meşgul / boş" der; çalıyor mu konuşuluyor mu ayırt edilemez.
+
+Oto Ara'da bu duruma karşı iki koruma var:
+
+1. **"GÖRÜŞMEDEYİM — KESME" düğmesi.** Çağrı sürerken ekranda ve bildirimde
+   çıkar. Bastığınız anda çağrı kapatılmaz ve tekrar arama biter — rahatça
+   konuşursunuz.
+2. **Kes-ara döngüsüne düşmez.** Düğmeye basmayı unutup çağrı kesilse bile,
+   çağrı bittikten sonra arama kaydındaki konuşma süresine bakılır. Süre 0'dan
+   büyükse çağrı cevaplanmıştır ve (*Cevaplanınca dur* açıksa) döngü durur.
+   Yani en kötü ihtimalle bir kez kesilir, tekrar tekrar aramaz.
+
+Hiç kesilme riski istemiyorsanız **"Süre dolunca kapat"** seçeneğini kapatın:
+o zaman uygulama hiçbir çağrıyı kapatmaz, çağrının kendiliğinden bitmesini
+bekler.
+
 ## Kendi aramalarınıza karışmaz
 
 Döngü çalışırken siz başka birini ararsanız (ya da size gelen bir çağrıyı

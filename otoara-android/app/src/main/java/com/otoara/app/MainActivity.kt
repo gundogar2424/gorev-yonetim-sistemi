@@ -98,7 +98,8 @@ class MainActivity : ComponentActivity() {
                                         vm.rememberTarget()
                                         RedialService.start(this@MainActivity, vm.config(), vm.label)
                                     },
-                                    onStop = { RedialService.stop(this@MainActivity) }
+                                    onStop = { RedialService.stop(this@MainActivity) },
+                                    onKeepCall = { RedialService.keepCall(this@MainActivity) }
                                 )
                             }
                             composable(Section.HISTORY.route) {
