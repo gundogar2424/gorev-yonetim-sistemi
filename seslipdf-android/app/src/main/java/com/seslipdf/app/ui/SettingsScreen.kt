@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.seslipdf.app.BuildConfig
 import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.tts.VoiceInfo
 
@@ -133,8 +134,9 @@ fun SettingsScreen(vm: LibraryViewModel) {
                 }
                 SwitchRow(
                     title = "Okuma ekranında ekran kararmasın",
-                    description = "Okuma ekranı açıkken telefon ekranı kendiliğinden kapanmaz. " +
-                        "Ekranı kapatmak istersen güç düğmesine bas; okuma yine sürer.",
+                    description = "Açıkken okuma ekranı boyunca telefon ekranı kendiliğinden " +
+                        "kapanmaz. Kapatırsan telefon her zamanki gibi uyur — dinlerken " +
+                        "ekranın kapanması pil için daha iyidir, okuma yine sürer.",
                     checked = vm.keepAwake,
                     onChange = { vm.updateKeepAwake(it) }
                 )
@@ -169,6 +171,11 @@ fun SettingsScreen(vm: LibraryViewModel) {
         item {
             Panel("Hakkında") {
                 Spacer(Modifier.height(8.dp))
+                Text(
+                    "Sürüm ${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(Modifier.height(6.dp))
                 Text(
                     "Sesli PDF, seçtiğiniz PDF'in metnini telefonun içinde çıkarır ve " +
                         "Android'in kendi seslendirme motoruyla okur. Belgeleriniz hiçbir " +
