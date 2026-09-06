@@ -20,7 +20,12 @@ data class RedialStatus(
     /** Son denemenin sonucu (AttemptResult kodu). */
     val lastResult: String? = null,
     /** Dongu bittiyse nedeni. */
-    val finishedReason: String? = null
+    val finishedReason: String? = null,
+    /**
+     * Hoparlor istendiyse gercekten acilabildi mi.
+     * null = hoparlor istenmedi ya da henuz denenmedi.
+     */
+    val speakerOn: Boolean? = null
 )
 
 object RedialState {

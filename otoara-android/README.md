@@ -131,10 +131,12 @@ Tüm veriler telefonda kalır (Room/SQLite). Sunucu yoktur, internet gerekmez.
 - Android, uygulamalara "karşı taraf açtı mı?" bilgisini canlı olarak vermez;
   bu yüzden cevaplanma çağrı bittikten sonra arama kaydından anlaşılır.
 - **Hoparlör**: gerçek bir telefon çağrısının ses yolunu değiştirmek aslında
-  varsayılan telefon uygulamasının işidir. Uygulama bunu Android'in ses
-  yöneticisi üzerinden dener (Android 12+ için `setCommunicationDevice`,
-  öncesi için `isSpeakerphoneOn`) ve çoğu cihazda çalışır, ama bazı
-  marka/sürümlerde sistem izin vermeyebilir.
+  varsayılan telefon uygulamasının işidir. Uygulama iki yolu birden dener
+  (Android 12+ için `setCommunicationDevice`, ayrıca eski `isSpeakerphoneOn`)
+  ve çağrı bağlandığında telefonun kendi arama uygulaması ayarı geri
+  çekebildiği için ilk 15 saniye boyunca ısrarla uygular. Yine de bazı
+  marka/sürümlerde sistem izin vermez; bu durumda ekranda "Hoparlör
+  açılamadı" yazar ve arama ekranındaki hoparlör düğmesini kullanmak gerekir.
 - Android 8 (API 26) ve üstü gerekir. Çağrıyı programla kapatmak Android 9+
   ister; daha eski sürümlerde süre dolunca çağrıyı elle kapatmanız gerekir.
 

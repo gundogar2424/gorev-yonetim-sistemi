@@ -456,6 +456,22 @@ private fun RunningPanel(status: RedialStatus) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        when (status.speakerOn) {
+            true -> Text(
+                "🔊 Hoparlör açık",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            false -> Text(
+                "Hoparlör açılamadı — telefonunuz uygulamaya izin vermiyor. " +
+                    "Arama ekranındaki hoparlör düğmesini kullanın.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            null -> Unit
+        }
         status.lastResult?.let {
             Text(
                 "Son deneme: ${AttemptResult.label(it)}",

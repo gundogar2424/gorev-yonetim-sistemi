@@ -142,7 +142,13 @@ class RedialService : Service() {
             }
 
             RedialState.update {
-                it.copy(tryNo = tryNo, phase = Phase.DIALING, secondsLeft = 0, lastResult = null)
+                it.copy(
+                    tryNo = tryNo,
+                    phase = Phase.DIALING,
+                    secondsLeft = 0,
+                    lastResult = null,
+                    speakerOn = null
+                )
             }
             updateNotification(cfg.number, "Aranıyor…", tryNo, cfg.repeats)
 
@@ -252,6 +258,16 @@ class RedialService : Service() {
                 }
                 break
             }
+            // Telefonun kendi arama uygulamasi ses yolunu geri cekebiliyor;
+            // cagrinin ilk saniyelerinde hoparlor israrla uygulanir.
+            if (cfg.speaker &&
+                now - connectStart < SPEAKER_ENFORCE_MS &&
+                !Speaker.isOn(this)
+            ) {
+                val ok = Speaker.on(this)
+                RedialState.update { it.copy(speakerOn = ok) }
+            }
+
             val left = ((deadline - now) / 1000).toInt() + 1
             RedialState.update { it.copy(secondsLeft = left) }
             updateNotification(
@@ -291,11 +307,16 @@ class RedialService : Service() {
      * olmadigi icin kisa araliklarla birkac kez denenir.
      */
     private suspend fun enableSpeaker() {
-        repeat(4) {
+        repeat(6) {
             if (!active) return
-            if (Speaker.on(this) || Speaker.isOn(this)) return
-            delay(700)
+            if (Speaker.on(this)) {
+                RedialState.update { it.copy(speakerOn = true) }
+                return
+            }
+            delay(600)
         }
+        // Telefon izin vermedi; kullanici bunu ekranda gorsun.
+        RedialState.update { it.copy(speakerOn = false) }
     }
 
     /** Belirtilen cagri durumuna gecilene kadar bekler. */
@@ -494,6 +515,9 @@ class RedialService : Service() {
 
         /** Hat bosaldiktan sonra araya girilen nefes payi. */
         private const val FREE_LINE_GRACE_MS = 4000L
+
+        /** Hoparlorun israrla uygulanacagi sure (cagri baslangicindan itibaren). */
+        private const val SPEAKER_ENFORCE_MS = 15_000L
 
         private const val EXTRA_NUMBER = "number"
         private const val EXTRA_EXT = "ext"

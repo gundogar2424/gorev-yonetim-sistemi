@@ -6,44 +6,57 @@ import android.media.AudioManager
 import android.os.Build
 
 /**
- * Gorusme sesini hoparlore verir. Android 12 (S) ve ustunde
- * `setCommunicationDevice`, daha eskilerde `isSpeakerphoneOn` kullanilir.
+ * Gorusme sesini hoparlore verir.
  *
- * Not: Sistem cagrilarinin ses yolunu degistirmek varsayilan telefon
- * uygulamasinin isidir; bazi cihaz/surumlerde ucuncu bir uygulamanin bunu
- * yapmasina izin verilmeyebilir. Bu yuzden her fonksiyon basarili olup
- * olmadigini doner.
+ * Iki ayri yol denenir, cunku hangisinin isledigi cihaza/surume gore degisir:
+ *  1. Android 12+ icin `setCommunicationDevice`,
+ *  2. Eskiden beri var olan `isSpeakerphoneOn` (yeni surumlerde "deprecated"
+ *     olmasina ragmen bircok cihazda hala tek isleyen yol budur).
+ *
+ * Sistem cagrilarinin ses yolu aslinda varsayilan telefon uygulamasinin
+ * kontrolundedir; o, cagri baglandiginda ayari kendi tercihine geri
+ * cekebiliyor. Bu yuzden [on] cagrisi tek seferlik degil, servis tarafindan
+ * cagrinin ilk saniyelerinde tekrar tekrar uygulanir.
  */
 object Speaker {
 
+    /** Hoparloru acmayi dener; sonucta gercekten acik mi onu doner. */
     fun on(context: Context): Boolean {
         val am = context.getSystemService(AudioManager::class.java) ?: return false
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
                 val speaker = am.availableCommunicationDevices
                     .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
-                speaker != null && am.setCommunicationDevice(speaker)
-            } else {
-                @Suppress("DEPRECATION")
-                am.isSpeakerphoneOn = true
-                @Suppress("DEPRECATION")
-                am.isSpeakerphoneOn
+                if (speaker != null) am.setCommunicationDevice(speaker)
+            } catch (e: Exception) {
+                // Sonraki yol denenir.
             }
-        } catch (e: Exception) {
-            false
+            if (isOn(context)) return true
         }
+
+        try {
+            @Suppress("DEPRECATION")
+            am.isSpeakerphoneOn = true
+        } catch (e: Exception) {
+            // yoksay
+        }
+        return isOn(context)
     }
 
     /** Ses yolunu telefonun kendi secimine birakir (kulaklik/ahize). */
     fun off(context: Context) {
         val am = context.getSystemService(AudioManager::class.java) ?: return
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
                 am.clearCommunicationDevice()
-            } else {
-                @Suppress("DEPRECATION")
-                am.isSpeakerphoneOn = false
+            } catch (e: Exception) {
+                // yoksay
             }
+        }
+        try {
+            @Suppress("DEPRECATION")
+            am.isSpeakerphoneOn = false
         } catch (e: Exception) {
             // yoksay
         }
@@ -52,12 +65,10 @@ object Speaker {
     fun isOn(context: Context): Boolean {
         val am = context.getSystemService(AudioManager::class.java) ?: return false
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val modern = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                 am.communicationDevice?.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
-            } else {
-                @Suppress("DEPRECATION")
-                am.isSpeakerphoneOn
-            }
+            @Suppress("DEPRECATION")
+            modern || am.isSpeakerphoneOn
         } catch (e: Exception) {
             false
         }
