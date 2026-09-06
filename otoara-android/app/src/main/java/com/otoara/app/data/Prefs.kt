@@ -48,9 +48,15 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("speaker", false)
         set(v) = sp.edit().putBoolean("speaker", v).apply()
 
-    /** Sure dolunca cagriyi uygulama kapatsin mi. */
+    /**
+     * Sure dolunca cagriyi uygulama kapatsin mi.
+     *
+     * Varsayilan KAPALI: acikken, karsi taraf actigi halde sure dolarsa gorusme
+     * kesilebiliyor (Android "cevaplandi" bilgisini vermedigi icin). Kapaliyken
+     * uygulama hicbir cagriyi kapatmaz, cagrinin kendiliginden bitmesini bekler.
+     */
     var hangUpOnTimeout: Boolean
-        get() = sp.getBoolean("hangup", true)
+        get() = sp.getBoolean("hangup", false)
         set(v) = sp.edit().putBoolean("hangup", v).apply()
 
     fun toConfig() = RedialConfig(

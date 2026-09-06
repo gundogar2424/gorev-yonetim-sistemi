@@ -94,16 +94,25 @@ object Phone {
      * Android'de bu sure yalnizca karsi taraf **actiysa** 0'dan buyuktur; yani
      * "cevaplandi mi?" sorusunun tek guvenilir cevabi budur.
      *
-     * Izin yoksa ya da kayit bulunamazsa `null` doner.
+     * [since] verilirse yalnizca o andan sonra baslamis kayit dikkate alinir;
+     * boylece kayit henuz yazilmadiginda bir onceki cagrinin suresi yanlislikla
+     * kullanilmaz.
+     *
+     * Izin yoksa, kayit henuz yazilmadiysa ya da eslesmiyorsa `null` doner.
      */
-    fun lastOutgoingDuration(context: Context, number: String): Int? {
+    fun lastOutgoingDuration(context: Context, number: String, since: Long = 0L): Int? {
         if (!canReadCallLog(context)) return null
         val wanted = normalize(number)
         if (wanted.isEmpty()) return null
         return try {
             context.contentResolver.query(
                 CallLog.Calls.CONTENT_URI,
-                arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DURATION, CallLog.Calls.TYPE),
+                arrayOf(
+                    CallLog.Calls.NUMBER,
+                    CallLog.Calls.DURATION,
+                    CallLog.Calls.TYPE,
+                    CallLog.Calls.DATE
+                ),
                 "${CallLog.Calls.TYPE} = ?",
                 arrayOf(CallLog.Calls.OUTGOING_TYPE.toString()),
                 "${CallLog.Calls.DATE} DESC LIMIT 1"
@@ -111,6 +120,8 @@ object Phone {
                 if (!c.moveToFirst()) return null
                 val logged = normalize(c.getString(0) ?: "")
                 if (!matches(logged, wanted)) return null
+                // Kayit bu denemeye mi ait? Degilse henuz yazilmamis demektir.
+                if (since > 0 && c.getLong(3) < since - 5_000L) return null
                 c.getInt(1)
             }
         } catch (e: Exception) {

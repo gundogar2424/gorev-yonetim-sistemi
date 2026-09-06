@@ -126,6 +126,44 @@ fun HomeScreen(
             PermissionPanel(perms, onRequestPerms)
         }
 
+        // ------------------------------------- hoparlor / cevaplandi algilama
+        if (!perms.speakerService && !status.running) {
+            Panel {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.RecordVoiceOver,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Hoparlör otomatiği kapalı",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+                Text(
+                    "Bu telefonda hoparlörü ancak arama ekranındaki düğme açar. " +
+                        "İzin verirseniz uygulama o düğmeye sizin yerinize basar. " +
+                        "Aynı izin, karşı taraf açtığında görüşmenin kesilmemesini " +
+                        "de sağlar (ekrandaki konuşma sayacından anlar).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                Text(
+                    "Ayarlar → Erişilebilirlik → Yüklenen uygulamalar → Oto Ara",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+                Button(
+                    onClick = onSpeakerService,
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) { Text("AYARLARI AÇ") }
+            }
+        }
+
         // ------------------------------------------------------ hedef numara
         Panel(title = "Hedef Numara") {
             Spacer(Modifier.height(10.dp))
@@ -275,11 +313,13 @@ fun HomeScreen(
             )
             SwitchRow(
                 title = "Süre dolunca kapat",
-                subtitle = if (perms.hangUp) {
-                    "Süre dolunca çağrı kapatılır. Karşı taraf açtıysa " +
-                        "\"Görüşmedeyim\" düğmesine basın; yoksa kapatılır."
-                } else {
+                subtitle = if (!perms.hangUp) {
                     "Bunun için \"Telefon çağrılarını yönet\" izni gerekir."
+                } else if (perms.speakerService) {
+                    "Süre dolunca çağrı kapatılır. Cevaplanan görüşme kesilmez."
+                } else {
+                    "DİKKAT: Erişilebilirlik izni olmadan, karşı taraf açsa bile " +
+                        "süre dolunca görüşme kesilebilir. Kapalı tutmanız önerilir."
                 },
                 checked = vm.hangUpOnTimeout,
                 enabled = !status.running,
@@ -294,26 +334,10 @@ fun HomeScreen(
                 onChange = vm::updateSpeaker
             )
 
-            if (vm.speaker && !perms.speakerService) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "Samsung ve benzeri telefonlarda hoparlörü ancak arama " +
-                                "ekranındaki düğme açar. Uygulamanın bu düğmeye sizin " +
-                                "yerinize basabilmesi için Erişilebilirlik izni gerekir.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    TextButton(onClick = onSpeakerService) { Text("Ayarla") }
-                }
-            } else if (vm.speaker && perms.speakerService) {
+            if (perms.speakerService) {
                 Text(
                     "Hoparlör otomatiği açık: arama ekranındaki düğmeye sizin " +
-                        "yerinize basılacak.",
+                        "yerinize basılacak, cevaplanma da ekrandan anlaşılacak.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(top = 4.dp)

@@ -73,15 +73,23 @@ görüşmeyi keser ve yeniden arar. Sebebi teknik: **Android, varsayılan telefo
 uygulaması olmayan bir uygulamaya "karşı taraf açtı" bilgisini canlı vermez** —
 yalnızca "hat meşgul / boş" der; çalıyor mu konuşuluyor mu ayırt edilemez.
 
-Oto Ara'da bu duruma karşı iki koruma var:
+Oto Ara'da bu duruma karşı korumalar var:
+
+0. **Varsayılan olarak hiçbir çağrı kapatılmaz.** "Süre dolunca kapat" seçeneği
+   kapalı gelir; uygulama çağrının kendiliğinden bitmesini bekler. Böylece
+   izin verilmemiş bir telefonda bile görüşmeniz kesilmez.
+0. **Erişilebilirlik izni verilmişse cevaplanma kesin olarak anlaşılır.**
+   Arama ekranındaki görüşme sayacı (00:12 gibi) ancak karşı taraf açtıktan
+   sonra ilerler; uygulama bunu görünce çağrıya hiç dokunmaz ve tekrar aramayı
+   durdurur.
 
 1. **"GÖRÜŞMEDEYİM — KESME" düğmesi.** Çağrı sürerken ekranda ve bildirimde
    çıkar. Bastığınız anda çağrı kapatılmaz ve tekrar arama biter — rahatça
    konuşursunuz.
-2. **Kes-ara döngüsüne düşmez.** Düğmeye basmayı unutup çağrı kesilse bile,
-   çağrı bittikten sonra arama kaydındaki konuşma süresine bakılır. Süre 0'dan
-   büyükse çağrı cevaplanmıştır ve (*Cevaplanınca dur* açıksa) döngü durur.
-   Yani en kötü ihtimalle bir kez kesilir, tekrar tekrar aramaz.
+2. **Kes-ara döngüsüne düşmez.** Çağrı bittikten sonra arama kaydındaki
+   konuşma süresine bakılır (kayıt gecikmeli yazılabildiği için birkaç saniye
+   boyunca ve yalnızca *bu* denemeye ait kayıt kabul edilerek). Süre 0'dan
+   büyükse çağrı cevaplanmıştır ve *Cevaplanınca dur* açıksa döngü durur.
 
 Hiç kesilme riski istemiyorsanız **"Süre dolunca kapat"** seçeneğini kapatın:
 o zaman uygulama hiçbir çağrıyı kapatmaz, çağrının kendiliğinden bitmesini

@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Hizmet YALNIZCA telefon/arama uygulamalarindan olay alir (packageNames).
-  Baska hicbir uygulamanin ekranini gormez.
+  packageNames ile kisitlamiyoruz: ureticiler arama ekranini farkli paketlerde
+  tutuyor (Samsung'da com.samsung.android.incallui, baskalarinda dialer'in
+  kendisi) ve yanlis tahmin edilirse hizmet hicbir olay almadigi icin sessizce
+  calismaz. Bunun yerine kisit KODDA: SpeakerService, uygulamanin kendi tekrar
+  arama dongusu calisip bir cagri surmedigi surece gelen hicbir olayla
+  ilgilenmez.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
@@ -9,5 +13,4 @@
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="200"
     android:description="@string/speaker_service_desc"
-    android:summary="@string/speaker_service_summary"
-    android:packageNames="com.samsung.android.incallui,com.samsung.android.dialer,com.android.incallui,com.android.dialer,com.google.android.dialer,com.android.server.telecom" />
+    android:summary="@string/speaker_service_summary" />

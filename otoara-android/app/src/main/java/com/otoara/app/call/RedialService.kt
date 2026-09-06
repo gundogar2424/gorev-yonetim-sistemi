@@ -218,6 +218,7 @@ class RedialService : Service() {
     private suspend fun runAttempt(cfg: RedialConfig, tryNo: Int): Outcome {
         val startedAt = System.currentTimeMillis()
         val monitoring = Phone.canReadState(this)
+        CallScreen.reset()
 
         if (!Phone.place(this, cfg.dialString())) {
             return Outcome(startedAt, 0, AttemptResult.FAILED)
@@ -241,9 +242,17 @@ class RedialService : Service() {
         val deadline = connectStart + cfg.ringSec * 1000L
         var weHungUp = false
 
+        var screenAnswered = false
         while (active) {
             // Kullanici "Görüşmedeyim" dediyse cagriya hic dokunmadan cikilir.
             if (keepCall) break
+
+            // Arama ekranindaki gorusme sayaci ilerliyorsa karsi taraf acmistir:
+            // cagriya dokunulmaz, tekrar arama biter.
+            if (CallScreen.answered) {
+                screenAnswered = true
+                break
+            }
             val now = SystemClock.elapsedRealtime()
             if (monitoring && Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) break
             if (now >= deadline) {
@@ -284,16 +293,21 @@ class RedialService : Service() {
 
         val connectedSec = ((SystemClock.elapsedRealtime() - connectStart) / 1000).toInt()
 
+        // Ekrandan cevaplandigi anlasildiysa cagri acik birakilir.
+        if (screenAnswered) {
+            return Outcome(startedAt, connectedSec, AttemptResult.ANSWERED)
+        }
+
         // Cagrinin tamamen kapanmasini bekle (kullanici elle kapatmis olabilir).
         if (monitoring) awaitState(TelephonyManager.CALL_STATE_IDLE, 10_000)
 
         // 3) Cevaplandi mi? Once arama kaydi (guvenilir), yoksa sure tahmini.
-        delay(1500)
         // Cagri bittiyse ses yolunu telefonun kendi secimine geri birak.
+        delay(1200)
         if (cfg.speaker && Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) {
             Speaker.off(this)
         }
-        val logged = Phone.lastOutgoingDuration(this, cfg.number)
+        val logged = awaitCallLogDuration(cfg.number, startedAt)
         val answered = when {
             logged != null -> logged > 0
             // Izin yoksa: cagri kendi kendine kapandiysa ve yeterince uzun
@@ -334,6 +348,20 @@ class RedialService : Service() {
             delay(250)
         }
         return false
+    }
+
+    /**
+     * Bu denemeye ait arama kaydi yazilana kadar bekler ve konusma suresini
+     * doner. Kayit gecikmeli yazilabildigi icin birkac saniye denenir; izin
+     * yoksa ya da hic bulunamazsa null doner.
+     */
+    private suspend fun awaitCallLogDuration(number: String, since: Long): Int? {
+        if (!Phone.canReadCallLog(this)) return null
+        repeat(8) {
+            Phone.lastOutgoingDuration(this, number, since)?.let { return it }
+            delay(1000)
+        }
+        return null
     }
 
     /** Telefon su an baska bir cagriyla mi mesgul (gelen cagri dahil). */
