@@ -24,7 +24,11 @@ const DEFAULT_SETTINGS: TmSettings = {
   autoAdvance: true,
   sound: true,
   notify: true,
-  keepAwake: true
+  keepAwake: true,
+  autoBackup: true,
+  lastAutoBackupAt: 0,
+  lastAutoBackupPath: '',
+  lastAutoBackupSig: ''
 }
 
 export async function readTmSettings(): Promise<TmSettings> {

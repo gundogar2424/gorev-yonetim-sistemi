@@ -76,17 +76,17 @@ jobs:
       - name: Kullanılmayan ağır eklentileri çıkar (APK küçülsün)
         run: |
           # Web derlemesi yukarida bitti. Termomiks Defteri @capacitor/core,
-          # @capacitor/status-bar ve @capacitor/local-notifications (pisirme
-          # sayaci alarmi) kullanir; digerlerini APK'ya koymaya gerek yok.
+          # @capacitor/status-bar, @capacitor/local-notifications (pisirme sayaci
+          # alarmi) ve @capacitor/filesystem (otomatik yedek dosyasi) kullanir;
+          # digerlerini APK'ya koymaya gerek yok.
           # Once package.json'dan dusur (Capacitor eklenti listesini buradan okur),
           # sonra klasorleri sil. Bu yalnizca CI kopyasinda olur; depo degismez.
-          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor-community/contacts','@capacitor/geolocation','@capacitor/camera','@capacitor/filesystem','@capacitor/share']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor-community/contacts','@capacitor/geolocation','@capacitor/camera','@capacitor/share']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
           rm -rf node_modules/@capacitor-mlkit/barcode-scanning
           rm -rf node_modules/@flomentumsolutions/capacitor-health-extended
           rm -rf node_modules/@capacitor-community/contacts
           rm -rf node_modules/@capacitor/geolocation
           rm -rf node_modules/@capacitor/camera
-          rm -rf node_modules/@capacitor/filesystem
           rm -rf node_modules/@capacitor/share
           echo "Eklentiler cikarildi."
 

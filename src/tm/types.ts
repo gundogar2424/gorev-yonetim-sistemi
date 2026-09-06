@@ -64,6 +64,10 @@ export interface TmSettings {
   sound: boolean // Sure bitince sesli uyari + titresim (uygulama ondeyken)
   notify: boolean // Ekran kapaliyken/arka planda sistem bildirimiyle uyar
   keepAwake: boolean // Pisirirken ekran acik kalsin
+  autoBackup: boolean // Acilista defteri telefona dosya olarak yaz
+  lastAutoBackupAt: number // Son otomatik yedegin zamani (0 = hic)
+  lastAutoBackupPath: string // Yazildigi yol (Ayarlar'da gosterilir)
+  lastAutoBackupSig: string // Defterin o anki parmak izi (degismediyse yazma)
 }
 
 // Disaridan gelen (yapistirilan koddaki) ham tarif — kaydedilmeden once onizlenir

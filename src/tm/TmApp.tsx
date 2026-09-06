@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
+import { otomatikYedekle } from './lib/autobackup'
 import Recipes from './pages/Recipes'
 import AddRecipe from './pages/AddRecipe'
 import RecipeDetail from './pages/RecipeDetail'
@@ -58,6 +60,15 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
 ]
 
 export default function TmApp() {
+  // Acilista otomatik yedek: veri degistiyse telefona dosya yazilir.
+  // Ilk ekranin acilmasini geciktirmesin diye kisa bir gecikmeyle.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void otomatikYedekle().catch(() => {})
+    }, 2500)
+    return () => clearTimeout(t)
+  }, [])
+
   return (
     <div className="tm-app min-h-full flex flex-col max-w-xl mx-auto">
       <main className="flex-1" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import TmHeader from '../TmHeader'
 import { readTmSettings, saveTmSettings, tmDb } from '../db'
 import { downloadBackup, restoreBackup } from '../lib/backup'
+import { otomatikYedekle } from '../lib/autobackup'
 import { alarmIzniAl } from '../lib/alarm'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 
@@ -9,6 +10,8 @@ export default function TmSettings() {
   const [autoAdvance, setAutoAdvance] = useState(true)
   const [sound, setSound] = useState(true)
   const [notify, setNotify] = useState(true)
+  const [autoBackup, setAutoBackup] = useState(true)
+  const [sonYedek, setSonYedek] = useState<{ at: number; path: string }>({ at: 0, path: '' })
   const [keepAwake, setKeepAwake] = useState(true)
   const [tema, setTema] = useState<ThemePref>(getThemePref())
   const [durum, setDurum] = useState('')
@@ -21,6 +24,8 @@ export default function TmSettings() {
       setAutoAdvance(s.autoAdvance)
       setSound(s.sound)
       setNotify(s.notify)
+      setAutoBackup(s.autoBackup !== false)
+      setSonYedek({ at: s.lastAutoBackupAt ?? 0, path: s.lastAutoBackupPath ?? '' })
       setKeepAwake(s.keepAwake)
     })
     void tmDb.recipes.count().then(setTarifSayisi)
@@ -123,6 +128,42 @@ export default function TmSettings() {
           <p className="text-[12px] text-slate-500">
             Defterde {tarifSayisi} tarif var. Yedek tek bir dosyaya iner; telefon değişince geri yüklersin.
           </p>
+
+          <Switch
+            label="Açılışta telefona otomatik yedekle"
+            checked={autoBackup}
+            onChange={async (v) => {
+              setAutoBackup(v)
+              await kaydet({ autoBackup: v })
+              if (v) {
+                const r = await otomatikYedekle(true)
+                if (r) setSonYedek({ at: r.zaman, path: r.yol })
+                else setHata('Otomatik yedek yazılamadı. Uygulamada değil, tarayıcıda açıksan bu normal.')
+              }
+            }}
+          />
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            {sonYedek.at
+              ? `Son otomatik yedek: ${new Date(sonYedek.at).toLocaleString('tr-TR')}`
+              : 'Henüz otomatik yedek alınmadı.'}
+            {sonYedek.path ? ` · ${sonYedek.path.replace(/^file:\/\//, '')}` : ''}
+          </p>
+          <button
+            onClick={async () => {
+              setHata('')
+              const r = await otomatikYedekle(true)
+              if (r) {
+                setSonYedek({ at: r.zaman, path: r.yol })
+                setDurum('Yedek telefona yazıldı ✔')
+                setTimeout(() => setDurum(''), 2000)
+              } else {
+                setHata('Yedek yazılamadı. Depolama izni ya da yer sorunu olabilir.')
+              }
+            }}
+            className="tm-btn-soft w-full py-2.5 text-sm"
+          >
+            Şimdi telefona yedekle
+          </button>
           <div className="flex gap-2">
             <button onClick={() => void downloadBackup()} className="tm-btn-soft flex-1 py-2.5 text-sm">
               Yedeği indir
