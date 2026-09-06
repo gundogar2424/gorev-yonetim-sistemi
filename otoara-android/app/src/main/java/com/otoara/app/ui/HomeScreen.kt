@@ -397,6 +397,7 @@ private fun RunningPanel(status: RedialStatus) {
         Phase.DIALING -> "Aranıyor…"
         Phase.IN_CALL -> "Görüşme sürüyor"
         Phase.WAITING -> "Sonraki arama bekleniyor"
+        Phase.PAUSED -> "Telefonunuz meşgul — duraklatıldı"
         else -> "Hazırlanıyor…"
     }
     Panel {

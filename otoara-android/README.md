@@ -66,6 +66,20 @@ Zamanı gelince telefon bir bildirimle **sorar**:
   kendiliğinden bir sonraki zamana kayar.
 - Alarmlar telefon yeniden başlatıldığında otomatik olarak yeniden kurulur.
 
+## Kendi aramalarınıza karışmaz
+
+Döngü çalışırken siz başka birini ararsanız (ya da size gelen bir çağrıyı
+açarsanız):
+
+- Uygulama **sizin görüşmenizi kapatmaz.** "Süre dolunca kapat" yalnızca
+  uygulamanın kendi başlattığı ve o an hâlâ süren çağrı için işler; kapatmadan
+  hemen önce çağrının gerçekten kendisine ait olduğu bir kez daha doğrulanır.
+  Telefon durumu okunamıyorsa hiçbir çağrıya dokunulmaz.
+- Uygulama **görüşmenizin üstüne arama yapmaz.** Döngü durmaz, **duraklar**:
+  bildirimde "Telefonunuz meşgul — bekleniyor" yazar, geri sayım da durur.
+- Görüşmeniz bitince birkaç saniye beklenip kaldığı yerden devam eder.
+- Meşguliyet çok uzun sürerse (30 dakika) döngü kendiliğinden sonlanır.
+
 ## İzinler
 
 | İzin | Neden gerekli |

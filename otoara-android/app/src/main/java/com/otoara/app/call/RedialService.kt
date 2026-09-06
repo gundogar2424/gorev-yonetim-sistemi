@@ -115,9 +115,10 @@ class RedialService : Service() {
         for (tryNo in 1..cfg.repeats) {
             if (!active) return
 
-            // Telefon baska bir gorusmedeyse sirasini bekle.
-            if (!waitUntilIdle(20_000)) {
-                reason = "Telefon meşguldü"
+            // Kullanici kendi gorusmesini yapiyorsa dongu bekler; onun
+            // cagrisina kesinlikle dokunulmaz.
+            if (!awaitFreeLine(cfg, tryNo)) {
+                reason = "Telefon uzun süre meşgul kaldı"
                 break
             }
 
@@ -152,16 +153,27 @@ class RedialService : Service() {
             }
             if (tryNo == cfg.repeats) break
 
-            // Bir sonraki aramaya kadar geri sayim.
+            // Bir sonraki aramaya kadar geri sayim. Kullanici bu sirada kendi
+            // gorusmesine baslarsa sayac durur, bitince kaldigi yerden devam eder.
             RedialState.update { it.copy(phase = Phase.WAITING) }
-            for (left in cfg.intervalSec downTo 1) {
-                if (!active) return
-                RedialState.update { it.copy(secondsLeft = left) }
+            var left = cfg.intervalSec
+            while (active && left > 0) {
+                if (lineBusy()) {
+                    RedialState.update { it.copy(phase = Phase.PAUSED, secondsLeft = 0) }
+                    updateNotification(
+                        cfg.number, "Telefonunuz meşgul — bekleniyor", tryNo, cfg.repeats
+                    )
+                    delay(1000)
+                    continue
+                }
+                RedialState.update { it.copy(phase = Phase.WAITING, secondsLeft = left) }
                 updateNotification(
                     cfg.number, "Sonraki arama $left sn sonra", tryNo, cfg.repeats
                 )
                 delay(1000)
+                left--
             }
+            if (!active) return
         }
 
         finish(reason, alert = true, answered = answered)
@@ -203,7 +215,12 @@ class RedialService : Service() {
             val now = SystemClock.elapsedRealtime()
             if (monitoring && Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) break
             if (now >= deadline) {
-                if (cfg.hangUpOnTimeout && Phone.hangUp(this)) {
+                // Sadece BIZIM baslattigimiz, o an hala suren cagri kapatilir.
+                // Kullanici bu arada kendi aramasini baslatmis olabilir; onun
+                // gorusmesi asla kesilmez (durumu okuyamiyorsak da dokunmayiz).
+                val stillOurCall = monitoring &&
+                    Phone.callState(this) == TelephonyManager.CALL_STATE_OFFHOOK
+                if (cfg.hangUpOnTimeout && stillOurCall && Phone.hangUp(this)) {
                     weHungUp = true
                     awaitState(TelephonyManager.CALL_STATE_IDLE, 6000)
                 }
@@ -264,11 +281,43 @@ class RedialService : Service() {
         return false
     }
 
-    /** Telefon bostaysa hemen, degilse bosalana kadar bekler. */
-    private suspend fun waitUntilIdle(timeoutMs: Long): Boolean {
+    /** Telefon su an baska bir cagriyla mi mesgul (gelen cagri dahil). */
+    private fun lineBusy(): Boolean =
+        Phone.canReadState(this) &&
+            Phone.callState(this) != TelephonyManager.CALL_STATE_IDLE
+
+    /**
+     * Hat bosalana kadar bekler.
+     *
+     * Kullanici bu sirada kendi aramasini yapiyorsa (ya da gelen bir cagriyi
+     * konusuyorsa) dongu **durmaz, duraklar**: ne yeni arama baslatilir ne de
+     * suren cagriya dokunulur. Gorusme bittikten sonra kisa bir nefes payi
+     * birakilip devam edilir.
+     *
+     * Cok uzun surerse (bkz. [MAX_BUSY_WAIT_MS]) dongu sonlandirilir.
+     */
+    private suspend fun awaitFreeLine(cfg: RedialConfig, tryNo: Int): Boolean {
         if (!Phone.canReadState(this)) return true
         if (Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) return true
-        return awaitState(TelephonyManager.CALL_STATE_IDLE, timeoutMs)
+
+        RedialState.update { it.copy(phase = Phase.PAUSED, secondsLeft = 0) }
+        val end = SystemClock.elapsedRealtime() + MAX_BUSY_WAIT_MS
+
+        while (active && SystemClock.elapsedRealtime() < end) {
+            if (Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) {
+                // Gorusme yeni bitti; hemen ustune arama yapma.
+                delay(FREE_LINE_GRACE_MS)
+                if (!active) return false
+                if (Phone.callState(this) != TelephonyManager.CALL_STATE_IDLE) continue
+                RedialState.update { it.copy(phase = Phase.DIALING) }
+                return true
+            }
+            updateNotification(
+                cfg.number, "Telefonunuz meşgul — bekleniyor", tryNo, cfg.repeats
+            )
+            delay(1000)
+        }
+        return false
     }
 
     // --------------------------------------------------------------- bitiris
@@ -392,6 +441,12 @@ class RedialService : Service() {
 
         /** Arama kaydi izni yokken "cevaplandi" tahmini icin esik (saniye). */
         private const val ANSWER_GUESS_SEC = 20
+
+        /** Kullanicinin kendi gorusmesi icin en fazla ne kadar beklenir. */
+        private const val MAX_BUSY_WAIT_MS = 30 * 60 * 1000L
+
+        /** Hat bosaldiktan sonra araya girilen nefes payi. */
+        private const val FREE_LINE_GRACE_MS = 4000L
 
         private const val EXTRA_NUMBER = "number"
         private const val EXTRA_EXT = "ext"

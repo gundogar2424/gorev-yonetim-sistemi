@@ -3,7 +3,7 @@ package com.otoara.app.call
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-enum class Phase { IDLE, DIALING, IN_CALL, WAITING, FINISHED }
+enum class Phase { IDLE, DIALING, IN_CALL, WAITING, PAUSED, FINISHED }
 
 /**
  * Servisin canli durumu. Servis yazar, ekran okur; boylece uygulama kapatilip
