@@ -76,6 +76,32 @@ Uygulamanın içinde yapay zeka **yok**: API anahtarı, internet ya da abonelik 
 
 > Termomiks Defteri kendi yerel veritabanını (`termomiks-defter`) kullanır; CRM ve Diyet Koçu verilerine dokunmaz.
 
+## 🧠 Zihin Jimnastiği (ayrı program)
+
+Bu depodaki **dördüncü bağımsız program**: **Zihin Jimnastiği**. Kendi giriş sayfası (`zihin.html`), kendi rengi ve kendi kayıt alanı vardır; diğer üç programın hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **Zihin Jimnastiği** → `zihin.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/zihin.html`)
+- APK: `.github/workflows/zihin-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **zihin-latest** sürümüne `zihin-jimnastigi.apk` yüklenir.
+
+**Ne yapar?** Yaşlı kullanıcılar düşünülerek tasarlanmış (büyük yazı, büyük düğmeler, sade ekran) **8 zihin oyunu** sunar. Her gün 3 oyunluk kısa bir antrenman önerir; gün geçtikçe sıra bütün oyunlara gelir. Zorluk **kendiliğinden ayarlanır**: seviye geçilince zorlaşır, çok zorlanınca kolaylaşır.
+
+| Oyun | Çalıştırdığı yeti | Nasıl oynanır |
+|---|---|---|
+| 🃏 **Hafıza Kartları** | Hafıza | Kapalı kartların eşini bul; seviye arttıkça kart sayısı artar |
+| 🎨 **Sıra Takibi** | Hafıza (işleyen bellek) | Yanan renkleri aynı sırayla tekrarla; dizi her turda uzar |
+| 📝 **Kelimeleri Hatırla** | Hafıza (sözel) | Listeyi ezberle, aradan sonra hangi kelimenin listede olduğunu tanı |
+| 🚦 **Renk Tuzağı** | Dikkat (Stroop) | Yazılan renk adına değil, yazının mürekkep rengine göre cevap ver |
+| 🔢 **Sayı Avı** | İşlem hızı | Karışık sayılara 1'den başlayıp sırayla dokun; üst seviyede sayılar yer değiştirir |
+| 🔤 **Karışık Harfler** | Dil | Karışmış harflerden Türkçe kelimeyi kur; ipucu ilk harfi verir |
+| 🧮 **Zihinden Hesap** | Hesap | Dört seçenekli hızlı işlem; üst seviyelerde çarpma/bölme ve iki adımlı işlemler |
+| 🔍 **Farklı Olanı Bul** | Mantık / görsel dikkat | Gruba uymayan şekli bul; fark giderek incelir (ton, yön, boyut) |
+
+Ek özellikler: günlük seri sayacı, gelişim ekranı (son 7 gün, oyun başına seviye ve son puanlar), günün beyin sağlığı ipucu, koyu tema, **büyük yazı** modu, ses/titreşim geri bildirimi, tek dosyaya yedekleme ve geri yükleme.
+
+> **Önemli:** Bu oyunlar Alzheimer ya da demansı **önlemez, tedavi etmez**, tanı koymaz. Düzenli zihinsel uğraşın "bilişsel rezerv" oluşturduğuna dair araştırmalar vardır; ancak en güçlü koruyucu etkenler fiziksel hareket, tansiyon-şeker kontrolü, iyi uyku, işitmenin düzeltilmesi, sigarayı bırakmak ve sosyal bağlardır. Günlük yaşamı etkileyen unutkanlıkta bir nöroloji uzmanına başvurulmalıdır.
+
+> Zihin Jimnastiği verisini yalnızca `zn-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet, hesap ya da izin gerektirmez.
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz

@@ -583,3 +583,141 @@ textarea {
 .dark .tm-label {
   color: #7d8b84;
 }
+
+/* =========================================================================
+   ZIHIN JIMNASTIGI — yalnizca zn-* siniflari (src/zihin/**). Diger
+   programlarin kurallarina dokunulmadi. Yasli kullanicilar hedef kitle:
+   buyuk yazi, buyuk dokunma alani, yuksek kontrast, az dekor.
+   ========================================================================= */
+.zn-app {
+  background-color: #f6f4fb;
+}
+.dark .zn-app {
+  background-color: #12101c;
+}
+/* Ayarlar > Buyuk yazi: tum rem olcekleri buyur (Tailwind rem kullanir). */
+html.zn-big {
+  font-size: 118%;
+}
+@layer components {
+  .zn-card {
+    @apply bg-white rounded-3xl p-4 shadow-card;
+  }
+  .zn-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 font-semibold transition select-none;
+    @apply min-h-[56px] text-[17px] active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
+  }
+  .zn-btn-primary {
+    @apply zn-btn bg-zn-600 text-white hover:bg-zn-700;
+  }
+  .zn-btn-soft {
+    @apply zn-btn bg-zn-50 text-zn-700 hover:bg-zn-100;
+  }
+  .zn-btn-ghost {
+    @apply zn-btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  }
+  .zn-btn-danger {
+    @apply zn-btn bg-rose-50 text-rose-600 hover:bg-rose-100;
+  }
+  .zn-label {
+    @apply text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-400;
+  }
+  .zn-pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold bg-zn-50 text-zn-700;
+  }
+  /* Oyun ici buyuk secenek kutusu (cevap dugmesi) */
+  .zn-choice {
+    @apply w-full min-h-[64px] rounded-2xl bg-white text-slate-900 text-[22px] font-bold shadow-card;
+    @apply flex items-center justify-center px-3 transition active:scale-[0.97] select-none;
+  }
+}
+.dark .zn-card {
+  background-color: #1b1828;
+  box-shadow: none;
+}
+.dark .zn-btn-soft {
+  background-color: #241f38;
+  color: #c4b4f5;
+}
+.dark .zn-btn-ghost {
+  background-color: #241f38;
+  color: #d7d2e6;
+}
+.dark .zn-btn-danger {
+  background-color: #2a1a1d;
+}
+.dark .zn-label {
+  color: #8b849e;
+}
+.dark .zn-pill {
+  background-color: #241f38;
+  color: #c4b4f5;
+}
+.dark .zn-choice {
+  background-color: #1b1828;
+  color: #ece8f7;
+  box-shadow: none;
+}
+.dark .bg-zn-50 {
+  background-color: #241f38;
+}
+.dark .text-zn-800,
+.dark .text-zn-700,
+.dark .text-zn-600 {
+  color: #b9a6f3;
+}
+.dark .border-zn-100,
+.dark .border-zn-200 {
+  border-color: #3a3157;
+}
+@keyframes zn-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.zn-pop {
+  animation: zn-pop 0.18s ease-out;
+}
+@keyframes zn-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+.zn-shake {
+  animation: zn-shake 0.3s ease-in-out;
+}
+/* Hafiza karti cevirme */
+.zn-flip {
+  transform-style: preserve-3d;
+  transition: transform 0.35s ease;
+}
+.zn-flip.on {
+  transform: rotateY(180deg);
+}
+.zn-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.zn-face-back {
+  transform: rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .zn-pop,
+  .zn-shake,
+  .zn-flip {
+    animation: none;
+    transition: none;
+  }
+}
