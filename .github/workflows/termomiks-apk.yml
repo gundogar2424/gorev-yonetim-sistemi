@@ -11,6 +11,7 @@ on:
       - 'src/index.css'
       - 'src/fonts/**'
       - 'termomiks.html'
+      - 'assets-termomiks/**'
       - 'capacitor.config.ts'
       - 'tailwind.config.js'
       - 'postcss.config.js'
@@ -95,9 +96,11 @@ jobs:
       - name: Web varlıklarını senkronla
         run: npx cap sync android
 
-      - name: Uygulama simgesi (Termomiks'e özel, mavi zemin)
+      - name: Uygulama simgesi (Termomiks'e özel amblem)
         run: |
-          npx @capacitor/assets generate --android --iconBackgroundColor '#4d9bff' --iconBackgroundColorDark '#4d9bff'
+          # Kaynak: assets-termomiks/ (CRM ve Diyet Kocu'nun ortak assets/ klasoru
+          # DEGISMEZ; onlarin simgesi eskisi gibi kalir).
+          npx @capacitor/assets generate --assetPath assets-termomiks --android --iconBackgroundColor '#1f2430' --iconBackgroundColorDark '#1f2430'
           echo "--- uretilen mipmap dosyalari ---"; ls -1 android/app/src/main/res/mipmap-xxxhdpi/ || true
 
       - name: SDK sürümleri
