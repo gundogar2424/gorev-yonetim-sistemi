@@ -5,6 +5,7 @@ import TmHeader from '../TmHeader'
 import { addRecipe, readTmSettings } from '../db'
 import { convertRecipe } from '../ai'
 import { stepSummary } from '../lib/tm7'
+import { parseRecipeCode } from '../lib/recipeIO'
 import type { TmConversion } from '../types'
 
 // Fotografi kucult + base64'e cevir. Buyuk fotograflar hem yavas gider hem
@@ -36,10 +37,15 @@ async function fileToBase64(file: File): Promise<{ base64: string; mediaType: st
   return { base64: out.split(',')[1] ?? '', mediaType: 'image/jpeg' }
 }
 
+type Mode = 'ai' | 'kod'
+
 export default function Convert() {
   const navigate = useNavigate()
   const settings = useLiveQuery(() => readTmSettings(), [], undefined)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Iki yol: yapay zekaya uyarlatmak (anahtar ister) ya da baska yerde
+  // uyarlanmis hazir tarif kodunu yapistirmak (anahtar/internet istemez).
+  const [mode, setMode] = useState<Mode>('ai')
 
   const [text, setText] = useState('')
   const [note, setNote] = useState('')
@@ -106,7 +112,34 @@ export default function Convert() {
         }
       />
 
-      <div className="px-4 py-3 space-y-3">
+      <div className="px-4 pt-3">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setMode('ai')}
+            className={`py-2.5 rounded-xl text-sm font-semibold border ${
+              mode === 'ai'
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-white dark:bg-[#252733] text-slate-600 border-slate-200 dark:border-[#2f3240]'
+            }`}
+          >
+            ✨ Yapay zeka uyarlasın
+          </button>
+          <button
+            onClick={() => setMode('kod')}
+            className={`py-2.5 rounded-xl text-sm font-semibold border ${
+              mode === 'kod'
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-white dark:bg-[#252733] text-slate-600 border-slate-200 dark:border-[#2f3240]'
+            }`}
+          >
+            📥 Hazır kodu yapıştır
+          </button>
+        </div>
+      </div>
+
+      {mode === 'kod' && <KodYapistir />}
+
+      <div className={`px-4 py-3 space-y-3 ${mode === 'kod' ? 'hidden' : ''}`}>
         {!settings?.apiKey?.trim() && (
           <div className="card p-3 text-sm bg-amber-50 dark:bg-[#252733] border-amber-200">
             Uyarlama için Claude API anahtarı gerekiyor.{' '}
@@ -247,5 +280,83 @@ function Preview({ r, onSave }: { r: TmConversion; onSave: () => void }) {
         Deftere kaydet
       </button>
     </section>
+  )
+}
+
+// HAZIR TARIF KODU: tarif baska bir yerde TM7'ye uyarlanip JSON olarak
+// verilmisse, buraya yapistirilip dogrudan deftere eklenir. API anahtari ve
+// internet GEREKMEZ. Kabul edilen bicimler recipeIO.ts'te aciklandi.
+function KodYapistir() {
+  const navigate = useNavigate()
+  const [kod, setKod] = useState('')
+  const [hata, setHata] = useState('')
+  const [onizleme, setOnizleme] = useState<TmConversion[] | null>(null)
+
+  function kontrolEt() {
+    setHata('')
+    setOnizleme(null)
+    try {
+      setOnizleme(parseRecipeCode(kod).map((p) => p.recipe))
+    } catch (e) {
+      setHata((e as Error).message)
+    }
+  }
+
+  async function ekle() {
+    setHata('')
+    try {
+      const liste = parseRecipeCode(kod)
+      let sonId = 0
+      for (const { recipe, source } of liste) {
+        sonId = await addRecipe(recipe, { source, origin: 'ai' })
+      }
+      if (liste.length === 1) navigate(`/tarif/${sonId}`)
+      else navigate('/')
+    } catch (e) {
+      setHata((e as Error).message)
+    }
+  }
+
+  return (
+    <div className="px-4 py-3 space-y-3">
+      <div className="card p-3 text-[13px] text-slate-600 dark:text-slate-300">
+        Tarifi başka bir yerde TM7 adımlarına çevirttiysen, oradaki <b>tarif kodunu</b> buraya
+        yapıştır. API anahtarı ya da internet gerekmez; tarif doğrudan deftere eklenir.
+        Birden fazla tarif içeren kod da olur.
+      </div>
+
+      <textarea
+        className="field-input min-h-[200px] font-mono text-[12px] leading-relaxed"
+        placeholder={'{ "title": "Mercimek çorbası", "steps": [ ... ] }'}
+        value={kod}
+        onChange={(e) => setKod(e.target.value)}
+      />
+
+      <div className="flex gap-2">
+        <button onClick={kontrolEt} className="btn-ghost flex-1 py-2.5 text-sm">
+          Önce kontrol et
+        </button>
+        <button onClick={ekle} className="btn-primary flex-1 py-2.5 text-sm">
+          Deftere ekle
+        </button>
+      </div>
+
+      {hata && (
+        <div className="card p-3 text-sm text-rose-600 whitespace-pre-wrap bg-rose-50 dark:bg-[#252733]">{hata}</div>
+      )}
+
+      {onizleme && (
+        <div className="card p-3 text-sm space-y-1">
+          <div className="text-emerald-600 font-semibold">
+            Kod geçerli ✔ {onizleme.length} tarif bulundu:
+          </div>
+          {onizleme.map((r, i) => (
+            <div key={i} className="text-slate-600 dark:text-slate-300">
+              • {r.title} — {r.steps.length} adım, {r.ingredients.length} malzeme
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

@@ -4,7 +4,8 @@
 //
 // NOT: SDK yalnizca cagri aninda (dinamik import) yuklenir; boylece sayfa
 // acilisinda SDK yuzunden bir sorun olsa bile uygulama yine de acilir.
-import type { TmConversion, TmStep } from './types'
+import type { TmConversion } from './types'
+import { normalizeConversion } from './lib/recipeIO'
 
 export const DEFAULT_MODEL = 'claude-opus-5'
 
@@ -187,35 +188,9 @@ export async function convertRecipe(opts: ConvertOpts): Promise<TmConversion> {
     } catch {
       throw new Error(`Yapay zeka yanıtı çözümlenemedi. Gelen yanıt: "${cleaned.slice(0, 120)}…"`)
     }
-    return normalize(parsed)
+    return normalizeConversion(parsed)
   } catch (err) {
     throw friendlyError(err)
-  }
-}
-
-// Modelden gelen nesneyi guvene al: eksik alanlari doldur, tipleri duzelt.
-function normalize(p: Partial<TmConversion>): TmConversion {
-  const steps: TmStep[] = Array.isArray(p.steps)
-    ? p.steps.map((s) => ({
-        text: String(s?.text ?? '').trim(),
-        ingredients: String(s?.ingredients ?? '').trim(),
-        seconds: Number.isFinite(s?.seconds) ? Math.max(0, Math.round(Number(s.seconds))) : 0,
-        speed: (s?.speed ?? '') as TmStep['speed'],
-        reverse: !!s?.reverse,
-        temp: String(s?.temp ?? '').trim(),
-        mode: (s?.mode ?? '') as TmStep['mode'],
-        tip: String(s?.tip ?? '').trim()
-      }))
-    : []
-  return {
-    title: String(p.title ?? '').trim() || 'Adsız tarif',
-    category: String(p.category ?? '').trim() || 'Diğer',
-    servings: Number.isFinite(p.servings) ? Number(p.servings) : 0,
-    minutes: Number.isFinite(p.minutes) ? Number(p.minutes) : 0,
-    ingredients: Array.isArray(p.ingredients) ? p.ingredients.map((i) => String(i).trim()).filter(Boolean) : [],
-    steps: steps.filter((s) => s.text),
-    notes: String(p.notes ?? '').trim(),
-    warnings: Array.isArray(p.warnings) ? p.warnings.map((w) => String(w).trim()).filter(Boolean) : []
   }
 }
 

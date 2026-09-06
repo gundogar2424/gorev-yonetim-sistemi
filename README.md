@@ -63,13 +63,14 @@ Bu depodaki **üçüncü bağımsız program**: **Termomiks Defteri**. Kendi gir
 | Özellik | Açıklama |
 |---|---|
 | ✨ **TM7'ye uyarlama** | Tarifi yapıştır ya da ekran görüntüsünü seç; cihaz diline (süre + devir + sıcaklık) çevrilsin |
+| 📥 **Hazır tarif kodu** | Uyarlama başka bir yerde yapıldıysa, tarif kodunu (JSON) yapıştır: API anahtarı ve internet gerekmeden deftere eklenir |
 | 📖 **Tarif defteri** | Uyarlanan tarifler kaydedilir; ara, kategoriye göre süz, favorile |
 | ▶︎ **Pişirme modu** | Adımlar tek tek büyük yazıyla; her adımda geri sayım, süre bitince sesli uyarı + titreşim, sonraki adıma otomatik geçiş, ekran açık kalır |
 | ✍️ **Elle tarif** | Kendi tarifini de adım adım (devir/sıcaklık/mod seçerek) yazabilirsin |
 | ⚠️ **Uyarılar** | Kap doluluğu, sıcak sıvıyı yüksek devirde çekme gibi durumlarda uyarı satırı |
 | 💾 **Yedekleme** | Tüm defteri tek dosyaya indir, telefon değişince geri yükle |
 
-**Kurulum:** Uyarlama için bir **Anthropic (Claude) API anahtarı** gerekir. Termomiks Defteri → **Ayarlar** bölümünden girilir; anahtar **yalnızca cihazda** saklanır, hiçbir sunucuya gönderilmez. Anahtar [console.anthropic.com](https://console.anthropic.com/settings/keys) üzerinden alınır. Defteri karıştırmak, tarif okumak ve pişirme modu **internetsiz** çalışır; yalnızca yeni tarif uyarlarken internet gerekir.
+**Kurulum:** *Yapay zekayla* uyarlama için bir **Anthropic (Claude) API anahtarı** gerekir (anahtar istemeyen, tarifi başka bir yerde uyarlatıp **Uyarla → Hazır kodu yapıştır** sekmesinden ekleyebilir). Termomiks Defteri → **Ayarlar** bölümünden girilir; anahtar **yalnızca cihazda** saklanır, hiçbir sunucuya gönderilmez. Anahtar [console.anthropic.com](https://console.anthropic.com/settings/keys) üzerinden alınır. Defteri karıştırmak, tarif okumak ve pişirme modu **internetsiz** çalışır; yalnızca yeni tarif uyarlarken internet gerekir.
 
 > Termomiks Defteri kendi yerel veritabanını (`termomiks-defter`) kullanır; CRM ve Diyet Koçu verilerine dokunmaz.
 
