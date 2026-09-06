@@ -20,6 +20,22 @@ export default {
           800: '#2f68b4',
           900: '#27528b'
         },
+        // TERMOMIKS DEFTERI'nin kendi rengi: Cookidoo ekran goruntusunden
+        // PIKSEL ORNEKLEMEYLE alinan Thermomix yesili (#00ac46 = 500).
+        // Yalnizca src/tm/** kullanir; CRM ve Diyet Kocu'nun brand mavisi
+        // OLDUGU GIBI KALIR.
+        tm: {
+          50: '#e9f8ef',
+          100: '#c9f0d9',
+          200: '#96e2b8',
+          300: '#5bd093',
+          400: '#21bd6e',
+          500: '#00ac46', // marka yesili (ornekleme)
+          600: '#00873a', // eylem: beyaz yazi okunakli olsun diye biraz koyu
+          700: '#00722f',
+          800: '#065c28',
+          900: '#0a4a22'
+        },
         // MFP paletinden ORNEKLENEN renkler
         mfp: {
           bg: '#151724', // sayfa zemini

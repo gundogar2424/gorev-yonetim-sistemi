@@ -92,7 +92,7 @@ export default function AddRecipe() {
           <button onClick={kontrolEt} className="btn-ghost flex-1 py-3 text-sm">
             Önce kontrol et
           </button>
-          <button onClick={ekle} className="btn-primary flex-1 py-3">
+          <button onClick={ekle} className="btn-tm flex-1 py-3">
             Deftere ekle
           </button>
         </div>
@@ -145,7 +145,7 @@ function Onizleme({ liste }: { liste: TmConversion[] }) {
                   {s.ingredients && <div className="text-[12px] text-slate-500 pl-4">Kaba gir: {s.ingredients}</div>}
                   {stepSummary(s) && (
                     <div className="pl-4">
-                      <span className="chip bg-brand-50 dark:bg-[#252733] text-brand-700">{stepSummary(s)}</span>
+                      <span className="chip bg-tm-50 dark:bg-[#252733] text-tm-700">{stepSummary(s)}</span>
                     </div>
                   )}
                   {s.tip && <div className="text-[12px] text-amber-600 pl-4">💡 {s.tip}</div>}

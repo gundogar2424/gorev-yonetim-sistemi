@@ -161,7 +161,7 @@ export default function EditRecipe() {
           <input className="field-input" value={source} onChange={(e) => setSource(e.target.value)} placeholder="örn. anneannemin tarifi" />
         </div>
 
-        <button onClick={kaydet} className="btn-primary w-full py-3">
+        <button onClick={kaydet} className="btn-tm w-full py-3">
           Kaydet
         </button>
       </div>
@@ -188,7 +188,7 @@ function StepEditor({
   return (
     <div className="card p-3 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="w-6 h-6 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center">
+        <span className="w-6 h-6 rounded-full bg-tm-600 text-white text-xs font-bold flex items-center justify-center">
           {i + 1}
         </span>
         <div className="flex-1" />

@@ -439,3 +439,25 @@ textarea {
 .dark .text-cyan-700 {
   color: #7dd3fc;
 }
+
+/* --- Termomiks Defteri (yesil) --------------------------------------------
+   Bu kurallar SADECE tm-* siniflarini kullanan Termomiks sayfalarini etkiler;
+   CRM ve Diyet Kocu brand-* (mavi) kullanmaya devam eder. */
+@layer components {
+  .btn-tm {
+    @apply btn bg-tm-600 text-white hover:bg-tm-700;
+  }
+}
+.dark .bg-tm-50 {
+  background-color: #122a1e;
+}
+.dark .text-tm-800,
+.dark .text-tm-700,
+.dark .text-tm-600,
+.dark .text-tm-500 {
+  color: #34d17a;
+}
+.dark .border-tm-100,
+.dark .border-tm-200 {
+  border-color: #1c3d2a;
+}

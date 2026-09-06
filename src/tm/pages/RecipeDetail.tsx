@@ -139,7 +139,7 @@ export default function RecipeDetail() {
         )}
         {fotoHata && <div className="card p-3 text-sm text-rose-600">{fotoHata}</div>}
 
-        <Link to={`/pisir/${rid}`} className="btn-primary w-full py-3">
+        <Link to={`/pisir/${rid}`} className="btn-tm w-full py-3">
           ▶︎ Pişirmeye başla
         </Link>
 
@@ -167,7 +167,7 @@ export default function RecipeDetail() {
           {r.steps.map((s, k) => (
             <div key={k} className="card p-3">
               <div className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-brand-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-tm-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
                   {k + 1}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -175,7 +175,7 @@ export default function RecipeDetail() {
                   {s.ingredients && <div className="text-[12px] text-slate-500 mt-1">Kaba gir: {s.ingredients}</div>}
                   {stepSummary(s) && (
                     <div className="mt-1.5">
-                      <span className="chip bg-brand-50 dark:bg-[#252733] text-brand-700">{stepSummary(s)}</span>
+                      <span className="chip bg-tm-50 dark:bg-[#252733] text-tm-700">{stepSummary(s)}</span>
                     </div>
                   )}
                   {s.tip && <div className="text-[12px] text-amber-600 mt-1">💡 {s.tip}</div>}
@@ -202,7 +202,7 @@ export default function RecipeDetail() {
           <div className="card p-3">
             <button
               onClick={() => setOrijinalAcik((v) => !v)}
-              className="text-sm font-semibold text-brand-600 w-full text-left"
+              className="text-sm font-semibold text-tm-600 w-full text-left"
             >
               {orijinalAcik ? '▾' : '▸'} Orijinal tarif (uyarlanmadan önce)
             </button>

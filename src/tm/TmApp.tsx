@@ -86,13 +86,13 @@ export default function TmApp() {
                 <NavIcon
                   name={t.icon}
                   className={`h-[22px] w-[22px] ${
-                    isActive ? 'text-brand-600 dark:text-[#e0e1e6]' : 'text-slate-400 dark:text-[#9b9ea7]'
+                    isActive ? 'text-tm-600 dark:text-[#e0e1e6]' : 'text-slate-400 dark:text-[#9b9ea7]'
                   }`}
                 />
                 <span
                   className={`text-[11px] leading-none ${
                     isActive
-                      ? 'text-brand-600 dark:text-[#e0e1e6] font-semibold'
+                      ? 'text-tm-600 dark:text-[#e0e1e6] font-semibold'
                       : 'text-slate-500 dark:text-[#9b9ea7] font-medium'
                   }`}
                 >

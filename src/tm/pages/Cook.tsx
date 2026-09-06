@@ -139,7 +139,7 @@ export default function Cook() {
         {/* Ilerleme cubugu */}
         <div className="h-1.5 rounded-full bg-slate-200 dark:bg-[#252733] overflow-hidden">
           <div
-            className="h-full bg-brand-600 transition-all"
+            className="h-full bg-tm-600 transition-all"
             style={{ width: `${((i + (bitti ? 1 : 0)) / steps.length) * 100}%` }}
           />
         </div>
@@ -166,7 +166,7 @@ export default function Cook() {
           />
         </div>
         {step.mode && (
-          <div className="card p-3 text-center text-sm font-semibold text-brand-600">Mod: {modeLabel(step.mode)}</div>
+          <div className="card p-3 text-center text-sm font-semibold text-tm-600">Mod: {modeLabel(step.mode)}</div>
         )}
 
         {/* Sayac */}
@@ -181,7 +181,7 @@ export default function Cook() {
             </div>
             <div className="mt-4 flex gap-2 justify-center">
               {!bitti && (
-                <button onClick={() => setCalisiyor((v) => !v)} className="btn-primary px-6 py-2.5">
+                <button onClick={() => setCalisiyor((v) => !v)} className="btn-tm px-6 py-2.5">
                   {calisiyor ? 'Duraklat' : kalan === step.seconds ? 'Başlat' : 'Devam et'}
                 </button>
               )}
@@ -206,11 +206,11 @@ export default function Cook() {
             ← Önceki
           </button>
           {sonAdim ? (
-            <button onClick={bitir} className="btn-primary flex-1 py-3">
+            <button onClick={bitir} className="btn-tm flex-1 py-3">
               Bitir ✔
             </button>
           ) : (
-            <button onClick={() => setI((v) => Math.min(steps.length - 1, v + 1))} className="btn-primary flex-1 py-3">
+            <button onClick={() => setI((v) => Math.min(steps.length - 1, v + 1))} className="btn-tm flex-1 py-3">
               Sonraki →
             </button>
           )}

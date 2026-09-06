@@ -34,7 +34,7 @@ export default function Recipes({ onlyFavorites }: Props) {
         subtitle={onlyFavorites ? 'Yıldızladığın tarifler' : `${list.length} tarif · Thermomix TM7`}
         right={
           !onlyFavorites ? (
-            <Link to="/ekle" className="btn-primary px-3.5 py-2 text-sm">
+            <Link to="/ekle" className="btn-tm px-3.5 py-2 text-sm">
               + Tarif
             </Link>
           ) : undefined
@@ -74,7 +74,7 @@ export default function Recipes({ onlyFavorites }: Props) {
             </p>
             {!onlyFavorites && (
               <div className="flex gap-2 justify-center">
-                <Link to="/ekle" className="btn-primary px-4 py-2 text-sm">
+                <Link to="/ekle" className="btn-tm px-4 py-2 text-sm">
                   Tarif ekle
                 </Link>
                 <Link to="/yeni" className="btn-ghost px-4 py-2 text-sm">
@@ -161,7 +161,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
       onClick={onClick}
       className={`chip flex-shrink-0 border ${
         active
-          ? 'bg-brand-600 text-white border-brand-600'
+          ? 'bg-tm-600 text-white border-tm-600'
           : 'bg-white dark:bg-[#252733] text-slate-600 border-slate-200 dark:border-[#2f3240]'
       }`}
     >
@@ -201,7 +201,7 @@ function RecipeRow({ r }: { r: TmRecipe }) {
       </button>
       <Link
         to={`/pisir/${r.id}`}
-        className="flex-shrink-0 btn-primary px-3 py-2 text-sm"
+        className="flex-shrink-0 btn-tm px-3 py-2 text-sm"
         aria-label="Pişirme modunu başlat"
       >
         Pişir

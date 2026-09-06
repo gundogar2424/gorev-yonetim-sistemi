@@ -91,7 +91,7 @@ export default function TmSettings() {
                 }}
                 className={`py-2.5 rounded-xl text-sm font-semibold border ${
                   tema === p
-                    ? 'bg-brand-600 text-white border-brand-600'
+                    ? 'bg-tm-600 text-white border-tm-600'
                     : 'bg-white dark:bg-[#252733] text-slate-600 border-slate-200 dark:border-[#2f3240]'
                 }`}
               >
