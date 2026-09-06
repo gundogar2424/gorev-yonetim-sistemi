@@ -721,3 +721,8 @@ html.zn-big {
     transition: none;
   }
 }
+
+/* Termomiks: onay kutulari uygulamanin yesili olsun (sistem mavisi degil) */
+.tm-app input[type='checkbox'] {
+  accent-color: #00873a;
+}
