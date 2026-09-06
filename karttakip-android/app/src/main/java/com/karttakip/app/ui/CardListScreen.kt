@@ -487,18 +487,39 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    DaysBadge(daysToDue)
                     if (card.debt > 0) {
+                        // Odenecek borc var -> gun rozeti + tutar
+                        DaysBadge(daysToDue)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             money(card.debt),
                             style = MaterialTheme.typography.labelLarge,
                             color = Color.White.copy(alpha = 0.9f)
                         )
+                    } else {
+                        // Borc yok -> acil gostermez
+                        PaidBadge()
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PaidBadge() {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color(0xFF22C55E).copy(alpha = 0.30f))
+            .padding(horizontal = 12.dp, vertical = 5.dp)
+    ) {
+        Text(
+            "Borç yok",
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
