@@ -464,17 +464,27 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text(
-                        "Kesim ${dateFmt.format(nextStatement)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        "Son ödeme ${dateFmt.format(nextDue)}",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    val dueLine: @Composable () -> Unit = {
+                        Text(
+                            "Son ödeme ${dateFmt.format(nextDue)}",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    val stmtLine: @Composable () -> Unit = {
+                        Text(
+                            "Kesim ${dateFmt.format(nextStatement)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                    }
+                    // Zaman sirasi: hangisi once geliyorsa ustte gozuksun
+                    if (!nextDue.isAfter(nextStatement)) {
+                        dueLine(); stmtLine()
+                    } else {
+                        stmtLine(); dueLine()
+                    }
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     DaysBadge(daysToDue)
