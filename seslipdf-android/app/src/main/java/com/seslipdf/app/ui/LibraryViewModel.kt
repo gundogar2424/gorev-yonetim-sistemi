@@ -62,6 +62,12 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     var sleepMinutes by mutableStateOf(prefs.sleepMinutes)
         private set
 
+    /** Okuma ekrani ekranda mi (ekranin uyanik tutulmasi icin). */
+    var readerVisible by mutableStateOf(false)
+
+    /** Sessiz moddaki akis su an suruyor mu. */
+    var flowing by mutableStateOf(false)
+
     var voices by mutableStateOf<List<VoiceInfo>>(emptyList())
         private set
     var voicesLoading by mutableStateOf(false)
