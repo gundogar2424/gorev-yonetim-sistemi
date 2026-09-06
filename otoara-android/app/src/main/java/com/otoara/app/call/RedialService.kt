@@ -259,19 +259,24 @@ class RedialService : Service() {
                 break
             }
             // Telefonun kendi arama uygulamasi ses yolunu geri cekebiliyor;
-            // cagrinin ilk saniyelerinde hoparlor israrla uygulanir.
-            if (cfg.speaker &&
-                now - connectStart < SPEAKER_ENFORCE_MS &&
-                !Speaker.isOn(this)
-            ) {
+            // bu yuzden hoparlor cagri boyunca israrla uygulanir.
+            if (cfg.speaker && !Speaker.isOn(this)) {
                 val ok = Speaker.on(this)
                 RedialState.update { it.copy(speakerOn = ok) }
             }
 
             val left = ((deadline - now) / 1000).toInt() + 1
             RedialState.update { it.copy(secondsLeft = left) }
+            // Arama ekrani onde oldugu icin uygulamanin kendi ekrani
+            // gorulemiyor; hoparlor durumu bildirimde yazar.
+            val speakerNote = when {
+                !cfg.speaker -> ""
+                Speaker.isOn(this) -> "  ·  🔊 hoparlör açık"
+                else -> "  ·  hoparlör açılamadı"
+            }
             updateNotification(
-                cfg.number, "Görüşmede — $left sn", tryNo, cfg.repeats, inCall = true
+                cfg.number, "Görüşmede — $left sn$speakerNote",
+                tryNo, cfg.repeats, inCall = true
             )
             delay(400)
         }
@@ -516,8 +521,6 @@ class RedialService : Service() {
         /** Hat bosaldiktan sonra araya girilen nefes payi. */
         private const val FREE_LINE_GRACE_MS = 4000L
 
-        /** Hoparlorun israrla uygulanacagi sure (cagri baslangicindan itibaren). */
-        private const val SPEAKER_ENFORCE_MS = 15_000L
 
         private const val EXTRA_NUMBER = "number"
         private const val EXTRA_EXT = "ext"
