@@ -5,7 +5,7 @@ import { Capacitor } from '@capacitor/core'
 import { useLiveQuery } from 'dexie-react-hooks'
 import DietHeader from '../DietHeader'
 import { dietDb, readDietSettings, saveDietSettings, listExercises, listMeasurements, getWaterMlDay, addWaterMl, listWater, listCheckinsDay, addCheckin, deleteCheckin, addCraving, listShopping, setDayNote, addDraftEntry, getStepsRow, listFavorites, addFavorite, deleteFavorite, addFavoriteToDay, getSleepRow, setSleepDay, clearSleepDay, listSleep } from '../db'
-import { analyzeFood, analyzeFoodByText, recheckCompliance, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals, splitDietPlanWeek } from '../ai'
+import { analyzeFood, analyzeFoodByText, recheckCompliance, chatAboutFood, coachChat, cravingHelp, menuChat, mealClarifyChat, splitDietPlanMeals, splitDietPlanWeek, planCombinedMeal } from '../ai'
 import { computeStats, todayStr, dayAdherence, TRACKED_MEALS, setActiveMeals } from '../streak'
 import { quoteOfDay } from '../lib/quotes'
 import { scheduleSugarReminder, applyNotifications, activeMealTypes, mergeReminders } from '../lib/notify'
@@ -726,6 +726,9 @@ export default function Capture() {
 
         {/* Sıradaki öğün: saati/ne kadar kaldığı; dokununca o öğünü eklemeye başlar */}
         <NextMeal entries={entries ?? []} settings={settings} onPick={addForMeal} />
+
+        {/* Ogun birlestirme: "kahvaltiyla ogleni birlikte yiyecegim, ne yiyeyim?" */}
+        <CombinePlanner entries={entries ?? []} settings={settings} />
 
         {/* Kriz ani: canim cekiyor! */}
         <CrisisSOS entries={entries ?? []} exercises={exercises ?? []} settings={settings} />
@@ -2848,6 +2851,135 @@ function NextMeal({ entries, settings, onPick }: { entries: DietEntry[]; setting
 
       <span className="btn-primary w-full mt-4">Bu öğünü ekle</span>
     </button>
+  )
+}
+
+// OGUN BIRLESTIRME PLANLAYICISI — yemeden ONCE.
+//
+// Neden gerekli: uygulama birlesik ogunu zaten DEGERLENDIREBILIYOR (analiz
+// oncesi ogun secici + recheckCompliance), ama "saat 11, kahvaltiyla ogleni
+// birlestirecegim, ne yiyeyim?" sorusunun cevabi hicbir yerde yoktu.
+// Iki menuyu alt alta koymak yanlis: cift ekmek, cift meyve cikiyor. Dogru
+// birlestirme protein/sebzeyi koruyup nisastayi toplamamak; bunu kullanici
+// tek basina yapamiyor.
+//
+// Token dostu: fotograf gitmez, yalnizca secilen ogunlerin listedeki metni
+// gider ve ancak dugmeye basilinca calisir.
+function CombinePlanner({ entries, settings }: { entries: DietEntry[]; settings?: DietSettings }) {
+  const [picked, setPicked] = useState<MealType[]>([])
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [open, setOpen] = useState(false)
+
+  const today = todayStr()
+  const covered = new Set<MealType>()
+  for (const e of entries.filter((x) => x.dateStr === today))
+    for (const m of [e.mealType, e.alsoMeal, e.alsoMeal2]) if (m) covered.add(m)
+
+  // Ogun listesi ve saatleri: NextMeal ile AYNI kaynak (Hatirlaticilar >
+  // "Ogunlerim"). Iki yerde ayri liste tutmak, birinde ogun eksik kalmasina
+  // yol acardi.
+  const mine = new Set(activeMealTypes(settings))
+  const all = mergeReminders(settings?.reminders)
+    .filter((r) => mine.has(r.id as MealType))
+    .map((r) => ({ meal: r.id as MealType, time: r.time }))
+    .sort((a, b) => a.time.localeCompare(b.time))
+  const todo = all.filter((x) => !covered.has(x.meal))
+
+  const dow = new Date().getDay()
+  const dayPlan = settings?.dietPlanWeek?.[String(dow)]
+  const weekendSet = dow === 0 || dow === 6 ? settings?.dietPlanMealsWeekend : undefined
+  const planFor = (m: MealType) => (dayPlan?.[m] ?? weekendSet?.[m] ?? settings?.dietPlanMeals?.[m])?.trim()
+
+  function toggle(m: MealType) {
+    setText('')
+    setPicked((p) => (p.includes(m) ? p.filter((x) => x !== m) : [...p, m]))
+  }
+
+  async function run() {
+    setBusy(true)
+    setError('')
+    setText('')
+    try {
+      const order = todo.map((x) => x.meal)
+      const chosen = [...picked].sort((a, b) => order.indexOf(a) - order.indexOf(b))
+      const now = new Date()
+      const reply = await planCombinedMeal({
+        apiKey: settings!.apiKey!,
+        time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+        meals: chosen.map((m) => ({ label: mealLabel(m), plan: planFor(m) })),
+        restMeals: todo.filter((x) => !picked.includes(x.meal)).map((x) => ({ label: mealLabel(x.meal), time: x.time })),
+        model: settings?.model,
+        userName: settings?.userName,
+        goal: settings?.goal,
+        dietPlan: settings?.dietPlan,
+        dietitianNotes: settings?.dietitianNotes,
+        health: await buildHealthContext(settings, 'food')
+      })
+      setText(reply)
+    } catch (err) {
+      setError(describeError(err, 'birleşik öğün planı'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // En az iki girilmemis ogun yoksa birlestirecek bir sey de yok.
+  if (todo.length < 2) return null
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="card p-4 w-full text-left active:scale-[0.995] transition">
+        <p className="section-title">Öğünleri birleştir</p>
+        <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+          İki öğünü birlikte yiyeceksen tabağında ne olması gerektiğini koç söylesin.
+        </p>
+      </button>
+    )
+  }
+
+  return (
+    <section className="card p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="section-title">Öğünleri birleştir</p>
+        <button onClick={() => setOpen(false)} className="text-xs text-slate-500 underline">
+          Kapat
+        </button>
+      </div>
+      <p className="text-[13px] text-slate-500 leading-relaxed">Birlikte yiyeceğin öğünleri seç:</p>
+      <div className="flex flex-wrap gap-2">
+        {todo.map((x) => (
+          <button
+            key={x.meal}
+            onClick={() => toggle(x.meal)}
+            className={`text-[13px] font-semibold rounded-full px-3 py-1.5 ${
+              picked.includes(x.meal) ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {mealEmoji(x.meal)} {mealLabel(x.meal)} · {x.time}
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={run}
+        disabled={busy || picked.length < 2 || !settings?.apiKey}
+        className="btn-primary w-full disabled:opacity-50"
+      >
+        {busy ? 'Koç bakıyor…' : '🍽️ Tabağımda ne olsun?'}
+      </button>
+      {!settings?.apiKey && <p className="text-xs text-slate-500">Bunun için Ayarlar’dan API anahtarı ekle.</p>}
+      {picked.length === 1 && <p className="text-[11px] text-slate-400">En az iki öğün seç.</p>}
+      {error && <p className="text-xs text-rose-600 font-semibold whitespace-pre-wrap">{error}</p>}
+      {text && (
+        <div className="bg-slate-50 rounded-xl p-3">
+          <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{text}</p>
+          <p className="text-[11px] text-slate-400 mt-2 leading-snug">
+            Yerken “Bu öğünü ekle” deyip seçtiğin öğünlerin hepsini işaretle; koç tek öğün gibi değerlendirir.
+          </p>
+        </div>
+      )}
+    </section>
   )
 }
 

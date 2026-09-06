@@ -2200,3 +2200,82 @@ ${ctx.join(' ')}${healthSys(health)}`
     throw friendlyError(err)
   }
 }
+
+// BIRLESIK OGUN PLANI — "kahvaltiyi ve ogleni birlestirecegim, ne yiyeyim?"
+//
+// Neden gerekli: uygulama birlesik ogunu DEGERLENDIREBILIYOR (analizden once
+// ogun secilir, uyum ona gore hesaplanir) ama YEMEDEN ONCE ne yenecegini
+// soyleyen bir yer yoktu. Iki ogunun menusu alt alta konunca ortaya cift
+// ekmek, cift meyve gibi anlamsiz bir tabak cikiyor; birlestirmenin kurali
+// "iki menuyu topla" degil, "protein/sebzeyi koru, nisastayi ve porsiyonu
+// makul tut" olmali. Bu karari kullanici tek basina veremiyor.
+export async function planCombinedMeal(opts: {
+  apiKey: string
+  meals: { label: string; plan?: string }[] // Birlestirilecek ogunler ve listedeki halleri
+  time: string // Su anki saat (SS:DD) — tabagi ve gunun kalanini buna gore kurar
+  restMeals?: { label: string; time: string }[] // Gunun kalan ogunleri
+  model?: string
+  userName?: string
+  goal?: string
+  dietPlan?: string
+  dietitianNotes?: string
+  health?: string
+}): Promise<string> {
+  const { apiKey, meals, time, restMeals, model = DEFAULT_MODEL, userName, goal, dietPlan, dietitianNotes, health } = opts
+  if (!apiKey) throw new Error('Önce Ayarlar bölümünden API anahtarınızı girin.')
+  if (meals.length < 2) throw new Error('Birleştirmek için en az iki öğün seç.')
+
+  const ctx: string[] = []
+  if (userName) ctx.push(`Kullanıcının adı: ${userName}.`)
+  if (goal?.trim()) ctx.push(`Hedefi: ${goal.trim()}.`)
+  if (dietitianNotes?.trim()) ctx.push(`Diyetisyen talimatları (mutlaka uy): ${dietitianNotes.trim()}.`)
+  if (dietPlan?.trim()) ctx.push(`Tüm diyet listesi:\n${dietPlan.trim()}`)
+
+  const system = `Sen "Diyet Koçu"sun. Kullanıcı bugün iki (veya daha fazla) öğünü BİRLEŞTİRİP tek seferde yiyecek. Saat ${time}. Ne yemesi gerektiğini söyle.
+
+EN ÖNEMLİ KURAL: Birleştirmek "iki menüyü toplamak" DEĞİLDİR. İki menüyü alt alta koyarsan çift ekmek, çift meyve, çift nişasta çıkar — bu yanlıştır. Doğrusu:
+- PROTEİN kaynaklarını KORU (iki öğünün proteini de kalsın; asıl tokluk oradan gelir).
+- SEBZE/YEŞİLLİĞİ KORU, hatta artır.
+- NİŞASTAYI (ekmek, pilav, makarna, patates) TOPLAMA — tek öğünlük miktarın biraz üstünde bırak, iki katına çıkarma.
+- MEYVE/SÜT ürününü tek porsiyonda tut.
+- Toplam porsiyon tek bir tabakta bitecek kadar makul olsun; kişi zaten iki öğünlük acıkmış ama midesi iki tabak almaz.
+
+NASIL YAZ (Türkçe, sade, kısa):
+1) "Tabağında ne olsun" başlığı altında MADDE MADDE, MİKTARLI liste ver (örn. "2 haşlanmış yumurta", "1 dilim tam tahıllı ekmek", "1 kase yoğurt").
+2) "Neyi çıkardım" başlığı altında 1-2 satırda hangi kalemi neden ikiye katlamadığını söyle.
+3) "Günün kalanı" başlığı altında, kalan öğünler verildiyse onları nasıl ayarlaması gerektiğini 1-2 cümleyle yaz (örn. bir sonraki öğünü biraz geç ve hafif tut).
+
+YAPMA:
+- Listede olmayan yemek uydurma; listedeki kalemlerden ve o öğünün alternatiflerinden seç.
+- Uzun paragraf yazma, nutrition dersi verme, suçlama.
+- Tıbbi teşhis/ilaç önerisi verme.
+${ctx.join(' ')}${healthSys(health)}`
+
+  const detail = meals
+    .map((m) => `— ${m.label}: ${m.plan?.trim() || '(listede bu öğün için ayrıntı yok)'}`)
+    .join('\n')
+  const rest = restMeals?.length
+    ? `\n\nGünün kalan öğünleri: ${restMeals.map((r) => `${r.label} (${r.time})`).join(', ')}.`
+    : '\n\nBugün bunlardan sonra başka öğün kalmıyor.'
+
+  const client = await createClient(apiKey)
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 1200,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: `Saat ${time}. Şu öğünleri birleştirip tek seferde yiyeceğim:\n${detail}${rest}\n\nTabağımda ne olsun?`
+        }
+      ]
+    })
+    if (response.stop_reason === 'refusal') throw new Error('İstek reddedildi.')
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim()
+    if (!text) throw new Error('Plan üretilemedi. Lütfen tekrar deneyin.')
+    return text
+  } catch (err) {
+    throw friendlyError(err)
+  }
+}
