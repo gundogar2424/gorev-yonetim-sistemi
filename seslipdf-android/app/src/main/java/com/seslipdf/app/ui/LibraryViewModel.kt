@@ -68,6 +68,12 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     /** Sessiz moddaki akis su an suruyor mu. */
     var flowing by mutableStateOf(false)
 
+    /**
+     * Uyku sayaci doldu: okuma durdu ve ekran da uyusun. Kullanici yeniden
+     * baslatana kadar ekran acik tutulmaz.
+     */
+    var screenAsleep by mutableStateOf(false)
+
     var voices by mutableStateOf<List<VoiceInfo>>(emptyList())
         private set
     var voicesLoading by mutableStateOf(false)
