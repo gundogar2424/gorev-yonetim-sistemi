@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Cagriyi uygulamanin kendisi baslatabilsin (zorunlu) -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- Cagri durumunu (bosta / gorusmede) izlemek icin (zorunlu) -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Cevap yoksa cagriyi kapatabilmek icin (Android 9+) -->
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <!-- "Cevaplaninca dur" ozelligi: cagrinin gercekten cevaplanip
+         cevaplanmadigi ancak arama kaydindaki sure ile anlasilir. Istege bagli;
+         verilmezse uygulama sureye dayali tahmine duser. -->
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+
+    <!-- Ekran kapaliyken de dongu devam etsin -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Arka planda cagri baslatmayi bazi cihazlar engelliyor; bu izin verilirse
+         engel kalkiyor. Kullanicidan istege bagli olarak istenir. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Telefon ozelligi olmayan cihazlar (tablet) icin zorunlu degil -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
+    <application
+        android:name=".OtoAraApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.OtoAra">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.OtoAra">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Tekrar arama dongusunu yuruten on plan servisi -->
+        <service
+            android:name=".call.RedialService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Kullanicinin baslattigi otomatik tekrar arama dongusunu ekran kapaliyken de surdurur." />
+        </service>
+
+        <!-- Bildirimdeki "Durdur" dugmesi -->
+        <receiver
+            android:name=".call.StopReceiver"
+            android:exported="false" />
+    </application>
+</manifest>
