@@ -107,6 +107,30 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     checked = vm.autoScroll,
                     onChange = { vm.updateAutoScroll(it) }
                 )
+                if (vm.autoScroll) {
+                    SliderRow(
+                        label = "Akış",
+                        value = vm.scrollSpeed,
+                        range = 0f..1f,
+                        format = { speed ->
+                            when {
+                                speed < 0.25f -> "çok yumuşak"
+                                speed < 0.5f -> "yumuşak"
+                                speed < 0.75f -> "orta"
+                                speed < 0.95f -> "çabuk"
+                                else -> "anında"
+                            }
+                        },
+                        onChange = { vm.updateScrollSpeed(it) }
+                    )
+                    Text(
+                        "Yazı, film jeneriği gibi durmadan yukarı akar. Bu ayar akışın " +
+                            "ne kadar ağır ağır süzüleceğini belirler; akışın genel hızı " +
+                            "sesin temposuna göre kendiliğinden ayarlanır.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 SwitchRow(
                     title = "Okurken ekran açık kalsın",
                     description = "Kapalıyken de okuma sürer; bu seçenek yalnızca ekranı açık tutar.",
