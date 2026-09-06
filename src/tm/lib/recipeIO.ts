@@ -63,7 +63,15 @@ const OLCU_KALIPLARI = [
 
 export function gramDisiOlculer(r: TmConversion): string[] {
   const satirlar = [...r.ingredients, ...r.steps.map((s) => s.ingredients)]
-  return satirlar.filter((satir) => satir && OLCU_KALIPLARI.some((k) => k.test(satir)))
+  return satirlar.filter((satir) => {
+    if (!satir) return false
+    // Parantez ici ACIKLAMADIR, olcu degil: "20 g kabartma tozu (2 paket)"
+    // sorunsuzdur — tartilacak deger zaten gram olarak yazilmis.
+    const govde = satir.replace(/\([^)]*\)/g, ' ')
+    // Satirda gram/kilogram degeri varsa olcu tartiyla verilmis demektir.
+    if (/\d\s*(g|gr|gram|kg)\b/i.test(govde)) return false
+    return OLCU_KALIPLARI.some((k) => k.test(govde))
+  })
 }
 
 export interface ParsedRecipe {
