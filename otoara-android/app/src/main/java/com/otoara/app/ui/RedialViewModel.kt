@@ -7,12 +7,16 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.otoara.app.data.AppDatabase
+import com.otoara.app.data.Plan
+import com.otoara.app.data.PlanRepeat
 import com.otoara.app.data.Prefs
 import com.otoara.app.data.RedialConfig
 import com.otoara.app.data.Target
+import com.otoara.app.plan.PlanScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 /**
  * Ekrandaki form ve kayitlar. Her degisiklik aninda telefona yazilir; uygulama
@@ -20,6 +24,7 @@ import kotlinx.coroutines.launch
  */
 class RedialViewModel(app: Application) : AndroidViewModel(app) {
 
+    private val ctx = app
     private val prefs = Prefs(app)
     private val db = AppDatabase.get(app)
 
@@ -52,6 +57,9 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val targets = db.targetDao().recent()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val plans = db.planDao().all()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun updateNumber(v: String, name: String = label) {
@@ -122,4 +130,104 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearHistory() = viewModelScope.launch { db.attemptDao().clear() }
+
+    // ------------------------------------------------------- planli aramalar
+
+    /** Duzenlenen planin kimligi; 0 ise yeni plan. */
+    var planId by mutableStateOf(0L)
+        private set
+    var planNumber by mutableStateOf("")
+        private set
+    var planLabel by mutableStateOf("")
+        private set
+    var planNote by mutableStateOf("")
+        private set
+    var planTime by mutableStateOf(defaultPlanTime())
+        private set
+    var planRepeat by mutableStateOf(PlanRepeat.ONCE)
+        private set
+    /** Form acik mi (liste yerine form gosterilir). */
+    var planFormOpen by mutableStateOf(false)
+        private set
+    /** Rehberden secilen numara plana mi gidecek, ana ekrana mi. */
+    var pickingForPlan by mutableStateOf(false)
+        private set
+
+    fun newPlan() {
+        planId = 0
+        planNumber = number.trim()
+        planLabel = label
+        planNote = ""
+        planTime = defaultPlanTime()
+        planRepeat = PlanRepeat.ONCE
+        planFormOpen = true
+    }
+
+    fun editPlan(plan: Plan) {
+        planId = plan.id
+        planNumber = plan.number
+        planLabel = plan.label
+        planNote = plan.note
+        planTime = plan.timeAt
+        planRepeat = plan.repeat
+        planFormOpen = true
+    }
+
+    fun closePlanForm() { planFormOpen = false; pickingForPlan = false }
+
+    fun updatePlanNumber(v: String, name: String = planLabel) {
+        planNumber = v.take(24)
+        planLabel = name
+    }
+
+    fun updatePlanNote(v: String) { planNote = v.take(120) }
+    fun updatePlanTime(v: Long) { planTime = v }
+    fun updatePlanRepeat(v: String) { planRepeat = v }
+    fun setPickingForPlan(v: Boolean) { pickingForPlan = v }
+
+    /** Formdaki eksigi anlatir, sorun yoksa null. */
+    fun validatePlan(): String? {
+        if (planNumber.filter { it.isDigit() }.length < 3) return "Geçerli bir numara girin."
+        if (planTime <= System.currentTimeMillis() && planRepeat == PlanRepeat.ONCE) {
+            return "Geçmiş bir tarih seçilemez."
+        }
+        return null
+    }
+
+    fun savePlan() = viewModelScope.launch {
+        val dao = db.planDao()
+        val plan = Plan(
+            id = planId,
+            number = planNumber.trim(),
+            label = planLabel,
+            note = planNote.trim(),
+            timeAt = planTime,
+            repeat = planRepeat,
+            enabled = true
+        )
+        val saved = if (planId == 0L) plan.copy(id = dao.insert(plan)) else { dao.update(plan); plan }
+        PlanScheduler.schedule(ctx, saved)
+        planFormOpen = false
+        pickingForPlan = false
+    }
+
+    fun deletePlan(plan: Plan) = viewModelScope.launch {
+        PlanScheduler.cancel(ctx, plan.id)
+        db.planDao().delete(plan)
+    }
+
+    fun togglePlan(plan: Plan, enabled: Boolean) = viewModelScope.launch {
+        val updated = plan.copy(enabled = enabled)
+        db.planDao().update(updated)
+        if (enabled) PlanScheduler.schedule(ctx, updated)
+        else PlanScheduler.cancel(ctx, plan.id)
+    }
+
+    /** Varsayilan plan zamani: bir sonraki tam saat. */
+    private fun defaultPlanTime(): Long = Calendar.getInstance().apply {
+        add(Calendar.HOUR_OF_DAY, 1)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 }

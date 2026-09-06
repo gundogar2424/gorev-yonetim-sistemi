@@ -16,6 +16,13 @@
     <!-- Gorusme sesini hoparlore vermek icin -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <!-- Planli aramalarin hatirlatmasi dakikasinda calsin -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Telefon yeniden baslayinca planlarin alarmlarini yeniden kur -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Ekran kapaliyken de dongu devam etsin -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -59,6 +66,20 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Kullanicinin baslattigi otomatik tekrar arama dongusunu ekran kapaliyken de surdurur." />
         </service>
+
+        <!-- Planli arama zamani gelince soran alici -->
+        <receiver
+            android:name=".plan.PlanReceiver"
+            android:exported="false" />
+
+        <!-- Yeniden baslatmada planlarin alarmlarini yeniden kuran alici -->
+        <receiver
+            android:name=".plan.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Bildirimdeki "Durdur" dugmesi -->
         <receiver

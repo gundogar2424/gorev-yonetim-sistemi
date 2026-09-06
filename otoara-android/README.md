@@ -22,6 +22,7 @@ aralıklarla tekrar tekrar arayan** native Android uygulaması.
 | 🔊 **Hoparlör** | Çağrı kurulunca ses otomatik hoparlöre verilir (isteğe bağlı) |
 | 🔔 **Kalıcı bildirim** | Kaçıncı denemede olunduğu, kalan saniye ve **Durdur** düğmesi |
 | 🌙 **Ekran kapalıyken** | Ön plan servisi + wake-lock sayesinde telefon cebindeyken de sürer |
+| 📅 **Planlı arama** | Belirlediğin tarih/saatte telefon sorar: numara, kısa not ve "Ara / Ertele / Vazgeç". Günlük, haftalık, aylık tekrar edebilir |
 | 📋 **Geçmiş** | Her denemenin zamanı, süresi ve sonucu kayıt altında |
 
 ## Döngü tam olarak nasıl işler?
@@ -44,6 +45,24 @@ Her deneme için sırayla:
 > sayılır). Bu izin yalnızca son giden çağrının süresini okumak için kullanılır;
 > hiçbir veri telefondan dışarı çıkmaz.
 
+## Planlı aramalar
+
+**Planlı Aramalar** ekranından (ana ekranın sağ üstündeki takvim simgesi) bir
+numara, tarih/saat ve **niçin arayacağını anlatan kısa bir not** kaydedersin.
+Zamanı gelince telefon bir bildirimle **sorar**:
+
+> **Muhasebe aranacaktı**
+> 05xx xxx xx xx • Şubat faturası sorulacak
+> [ Ara ] [ 15 dk ertele ] [ Vazgeç ]
+
+- **Uygulama kendiliğinden aramaz.** Arama ancak **Ara**'ya bastığında başlar
+  ve o an ana ekrandaki aralık/tekrar/süre ayarlarıyla çalışır.
+- Bildirime dokunursan uygulama açılır ve numara forma dolar; ayarları
+  gözden geçirip elle başlatabilirsin.
+- **Tekrar**: bir kez / her gün / her hafta / her ay. Tekrarlı planlar
+  kendiliğinden bir sonraki zamana kayar.
+- Alarmlar telefon yeniden başlatıldığında otomatik olarak yeniden kurulur.
+
 ## İzinler
 
 | İzin | Neden gerekli |
@@ -53,7 +72,8 @@ Her deneme için sırayla:
 | **Çağrıları yönetme** (`ANSWER_PHONE_CALLS`) | Süre dolunca çağrıyı kapatabilmek için (Android 9+) |
 | **Arama kayıtları** (`READ_CALL_LOG`) | İsteğe bağlı — "cevaplanınca dur" özelliğinin güvenilir çalışması için |
 | **Ses ayarları** (`MODIFY_AUDIO_SETTINGS`) | "Hoparlörü aç" seçeneği için (kurulumda otomatik verilir) |
-| **Bildirimler** | Kalıcı durum bildirimi ve sonuç uyarısı |
+| **Bildirimler** | Kalıcı durum bildirimi, sonuç uyarısı ve planlı arama hatırlatması |
+| **Tam-zamanlı alarm** | Planlı aramanın dakikasında sorulması için |
 | **Pil optimizasyonu muafiyeti** | Ekran kapalıyken döngünün durmaması için (önerilir) |
 
 Rehberden numara seçmek için ayrıca izin **gerekmez**; sistemin kişi seçme
@@ -86,7 +106,8 @@ suçtur. Kullanım sorumluluğu kullanıcıya aittir.
 - **Kotlin + Jetpack Compose** (Material 3, koyu tema)
 - **Foreground Service** (`specialUse`) + `PARTIAL_WAKE_LOCK`
 - **TelecomManager** `placeCall` / `endCall`, **TelephonyManager** çağrı durumu
-- **Room** (yerel veritabanı: denemeler + son aranan numaralar)
+- **Room** (yerel veritabanı: denemeler, son aranan numaralar, planlar)
+- **AlarmManager** + `BroadcastReceiver` (planlı aramalar, boot sonrası yeniden kurulur)
 - **minSdk 26** (Android 8.0+), targetSdk 34
 
 ## APK nasıl üretilir?

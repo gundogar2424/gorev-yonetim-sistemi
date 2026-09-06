@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Lock
@@ -65,7 +66,8 @@ fun HomeScreen(
     onPickContact: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
-    onHistory: () -> Unit
+    onHistory: () -> Unit,
+    onPlans: () -> Unit
 ) {
     var error by remember { mutableStateOf<String?>(null) }
     val targets by vm.targets.collectAsState()
@@ -90,6 +92,13 @@ fun HomeScreen(
                 lineHeight = 34.sp,
                 modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = onPlans) {
+                Icon(
+                    Icons.Filled.EditCalendar,
+                    contentDescription = "Planlı aramalar",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             IconButton(onClick = onHistory) {
                 Icon(
                     Icons.Filled.History,

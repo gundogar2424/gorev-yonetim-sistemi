@@ -22,13 +22,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.otoara.app.call.RedialService
 import com.otoara.app.call.RedialState
+import com.otoara.app.plan.PlanScheduler
 import com.otoara.app.ui.HistoryScreen
 import com.otoara.app.ui.HomeScreen
+import com.otoara.app.ui.PlansScreen
 import com.otoara.app.ui.PermState
 import com.otoara.app.ui.RedialViewModel
 import com.otoara.app.ui.theme.OtoAraTheme
@@ -57,6 +61,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         perms = PermState.read(this)
+        applyPlanExtras(intent)
 
         setContent {
             OtoAraTheme {
@@ -82,11 +87,19 @@ class MainActivity : ComponentActivity() {
                                     RedialService.start(this@MainActivity, vm.config(), vm.label)
                                 },
                                 onStop = { RedialService.stop(this@MainActivity) },
-                                onHistory = { nav.navigate("history") }
+                                onHistory = { nav.navigate("history") },
+                                onPlans = { nav.navigate("plans") }
                             )
                         }
                         composable("history") {
                             HistoryScreen(vm = vm, onBack = { nav.popBackStack() })
+                        }
+                        composable("plans") {
+                            PlansScreen(
+                                vm = vm,
+                                onBack = { nav.popBackStack() },
+                                onPickContact = { openContactPicker() }
+                            )
                         }
                     }
                 }
@@ -94,9 +107,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        applyPlanExtras(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         perms = PermState.read(this)
+        // Saat/tarih degismis ya da bir plan kacirilmis olabilir; alarmlari tazele.
+        lifecycleScope.launch { PlanScheduler.scheduleAll(this@MainActivity) }
+    }
+
+    /** Planli arama bildirimine dokunulduysa numarayi forma doldurur. */
+    private fun applyPlanExtras(intent: Intent?) {
+        val number = intent?.getStringExtra(EXTRA_PLAN_NUMBER) ?: return
+        if (number.isBlank()) return
+        vm.updateNumber(number, intent.getStringExtra(EXTRA_PLAN_LABEL).orEmpty())
+        intent.removeExtra(EXTRA_PLAN_NUMBER)
+        intent.removeExtra(EXTRA_PLAN_LABEL)
+    }
+
+    companion object {
+        const val EXTRA_PLAN_NUMBER = "planNumber"
+        const val EXTRA_PLAN_LABEL = "planLabel"
     }
 
     /** "Diğer uygulamaların üzerinde göster" ayar ekranini acar. */
@@ -137,7 +172,13 @@ class MainActivity : ComponentActivity() {
                 if (c.moveToFirst()) {
                     val raw = c.getString(0) ?: return
                     val name = c.getString(1).orEmpty()
-                    vm.updateNumber(raw.filter { it.isDigit() || it == '+' }, name)
+                    val clean = raw.filter { it.isDigit() || it == '+' }
+                    if (vm.pickingForPlan) {
+                        vm.updatePlanNumber(clean, name)
+                        vm.setPickingForPlan(false)
+                    } else {
+                        vm.updateNumber(clean, name)
+                    }
                 }
             }
         } catch (e: Exception) {
