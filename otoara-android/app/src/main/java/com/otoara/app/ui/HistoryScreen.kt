@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,7 +27,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun HistoryScreen(vm: RedialViewModel, onBack: () -> Unit) {
+fun HistoryScreen(vm: RedialViewModel) {
     val history by vm.history.collectAsState()
     val stamp = SimpleDateFormat("d MMM HH:mm:ss", Locale("tr"))
 
@@ -40,9 +36,6 @@ fun HistoryScreen(vm: RedialViewModel, onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
-            }
             Text("Geçmiş", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
             if (history.isNotEmpty()) {
                 TextButton(onClick = { vm.clearHistory() }) { Text("Temizle") }

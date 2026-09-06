@@ -14,8 +14,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +35,8 @@ import com.otoara.app.plan.PlanScheduler
 import com.otoara.app.ui.HistoryScreen
 import com.otoara.app.ui.HomeScreen
 import com.otoara.app.ui.PlansScreen
+import com.otoara.app.ui.BottomBar
+import com.otoara.app.ui.Section
 import com.otoara.app.ui.PermState
 import com.otoara.app.ui.RedialViewModel
 import com.otoara.app.ui.theme.OtoAraTheme
@@ -72,34 +76,40 @@ class MainActivity : ComponentActivity() {
                     val status by RedialState.status.collectAsStateWithLifecycle()
                     val nav = rememberNavController()
 
-                    NavHost(navController = nav, startDestination = "home") {
-                        composable("home") {
-                            HomeScreen(
-                                vm = vm,
-                                status = status,
-                                perms = perms,
-                                onRequestPerms = { askPermissions.launch(PermState.requestList()) },
-                                onBatteryExempt = { requestBatteryExemption() },
-                                onOverlaySettings = { openOverlaySettings() },
-                                onPickContact = { openContactPicker() },
-                                onStart = {
-                                    vm.rememberTarget()
-                                    RedialService.start(this@MainActivity, vm.config(), vm.label)
-                                },
-                                onStop = { RedialService.stop(this@MainActivity) },
-                                onHistory = { nav.navigate("history") },
-                                onPlans = { nav.navigate("plans") }
-                            )
-                        }
-                        composable("history") {
-                            HistoryScreen(vm = vm, onBack = { nav.popBackStack() })
-                        }
-                        composable("plans") {
-                            PlansScreen(
-                                vm = vm,
-                                onBack = { nav.popBackStack() },
-                                onPickContact = { openContactPicker() }
-                            )
+                    Scaffold(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        bottomBar = { BottomBar(nav) }
+                    ) { inner ->
+                        NavHost(
+                            navController = nav,
+                            startDestination = Section.CALL.route,
+                            modifier = Modifier.padding(inner)
+                        ) {
+                            composable(Section.CALL.route) {
+                                HomeScreen(
+                                    vm = vm,
+                                    status = status,
+                                    perms = perms,
+                                    onRequestPerms = { askPermissions.launch(PermState.requestList()) },
+                                    onBatteryExempt = { requestBatteryExemption() },
+                                    onOverlaySettings = { openOverlaySettings() },
+                                    onPickContact = { openContactPicker() },
+                                    onStart = {
+                                        vm.rememberTarget()
+                                        RedialService.start(this@MainActivity, vm.config(), vm.label)
+                                    },
+                                    onStop = { RedialService.stop(this@MainActivity) }
+                                )
+                            }
+                            composable(Section.HISTORY.route) {
+                                HistoryScreen(vm = vm)
+                            }
+                            composable(Section.PLANS.route) {
+                                PlansScreen(
+                                    vm = vm,
+                                    onPickContact = { openContactPicker() }
+                                )
+                            }
                         }
                     }
                 }
@@ -175,7 +185,7 @@ class MainActivity : ComponentActivity() {
                     val clean = raw.filter { it.isDigit() || it == '+' }
                     if (vm.pickingForPlan) {
                         vm.updatePlanNumber(clean, name)
-                        vm.setPickingForPlan(false)
+                        vm.updatePickingForPlan(false)
                     } else {
                         vm.updateNumber(clean, name)
                     }

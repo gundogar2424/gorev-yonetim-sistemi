@@ -61,18 +61,17 @@ private val timeFormat = SimpleDateFormat("HH:mm", Locale("tr"))
 @Composable
 fun PlansScreen(
     vm: RedialViewModel,
-    onBack: () -> Unit,
     onPickContact: () -> Unit
 ) {
     if (vm.planFormOpen) {
         PlanForm(vm, onPickContact)
     } else {
-        PlanList(vm, onBack)
+        PlanList(vm)
     }
 }
 
 @Composable
-private fun PlanList(vm: RedialViewModel, onBack: () -> Unit) {
+private fun PlanList(vm: RedialViewModel) {
     val plans by vm.plans.collectAsState()
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
@@ -80,9 +79,6 @@ private fun PlanList(vm: RedialViewModel, onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
-            }
             Text(
                 "Planlı Aramalar",
                 style = MaterialTheme.typography.headlineSmall,
@@ -226,7 +222,7 @@ private fun PlanForm(vm: RedialViewModel, onPickContact: () -> Unit) {
                 )
                 Spacer(Modifier.width(8.dp))
                 IconButton(
-                    onClick = { vm.setPickingForPlan(true); onPickContact() },
+                    onClick = { vm.updatePickingForPlan(true); onPickContact() },
                     modifier = Modifier.size(52.dp)
                 ) {
                     Icon(

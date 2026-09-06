@@ -47,7 +47,10 @@ Her deneme için sırayla:
 
 ## Planlı aramalar
 
-**Planlı Aramalar** ekranından (ana ekranın sağ üstündeki takvim simgesi) bir
+Uygulama üç ayrı bölümden oluşur; alt taraftaki sekmelerden geçilir:
+**Arama** (otomatik tekrar arama), **Planlar** (planlı aramalar) ve **Geçmiş**.
+
+**Planlar** sekmesinden bir
 numara, tarih/saat ve **niçin arayacağını anlatan kısa bir not** kaydedersin.
 Zamanı gelince telefon bir bildirimle **sorar**:
 

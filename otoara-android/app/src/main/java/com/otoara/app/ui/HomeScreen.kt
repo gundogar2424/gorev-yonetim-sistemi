@@ -19,8 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -65,9 +63,7 @@ fun HomeScreen(
     onOverlaySettings: () -> Unit,
     onPickContact: () -> Unit,
     onStart: () -> Unit,
-    onStop: () -> Unit,
-    onHistory: () -> Unit,
-    onPlans: () -> Unit
+    onStop: () -> Unit
 ) {
     var error by remember { mutableStateOf<String?>(null) }
     val targets by vm.targets.collectAsState()
@@ -84,29 +80,12 @@ fun HomeScreen(
     ) {
 
         // ---------------------------------------------------------- baslik
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "OTOMATİK\nARAMA",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 34.sp,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onPlans) {
-                Icon(
-                    Icons.Filled.EditCalendar,
-                    contentDescription = "Planlı aramalar",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onHistory) {
-                Icon(
-                    Icons.Filled.History,
-                    contentDescription = "Geçmiş",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        Text(
+            "OTOMATİK\nARAMA",
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 34.sp
+        )
 
         // -------------------------------------------------------- calisiyor
         if (status.running) {

@@ -183,7 +183,7 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
     fun updatePlanNote(v: String) { planNote = v.take(120) }
     fun updatePlanTime(v: Long) { planTime = v }
     fun updatePlanRepeat(v: String) { planRepeat = v }
-    fun setPickingForPlan(v: Boolean) { pickingForPlan = v }
+    fun updatePickingForPlan(v: Boolean) { pickingForPlan = v }
 
     /** Formdaki eksigi anlatir, sorun yoksa null. */
     fun validatePlan(): String? {
