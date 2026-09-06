@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import TmHeader from '../TmHeader'
 import { deleteRecipe, getRecipe, toggleFavorite, updateRecipe } from '../db'
 import { recipeToText, stepSummary } from '../lib/tm7'
-import { fotoOku } from '../lib/image'
+import { fotoOku, uzaktanFotoIndir } from '../lib/image'
 
 export default function RecipeDetail() {
   const { id } = useParams()
@@ -14,6 +14,7 @@ export default function RecipeDetail() {
   const [orijinalAcik, setOrijinalAcik] = useState(false)
   const [kopyalandi, setKopyalandi] = useState(false)
   const [fotoHata, setFotoHata] = useState('')
+  const [indiriliyor, setIndiriliyor] = useState(false)
   const fotoRef = useRef<HTMLInputElement>(null)
 
   if (!r) {
@@ -103,6 +104,27 @@ export default function RecipeDetail() {
             </button>
           )}
         </div>
+        {/* Fotograf uzaktaki bir adresten geliyorsa internetsiz gorunmez;
+            tek dokunusla indirilip cihazda saklanabilir. */}
+        {r.photo.startsWith('http') && (
+          <button
+            onClick={async () => {
+              setFotoHata('')
+              setIndiriliyor(true)
+              try {
+                await updateRecipe(rid, { photo: await uzaktanFotoIndir(r.photo) })
+              } catch (err) {
+                setFotoHata((err as Error).message)
+              } finally {
+                setIndiriliyor(false)
+              }
+            }}
+            disabled={indiriliyor}
+            className="btn-ghost w-full py-2 text-sm"
+          >
+            {indiriliyor ? 'İndiriliyor…' : '⬇️ Fotoğrafı indir (internetsiz de görünsün)'}
+          </button>
+        )}
         {fotoHata && <div className="card p-3 text-sm text-rose-600">{fotoHata}</div>}
 
         <Link to={`/pisir/${rid}`} className="btn-primary w-full py-3">
