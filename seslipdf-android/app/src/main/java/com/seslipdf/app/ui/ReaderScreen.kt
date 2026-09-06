@@ -26,6 +26,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.BrightnessHigh
+import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Pause
@@ -381,6 +383,8 @@ fun ReaderScreen(
             onSleep = { showSleep = true },
             onPage = { showPage = true },
             onClose = { ReaderService.close(context) },
+            keepAwake = vm.keepAwake,
+            onToggleKeepAwake = { vm.updateKeepAwake(!vm.keepAwake) },
             onToggleMode = {
                 val goingSilent = !vm.silentMode
                 vm.updateSilentMode(goingSilent)
@@ -495,6 +499,8 @@ private fun Controls(
     onPage: () -> Unit,
     onClose: () -> Unit,
     onToggleMode: () -> Unit,
+    keepAwake: Boolean,
+    onToggleKeepAwake: () -> Unit,
     sleepAt: Long
 ) {
     Column {
@@ -554,6 +560,18 @@ private fun Controls(
                 leadingIcon = {
                     Icon(
                         if (silent) Icons.Filled.VolumeOff else Icons.Filled.VolumeUp,
+                        contentDescription = null
+                    )
+                }
+            )
+            // Ekran kararmasin / telefon uyusun — okurken tek dokunusla degisir.
+            FilterChip(
+                selected = keepAwake,
+                onClick = onToggleKeepAwake,
+                label = { Text(if (keepAwake) "Ekran açık" else "Ekran uyusun") },
+                leadingIcon = {
+                    Icon(
+                        if (keepAwake) Icons.Filled.BrightnessHigh else Icons.Filled.BrightnessLow,
                         contentDescription = null
                     )
                 }

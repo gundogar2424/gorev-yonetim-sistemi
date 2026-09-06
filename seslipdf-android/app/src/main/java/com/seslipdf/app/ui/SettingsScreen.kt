@@ -54,6 +54,20 @@ fun SettingsScreen(vm: LibraryViewModel) {
         }
 
         item {
+            Panel("Ekran") {
+                SwitchRow(
+                    title = "Okurken ekran kararmasın",
+                    description = "Açıkken okuma ekranı boyunca telefon ekranı kendiliğinden " +
+                        "kapanmaz. Kapatırsan telefon her zamanki gibi uyur (uyku modu) — " +
+                        "dinlerken ekranın kapanması pil için daha iyidir, okuma yine sürer.",
+                    checked = vm.keepAwake,
+                    onChange = { vm.updateKeepAwake(it) }
+                )
+            }
+        }
+
+
+        item {
             Panel("Ses") {
                 Spacer(Modifier.height(10.dp))
                 VoicePicker(
@@ -132,19 +146,6 @@ fun SettingsScreen(vm: LibraryViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        }
-
-        item {
-            Panel("Ekran") {
-                SwitchRow(
-                    title = "Okurken ekran kararmasın",
-                    description = "Açıkken okuma ekranı boyunca telefon ekranı kendiliğinden " +
-                        "kapanmaz. Kapatırsan telefon her zamanki gibi uyur (uyku modu) — " +
-                        "dinlerken ekranın kapanması pil için daha iyidir, okuma yine sürer.",
-                    checked = vm.keepAwake,
-                    onChange = { vm.updateKeepAwake(it) }
-                )
             }
         }
 
