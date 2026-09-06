@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="224" fill="#6647cc"/>
+  <!-- beyin: iki yarim kure, kivrimli -->
+  <g fill="none" stroke="#ffffff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M512 250 c-60 -70 -190 -50 -210 50 c-90 10 -120 130 -50 180 c-50 70 10 170 100 160 c20 80 130 100 160 30 z"/>
+    <path d="M512 250 c60 -70 190 -50 210 50 c90 10 120 130 50 180 c50 70 -10 170 -100 160 c-20 80 -130 100 -160 30 z"/>
+    <path d="M512 250 v420"/>
+    <path d="M400 360 c40 20 60 60 40 110"/>
+    <path d="M624 360 c-40 20 -60 60 -40 110"/>
+    <path d="M360 520 c50 -10 90 20 100 60"/>
+    <path d="M664 520 c-50 -10 -90 20 -100 60"/>
+  </g>
+  <!-- kivilcim -->
+  <path d="M800 176 l22 60 60 22 -60 22 -22 60 -22 -60 -60 -22 60 -22 z" fill="#ffd54a"/>
+  <!-- halter cubugu: egzersiz vurgusu -->
+  <rect x="300" y="780" width="424" height="36" rx="18" fill="#ffffff"/>
+  <rect x="236" y="744" width="70" height="108" rx="24" fill="#ffffff"/>
+  <rect x="718" y="744" width="70" height="108" rx="24" fill="#ffffff"/>
+</svg>
