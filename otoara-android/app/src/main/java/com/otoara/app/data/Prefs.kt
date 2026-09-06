@@ -51,12 +51,14 @@ class Prefs(context: Context) {
     /**
      * Sure dolunca cagriyi uygulama kapatsin mi.
      *
-     * Varsayilan KAPALI: acikken, karsi taraf actigi halde sure dolarsa gorusme
-     * kesilebiliyor (Android "cevaplandi" bilgisini vermedigi icin). Kapaliyken
-     * uygulama hicbir cagriyi kapatmaz, cagrinin kendiliginden bitmesini bekler.
+     * Varsayilan ACIK — "Süre" ayarinin bir anlami olsun diye. Cevaplanan
+     * gorusme kesilmez: erisilebilirlik izni verilmisse cevaplanma arama
+     * ekranindaki sayactan anlasilir ve cagriya hic dokunulmaz. Izin yoksa
+     * bu koruma calismaz; o durumda secenegi kapatmak gerekir (ekranda uyarisi
+     * var).
      */
     var hangUpOnTimeout: Boolean
-        get() = sp.getBoolean("hangup", false)
+        get() = sp.getBoolean("hangup", true)
         set(v) = sp.edit().putBoolean("hangup", v).apply()
 
     fun toConfig() = RedialConfig(

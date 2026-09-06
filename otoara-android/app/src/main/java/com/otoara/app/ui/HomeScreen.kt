@@ -291,7 +291,8 @@ fun HomeScreen(
             }
             Text(
                 "Aralık: iki arama arasındaki bekleme. Süre: bir çağrının en fazla " +
-                    "ne kadar çalacağı — dolunca kapatılıp yeniden aranır.",
+                    "ne kadar çalacağı — dolunca kapatılıp yeniden aranır. " +
+                    "(Süre'nin işlemesi için aşağıdaki \"Süre dolunca kapat\" açık olmalı.)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 12.dp)
@@ -317,10 +318,13 @@ fun HomeScreen(
                 subtitle = if (!perms.hangUp) {
                     "Bunun için \"Telefon çağrılarını yönet\" izni gerekir."
                 } else if (perms.speakerService) {
-                    "Süre dolunca çağrı kapatılır. Cevaplanan görüşme kesilmez."
+                    "Süre dolunca çağrı kapatılır. Karşı taraf açtıysa görüşme " +
+                        "kesilmez (ekrandaki sayaçtan anlaşılır)."
                 } else {
                     "DİKKAT: Erişilebilirlik izni olmadan, karşı taraf açsa bile " +
-                        "süre dolunca görüşme kesilebilir. Kapalı tutmanız önerilir."
+                        "süre dolunca görüşme kesilebilir. Kapalı tutmanız önerilir " +
+                        "— ama o zaman \"Süre\" ayarı işlemez, çağrının kendiliğinden " +
+                        "bitmesi beklenir."
                 },
                 checked = vm.hangUpOnTimeout,
                 enabled = !status.running,

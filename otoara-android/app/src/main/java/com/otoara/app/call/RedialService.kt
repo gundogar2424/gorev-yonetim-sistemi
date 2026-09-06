@@ -256,16 +256,29 @@ class RedialService : Service() {
             val now = SystemClock.elapsedRealtime()
             if (monitoring && Phone.callState(this) == TelephonyManager.CALL_STATE_IDLE) break
             if (now >= deadline) {
-                // Sadece BIZIM baslattigimiz, o an hala suren cagri kapatilir.
-                // Kullanici bu arada kendi aramasini baslatmis olabilir; onun
-                // gorusmesi asla kesilmez (durumu okuyamiyorsak da dokunmayiz).
-                val stillOurCall = monitoring &&
-                    Phone.callState(this) == TelephonyManager.CALL_STATE_OFFHOOK
-                if (cfg.hangUpOnTimeout && stillOurCall && Phone.hangUp(this)) {
-                    weHungUp = true
-                    awaitState(TelephonyManager.CALL_STATE_IDLE, 6000)
+                if (cfg.hangUpOnTimeout) {
+                    // Sadece BIZIM baslattigimiz, o an hala suren cagri
+                    // kapatilir. Kullanici bu arada kendi aramasini baslatmis
+                    // olabilir; onun gorusmesi asla kesilmez (durumu
+                    // okuyamiyorsak da dokunmayiz).
+                    val stillOurCall = monitoring &&
+                        Phone.callState(this) == TelephonyManager.CALL_STATE_OFFHOOK
+                    if (stillOurCall && Phone.hangUp(this)) {
+                        weHungUp = true
+                        awaitState(TelephonyManager.CALL_STATE_IDLE, 6000)
+                    }
+                    break
                 }
-                break
+
+                // "Süre dolunca kapat" kapali: cagri kesilmez, kendiliginden
+                // bitmesi beklenir. Asiri uzarsa donguden cikilir.
+                if (now - connectStart > cfg.ringSec * 1000L + MAX_EXTRA_WAIT_MS) break
+                updateNotification(
+                    cfg.number, "Süre doldu — çağrının bitmesi bekleniyor",
+                    tryNo, cfg.repeats, inCall = true
+                )
+                delay(1000)
+                continue
             }
             // Telefonun kendi arama uygulamasi ses yolunu geri cekebiliyor;
             // bu yuzden hoparlor cagri boyunca israrla uygulanir.
@@ -546,6 +559,9 @@ class RedialService : Service() {
 
         /** Kullanicinin kendi gorusmesi icin en fazla ne kadar beklenir. */
         private const val MAX_BUSY_WAIT_MS = 30 * 60 * 1000L
+
+        /** Kapatma kapaliyken cagrinin kendiliginden bitmesi icin ek sure. */
+        private const val MAX_EXTRA_WAIT_MS = 3 * 60 * 1000L
 
         /** Hat bosaldiktan sonra araya girilen nefes payi. */
         private const val FREE_LINE_GRACE_MS = 4000L
