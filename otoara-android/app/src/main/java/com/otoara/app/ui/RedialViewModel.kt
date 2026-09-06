@@ -7,7 +7,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.otoara.app.data.AppDatabase
+import com.otoara.app.data.ContactEntry
+import com.otoara.app.data.ContactsRepo
 import com.otoara.app.data.Plan
+import com.otoara.app.data.ContactEntry
+import com.otoara.app.data.ContactsRepo
 import com.otoara.app.data.PlanRepeat
 import com.otoara.app.data.Prefs
 import com.otoara.app.data.RedialConfig
@@ -15,7 +19,9 @@ import com.otoara.app.data.Target
 import com.otoara.app.plan.PlanScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 
 /**
@@ -221,6 +227,63 @@ class RedialViewModel(app: Application) : AndroidViewModel(app) {
         db.planDao().update(updated)
         if (enabled) PlanScheduler.schedule(ctx, updated)
         else PlanScheduler.cancel(ctx, plan.id)
+    }
+
+    // ------------------------------------------------------- rehber secimi
+
+    var contactsOpen by mutableStateOf(false)
+        private set
+    var contactsLoading by mutableStateOf(false)
+        private set
+    var contacts by mutableStateOf<List<ContactEntry>>(emptyList())
+        private set
+    var contactQuery by mutableStateOf("")
+        private set
+
+    /** Aramaya gore suzulmus liste. */
+    val visibleContacts: List<ContactEntry>
+        get() {
+            val q = contactQuery.trim()
+            if (q.isBlank()) return contacts
+            val digits = q.filter { it.isDigit() }
+            val lower = q.lowercase(java.util.Locale("tr"))
+            return contacts.filter { c ->
+                c.name.lowercase(java.util.Locale("tr")).contains(lower) ||
+                    (digits.isNotEmpty() && c.numbers.any {
+                        it.number.filter { ch -> ch.isDigit() }.contains(digits)
+                    })
+            }
+        }
+
+    fun openContacts() {
+        contactsOpen = true
+        contactQuery = ""
+        if (contacts.isEmpty()) reloadContacts()
+    }
+
+    fun closeContacts() {
+        contactsOpen = false
+        pickingForPlan = false
+    }
+
+    fun updateContactQuery(v: String) { contactQuery = v }
+
+    fun reloadContacts() = viewModelScope.launch {
+        contactsLoading = true
+        contacts = try {
+            withContext(Dispatchers.IO) { ContactsRepo.load(ctx) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+        contactsLoading = false
+    }
+
+    /** Rehberden bir numara secildi: acik olan forma yazilir. */
+    fun chooseContact(name: String, number: String) {
+        val clean = number.filter { it.isDigit() || it == '+' }
+        if (pickingForPlan) updatePlanNumber(clean, name) else updateNumber(clean, name)
+        contactsOpen = false
+        pickingForPlan = false
     }
 
     /** Varsayilan plan zamani: bir sonraki tam saat. */

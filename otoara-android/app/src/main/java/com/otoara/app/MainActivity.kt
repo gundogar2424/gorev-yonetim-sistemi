@@ -1,5 +1,6 @@
 package com.otoara.app
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -29,9 +30,11 @@ import kotlinx.coroutines.launch
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.otoara.app.call.Phone
 import com.otoara.app.call.RedialService
 import com.otoara.app.call.RedialState
 import com.otoara.app.plan.PlanScheduler
+import com.otoara.app.ui.ContactPickerDialog
 import com.otoara.app.ui.HistoryScreen
 import com.otoara.app.ui.HomeScreen
 import com.otoara.app.ui.PlansScreen
@@ -53,7 +56,13 @@ class MainActivity : ComponentActivity() {
             perms = PermState.read(this)
         }
 
-    /** Rehberden numara secme (READ_CONTACTS izni gerektirmez). */
+    /** Rehber izni verilirse uygulamanin kendi kisi ekrani acilir. */
+    private val askContacts =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) vm.openContacts() else openSystemContactPicker()
+        }
+
+    /** Izin verilmezse basvurulan sistem ekrani (numaralari listeler). */
     private val pickContact =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
@@ -75,6 +84,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val status by RedialState.status.collectAsStateWithLifecycle()
                     val nav = rememberNavController()
+
+                    if (vm.contactsOpen) ContactPickerDialog(vm)
 
                     Scaffold(
                         containerColor = MaterialTheme.colorScheme.background,
@@ -160,7 +171,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Rehberi acar. Uygulamanin kendi ekrani her kisiyi tek satirda ve
+     * tekrarsiz gosterir; bunun icin "Kişiler" izni gerekir. Izin verilmezse
+     * sistemin kendi (numara listeleyen) ekranina dusulur.
+     */
     private fun openContactPicker() {
+        if (Phone.has(this, Manifest.permission.READ_CONTACTS)) {
+            vm.openContacts()
+        } else {
+            askContacts.launch(Manifest.permission.READ_CONTACTS)
+        }
+    }
+
+    private fun openSystemContactPicker() {
         try {
             pickContact.launch(
                 Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)

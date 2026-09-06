@@ -109,13 +109,19 @@ açarsanız):
 | **Telefon durumu** (`READ_PHONE_STATE`) | Zorunlu — çağrının kurulduğunu/bittiğini anlamak için |
 | **Çağrıları yönetme** (`ANSWER_PHONE_CALLS`) | Süre dolunca çağrıyı kapatabilmek için (Android 9+) |
 | **Arama kayıtları** (`READ_CALL_LOG`) | İsteğe bağlı — "cevaplanınca dur" özelliğinin güvenilir çalışması için |
+| **Kişiler** (`READ_CONTACTS`) | İsteğe bağlı — uygulama içi kişi listesi için. Verilmezse sistemin kendi seçme ekranı kullanılır |
 | **Ses ayarları** (`MODIFY_AUDIO_SETTINGS`) | "Hoparlörü aç" seçeneği için (kurulumda otomatik verilir) |
 | **Bildirimler** | Kalıcı durum bildirimi, sonuç uyarısı ve planlı arama hatırlatması |
 | **Tam-zamanlı alarm** | Planlı aramanın dakikasında sorulması için |
 | **Pil optimizasyonu muafiyeti** | Ekran kapalıyken döngünün durmaması için (önerilir) |
 
-Rehberden numara seçmek için ayrıca izin **gerekmez**; sistemin kişi seçme
-ekranı kullanılır ve yalnızca seçtiğin numara uygulamaya geçer.
+**Rehber hakkında:** Sistemin kişi seçme ekranı kişileri değil *numaraları*
+listeler; bir kişi birden fazla hesapta kayıtlıysa (Google, SIM, WhatsApp…) ya
+da birkaç numarası varsa aynı isim alt alta defalarca çıkar. Bu yüzden
+uygulamanın kendi kişi ekranı vardır: her kişi **tek satır**, aynı numaranın
+tekrarı elenmiş, arama kutulu; kişinin farklı numaraları varsa satıra
+dokununca altında açılır. Bunun için "Kişiler" izni gerekir — izin
+verilmezse sistemin kendi ekranına düşülür. Rehber verisi telefondan çıkmaz.
 
 Tüm veriler telefonda kalır (Room/SQLite). Sunucu yoktur, internet gerekmez.
 

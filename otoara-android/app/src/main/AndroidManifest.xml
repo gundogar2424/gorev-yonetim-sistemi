@@ -13,6 +13,10 @@
          verilmezse uygulama sureye dayali tahmine duser. -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
 
+    <!-- Rehberden kisi secmek icin (uygulama ici kisi ekrani). Izin
+         verilmezse sistemin kendi secme ekranina dusulur. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <!-- Gorusme sesini hoparlore vermek icin -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
