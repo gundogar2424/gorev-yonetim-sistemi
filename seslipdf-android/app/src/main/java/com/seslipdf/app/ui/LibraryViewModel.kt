@@ -207,9 +207,12 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         prefs.scrollSpeed = value
     }
 
-    /** Bir cumleden digerine kayarken gecen sure (milisaniye). */
-    val scrollMillis: Int
-        get() = (SCROLL_SLOWEST - (SCROLL_SLOWEST - SCROLL_FASTEST) * scrollSpeed.coerceIn(0f, 1f)).toInt()
+    /**
+     * Akisin okunan cumleyi ne kadar sikica takip ettigi (1/saniye). Kucuk deger
+     * = cok yumusak, agir agir suzulen bir akis; buyuk deger = hemen yerine oturur.
+     */
+    val scrollGain: Float
+        get() = GAIN_MIN + (GAIN_MAX - GAIN_MIN) * scrollSpeed.coerceIn(0f, 1f).let { it * it }
 
     fun updateSleepMinutes(value: Int) {
         sleepMinutes = value
@@ -217,9 +220,9 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
-        /** En yavas ve en hizli kayma sureleri (milisaniye). */
-        const val SCROLL_SLOWEST = 2200f
-        const val SCROLL_FASTEST = 250f
+        /** Akisin en yumusak ve en keskin takip degerleri. */
+        const val GAIN_MIN = 0.35f
+        const val GAIN_MAX = 8f
     }
 
     fun loadVoices() {

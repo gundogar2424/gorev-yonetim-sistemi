@@ -1,9 +1,7 @@
 package com.seslipdf.app.ui
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,8 +59,23 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seslipdf.app.tts.ReaderService
 import com.seslipdf.app.tts.ReaderState
+import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlin.math.abs
 import android.os.SystemClock
+
+/** Okunan cumlenin ekranda durmasi istenen yer (ustten oran). */
+private const val LINE_POSITION = 0.34f
+
+/** Turkce icin kabaca saniyede okunan karakter sayisi (1.0 hizda). */
+private const val CHARS_PER_SECOND = 13f
+
+/** Akisin en yuksek hizi (piksel/saniye). */
+private const val MAX_SPEED = 4000f
+
+/** Hiz degisimlerinin yumusatilmasi. */
+private const val SMOOTHING = 6f
 
 /**
  * Okuma ekrani: cumleler listelenir, okunan cumle vurgulanir; dokununca oradan
@@ -88,21 +101,45 @@ fun ReaderScreen(
     val sentences = text?.sentences.orEmpty()
     val listState = rememberLazyListState()
 
-    // Okunan cumle ekranin ustune dogru, ayarlanan hizda suzulerek kayar.
-    LaunchedEffect(status.index, vm.autoScroll, sentences.size) {
+    // Metin, film jenerigi gibi kesintisiz akar: her karede biraz kaydirilir.
+    // Hiz, okunan cumlenin ne kadar surecegine gore hesaplanir (sesin temposu) ve
+    // cumle ekrandaki hedef yerinden sapinca kendini duzeltir. Boylece akis hem
+    // durmadan surer hem de sesle ayni yerde kalir.
+    LaunchedEffect(vm.autoScroll, sentences.size) {
         if (!vm.autoScroll || sentences.isEmpty()) return@LaunchedEffect
-        val target = (status.index - 2).coerceAtLeast(0)
-        val info = listState.layoutInfo
-        val visible = info.visibleItemsInfo.firstOrNull { it.index == target }
-        if (visible != null) {
-            // Hedef zaten ekrandaysa: sabit hizda, goz takip edebilecegi bir kayma.
-            listState.animateScrollBy(
-                (visible.offset - info.viewportStartOffset).toFloat(),
-                animationSpec = tween(durationMillis = vm.scrollMillis, easing = LinearEasing)
-            )
-        } else {
-            // Uzaga atlandiysa (cumleye dokunma, sayfaya gitme) dogrudan git.
-            listState.scrollToItem(target)
+        var velocity = 0f
+        var lastFrame = 0L
+        while (isActive) {
+            val now = withFrameNanos { it }
+            val seconds = if (lastFrame == 0L) 0f
+                else ((now - lastFrame) / 1_000_000_000f).coerceIn(0f, 0.1f)
+            lastFrame = now
+            if (seconds <= 0f) continue
+
+            val state = ReaderState.status.value
+            val info = listState.layoutInfo
+            val line = info.visibleItemsInfo.firstOrNull { it.index == state.index }
+
+            if (line == null) {
+                // Okunan cumle ekranda degil (cumleye dokunuldu, sayfaya gidildi):
+                // akisla degil, dogrudan oraya gidilir.
+                listState.scrollToItem(state.index.coerceIn(0, sentences.lastIndex))
+                velocity = 0f
+                continue
+            }
+
+            val viewport = (info.viewportEndOffset - info.viewportStartOffset).toFloat()
+            val desired = info.viewportStartOffset + viewport * LINE_POSITION
+            val error = line.offset - desired
+
+            // Cumlenin tahmini okunma suresi: uzunlugu / (karakter hizi x okuma hizi).
+            val length = sentences.getOrNull(state.index)?.length ?: 0
+            val spoken = (length / (CHARS_PER_SECOND * vm.rate)).coerceIn(0.5f, 60f)
+            val flow = if (state.playing) line.size / spoken else 0f
+
+            val goal = (flow + error * vm.scrollGain).coerceIn(-MAX_SPEED, MAX_SPEED)
+            velocity += (goal - velocity) * (seconds * SMOOTHING).coerceAtMost(1f)
+            if (abs(velocity) > 0.5f) listState.scrollBy(velocity * seconds)
         }
     }
 

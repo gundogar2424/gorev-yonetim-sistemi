@@ -18,7 +18,7 @@ seslendirme motoruyla sana okuyor — ekran kapalıyken de.
 | 🔊 **Sesli okuma** | Cümle cümle okur; okunan cümle ekranda vurgulanır |
 | 👆 **Cümleye dokun** | Herhangi bir cümleye dokununca okuma oradan devam eder |
 | ⏩ **İleri / geri** | Cümle cümle atlama, "Sayfaya git" ile istediğin sayfaya |
-| 🪄 **Kayma hızı** | Metnin yeni cümleye süzülme hızı ayarlanabilir (çok yavaş → anında) |
+| 🎞️ **Jenerik akışı** | Yazı film sonu yazıları gibi kesintisiz yukarı akar; akış sesin temposuna göre kendini ayarlar, yumuşaklığı elle seçilebilir |
 | 🏃 **Hız ve ton** | 0.5× – 2.5× okuma hızı, ses tonu ayarı |
 | 🗣️ **Ses seçimi** | Cihazda kurulu Türkçe (ve diğer) seslerden istediğini seç |
 | 🔔 **Bildirim kumandası** | Oku/duraklat, ileri/geri, kapat — telefon kilitliyken de |

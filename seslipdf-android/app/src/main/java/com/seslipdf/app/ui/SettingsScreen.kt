@@ -109,23 +109,24 @@ fun SettingsScreen(vm: LibraryViewModel) {
                 )
                 if (vm.autoScroll) {
                     SliderRow(
-                        label = "Kayma hızı",
+                        label = "Akış",
                         value = vm.scrollSpeed,
                         range = 0f..1f,
                         format = { speed ->
                             when {
-                                speed < 0.25f -> "çok yavaş"
-                                speed < 0.5f -> "yavaş"
+                                speed < 0.25f -> "çok yumuşak"
+                                speed < 0.5f -> "yumuşak"
                                 speed < 0.75f -> "orta"
-                                speed < 0.95f -> "hızlı"
+                                speed < 0.95f -> "çabuk"
                                 else -> "anında"
                             }
                         },
                         onChange = { vm.updateScrollSpeed(it) }
                     )
                     Text(
-                        "Metnin yeni cümleye süzülme hızı. Okuma hızını değiştirmez; " +
-                            "yalnızca yazının ekranda ne kadar yavaş kaydığını belirler.",
+                        "Yazı, film jeneriği gibi durmadan yukarı akar. Bu ayar akışın " +
+                            "ne kadar ağır ağır süzüleceğini belirler; akışın genel hızı " +
+                            "sesin temposuna göre kendiliğinden ayarlanır.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
