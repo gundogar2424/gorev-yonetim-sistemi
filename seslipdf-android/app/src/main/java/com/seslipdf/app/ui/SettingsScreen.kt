@@ -132,11 +132,16 @@ fun SettingsScreen(vm: LibraryViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+        }
+
+        item {
+            Panel("Ekran") {
                 SwitchRow(
-                    title = "Okuma ekranında ekran kararmasın",
+                    title = "Okurken ekran kararmasın",
                     description = "Açıkken okuma ekranı boyunca telefon ekranı kendiliğinden " +
-                        "kapanmaz. Kapatırsan telefon her zamanki gibi uyur — dinlerken " +
-                        "ekranın kapanması pil için daha iyidir, okuma yine sürer.",
+                        "kapanmaz. Kapatırsan telefon her zamanki gibi uyur (uyku modu) — " +
+                        "dinlerken ekranın kapanması pil için daha iyidir, okuma yine sürer.",
                     checked = vm.keepAwake,
                     onChange = { vm.updateKeepAwake(it) }
                 )
