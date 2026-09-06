@@ -55,15 +55,32 @@ export const MODES: { value: TmMode; label: string }[] = [
   { value: 'temizlik', label: 'Temizlik' }
 ]
 
+// Kategoriler. Sira ONEMLI: tarif listesi bu sirayla gruplanir (once tuzlular,
+// sonra tatlilar). "Ana Yemek" ve "Tatlı" genel kovalar olarak DURUYOR; eskiden
+// bu adlarla kaydedilmis tarifler yerinde kalsin diye kaldirilmadi.
 export const CATEGORIES = [
   'Çorba',
+  'Et Yemeği',
+  'Tavuk & Balık',
+  'Sebze Yemeği',
+  'Kuru Baklagil',
+  'Pilav & Makarna',
   'Ana Yemek',
   'Meze & Salata',
-  'Sos',
-  'Hamur İşi',
+  'Kahvaltılık',
+  'Börek & Hamur İşi',
+  'Ekmek & Poğaça',
+  'Sos & Marinat',
+  'Turşu & Konserve',
+  'Reçel & Marmelat',
+  'Sütlü Tatlı',
+  'Şerbetli Tatlı',
+  'Kek & Kurabiye',
+  'Pasta',
+  'Dondurma & Soğuk Tatlı',
   'Tatlı',
   'İçecek',
-  'Kahvaltı',
+  'Bebek Maması',
   'Diğer'
 ]
 
