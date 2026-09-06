@@ -159,14 +159,23 @@ fun ReaderScreen(
         }
     }
 
-    // Metin, film jenerigi gibi kesintisiz akar: her karede biraz kaydirilir.
-    // Hiz, okunan cumlenin ne kadar surecegine gore hesaplanir (sesin temposu) ve
-    // cumle ekrandaki hedef yerinden sapinca kendini duzeltir. Boylece akis hem
-    // durmadan surer hem de sesle ayni yerde kalir.
+    // Sesli modda metin film jenerigi gibi kesintisiz akar.
+    //
+    // Isin puf noktasi: hedef nokta cumleden cumleye ZIPLAMAZ, zamana yayilir.
+    // Cumlenin ne kadari okunduysa (gecen sure / tahmini okuma suresi) satir o
+    // oranda yukari kaymis olmalidir. Cumle degisince yeni satir tam hedefe
+    // oturur, yani sicrama olmaz. Ustune, gercek okuma hizi cumle bittikce
+    // olculup ogrenilir; boylece akis sesin temposuna kendiliginden oturur.
     LaunchedEffect(vm.autoScroll, vm.silentMode, sentences.size) {
         if (!vm.autoScroll || vm.silentMode || sentences.isEmpty()) return@LaunchedEffect
         var velocity = 0f
         var lastFrame = 0L
+        var lastIndex = -1
+        /** Bulunulan cumlede gecen sure (saniye) — yalnizca okurken artar. */
+        var within = 0f
+        /** Olculen okuma hizi: 1.0 hizda saniyede kac karakter. */
+        var charsPerSecond = CHARS_PER_SECOND
+
         while (isActive) {
             val now = withFrameNanos { it }
             val seconds = if (lastFrame == 0L) 0f
@@ -175,6 +184,21 @@ fun ReaderScreen(
             if (seconds <= 0f) continue
 
             val state = ReaderState.status.value
+
+            if (state.index != lastIndex) {
+                // Biten cumleden gercek okuma hizini ogren (ses motoru, dil ve
+                // cumle arasi duraklamalar dahil).
+                val previous = sentences.getOrNull(lastIndex)?.length ?: 0
+                if (lastIndex >= 0 && within > 0.4f && previous > 20) {
+                    val measured = (previous / within) / vm.rate.coerceAtLeast(0.1f)
+                    charsPerSecond = (charsPerSecond * 0.75f + measured * 0.25f)
+                        .coerceIn(5f, 30f)
+                }
+                lastIndex = state.index
+                within = 0f
+            }
+            if (state.playing) within += seconds
+
             val info = listState.layoutInfo
             val line = info.visibleItemsInfo.firstOrNull { it.index == state.index }
 
@@ -188,16 +212,20 @@ fun ReaderScreen(
 
             val viewport = (info.viewportEndOffset - info.viewportStartOffset).toFloat()
             val desired = info.viewportStartOffset + viewport * LINE_POSITION
-            val error = line.offset - desired
 
-            // Cumlenin tahmini okunma suresi: uzunlugu / (karakter hizi x okuma hizi).
+            // Cumlenin tahmini okunma suresi ve ne kadarinin bittigi.
             val length = sentences.getOrNull(state.index)?.length ?: 0
-            val spoken = (length / (CHARS_PER_SECOND * vm.rate)).coerceIn(0.5f, 60f)
+            val spoken = (length / (charsPerSecond * vm.rate.coerceAtLeast(0.1f)))
+                .coerceIn(0.5f, 60f)
+            val done = (within / spoken).coerceIn(0f, 1f)
+
+            // Hedef, cumle okundukca kendi boyu kadar yukari suzulur.
+            val error = line.offset - (desired - done * line.size)
             val flow = if (state.playing) line.size / spoken else 0f
 
             val goal = (flow + error * vm.scrollGain).coerceIn(-MAX_SPEED, MAX_SPEED)
             velocity += (goal - velocity) * (seconds * SMOOTHING).coerceAtMost(1f)
-            if (abs(velocity) > 0.5f) listState.scrollBy(velocity * seconds)
+            if (abs(velocity) > 0.2f) listState.scrollBy(velocity * seconds)
         }
     }
 
