@@ -22,14 +22,14 @@ export const KARATE: Point = {
 }
 
 export const POINTS: Point[] = [
-  { id: 'eb', name: 'Kaş Başı', where: 'Kaşın burna yakın iç ucu', how: 'İki parmakla, hafifçe.', cx: 128, cy: 92 },
-  { id: 'se', name: 'Göz Kenarı', where: 'Gözün dış köşesindeki kemik üstü', how: 'Şakağa değil, göz çukurunun kenarına.', cx: 86, cy: 100 },
-  { id: 'ue', name: 'Göz Altı', where: 'Göz bebeğinin tam altındaki kemik', how: 'Elmacık kemiğinin üstüne, göze bastırmadan.', cx: 116, cy: 124 },
-  { id: 'un', name: 'Burun Altı', where: 'Burun ile üst dudak arasındaki oluk', how: 'Tek ya da iki parmakla.', cx: 150, cy: 150 },
-  { id: 'ch', name: 'Çene', where: 'Alt dudak ile çene ucu arasındaki çukur', how: 'Çenenin ortasına.', cx: 150, cy: 176 },
-  { id: 'cb', name: 'Köprücük Kemiği', where: 'Köprücük kemiğinin iç ucunun hemen altı', how: 'Boynun dibindeki "U" çukurunun 2-3 cm altı ve yanı.', cx: 122, cy: 236 },
-  { id: 'ua', name: 'Koltuk Altı', where: 'Koltuk altının bir karış altı, kaburgaların yanı', how: 'Açık elle ya da parmaklarla, vücudun yan tarafına.', cx: 66, cy: 300 },
-  { id: 'th', name: 'Baş Üstü', where: 'Başın tam tepesi', how: 'Tüm parmak uçlarıyla, tepenin ortasına.', cx: 150, cy: 32 }
+  { id: 'eb', name: 'Kaş Başı', where: 'Kaşın burna yakın iç ucu', how: 'İki parmakla, hafifçe.', cx: 140, cy: 96 },
+  { id: 'se', name: 'Göz Kenarı', where: 'Gözün dış köşesindeki kemik üstü', how: 'Şakağa değil, göz çukurunun kenarına.', cx: 104, cy: 111 },
+  { id: 'ue', name: 'Göz Altı', where: 'Göz bebeğinin tam altındaki kemik', how: 'Elmacık kemiğinin üstüne, göze bastırmadan.', cx: 127, cy: 127 },
+  { id: 'un', name: 'Burun Altı', where: 'Burun ile üst dudak arasındaki oluk', how: 'Tek ya da iki parmakla.', cx: 150, cy: 159 },
+  { id: 'ch', name: 'Çene', where: 'Alt dudak ile çene ucu arasındaki çukur', how: 'Çenenin ortasına.', cx: 150, cy: 183 },
+  { id: 'cb', name: 'Köprücük Kemiği', where: 'Köprücük kemiğinin iç ucunun hemen altı', how: 'Boynun dibindeki "U" çukurunun 2-3 cm altı ve yanı.', cx: 128, cy: 249 },
+  { id: 'ua', name: 'Koltuk Altı', where: 'Koltuk altının bir karış altı, kaburgaların yanı', how: 'Açık elle ya da parmaklarla, vücudun yan tarafına.', cx: 95, cy: 298 },
+  { id: 'th', name: 'Baş Üstü', where: 'Başın tam tepesi', how: 'Tüm parmak uçlarıyla, tepenin ortasına.', cx: 150, cy: 36 }
 ]
 
 export function pointById(id: string): Point | undefined {

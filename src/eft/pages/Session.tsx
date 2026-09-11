@@ -416,7 +416,10 @@ export default function Session() {
         <EftHeader title={issue.name} subtitle={`Tur ${round} · Kurulum cümlesi`} back={cik} compact />
         <div className="px-4 space-y-4 pb-6">
           <section className="eft-card text-center">
-            <HandMap beat={pos.beat} className="w-44 h-44 mx-auto" />
+            <div className="relative w-44 h-44 mx-auto">
+              <div className="absolute inset-2 rounded-full bg-gradient-to-b from-eft-50 to-transparent dark:from-[#1e3231]" />
+              <HandMap beat={pos.beat} className="relative w-full h-full" />
+            </div>
             <div className="text-[16px] font-bold text-slate-900 dark:text-[#e8f2f1]">Karate noktasına vur</div>
             <p className="text-[14px] text-slate-500 dark:text-[#7f9896]">Elin dış kenarı, serçe parmağın altı. Vururken cümleyi {SETUP_REPEATS} kez yüksek sesle söyle.</p>
           </section>
@@ -490,7 +493,10 @@ export default function Session() {
           </div>
 
           <section className="eft-card flex-1 flex flex-col items-center">
-            <BodyMap active={point.id} beat={pos.beat} className="w-full max-w-[250px]" />
+            <div className="relative w-full max-w-[290px]">
+              <div className="absolute inset-x-4 top-6 bottom-4 rounded-[48%] bg-gradient-to-b from-eft-50 via-eft-50/60 to-transparent dark:from-[#1e3231] dark:via-[#1e3231]/60" />
+              <BodyMap active={point.id} beat={pos.beat} className="relative w-full" />
+            </div>
             <div className="text-[22px] font-bold text-slate-900 dark:text-[#e8f2f1] mt-1">{point.name}</div>
             <div className="text-[14px] text-slate-500 dark:text-[#7f9896] text-center">{point.where}</div>
 
