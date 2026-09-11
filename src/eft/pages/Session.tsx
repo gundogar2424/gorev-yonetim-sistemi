@@ -7,6 +7,8 @@ import SudsPicker, { sudsColor } from '../components/SudsPicker'
 import { customIssue, FOOD_KIND_LABEL, foodIssue, HUNGER_ISSUES, ISSUES, issueById, phraseFor, POINTS, QUICK_FOODS, type FoodKind, type Issue } from '../lib/content'
 import { addSession, readCustomIssues, readRecentFoods, readSettings, rememberCustomIssue, rememberFood, TEMPO_MS, updateSession } from '../lib/store'
 import { sfxDone, sfxPoint, sfxTick } from '../lib/sound'
+import { speak, speechSupported, stopSpeaking, warmUpVoices } from '../lib/speech'
+import { saveSettings } from '../lib/store'
 import { fmtMinutes } from '../lib/date'
 
 // Rehberli seans akisi:
@@ -24,6 +26,8 @@ export default function Session() {
   const tempoMs = TEMPO_MS[ayar.tempo]
   const taps = ayar.taps
 
+  const [voice, setVoice] = useState(ayar.voice)
+  const setupTextRef = useRef('')
   const [phase, setPhase] = useState<Phase>('konu')
   const [issue, setIssue] = useState<Issue | null>(null)
   const [ozel, setOzel] = useState('')
@@ -69,6 +73,60 @@ export default function Session() {
       void lock?.release().catch(() => {})
     }
   }, [])
+
+  useEffect(() => {
+    warmUpVoices()
+    return () => stopSpeaking()
+  }, [])
+
+  function voiceToggle() {
+    const v = !voice
+    setVoice(v)
+    saveSettings({ voice: v })
+    if (!v) stopSpeaking()
+    else if (phase === 'vurus') speak(`${POINTS[pos.pi].name}. ${issue ? phraseFor(issue, round, pos.pi, positive) : ''}`)
+    else if (phase === 'kurulum') speak(setupTextRef.current)
+  }
+
+  // SESLI REHBER — kurulum: cumleyi okur, kisa ara verir, tekrar sayar;
+  // 3 tekrar bitince kendiliginden noktalara gecer. Telefona bakmak gerekmez.
+  useEffect(() => {
+    if (phase !== 'kurulum' || !voice) return
+    if (setupCount >= SETUP_REPEATS) {
+      const t = setTimeout(vurusaGec, 900)
+      return () => clearTimeout(t)
+    }
+    let t: ReturnType<typeof setTimeout> | null = null
+    const ok = speak(setupTextRef.current, () => {
+      t = setTimeout(() => setSetupCount((c) => (c < SETUP_REPEATS ? c + 1 : c)), 1400)
+    })
+    return () => {
+      if (t) clearTimeout(t)
+      if (ok) stopSpeaking()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, setupCount, voice])
+
+  // SESLI REHBER — vurus: her noktada "nokta adi. ifade" okunur
+  useEffect(() => {
+    if (phase !== 'vurus' || !voice) return
+    if (!running) {
+      stopSpeaking()
+      return
+    }
+    if (issue) speak(`${POINTS[pos.pi].name}. ${phraseFor(issue, round, pos.pi, positive)}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, pos.pi, running, voice, round])
+
+  // SESLI REHBER — nefes ve yeniden puan yonergeleri
+  useEffect(() => {
+    if (!voice) return
+    if (phase === 'nefes') speak('Tur bitti. Derin bir nefes al... ve yavaşça ver. Hazır olunca yeniden puanla.')
+    else if (phase === 'yeniden') speak('Şimdi yeniden puanla. Sıfır ile on arasında bir sayı seç.')
+    else if (phase === 'bitti') speak('Seans tamamlandı. Kendine teşekkür et.')
+    else if (phase === 'puan') speak(issue?.id === 'yemek' || issue?.id.startsWith('aclik') ? 'Şu an bu istek ne kadar şiddetli? Sıfır ile on arasında bir sayı seç.' : 'Bu konuyu düşününce ne kadar rahatsız oluyorsun? Sıfır ile on arasında bir sayı seç.')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, voice])
 
   // Vurus motoru: kurulumda yalnizca animasyon; vurus asamasinda noktalar ilerler.
   useEffect(() => {
@@ -209,6 +267,7 @@ export default function Session() {
     navigate('/')
   }
 
+  setupTextRef.current = setupText
   const point = POINTS[pos.pi]
   const phrase = issue ? phraseFor(issue, round, pos.pi, positive) : ''
   const istekModu = !!issue && (issue.id === 'yemek' || issue.id.startsWith('aclik'))
@@ -358,6 +417,16 @@ export default function Session() {
             </ul>
           </section>
 
+          <button
+            className="eft-btn-soft w-full"
+            onClick={() =>
+              speak(
+                `Kurulum cümlesi: ${issue.setup} Hatırlatma ifadeleri: ${issue.reminders.join('. ')}. Olumlu tur: ${issue.positives.join('. ')}.`
+              )
+            }
+          >
+            🔊 Telkinleri dinle
+          </button>
           {issue.id.startsWith('aclik') && (
             <p className="text-[13px] leading-relaxed text-slate-500 dark:text-[#7f9896] px-1">
               Not: Bu telkinler öğün aralarındaki ani yeme isteğini yönetmek içindir. Uzun süreli açlık, baş dönmesi ya da
@@ -413,7 +482,7 @@ export default function Session() {
     const tamam = setupCount >= SETUP_REPEATS
     return (
       <div>
-        <EftHeader title={issue.name} subtitle={`Tur ${round} · Kurulum cümlesi`} back={cik} compact />
+        <EftHeader title={issue.name} subtitle={`Tur ${round} · Kurulum cümlesi`} back={cik} compact right={<VoiceButton on={voice} onClick={voiceToggle} />} />
         <div className="px-4 space-y-4 pb-6">
           <section className="eft-card text-center">
             <div className="relative w-44 h-44 mx-auto">
@@ -421,7 +490,10 @@ export default function Session() {
               <HandMap beat={pos.beat} className="relative w-full h-full" />
             </div>
             <div className="text-[16px] font-bold text-slate-900 dark:text-[#e8f2f1]">Karate noktasına vur</div>
-            <p className="text-[14px] text-slate-500 dark:text-[#7f9896]">Elin dış kenarı, serçe parmağın altı. Vururken cümleyi {SETUP_REPEATS} kez yüksek sesle söyle.</p>
+            <p className="text-[14px] text-slate-500 dark:text-[#7f9896]">
+              Elin dış kenarı, serçe parmağın altı. Vururken cümleyi {SETUP_REPEATS} kez yüksek sesle söyle.
+              {voice && speechSupported() && <span className="block mt-1 text-eft-700 dark:text-eft-300 font-semibold">🔊 Sesli rehber açık: cümleyi dinle, tekrar et; sayacı ben tutuyorum.</span>}
+            </p>
           </section>
 
           <section className="eft-card">
@@ -466,6 +538,8 @@ export default function Session() {
           back={cik}
           compact
           right={
+            <div className="flex items-center gap-2">
+            <VoiceButton on={voice} onClick={voiceToggle} />
             <button
               onClick={() => setRunning((r) => !r)}
               className="w-12 h-12 rounded-full bg-white dark:bg-[#1e3231] shadow-card dark:shadow-none grid place-items-center text-slate-700 dark:text-[#d5e6e4] active:scale-95"
@@ -482,6 +556,7 @@ export default function Session() {
                 </svg>
               )}
             </button>
+            </div>
           }
         />
         <div className="px-4 pb-6 flex-1 flex flex-col">
@@ -679,4 +754,29 @@ function yorum(before: number, after: number): string {
   if (fark > 0) return 'Küçük bir hafifleme. Konuyu daha da somutlaştırıp bir tur daha dene.'
   if (fark === 0) return 'Değişmedi. Konu belki daha özel bir şey; ifadeyi bedende hissettiğin yere göre değiştirmeyi dene.'
   return 'Yoğunluk arttı; bu bazen bastırılmış bir duygunun yüzeye çıkmasıdır. Nefes al, gerekirse ara ver.'
+}
+
+function VoiceButton({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-12 h-12 rounded-full grid place-items-center active:scale-95 transition shadow-card dark:shadow-none ${
+        on ? 'bg-eft-600 text-white' : 'bg-white dark:bg-[#1e3231] text-slate-400 dark:text-[#7f9896]'
+      }`}
+      aria-label={on ? 'Sesli rehberi kapat' : 'Sesli rehberi aç'}
+      title="Sesli rehber"
+    >
+      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 10v4h4l5 4V6L8 10H4z" fill="currentColor" stroke="none" />
+        {on ? (
+          <>
+            <path d="M16 9a4 4 0 0 1 0 6" />
+            <path d="M18.5 6.5a8 8 0 0 1 0 11" />
+          </>
+        ) : (
+          <path d="M17 9l4 6M21 9l-4 6" />
+        )}
+      </svg>
+    </button>
+  )
 }
