@@ -51,6 +51,21 @@ export default {
           800: '#432e88',
           900: '#35256b'
         },
+        // EFT DOKUNMA'nin kendi rengi: sakinlestirici bir deniz yesili/turkuaz.
+        // Beyaz yaziyla okunakli koyulukta (600). Yalnizca src/eft/** kullanir;
+        // diger programlarin renkleri degismez.
+        eft: {
+          50: '#ebf8f7',
+          100: '#cff0ee',
+          200: '#9fe1dd',
+          300: '#67cbc6',
+          400: '#35b0ac',
+          500: '#169b98',
+          600: '#0e8c8a', // eylem rengi (butonlar, secili sekme)
+          700: '#0b7371',
+          800: '#0b5c5b',
+          900: '#0a4b4a'
+        },
         // MFP paletinden ORNEKLENEN renkler
         mfp: {
           bg: '#151724', // sayfa zemini
