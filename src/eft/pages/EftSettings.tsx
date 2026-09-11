@@ -4,6 +4,7 @@ import Switch from '../components/Switch'
 import { downloadBackup, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Tempo } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample } from '../lib/sound'
+import { speak, speechSupported } from '../lib/speech'
 
 export default function EftSettings() {
   const [ayar, setAyar] = useState(readSettings())
@@ -86,6 +87,50 @@ export default function EftSettings() {
             checked={ayar.auto}
             onChange={(v) => setAyar(saveSettings({ auto: v }))}
           />
+        </section>
+
+        <section className="eft-card space-y-3">
+          <h3 className="eft-label">Sesli rehber</h3>
+          <Switch
+            label="Cümleleri sesli oku"
+            hint="Kurulum cümlesi, nokta adı ve ifadeler okunur; telefona bakmadan uygula"
+            checked={ayar.voice}
+            onChange={(v) => {
+              setAyar(saveSettings({ voice: v }))
+              if (v) speak('Sesli rehber açık. Kaş başı. Bu kaygı.')
+            }}
+          />
+          <div>
+            <span className="text-[15px] text-slate-600 dark:text-[#b7cbc9]">Konuşma hızı</span>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {(
+                [
+                  ['yavas', 'Yavaş'],
+                  ['normal', 'Normal']
+                ] as ['yavas' | 'normal', string][]
+              ).map(([v, l]) => (
+                <button
+                  key={v}
+                  onClick={() => {
+                    setAyar(saveSettings({ voiceRate: v }))
+                    speak('Her ne kadar bu kaygıyı hissetsem de, kendimi kabul ediyorum.')
+                  }}
+                  className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${
+                    ayar.voiceRate === v ? 'bg-eft-600 text-white' : 'bg-slate-100 dark:bg-[#1e3231] text-slate-700 dark:text-[#d5e6e4]'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          {!speechSupported() && (
+            <p className="text-[13px] text-rose-600">Bu cihazda sesli okuma desteklenmiyor. Metinler ekranda gösterilmeye devam eder.</p>
+          )}
+          <p className="text-[13px] text-slate-500 dark:text-[#7f9896]">
+            Ses, telefonun kendi Türkçe okuma sesidir (Google Metin Okuma). Türkçe ses yüklü değilse Ayarlar › Dil ve giriş › Metin okuma
+            bölümünden Türkçe veri indirilebilir.
+          </p>
         </section>
 
         <section className="eft-card space-y-3">

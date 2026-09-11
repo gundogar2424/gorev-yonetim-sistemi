@@ -11,6 +11,8 @@ export interface Settings {
   tempo: Tempo // vurus hizi
   taps: number // nokta basina vurus sayisi
   auto: boolean // noktalar kendiliginden ilerlesin mi
+  voice: boolean // sesli rehber: cumleleri ve nokta adlarini okur
+  voiceRate: 'yavas' | 'normal' // konusma hizi
 }
 
 export const TEMPO_MS: Record<Tempo, number> = { yavas: 850, orta: 620, hizli: 460 }
@@ -61,7 +63,9 @@ export function readSettings(): Settings {
     vibrate: s.vibrate ?? true,
     tempo: s.tempo === 'yavas' || s.tempo === 'hizli' ? s.tempo : 'orta',
     taps: [5, 7, 9].includes(Number(s.taps)) ? Number(s.taps) : 7,
-    auto: s.auto ?? true
+    auto: s.auto ?? true,
+    voice: s.voice ?? true,
+    voiceRate: s.voiceRate === 'yavas' ? 'yavas' : 'normal'
   }
 }
 
