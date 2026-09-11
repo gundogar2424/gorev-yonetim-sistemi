@@ -726,3 +726,156 @@ html.zn-big {
 .tm-app input[type='checkbox'] {
   accent-color: #00873a;
 }
+
+/* =========================================================================
+   EFT DOKUNMA — yalnizca eft-* siniflari (src/eft/**). Diger programlarin
+   kurallarina dokunulmadi. Sakin, az dekorlu, buyuk dokunma alanli arayuz.
+   ========================================================================= */
+.eft-app {
+  background-color: #f2f8f7;
+}
+.dark .eft-app {
+  background-color: #0f1a1a;
+}
+/* Ayarlar > Buyuk yazi */
+html.eft-big {
+  font-size: 118%;
+}
+@layer components {
+  .eft-card {
+    @apply bg-white rounded-3xl p-4 shadow-card;
+  }
+  .eft-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 font-semibold transition select-none;
+    @apply min-h-[56px] text-[17px] active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
+  }
+  .eft-btn-primary {
+    @apply eft-btn bg-eft-600 text-white hover:bg-eft-700;
+  }
+  .eft-btn-soft {
+    @apply eft-btn bg-eft-50 text-eft-700 hover:bg-eft-100;
+  }
+  .eft-btn-ghost {
+    @apply eft-btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  }
+  .eft-btn-danger {
+    @apply eft-btn bg-rose-50 text-rose-600 hover:bg-rose-100;
+  }
+  .eft-label {
+    @apply text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-400;
+  }
+  .eft-pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold bg-eft-50 text-eft-700;
+  }
+  .eft-input {
+    @apply w-full rounded-2xl bg-slate-50 px-4 py-3 text-[17px] outline-none focus:ring-4 focus:ring-eft-100;
+  }
+}
+.dark .eft-card {
+  background-color: #172625;
+  box-shadow: none;
+}
+.dark .eft-btn-soft {
+  background-color: #1e3231;
+  color: #8fe0db;
+}
+.dark .eft-btn-ghost {
+  background-color: #1e3231;
+  color: #d5e6e4;
+}
+.dark .eft-btn-danger {
+  background-color: #2a1a1d;
+}
+.dark .eft-label {
+  color: #7f9896;
+}
+.dark .eft-pill {
+  background-color: #1e3231;
+  color: #8fe0db;
+}
+.dark .eft-input {
+  background-color: #1e3231;
+  color: #e8f2f1;
+}
+.dark .bg-eft-50 {
+  background-color: #1e3231;
+}
+.dark .text-eft-800,
+.dark .text-eft-700,
+.dark .text-eft-600 {
+  color: #8fe0db;
+}
+.dark .border-eft-100,
+.dark .border-eft-200 {
+  border-color: #2b4442;
+}
+/* Dokunma vurusu: nokta her vurusta buyuyup kuculur */
+@keyframes eft-beat {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.eft-beat {
+  animation: eft-beat 0.28s ease-out;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+/* Aktif noktanin etrafinda yayilan halka */
+@keyframes eft-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.eft-ring {
+  animation: eft-ring 1.4s ease-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes eft-pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.eft-pop {
+  animation: eft-pop 0.2s ease-out;
+}
+/* Nefes dairesi: 4 sn genisle, 4 sn daral */
+@keyframes eft-breathe {
+  0%,
+  100% {
+    transform: scale(0.72);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+.eft-breathe {
+  animation: eft-breathe 8s ease-in-out infinite;
+}
+.eft-app input[type='range'] {
+  accent-color: #0e8c8a;
+}
+@media (prefers-reduced-motion: reduce) {
+  .eft-beat,
+  .eft-ring,
+  .eft-pop,
+  .eft-breathe {
+    animation: none;
+  }
+}

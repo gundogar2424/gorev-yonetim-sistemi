@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="224" fill="#0e8c8a"/>
+  <!-- dokunma dalgalari: noktaya vurusun yayilan halkalari -->
+  <circle cx="512" cy="530" r="360" fill="none" stroke="#ffffff" stroke-width="38" opacity="0.28"/>
+  <circle cx="512" cy="530" r="270" fill="none" stroke="#ffffff" stroke-width="38" opacity="0.55"/>
+  <!-- kalp: duygusal iyilesme -->
+  <path d="M512 690 c-120 -90 -200 -160 -200 -250 c0 -70 55 -120 120 -120 c40 0 65 20 80 45 c15 -25 40 -45 80 -45 c65 0 120 50 120 120 c0 90 -80 160 -200 250 z" fill="#ffffff"/>
+  <!-- iki parmak ucu: dokunan el -->
+  <g stroke="#ffd54a" stroke-width="44" stroke-linecap="round" fill="none">
+    <path d="M700 250 l40 -120"/>
+    <path d="M770 300 l90 -90"/>
+  </g>
+</svg>

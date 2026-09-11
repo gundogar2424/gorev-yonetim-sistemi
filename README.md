@@ -102,6 +102,31 @@ Ek özellikler: günlük seri sayacı, gelişim ekranı (son 7 gün, oyun başı
 
 > Zihin Jimnastiği verisini yalnızca `zn-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet, hesap ya da izin gerektirmez.
 
+## 🤲 EFT Dokunma (ayrı program)
+
+Bu depodaki **beşinci bağımsız program**: **EFT Dokunma**. Kendi giriş sayfası (`eft.html`), kendi rengi (deniz yeşili) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **EFT Dokunma** → `eft.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/eft.html`)
+- APK: `.github/workflows/eft-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **eft-latest** sürümüne `eft-dokunma.apk` yüklenir.
+
+**Ne yapar?** EFT (Emotional Freedom Techniques, Duygusal Özgürleşme Tekniği / "tapping"), rahatsız edici bir duyguya odaklanırken yüz ve üst gövdedeki belirli noktalara parmak uçlarıyla hafifçe vurmaya dayanan bir gevşeme tekniğidir. Uygulama klasik "kısa reçete" akışını adım adım yönetir:
+
+| Adım | Ekranda ne olur |
+|---|---|
+| 1 · **Konu** | 10 hazır konu (kaygı, stres, öfke, üzüntü, korku, ağrı, uykusuzluk, özgüven, istek krizi, suçluluk) ya da kendi yazdığın konu; son yazdıkların hızlı seçim olarak saklanır |
+| 2 · **Puan (0-10)** | Rahatsızlık yoğunluğunu büyük düğmelerle seç (SUDS ölçeği) |
+| 3 · **Kurulum cümlesi** | El çizimi üzerinde karate noktası atar; "Her ne kadar … olsa da, kendimi derinden ve tamamen kabul ediyorum" cümlesi düzenlenebilir, 3 kez söylenir |
+| 4 · **8 nokta** | Baş/gövde çizimi üzerinde aktif nokta ritimle "atar"; her vuruşta hafif tık sesi ve titreşim; nokta başına 5/7/9 vuruş, hız ayarlanabilir; noktalar kendiliğinden ilerler (istersen elle) ve her noktada söylenecek hatırlatma ifadesi büyük yazıyla gösterilir |
+| 5 · **Nefes** | Genişleyip daralan nefes dairesi |
+| 6 · **Yeniden puan** | Başlangıç → şimdi karşılaştırması; "bir tur daha" (kalan duyguyla, ifadeler değişir), yoğunluk 3'ün altına inince "olumlu tur", ya da bitir |
+| 7 · **Kayıt** | Seans not ile kaydedilir |
+
+Diğer ekranlar: **Noktalar** (çizim üzerinde noktaya dokun → nerede/nasıl açıklaması, adım adım rehber), **Geçmiş** (seans sayısı, ortalama düşüş, dakika, son 7 gün, en çok çalışılan konular, seans listesi), **Ayarlar** (ritim hızı, vuruş sayısı, otomatik ilerleme, ses/titreşim, tema, büyük yazı, yedekleme/geri yükleme). Seans sırasında ekran uyumaz (destekleyen cihazlarda).
+
+> **Önemli:** EFT bir kendine yardım ve gevşeme tekniğidir; tıbbi ya da psikolojik tedavinin **yerini tutmaz**. Depresyon, panik bozukluk, travma ya da kendine zarar verme düşüncelerinde bir ruh sağlığı uzmanına; şiddetli ya da açıklanamayan ağrıda hekime başvurulmalıdır.
+
+> EFT Dokunma verisini yalnızca `eft-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet, hesap ya da izin gerektirmez.
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz
