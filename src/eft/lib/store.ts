@@ -19,7 +19,7 @@ export interface Session {
   id: string
   t: string // ISO baslangic zamani
   d: string // gun anahtari YYYY-MM-DD
-  issueId: string // hazir konu id'si ya da 'ozel'
+  issueId: string // hazir konu id'si, 'ozel' ya da 'yemek'
   issue: string // konu adi (ozel konuda kullanicinin yazdigi)
   before: number // 0-10 baslangic yogunlugu
   after: number // 0-10 bitis yogunlugu
@@ -31,6 +31,7 @@ export interface Session {
 const K_SET = 'eft-settings'
 const K_SES = 'eft-sessions'
 const K_CUSTOM = 'eft-custom'
+const K_FOOD = 'eft-foods'
 const MAX_SESSIONS = 2000
 
 function read<T>(key: string, fallback: T): T {
@@ -80,6 +81,18 @@ export function rememberCustomIssue(text: string): void {
   if (!x) return
   const list = [x, ...readCustomIssues().filter((s) => s.toLocaleLowerCase('tr') !== x.toLocaleLowerCase('tr'))]
   write(K_CUSTOM, list.slice(0, 6))
+}
+
+// ---- Son yemekler (yemek istegi modu, hizli secim icin) ----
+export function readRecentFoods(): string[] {
+  return read<string[]>(K_FOOD, []).filter((s) => typeof s === 'string' && s.trim())
+}
+
+export function rememberFood(text: string): void {
+  const x = text.trim()
+  if (!x) return
+  const list = [x, ...readRecentFoods().filter((s) => s.toLocaleLowerCase('tr') !== x.toLocaleLowerCase('tr'))]
+  write(K_FOOD, list.slice(0, 8))
 }
 
 // ---- Seanslar ----
@@ -171,7 +184,7 @@ export function stats(list = readSessions()): Stats {
 export function byIssue(list = readSessions()): { issueId: string; issue: string; count: number; avgDrop: number }[] {
   const m = new Map<string, { issueId: string; issue: string; count: number; drop: number }>()
   for (const s of list) {
-    const key = s.issueId === 'ozel' ? `ozel:${s.issue.toLocaleLowerCase('tr')}` : s.issueId
+    const key = s.issueId === 'ozel' || s.issueId === 'yemek' ? `${s.issueId}:${s.issue.toLocaleLowerCase('tr')}` : s.issueId
     const cur = m.get(key) ?? { issueId: s.issueId, issue: s.issue, count: 0, drop: 0 }
     cur.count++
     cur.drop += s.before - s.after
@@ -190,6 +203,7 @@ export interface Backup {
   settings: Settings
   sessions: Session[]
   custom: string[]
+  foods?: string[]
   theme?: string | null
   big?: string | null
 }
@@ -210,6 +224,7 @@ export function makeBackup(): Backup {
     settings: readSettings(),
     sessions: readSessions(),
     custom: readCustomIssues(),
+    foods: readRecentFoods(),
     theme,
     big
   }
@@ -253,6 +268,7 @@ export async function restoreBackup(file: File): Promise<number> {
   write(K_SES, mevcut.slice(-MAX_SESSIONS))
   if (b.settings) write(K_SET, { ...readSettings(), ...b.settings })
   if (Array.isArray(b.custom)) for (const c of [...b.custom].reverse()) rememberCustomIssue(String(c))
+  if (Array.isArray(b.foods)) for (const f of [...b.foods].reverse()) rememberFood(String(f))
   try {
     if (b.theme) localStorage.setItem('eft-theme', b.theme)
     if (b.big) localStorage.setItem('eft-big', b.big)
@@ -264,7 +280,7 @@ export async function restoreBackup(file: File): Promise<number> {
 
 export function wipeAll(): void {
   try {
-    for (const k of [K_SET, K_SES, K_CUSTOM]) localStorage.removeItem(k)
+    for (const k of [K_SET, K_SES, K_CUSTOM, K_FOOD]) localStorage.removeItem(k)
   } catch {
     /* yok say */
   }

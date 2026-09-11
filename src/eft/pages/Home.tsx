@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import EftHeader from '../EftHeader'
-import { ISSUES, tipOfDay } from '../lib/content'
-import { readSessions, readSettings, sessionsToday, streakDays } from '../lib/store'
+import { ISSUES, QUICK_FOODS, tipOfDay } from '../lib/content'
+import { readRecentFoods, readSessions, readSettings, sessionsToday, streakDays } from '../lib/store'
 import { dayNumber, fmtShort } from '../lib/date'
 import { sudsColor } from '../components/SudsPicker'
 
@@ -21,6 +22,13 @@ export default function Home() {
   const son = readSessions().slice(-3).reverse()
   const tip = tipOfDay(dayNumber())
   const hizli = ISSUES.slice(0, 6)
+  const [yemek, setYemek] = useState('')
+  const sonYemek = readRecentFoods()
+  const yemekCipleri = [...sonYemek, ...QUICK_FOODS.filter((q) => !sonYemek.some((s) => s.toLocaleLowerCase('tr') === q))].slice(0, 6)
+  function yemekGit(x: string) {
+    if (!x.trim()) return
+    navigate(`/seans?yemek=${encodeURIComponent(x.trim())}`)
+  }
 
   return (
     <div>
@@ -39,6 +47,31 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Yemek istegi */}
+        <section className="eft-card bg-amber-50/60 dark:bg-[#2b2a1a]">
+          <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#e8f2f1] mb-1">🍽️ Canın bir şey mi çekiyor?</h2>
+          <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mb-3">Yemeği yaz, ona özel telkinleri al; istersen vuruşlarla söndür.</p>
+          <div className="flex gap-2">
+            <input
+              className="eft-input flex-1"
+              placeholder="örn. çikolata"
+              value={yemek}
+              onChange={(e) => setYemek(e.target.value.slice(0, 40))}
+              onKeyDown={(e) => e.key === 'Enter' && yemekGit(yemek)}
+            />
+            <button className="eft-btn-primary px-4" disabled={!yemek.trim()} onClick={() => yemekGit(yemek)} aria-label="Telkinleri göster">
+              Telkin
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {yemekCipleri.map((f) => (
+              <button key={f} className="eft-pill min-h-[36px] px-3 text-[14px]" onClick={() => yemekGit(f)}>
+                {f}
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* Yeni seans */}
         <section className="eft-card">
