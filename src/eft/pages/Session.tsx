@@ -4,7 +4,7 @@ import EftHeader from '../EftHeader'
 import BodyMap from '../components/BodyMap'
 import HandMap from '../components/HandMap'
 import SudsPicker, { sudsColor } from '../components/SudsPicker'
-import { customIssue, FOOD_KIND_LABEL, foodIssue, ISSUES, issueById, phraseFor, POINTS, QUICK_FOODS, type FoodKind, type Issue } from '../lib/content'
+import { customIssue, FOOD_KIND_LABEL, foodIssue, HUNGER_ISSUES, ISSUES, issueById, phraseFor, POINTS, QUICK_FOODS, type FoodKind, type Issue } from '../lib/content'
 import { addSession, readCustomIssues, readRecentFoods, readSettings, rememberCustomIssue, rememberFood, TEMPO_MS, updateSession } from '../lib/store'
 import { sfxDone, sfxPoint, sfxTick } from '../lib/sound'
 import { fmtMinutes } from '../lib/date'
@@ -47,7 +47,10 @@ export default function Session() {
   useEffect(() => {
     const id = params.get('konu')
     const i = id ? issueById(id) : undefined
-    if (i && phase === 'konu') basla(i)
+    if (i && phase === 'konu') {
+      if (params.get('telkin')) telkinGoster(i)
+      else basla(i)
+    }
     const y = params.get('yemek')
     if (y && y.trim() && phase === 'konu') yemekTelkin(y)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,6 +117,13 @@ export default function Session() {
     if (!x) return
     rememberCustomIssue(x)
     basla(customIssue(x))
+  }
+
+  // Hazir konu icin once telkinleri goster (aclik gruplari boyle acilir)
+  function telkinGoster(i: Issue) {
+    setIssue(i)
+    setSetupText(i.setup)
+    setPhase('telkin')
   }
 
   // Yemek istegi: once o yemege ozel telkinler gosterilir, sonra seans.
@@ -201,6 +211,7 @@ export default function Session() {
 
   const point = POINTS[pos.pi]
   const phrase = issue ? phraseFor(issue, round, pos.pi, positive) : ''
+  const istekModu = !!issue && (issue.id === 'yemek' || issue.id.startsWith('aclik'))
 
   // ---------------- KONU ----------------
   if (phase === 'konu') {
@@ -231,6 +242,23 @@ export default function Session() {
             <button className="eft-btn-primary w-full mt-3" disabled={!yemek.trim()} onClick={() => yemekTelkin(yemek)}>
               Telkinleri göster
             </button>
+          </section>
+
+          <section className="eft-card">
+            <h3 className="eft-label mb-1">Açlığı bastır</h3>
+            <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mb-2">Belirli bir yemek değil, genel yeme isteği. Durumunu seç, telkinleri gör.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {HUNGER_ISSUES.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => telkinGoster(h)}
+                  className="flex items-center gap-2 rounded-2xl bg-slate-50 dark:bg-[#1e3231] p-3 text-left transition active:scale-[0.98]"
+                >
+                  <span className="text-[22px]">{h.emoji}</span>
+                  <span className="text-[14px] font-semibold text-slate-800 dark:text-[#e8f2f1] leading-tight">{h.name}</span>
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className="eft-card">
@@ -289,7 +317,7 @@ export default function Session() {
       <div>
         <EftHeader
           title={issue.name}
-          subtitle={`Telkinler · ${FOOD_KIND_LABEL[foodKindSel]}`}
+          subtitle={`Telkinler · ${issue.id === 'yemek' ? FOOD_KIND_LABEL[foodKindSel] : issue.hint}`}
           back={() => {
             setIssue(null)
             setPhase('konu')
@@ -330,6 +358,12 @@ export default function Session() {
             </ul>
           </section>
 
+          {issue.id.startsWith('aclik') && (
+            <p className="text-[13px] leading-relaxed text-slate-500 dark:text-[#7f9896] px-1">
+              Not: Bu telkinler öğün aralarındaki ani yeme isteğini yönetmek içindir. Uzun süreli açlık, baş dönmesi ya da
+              halsizlikte bedenini besle; tıbbi diyet ve oruçta hekim/diyetisyen takibi önemlidir.
+            </p>
+          )}
           <button className="eft-btn-primary w-full text-[19px] min-h-[62px]" onClick={() => basla(issue)}>
             Vuruşlarla seansa başla
           </button>
@@ -340,7 +374,7 @@ export default function Session() {
               setPhase('konu')
             }}
           >
-            Başka yemek
+            {issue.id === 'yemek' ? 'Başka yemek' : 'Başka konu'}
           </button>
         </div>
       </div>
@@ -355,12 +389,14 @@ export default function Session() {
         <div className="px-4 space-y-4 pb-6">
           <section className="eft-card">
             <h2 className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-snug">
-              {issue.id === 'yemek' ? 'Şu an bu istek ne kadar şiddetli?' : 'Bu konuyu şimdi düşününce ne kadar rahatsız oluyorsun?'}
+              {istekModu ? 'Şu an bu istek ne kadar şiddetli?' : 'Bu konuyu şimdi düşününce ne kadar rahatsız oluyorsun?'}
             </h2>
             <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mt-1 mb-4">
               {issue.id === 'yemek'
                 ? 'Yemeği gözünün önüne getir, kokusunu ve tadını düşün. Sonra bir sayı seç.'
-                : 'Gözlerini kapatıp bir an hisset. Bedeninde nerede? Sonra bir sayı seç.'}
+                : istekModu
+                  ? 'Midene, boğazına odaklan; açlık şu an ne kadar bastırıyor? Sonra bir sayı seç.'
+                  : 'Gözlerini kapatıp bir an hisset. Bedeninde nerede? Sonra bir sayı seç.'}
             </p>
             <SudsPicker value={pick} onChange={setPick} />
           </section>
@@ -526,7 +562,7 @@ export default function Session() {
         <div className="px-4 space-y-4 pb-6">
           <section className="eft-card">
             <h2 className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-snug">
-              {issue.id === 'yemek' ? 'Şimdi istek ne kadar şiddetli?' : 'Şimdi ne kadar rahatsız oluyorsun?'}
+              {istekModu ? 'Şimdi istek ne kadar şiddetli?' : 'Şimdi ne kadar rahatsız oluyorsun?'}
             </h2>
             <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mt-1 mb-4">Başlangıçta {before} demiştin.</p>
             <SudsPicker
