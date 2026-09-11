@@ -4,7 +4,7 @@ import Switch from '../components/Switch'
 import { downloadBackup, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Tempo } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample } from '../lib/sound'
-import { speak, speechSupported } from '../lib/speech'
+import { openTtsInstall, speak, speechSupported, turkishAvailable } from '../lib/speech'
 
 export default function EftSettings() {
   const [ayar, setAyar] = useState(readSettings())
@@ -14,6 +14,7 @@ export default function EftSettings() {
   const [hata, setHata] = useState('')
   const [sayi, setSayi] = useState(readSessions().length)
   const dosyaRef = useRef<HTMLInputElement>(null)
+  const [sesDurum, setSesDurum] = useState<'' | 'var' | 'yok' | 'bilinmiyor'>('')
 
   function bilgi(m: string) {
     setDurum(m)
@@ -124,6 +125,33 @@ export default function EftSettings() {
               ))}
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              className="eft-btn-soft min-h-[48px] text-[15px]"
+              onClick={async () => {
+                speak('Merhaba. Sesli rehber çalışıyor. Kaş başı. Bu kaygı.')
+                setSesDurum(await turkishAvailable())
+              }}
+            >
+              🔊 Sesi dene
+            </button>
+            <button
+              className="eft-btn-ghost min-h-[48px] text-[15px]"
+              onClick={async () => {
+                const ok = await openTtsInstall()
+                if (!ok) setHata('Bu ekran yalnızca Android uygulamasında açılır. Telefonda Ayarlar › Dil ve giriş › Metin okuma bölümünden Türkçe ses verisi yükleyin.')
+              }}
+            >
+              Türkçe ses yükle
+            </button>
+          </div>
+          {sesDurum === 'var' && <p className="text-[13px] text-emerald-700">Türkçe ses bulundu ✔ Ses gelmiyorsa telefonun medya sesini ve sessiz modunu kontrol edin.</p>}
+          {sesDurum === 'yok' && (
+            <p className="text-[13px] text-rose-600">
+              Bu telefonda Türkçe okuma sesi yüklü değil. "Türkçe ses yükle" ile açılan ekrandan Google Metin Okuma › Türkçe verisini indirin.
+            </p>
+          )}
+          {sesDurum === 'bilinmiyor' && <p className="text-[13px] text-slate-500 dark:text-[#7f9896]">Ses durumu sorgulanamadı; deneme cümlesi duyulduysa sorun yok.</p>}
           {!speechSupported() && (
             <p className="text-[13px] text-rose-600">Bu cihazda sesli okuma desteklenmiyor. Metinler ekranda gösterilmeye devam eder.</p>
           )}
