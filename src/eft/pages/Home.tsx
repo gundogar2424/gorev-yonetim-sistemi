@@ -36,13 +36,11 @@ export default function Home() {
 
       <div className="px-4 space-y-4">
         {/* Seri */}
-        <div className="eft-card flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-[#2b2a1a] grid place-items-center text-[30px]">🔥</div>
+        <div className="rounded-3xl p-4 flex items-center gap-4 bg-gradient-to-br from-eft-600 to-eft-800 text-white shadow-raised">
+          <div className="w-14 h-14 rounded-2xl bg-white/15 grid place-items-center text-[30px]">🔥</div>
           <div className="flex-1">
-            <div className="text-[22px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-tight">
-              {seri === 0 ? 'Bugün başla' : `${seri} gündür üst üste`}
-            </div>
-            <div className="text-[14px] text-slate-500 dark:text-[#7f9896]">
+            <div className="text-[22px] font-bold leading-tight">{seri === 0 ? 'Bugün başla' : `${seri} gündür üst üste`}</div>
+            <div className="text-[14px] text-white/80">
               {bugun > 0 ? `Bugün ${bugun} seans yaptın ✔` : seri === 0 ? 'Küçük ve düzenli adımlar en iyisi' : 'Bugün de bir seans yap'}
             </div>
           </div>
