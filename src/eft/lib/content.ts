@@ -320,7 +320,7 @@ export const ISSUES: Issue[] = [
 ]
 
 export function issueById(id: string): Issue | undefined {
-  return ISSUES.find((i) => i.id === id)
+  return ISSUES.find((i) => i.id === id) ?? HUNGER_ISSUES.find((i) => i.id === id)
 }
 
 // Kullanicinin kendi yazdigi konu icin ifade ureteci.
@@ -611,4 +611,125 @@ export const QUICK_FOODS = ['çikolata', 'cips', 'ekmek', 'pizza', 'kola', 'tatl
 export function emojiFor(issueId: string): string {
   if (issueId === 'yemek') return '🍽️'
   return issueById(issueId)?.emoji ?? '✍️'
+}
+
+// =========================================================================
+// ACLIK: belirli bir yemek degil, genel yeme istegini / acligi bastirmak
+// icin dort ayri durum. Her birinin kendi kurulum cumlesi, hatirlatma ve
+// olumlu ifadeleri var. Once telkinler gosterilir, sonra seans.
+// NOT: Gercek, uzun sureli aclik icin degil; ogun arasi ani yeme istegi icin.
+// =========================================================================
+export const HUNGER_ISSUES: Issue[] = [
+  {
+    id: 'aclik',
+    name: 'Açlık / Yeme isteği',
+    emoji: '🍽️',
+    hint: 'Öğün arası ani açlık, "bir şeyler atıştırayım" hissi',
+    setup: 'Her ne kadar şu an kendimi çok aç hissetsem ve bir şeyler yemek istesem de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu açlık hissi',
+      'midemdeki bu boşluk',
+      'bir şeyler atıştırma isteği',
+      'bu açlık gerçek mi, yoksa alışkanlık mı?',
+      'şimdi yemeliyim düşüncesi',
+      'bedenimdeki bu huzursuzluk',
+      'kalan bu açlık hissi',
+      'bu hissin dalga gibi geçmesine izin veriyorum'
+    ],
+    positives: [
+      'bedenim bir sonraki öğüne kadar rahatça bekleyebilir',
+      'bu his bir dalga, 15 dakikada geçer',
+      'bir bardak su içiyorum ve bekliyorum',
+      'gerçek açlıksa öğünümde doyarım; bu bir istekse bırakırım',
+      'midem sakin, zihnim sakin',
+      'ben açlığımdan daha güçlüyüm',
+      'hafif ve rahat hissetmeyi seçiyorum',
+      'iyiyim, tokum, huzurluyum'
+    ]
+  },
+  {
+    id: 'aclik-gece',
+    name: 'Gece açlığı',
+    emoji: '🌙',
+    hint: 'Akşam yemeğinden sonra buzdolabına gitme isteği',
+    setup: 'Her ne kadar gece bu saatte canım yemek istese ve buzdolabı beni çekse de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu gece açlığı',
+      'buzdolabına gitme isteği',
+      'yatmadan önce bir şey yeme alışkanlığı',
+      'akşam boşluğunu yemekle doldurma isteği',
+      'yorgunluğumu yemekle bastırma isteği',
+      'midemdeki bu çekim',
+      'kalan bu gece isteği',
+      'bu isteğin geçmesine izin veriyorum'
+    ],
+    positives: [
+      'mutfak bu gece kapalı',
+      'bedenim gece dinlenmek istiyor, yemek değil',
+      'bir bardak su ya da bitki çayı yeterli',
+      'sabah kendime teşekkür edeceğim',
+      'uykum yemekten daha iyi gelecek',
+      'bu istek bir dalga, uyuyunca geçecek',
+      'hafif uyumayı seçiyorum',
+      'sakinim, tokum, uykum var'
+    ]
+  },
+  {
+    id: 'aclik-oruc',
+    name: 'Diyet / oruç açlığı',
+    emoji: '⏳',
+    hint: 'Diyet ya da aralıklı oruç sırasında zorlanma',
+    setup: 'Her ne kadar diyetimde bu açlığa dayanmak zor gelse ve pes etmek istesem de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu diyet açlığı',
+      'pes etme isteği',
+      'şimdi yesem ne olur düşüncesi',
+      'bu mahrumiyet hissi',
+      'midemdeki bu boşluk',
+      'saat geçmiyor hissi',
+      'kalan bu açlık',
+      'bu açlığa dayanabileceğime izin veriyorum'
+    ],
+    positives: [
+      'bu açlık, bedenimin yağ yaktığının işareti',
+      'her dakika hedefime yaklaşıyorum',
+      'açlık dalga dalga gelir ve gider',
+      'su içiyorum, nefes alıyorum, bekliyorum',
+      'daha önce de başardım, yine başarırım',
+      'kararlıyım ve sakinim',
+      'bedenime güveniyorum',
+      'güçlüyüm, iyiyim, devam ediyorum'
+    ]
+  },
+  {
+    id: 'aclik-duygusal',
+    name: 'Duygusal açlık',
+    emoji: '🫥',
+    hint: 'Can sıkıntısı, stres ya da üzüntüden yeme isteği',
+    setup: 'Her ne kadar aç olmadığımı bilsem de duygularımı yemekle bastırmak istesem de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu duygusal açlık',
+      'can sıkıntısını yemekle doldurma isteği',
+      'bu duyguyu hissetmek yerine yeme isteği',
+      'boşluğu tabakla kapatma isteği',
+      'yemekle kendimi teselli etme alışkanlığı',
+      'göğsümdeki bu boşluk',
+      'kalan bu istek',
+      'bu duyguyu yemeden hissetmeye izin veriyorum'
+    ],
+    positives: [
+      'ihtiyacım olan yemek değil, biraz şefkat',
+      'bu duyguyu hissedebilirim ve geçmesine izin verebilirim',
+      'kendimi yemekle değil nefesle sakinleştiriyorum',
+      'boşluğu yemekle değil, iyi gelen bir şeyle dolduruyorum',
+      'duygumu tanıdım, ona yer açtım',
+      'ben duygularımdan daha güçlüyüm',
+      'huzur hissetmeyi seçiyorum',
+      'iyiyim, güvendeyim'
+    ]
+  }
+]
+
+export function hungerById(id: string): Issue | undefined {
+  return HUNGER_ISSUES.find((i) => i.id === id)
 }

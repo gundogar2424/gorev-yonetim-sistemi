@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import EftHeader from '../EftHeader'
-import { ISSUES, QUICK_FOODS, tipOfDay } from '../lib/content'
+import { HUNGER_ISSUES, ISSUES, QUICK_FOODS, tipOfDay } from '../lib/content'
 import { readRecentFoods, readSessions, readSettings, sessionsToday, streakDays } from '../lib/store'
 import { dayNumber, fmtShort } from '../lib/date'
 import { sudsColor } from '../components/SudsPicker'
@@ -70,6 +70,21 @@ export default function Home() {
                 {f}
               </button>
             ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-amber-100 dark:border-[#3a3820]">
+            <div className="eft-label mb-2">Açlığı bastır</div>
+            <div className="grid grid-cols-2 gap-2">
+              {HUNGER_ISSUES.map((h) => (
+                <button
+                  key={h.id}
+                  onClick={() => navigate(`/seans?konu=${h.id}&telkin=1`)}
+                  className="flex items-center gap-2 rounded-2xl bg-white dark:bg-[#1e3231] p-2.5 text-left transition active:scale-[0.98]"
+                >
+                  <span className="text-[20px]">{h.emoji}</span>
+                  <span className="text-[13px] font-semibold text-slate-800 dark:text-[#e8f2f1] leading-tight">{h.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
