@@ -4,15 +4,16 @@ import EftHeader from '../EftHeader'
 import BodyMap from '../components/BodyMap'
 import HandMap from '../components/HandMap'
 import SudsPicker, { sudsColor } from '../components/SudsPicker'
-import { customIssue, ISSUES, issueById, phraseFor, POINTS, type Issue } from '../lib/content'
-import { addSession, readCustomIssues, readSettings, rememberCustomIssue, TEMPO_MS, updateSession } from '../lib/store'
+import { customIssue, FOOD_KIND_LABEL, foodIssue, ISSUES, issueById, phraseFor, POINTS, QUICK_FOODS, type FoodKind, type Issue } from '../lib/content'
+import { addSession, readCustomIssues, readRecentFoods, readSettings, rememberCustomIssue, rememberFood, TEMPO_MS, updateSession } from '../lib/store'
 import { sfxDone, sfxPoint, sfxTick } from '../lib/sound'
 import { fmtMinutes } from '../lib/date'
 
 // Rehberli seans akisi:
 //   konu -> puan -> kurulum (karate noktasi, 3 kez) -> vurus (8 nokta) -> nefes
 //   -> yeniden puan -> [bir tur daha | olumlu tur | bitir] -> bitti
-type Phase = 'konu' | 'puan' | 'kurulum' | 'vurus' | 'nefes' | 'yeniden' | 'bitti'
+// Yemek istegi modunda konu -> telkin (uretilen ifadeler okunur) -> puan -> ...
+type Phase = 'konu' | 'telkin' | 'puan' | 'kurulum' | 'vurus' | 'nefes' | 'yeniden' | 'bitti'
 
 const SETUP_REPEATS = 3
 
@@ -26,6 +27,8 @@ export default function Session() {
   const [phase, setPhase] = useState<Phase>('konu')
   const [issue, setIssue] = useState<Issue | null>(null)
   const [ozel, setOzel] = useState('')
+  const [yemek, setYemek] = useState('')
+  const [foodKindSel, setFoodKindSel] = useState<FoodKind>('genel')
   const [before, setBefore] = useState<number | null>(null)
   const [current, setCurrent] = useState<number | null>(null) // son turdan sonraki puan
   const [pick, setPick] = useState<number | null>(null) // secici gecici degeri
@@ -45,6 +48,8 @@ export default function Session() {
     const id = params.get('konu')
     const i = id ? issueById(id) : undefined
     if (i && phase === 'konu') basla(i)
+    const y = params.get('yemek')
+    if (y && y.trim() && phase === 'konu') yemekTelkin(y)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -109,6 +114,19 @@ export default function Session() {
     if (!x) return
     rememberCustomIssue(x)
     basla(customIssue(x))
+  }
+
+  // Yemek istegi: once o yemege ozel telkinler gosterilir, sonra seans.
+  function yemekTelkin(text: string) {
+    const x = text.trim()
+    if (!x) return
+    rememberFood(x)
+    const fi = foodIssue(x)
+    setYemek(x)
+    setFoodKindSel(fi.kind)
+    setIssue(fi)
+    setSetupText(fi.setup)
+    setPhase('telkin')
   }
 
   function puanVerildi() {
@@ -187,10 +205,34 @@ export default function Session() {
   // ---------------- KONU ----------------
   if (phase === 'konu') {
     const sonOzel = readCustomIssues()
+    const sonYemek = readRecentFoods()
+    const yemekCipleri = [...sonYemek, ...QUICK_FOODS.filter((q) => !sonYemek.some((s) => s.toLocaleLowerCase('tr') === q))].slice(0, 8)
     return (
       <div>
         <EftHeader title="Konu seç" subtitle="Şu an seni ne rahatsız ediyor?" back={cik} />
         <div className="px-4 space-y-4 pb-6">
+          <section className="eft-card bg-amber-50/60 dark:bg-[#2b2a1a]">
+            <h3 className="eft-label mb-1">🍽️ Canın bir şey mi çekiyor?</h3>
+            <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mb-2">Yemeği yaz, ona özel telkinleri göreyim; istersen vuruşlarla söndürelim.</p>
+            <input
+              className="eft-input"
+              placeholder="örn. çikolata, cips, pizza…"
+              value={yemek}
+              onChange={(e) => setYemek(e.target.value.slice(0, 40))}
+              onKeyDown={(e) => e.key === 'Enter' && yemekTelkin(yemek)}
+            />
+            <div className="flex flex-wrap gap-2 mt-2">
+              {yemekCipleri.map((f) => (
+                <button key={f} className="eft-pill min-h-[36px] px-3 text-[14px]" onClick={() => yemekTelkin(f)}>
+                  {f}
+                </button>
+              ))}
+            </div>
+            <button className="eft-btn-primary w-full mt-3" disabled={!yemek.trim()} onClick={() => yemekTelkin(yemek)}>
+              Telkinleri göster
+            </button>
+          </section>
+
           <section className="eft-card">
             <h3 className="eft-label mb-2">Kendi konunu yaz</h3>
             <input
@@ -241,6 +283,70 @@ export default function Session() {
 
   if (!issue) return null
 
+  // ---------------- TELKIN (yemek istegi) ----------------
+  if (phase === 'telkin') {
+    return (
+      <div>
+        <EftHeader
+          title={issue.name}
+          subtitle={`Telkinler · ${FOOD_KIND_LABEL[foodKindSel]}`}
+          back={() => {
+            setIssue(null)
+            setPhase('konu')
+          }}
+          compact
+        />
+        <div className="px-4 space-y-4 pb-6">
+          <section className="eft-card">
+            <h3 className="eft-label mb-1">1 · Kurulum cümlesi</h3>
+            <p className="text-[13px] text-slate-500 dark:text-[#7f9896] mb-2">Karate noktasına vururken 3 kez yüksek sesle</p>
+            <p className="text-[18px] leading-snug font-semibold text-slate-900 dark:text-[#e8f2f1]">“{issue.setup}”</p>
+          </section>
+
+          <section className="eft-card">
+            <h3 className="eft-label mb-1">2 · Hatırlatma ifadeleri</h3>
+            <p className="text-[13px] text-slate-500 dark:text-[#7f9896] mb-2">Her noktada bir tanesi, sırayla</p>
+            <ol className="space-y-1.5">
+              {issue.reminders.map((r, i) => (
+                <li key={i} className="flex items-start gap-2 text-[16px] text-slate-800 dark:text-[#e8f2f1]">
+                  <span className="w-6 h-6 flex-shrink-0 rounded-full bg-eft-50 dark:bg-[#1e3231] text-eft-700 dark:text-eft-300 grid place-items-center text-[12px] font-bold mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span>{POINTS[i] ? <span className="text-slate-400 dark:text-[#7f9896] text-[13px]">{POINTS[i].name}: </span> : null}“{r}”</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="eft-card bg-eft-50 dark:bg-[#1e3231]">
+            <h3 className="eft-label mb-1">3 · Olumlu tur</h3>
+            <p className="text-[13px] text-slate-500 dark:text-[#7f9896] mb-2">İstek 3'ün altına inince</p>
+            <ul className="space-y-1.5">
+              {issue.positives.map((r, i) => (
+                <li key={i} className="text-[16px] text-eft-800 dark:text-eft-300">
+                  ✨ “{r}”
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <button className="eft-btn-primary w-full text-[19px] min-h-[62px]" onClick={() => basla(issue)}>
+            Vuruşlarla seansa başla
+          </button>
+          <button
+            className="eft-btn-ghost w-full"
+            onClick={() => {
+              setIssue(null)
+              setPhase('konu')
+            }}
+          >
+            Başka yemek
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // ---------------- PUAN ----------------
   if (phase === 'puan') {
     return (
@@ -249,10 +355,12 @@ export default function Session() {
         <div className="px-4 space-y-4 pb-6">
           <section className="eft-card">
             <h2 className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-snug">
-              Bu konuyu şimdi düşününce ne kadar rahatsız oluyorsun?
+              {issue.id === 'yemek' ? 'Şu an bu istek ne kadar şiddetli?' : 'Bu konuyu şimdi düşününce ne kadar rahatsız oluyorsun?'}
             </h2>
             <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mt-1 mb-4">
-              Gözlerini kapatıp bir an hisset. Bedeninde nerede? Sonra bir sayı seç.
+              {issue.id === 'yemek'
+                ? 'Yemeği gözünün önüne getir, kokusunu ve tadını düşün. Sonra bir sayı seç.'
+                : 'Gözlerini kapatıp bir an hisset. Bedeninde nerede? Sonra bir sayı seç.'}
             </p>
             <SudsPicker value={pick} onChange={setPick} />
           </section>
@@ -417,7 +525,9 @@ export default function Session() {
         <EftHeader title={issue.name} subtitle={`Tur ${round} sonrası`} back={cik} compact />
         <div className="px-4 space-y-4 pb-6">
           <section className="eft-card">
-            <h2 className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-snug">Şimdi ne kadar rahatsız oluyorsun?</h2>
+            <h2 className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-snug">
+              {issue.id === 'yemek' ? 'Şimdi istek ne kadar şiddetli?' : 'Şimdi ne kadar rahatsız oluyorsun?'}
+            </h2>
             <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mt-1 mb-4">Başlangıçta {before} demiştin.</p>
             <SudsPicker
               value={pick}

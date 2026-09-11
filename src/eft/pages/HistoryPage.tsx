@@ -3,7 +3,7 @@ import EftHeader from '../EftHeader'
 import { byIssue, deleteSession, lastDaysActivity, readSessions, stats } from '../lib/store'
 import { fmtMinutes, fmtShort } from '../lib/date'
 import { sudsColor } from '../components/SudsPicker'
-import { issueById } from '../lib/content'
+import { emojiFor } from '../lib/content'
 
 export default function HistoryPage() {
   const [tick, setTick] = useState(0)
@@ -61,7 +61,7 @@ export default function HistoryPage() {
                 <ul className="space-y-2">
                   {konular.map((k) => (
                     <li key={k.issueId + k.issue} className="flex items-center gap-3">
-                      <span className="text-[22px] w-8 text-center">{issueById(k.issueId)?.emoji ?? '✍️'}</span>
+                      <span className="text-[22px] w-8 text-center">{emojiFor(k.issueId)}</span>
                       <span className="flex-1 min-w-0 text-[15px] font-semibold text-slate-800 dark:text-[#e8f2f1] truncate">{k.issue}</span>
                       <span className="text-[13px] text-slate-500 dark:text-[#7f9896] tabular-nums">
                         {k.count} seans · ort. −{Math.max(0, k.avgDrop).toFixed(1)}
@@ -80,7 +80,7 @@ export default function HistoryPage() {
                   return (
                     <li key={s.id} className="py-2.5">
                       <button className="w-full flex items-center gap-3 text-left" onClick={() => setAcik(on ? null : s.id)}>
-                        <span className="text-[22px] w-8 text-center flex-shrink-0">{issueById(s.issueId)?.emoji ?? '✍️'}</span>
+                        <span className="text-[22px] w-8 text-center flex-shrink-0">{emojiFor(s.issueId)}</span>
                         <span className="flex-1 min-w-0">
                           <span className="block text-[15px] font-semibold text-slate-800 dark:text-[#e8f2f1] truncate">{s.issue}</span>
                           <span className="block text-[13px] text-slate-500 dark:text-[#7f9896]">

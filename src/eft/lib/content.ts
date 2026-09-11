@@ -382,3 +382,233 @@ export const TIPS: string[] = [
 export function tipOfDay(dayNo: number): string {
   return TIPS[((dayNo % TIPS.length) + TIPS.length) % TIPS.length]
 }
+
+// =========================================================================
+// YEMEK ISTEGI: kullanici canini ceken yemegi yazar; yemegin turune gore
+// (tatli / tuzlu-citir / hamur isi / fast food / icecek / genel) ozel
+// telkinler uretilir. Ifadelerde {x} yemegin adiyla degistirilir.
+// =========================================================================
+export type FoodKind = 'tatli' | 'tuzlu' | 'hamur' | 'fastfood' | 'icecek' | 'genel'
+
+const FOOD_KEYS: Record<Exclude<FoodKind, 'genel'>, string[]> = {
+  tatli: [
+    'çikolata', 'cikolata', 'tatlı', 'tatli', 'baklava', 'pasta', 'kek', 'dondurma', 'şeker', 'seker', 'kurabiye',
+    'bisküvi', 'biskuvi', 'lokum', 'helva', 'sütlaç', 'sutlac', 'künefe', 'kunefe', 'gofret', 'bal', 'reçel', 'recel',
+    'waffle', 'tart', 'profiterol', 'kadayıf', 'kadayif', 'şekerleme', 'sekerleme', 'donut', 'muffin', 'browni', 'brownie',
+    'krema', 'puding', 'tulumba', 'revani', 'şerbet', 'serbet', 'çikolatalı', 'cikolatali', 'nutella', 'jelibon'
+  ],
+  tuzlu: [
+    'cips', 'çips', 'kuruyemiş', 'kuruyemis', 'fıstık', 'fistik', 'çekirdek', 'cekirdek', 'kraker', 'patlamış', 'patlamis',
+    'mısır', 'misir', 'tuzlu', 'kızartma', 'kizartma', 'patates', 'çerez', 'cerez', 'leblebi', 'zeytin', 'peynir', 'turşu', 'tursu'
+  ],
+  hamur: [
+    'ekmek', 'simit', 'poğaça', 'pogaca', 'börek', 'borek', 'makarna', 'pide', 'lahmacun', 'mantı', 'manti', 'hamur', 'açma',
+    'acma', 'tost', 'sandviç', 'sandvic', 'pilav', 'bulgur', 'gözleme', 'gozleme', 'bazlama', 'çörek', 'corek', 'kruvasan',
+    'krep', 'pankek', 'erişte', 'eriste', 'noodle'
+  ],
+  fastfood: [
+    'pizza', 'hamburger', 'burger', 'döner', 'doner', 'kebap', 'sosisli', 'nugget', 'fast food', 'fastfood', 'dürüm', 'durum',
+    'kokoreç', 'kokorec', 'köfte', 'kofte', 'tavuk', 'kanat', 'sucuk', 'salam', 'sosis', 'ciğer', 'ciger', 'iskender'
+  ],
+  icecek: [
+    'kola', 'gazoz', 'soda', 'meyve suyu', 'kahve', 'çay', 'cay', 'enerji', 'içecek', 'icecek', 'milkshake', 'frappe',
+    'bira', 'şarap', 'sarap', 'rakı', 'raki', 'alkol', 'ayran', 'limonata', 'şalgam', 'salgam', 'latte', 'smoothie'
+  ]
+}
+
+export function foodKind(text: string): FoodKind {
+  const t = text.toLocaleLowerCase('tr')
+  for (const k of Object.keys(FOOD_KEYS) as Exclude<FoodKind, 'genel'>[]) {
+    if (FOOD_KEYS[k].some((w) => t.includes(w))) return k
+  }
+  return 'genel'
+}
+
+export const FOOD_KIND_LABEL: Record<FoodKind, string> = {
+  tatli: 'Tatlı / şekerli',
+  tuzlu: 'Tuzlu / çıtır atıştırmalık',
+  hamur: 'Hamur işi / karbonhidrat',
+  fastfood: 'Fast food / ağır yemek',
+  icecek: 'İçecek',
+  genel: 'Yemek isteği'
+}
+
+interface FoodScript {
+  setup: string
+  reminders: string[]
+  positives: string[]
+}
+
+// Her turun kendi "sesi" var: tatlida odul/rahatlama, tuzluda elin durmamasi,
+// hamur isinde doygunluk/uyusukluk, fast foodda hiz/kolaylik, icecekte alis-
+// kanlik ritueli. Hepsi klasik EFT istek protokolunu izler: once istegi
+// oldugu gibi kabul, sonra bedende hissetme, sonra birakma.
+const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
+  tatli: {
+    setup: 'Her ne kadar şu an canım çok {x} istese ve bu isteğe karşı koymak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu {x} isteği',
+      'ağzımda {x} tadı',
+      'şekerin vereceği o anlık rahatlama',
+      'kendimi {x} ile ödüllendirme isteği',
+      'bu tatlı isteğinin altındaki duygu',
+      'midemdeki bu çekim',
+      'kalan bu {x} isteği',
+      'bu isteğin dalga gibi geçmesine izin veriyorum'
+    ],
+    positives: [
+      'şekere ihtiyacım yok, huzura ihtiyacım var',
+      'bu istek bir dalga, birazdan geçecek',
+      'bedenime gerçekten iyi geleni seçiyorum',
+      'kendimi {x} olmadan da ödüllendirebilirim',
+      'ben isteklerimden daha güçlüyüm',
+      'nefes alıyorum, istek sönüyor',
+      'sakin ve özgür hissetmeyi seçiyorum',
+      'iyiyim, tam da olduğum gibi iyiyim'
+    ]
+  },
+  tuzlu: {
+    setup: 'Her ne kadar elim durmadan {x} istese ve durmak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu {x} isteği',
+      'elimin {x} paketine gitme isteği',
+      'o çıtır ses, o tuz',
+      'sıkıntımı {x} ile bastırma isteği',
+      'bir tane daha, bir tane daha',
+      'midemdeki bu çekim',
+      'kalan bu {x} isteği',
+      'bu isteğin geçmesine izin veriyorum'
+    ],
+    positives: [
+      'ellerimi başka şeyle meşgul edebilirim',
+      'bu istek bir dalga, geçecek',
+      'gerçekten aç mıyım, yoksa canım mı sıkkın?',
+      'bedenime iyi geleni seçiyorum',
+      'durabilirim; kontrol bende',
+      'nefes alıyorum, istek sönüyor',
+      'özgür olmayı seçiyorum',
+      'iyiyim'
+    ]
+  },
+  hamur: {
+    setup: 'Her ne kadar şu an canım çok {x} istese ve doymak bilmediğimi hissetsem de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu {x} isteği',
+      'o sıcak, doyurucu {x}',
+      'boşluğu {x} ile doldurma isteği',
+      'yedikten sonraki o ağırlık',
+      'bu doymak bilmeme hissi',
+      'midemdeki bu çekim',
+      'kalan bu {x} isteği',
+      'bu isteği bırakmayı seçiyorum'
+    ],
+    positives: [
+      'bedenim zaten yeterince besleniyor',
+      'bu istek bir dalga, geçecek',
+      'boşluğu yemekle değil nefesle dolduruyorum',
+      'hafif hissetmeyi seçiyorum',
+      'bedenime iyi geleni seçiyorum',
+      'kontrol bende',
+      'sakin ve tokum',
+      'iyiyim'
+    ]
+  },
+  fastfood: {
+    setup: 'Her ne kadar şu an canım çok {x} istese ve "bir kere yesem ne olur" diye düşünsem de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu {x} isteği',
+      'bir kere yesem ne olur düşüncesi',
+      'o kolay, hızlı, yağlı lezzet',
+      'yorgunluğumu {x} ile ödüllendirme isteği',
+      'yedikten sonraki pişmanlık',
+      'midemdeki bu çekim',
+      'kalan bu {x} isteği',
+      'bu isteğin geçmesine izin veriyorum'
+    ],
+    positives: [
+      'kendimi yemekle değil dinlenerek ödüllendiriyorum',
+      'bu istek bir dalga, geçecek',
+      'bedenime iyi geleni seçiyorum',
+      'yarın kendime teşekkür edeceğim',
+      'ben isteklerimden daha güçlüyüm',
+      'nefes alıyorum, istek sönüyor',
+      'hafif ve özgür hissetmeyi seçiyorum',
+      'iyiyim'
+    ]
+  },
+  icecek: {
+    setup: 'Her ne kadar şu an canım çok {x} istese ve bu alışkanlığı bırakmak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu {x} isteği',
+      'elimde {x} olmadan eksik hissetme',
+      'bu alışkanlığın rahatlığı',
+      'o ilk yudumun verdiği his',
+      'boğazımdaki bu istek',
+      'bedenimdeki bu çekim',
+      'kalan bu {x} isteği',
+      'bu isteğin geçmesine izin veriyorum'
+    ],
+    positives: [
+      'bir bardak su da beni rahatlatır',
+      'bu istek bir dalga, geçecek',
+      'bedenime iyi geleni seçiyorum',
+      'alışkanlıklarımı ben yönetirim',
+      'nefes alıyorum, istek sönüyor',
+      'ben isteklerimden daha güçlüyüm',
+      'özgür olmayı seçiyorum',
+      'iyiyim'
+    ]
+  },
+  genel: {
+    setup: 'Her ne kadar şu an canım çok {x} istese ve bu isteğe karşı koymak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    reminders: [
+      'bu {x} isteği',
+      'ağzımda {x} tadı',
+      'şimdi yemek istiyorum duygusu',
+      'bu isteğin altındaki duygu',
+      'bedenimdeki bu çekim',
+      'bu şiddetli {x} isteği',
+      'kalan bu {x} isteği',
+      'bu isteğin geçmesine izin veriyorum'
+    ],
+    positives: [
+      'bu istek bir dalga, geçecek',
+      'gerçekten aç mıyım, yoksa bir duygu mu bu?',
+      'bedenime iyi geleni seçiyorum',
+      'ben isteklerimden daha güçlüyüm',
+      'nefes alıyorum, istek sönüyor',
+      'kontrol bende',
+      'özgür olmayı seçiyorum',
+      'iyiyim'
+    ]
+  }
+}
+
+function fill(s: string, x: string): string {
+  return s.replace(/\{x\}/g, x)
+}
+
+// Yemek adi -> o yemege ozel telkinlerle dolu Issue
+export function foodIssue(text: string): Issue & { kind: FoodKind } {
+  const x = text.trim()
+  const kind = foodKind(x)
+  const sc = FOOD_SCRIPTS[kind]
+  return {
+    id: 'yemek',
+    kind,
+    name: `${x} isteği`,
+    emoji: '🍽️',
+    hint: FOOD_KIND_LABEL[kind],
+    setup: fill(sc.setup, x),
+    reminders: sc.reminders.map((r) => fill(r, x)),
+    positives: sc.positives.map((p) => fill(p, x))
+  }
+}
+
+// Ana sayfa ve konu ekraninda hizli secim
+export const QUICK_FOODS = ['çikolata', 'cips', 'ekmek', 'pizza', 'kola', 'tatlı', 'kahve', 'dondurma']
+
+export function emojiFor(issueId: string): string {
+  if (issueId === 'yemek') return '🍽️'
+  return issueById(issueId)?.emoji ?? '✍️'
+}

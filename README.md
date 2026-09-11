@@ -121,6 +121,8 @@ Bu depodaki **beşinci bağımsız program**: **EFT Dokunma**. Kendi giriş sayf
 | 6 · **Yeniden puan** | Başlangıç → şimdi karşılaştırması; "bir tur daha" (kalan duyguyla, ifadeler değişir), yoğunluk 3'ün altına inince "olumlu tur", ya da bitir |
 | 7 · **Kayıt** | Seans not ile kaydedilir |
 
+**🍽️ Yemek isteği modu:** Ana sayfada ya da konu ekranında canını çeken yemeği yaz (örn. çikolata, cips, pizza, kola). Uygulama yemeğin türünü tanır (tatlı / tuzlu-çıtır / hamur işi / fast food / içecek) ve o türe özel **telkinleri** üretip gösterir: kurulum cümlesi, 8 noktaya dağılmış hatırlatma ifadeleri ve olumlu tur ifadeleri. Telkinleri sadece okuyabilir ya da "Vuruşlarla seansa başla" ile aynı akışta isteği söndürebilirsin. Son yazdığın yemekler hızlı seçim olarak saklanır.
+
 Diğer ekranlar: **Noktalar** (çizim üzerinde noktaya dokun → nerede/nasıl açıklaması, adım adım rehber), **Geçmiş** (seans sayısı, ortalama düşüş, dakika, son 7 gün, en çok çalışılan konular, seans listesi), **Ayarlar** (ritim hızı, vuruş sayısı, otomatik ilerleme, ses/titreşim, tema, büyük yazı, yedekleme/geri yükleme). Seans sırasında ekran uyumaz (destekleyen cihazlarda).
 
 > **Önemli:** EFT bir kendine yardım ve gevşeme tekniğidir; tıbbi ya da psikolojik tedavinin **yerini tutmaz**. Depresyon, panik bozukluk, travma ya da kendine zarar verme düşüncelerinde bir ruh sağlığı uzmanına; şiddetli ya da açıklanamayan ağrıda hekime başvurulmalıdır.
