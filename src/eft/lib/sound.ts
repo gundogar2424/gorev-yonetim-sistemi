@@ -1,21 +1,8 @@
 // Kisa geri bildirim sesleri (WebAudio ile uretilir; ses dosyasi yok) + titresim.
 import { readSettings } from './store'
+import { audioCtx } from './audioCtx'
 
-let ctx: AudioContext | null = null
-
-function audio(): AudioContext | null {
-  try {
-    if (!ctx) {
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-      if (!AC) return null
-      ctx = new AC()
-    }
-    if (ctx.state === 'suspended') void ctx.resume()
-    return ctx
-  } catch {
-    return null
-  }
-}
+const audio = audioCtx
 
 function tone(freq: number, dur: number, type: OscillatorType = 'sine', gain = 0.12, when = 0): void {
   const c = audio()

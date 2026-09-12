@@ -3,10 +3,12 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import EftApp from './EftApp'
 import { initTheme } from './lib/theme'
+import { installAudioUnlock } from './lib/audioCtx'
 // Tailwind/temel stiller diger programlarla AYNI dosyadan gelir (yalnizca okunur).
 import '../index.css'
 
 initTheme()
+installAudioUnlock()
 
 // EFT Dokunma: CRM, Diyet Kocu, Termomiks Defteri ve Zihin Jimnastigi'nden
 // TAMAMEN AYRI, kendi giris noktasi olan besinci bagimsiz program.

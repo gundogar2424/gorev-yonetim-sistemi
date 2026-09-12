@@ -3,7 +3,8 @@ import EftHeader from '../EftHeader'
 import Switch from '../components/Switch'
 import { downloadBackup, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Tempo } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
-import { sfxSample } from '../lib/sound'
+import { sfxSample, sfxTick } from '../lib/sound'
+import { unlockAudio } from '../lib/audioCtx'
 import { diagnose, openTtsInstall, speak, type Diag } from '../lib/speech'
 
 export default function EftSettings() {
@@ -161,7 +162,8 @@ export default function EftSettings() {
               disabled={diagBekle}
               onClick={async () => {
                 setDiagBekle(true)
-                speak('Merhaba. Sesli rehber çalışıyor. Kaş başı. Bu kaygı.')
+                unlockAudio()
+                speak('Merhaba. Sesli rehber çalışıyor. Kaş başı. Bu kaygı.', undefined, true)
                 try {
                   setDiag(await diagnose())
                 } finally {
@@ -184,6 +186,11 @@ export default function EftSettings() {
           {diag && (
             <div className="rounded-2xl bg-slate-50 dark:bg-[#1e3231] p-3 text-[13px] leading-relaxed text-slate-700 dark:text-[#d5e6e4] space-y-1">
               <div className="eft-label">Ses teşhisi</div>
+              <div>Sesli rehber anahtarı: {diag.voiceOn ? 'açık ✔' : 'KAPALI ✖ (yukarıdan açın)'}</div>
+              <div>
+                Ses bağlamı: {diag.audioState === 'running' ? 'çalışıyor ✔' : `${diag.audioState} ✖`}
+                {diag.audioUnlocked ? '' : ' · dokunuşla açılmadı'}
+              </div>
               {diag.platform === 'apk' ? (
                 <>
                   <div>Telefon motoru: {diag.nativeReady ? 'hazır ✔' : 'hazır değil ✖'}</div>
@@ -205,6 +212,12 @@ export default function EftSettings() {
               {diag.lastError && <div className="text-rose-600">Son hata: {diag.lastError}</div>}
               {diag.platform === 'apk' && !diag.nativeTurkish && diag.fallbackReady && (
                 <div className="text-emerald-700">Telefonda Türkçe ses olmadığı için yedek ses kullanılır; deneme cümlesini duyduysanız hazır.</div>
+              )}
+              {diag.audioState !== 'running' && (
+                <div className="text-rose-600">
+                  Ses bağlamı çalışmıyor: ekrana bir kez dokunup "Sesi dene"ye yeniden basın. Telefonun MEDYA sesinin açık olduğundan
+                  emin olun (zil sesi değil).
+                </div>
               )}
               {!diag.fallbackReady && !diag.nativeTurkish && !diag.webTurkish && (
                 <div className="text-rose-600">Hiçbir ses motoru çalışmadı. Uygulamayı kapatıp yeniden açın; sorun sürerse bu ekranın görüntüsünü paylaşın.</div>
@@ -229,6 +242,19 @@ export default function EftSettings() {
             }}
           />
           <Switch label="Titreşim" hint="Her vuruşta kısa titreşim" checked={ayar.vibrate} onChange={(v) => setAyar(saveSettings({ vibrate: v }))} />
+          <button
+            className="eft-btn-ghost w-full min-h-[48px] text-[15px]"
+            onClick={() => {
+              unlockAudio()
+              sfxTick()
+              setTimeout(sfxSample, 250)
+            }}
+          >
+            🔔 Tık sesini dene
+          </button>
+          <p className="text-[13px] text-slate-500 dark:text-[#7f9896]">
+            Tık sesi de duyulmuyorsa telefonun <b>medya</b> ses düzeyi kapalı olabilir (yan tuşla sesi açarken "Medya" kaydırıcısını yükseltin).
+          </p>
         </section>
 
         <section className="eft-card space-y-3">
