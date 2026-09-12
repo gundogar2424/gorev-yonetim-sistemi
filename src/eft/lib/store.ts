@@ -14,6 +14,8 @@ export interface Settings {
   voice: boolean // sesli rehber: cumleleri ve nokta adlarini okur
   voiceRate: 'yavas' | 'normal' // konusma hizi
   voiceEngine: 'auto' | 'telefon' | 'yedek' // ses motoru: otomatik / telefonun sesi / gomulu yedek
+  flowSpeed: number // kayan yazi hizi (kademe indeksi)
+  flowFont: number // kayan yazi boyutu (kademe indeksi)
 }
 
 export const TEMPO_MS: Record<Tempo, number> = { yavas: 850, orta: 620, hizli: 460 }
@@ -67,7 +69,9 @@ export function readSettings(): Settings {
     auto: s.auto ?? true,
     voice: s.voice ?? true,
     voiceRate: s.voiceRate === 'yavas' ? 'yavas' : 'normal',
-    voiceEngine: s.voiceEngine === 'telefon' || s.voiceEngine === 'yedek' ? s.voiceEngine : 'auto'
+    voiceEngine: s.voiceEngine === 'telefon' || s.voiceEngine === 'yedek' ? s.voiceEngine : 'auto',
+    flowSpeed: Number.isInteger(s.flowSpeed) ? Number(s.flowSpeed) : 3,
+    flowFont: Number.isInteger(s.flowFont) ? Number(s.flowFont) : 2
   }
 }
 

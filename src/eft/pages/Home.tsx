@@ -46,6 +46,20 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Kayan yazi */}
+        <section className="eft-card">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-eft-50 dark:bg-[#1e3231] grid place-items-center text-[30px]">📜</div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-tight">Kayan yazı</h2>
+              <p className="text-[14px] text-slate-500 dark:text-[#7f9896]">Telefonu karşına koy; metin kendiliğinden aksın, oku ve vur. Hızı sen ayarla.</p>
+            </div>
+          </div>
+          <button className="eft-btn-primary w-full mt-3" onClick={() => navigate('/akis')}>
+            Kayan yazıyı başlat
+          </button>
+        </section>
+
         {/* Yemek istegi */}
         <section className="eft-card bg-amber-50/60 dark:bg-[#2b2a1a]">
           <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#e8f2f1] mb-1">🍽️ Canın bir şey mi çekiyor?</h2>
