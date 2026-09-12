@@ -78,7 +78,8 @@ jobs:
           # Web derlemesi yukarida bitti. EFT Dokunma @capacitor/core,
           # @capacitor/status-bar ve @capacitor-community/text-to-speech (sesli
           # rehber; Android WebView web TTS'i desteklemedigi icin yerel motor)
-          # kullanir. Izin gerektiren hicbir eklenti yok; digerlerini APK'ya
+          # kullanir; yedek ses (mespeak) saf JS'dir, yerel kod gerektirmez.
+          # Izin gerektiren hicbir eklenti yok; digerlerini APK'ya
           # koymaya gerek yok.
           # Once package.json'dan dusur (Capacitor eklenti listesini buradan okur),
           # sonra klasorleri sil. Bu yalnizca CI kopyasinda olur; depo degismez.

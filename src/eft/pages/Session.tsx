@@ -7,7 +7,7 @@ import SudsPicker, { sudsColor } from '../components/SudsPicker'
 import { customIssue, FOOD_KIND_LABEL, foodIssue, HUNGER_ISSUES, ISSUES, issueById, phraseFor, POINTS, QUICK_FOODS, type FoodKind, type Issue } from '../lib/content'
 import { addSession, readCustomIssues, readRecentFoods, readSettings, rememberCustomIssue, rememberFood, TEMPO_MS, updateSession } from '../lib/store'
 import { sfxDone, sfxPoint, sfxTick } from '../lib/sound'
-import { speak, speechSupported, stopSpeaking, warmUpVoices } from '../lib/speech'
+import { speak, stopSpeaking, warmUpVoices } from '../lib/speech'
 import { saveSettings } from '../lib/store'
 import { fmtMinutes } from '../lib/date'
 
@@ -492,7 +492,7 @@ export default function Session() {
             <div className="text-[16px] font-bold text-slate-900 dark:text-[#e8f2f1]">Karate noktasına vur</div>
             <p className="text-[14px] text-slate-500 dark:text-[#7f9896]">
               Elin dış kenarı, serçe parmağın altı. Vururken cümleyi {SETUP_REPEATS} kez yüksek sesle söyle.
-              {voice && speechSupported() && <span className="block mt-1 text-eft-700 dark:text-eft-300 font-semibold">🔊 Sesli rehber açık: cümleyi dinle, tekrar et; sayacı ben tutuyorum.</span>}
+              {voice && <span className="block mt-1 text-eft-700 dark:text-eft-300 font-semibold">🔊 Sesli rehber açık: cümleyi dinle, tekrar et; sayacı ben tutuyorum.</span>}
             </p>
           </section>
 
