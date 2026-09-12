@@ -437,6 +437,14 @@ export default function Session() {
             Vuruşlarla seansa başla
           </button>
           <button
+            className="eft-btn-soft w-full"
+            onClick={() =>
+              navigate(issue.id === 'yemek' ? `/akis?yemek=${encodeURIComponent(yemek)}` : issue.id === 'ozel' ? `/akis?ozel=${encodeURIComponent(issue.name)}` : `/akis?konu=${issue.id}`)
+            }
+          >
+            📜 Kayan yazıyla oku
+          </button>
+          <button
             className="eft-btn-ghost w-full"
             onClick={() => {
               setIssue(null)
@@ -592,6 +600,14 @@ export default function Session() {
             {!running && <div className="mt-3 text-[14px] font-semibold text-amber-600">Duraklatıldı</div>}
           </section>
 
+          <button
+            className="w-full mt-2 text-[14px] font-semibold text-eft-700 dark:text-eft-300 min-h-[36px]"
+            onClick={() =>
+              navigate(issue.id === 'yemek' ? `/akis?yemek=${encodeURIComponent(issue.name.replace(/ isteği$/, ''))}` : issue.id === 'ozel' ? `/akis?ozel=${encodeURIComponent(issue.name)}` : `/akis?konu=${issue.id}`)
+            }
+          >
+            📜 Kayan yazı olarak göster
+          </button>
           <div className="grid grid-cols-2 gap-2 mt-3">
             <button className="eft-btn-ghost" onClick={oncekiNokta} disabled={pos.pi === 0}>
               ‹ Önceki

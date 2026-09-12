@@ -4,6 +4,7 @@ import Session from './pages/Session'
 import PointsPage from './pages/PointsPage'
 import HistoryPage from './pages/HistoryPage'
 import EftSettings from './pages/EftSettings'
+import Flow from './pages/Flow'
 
 type IconName = 'home' | 'hand' | 'chart' | 'settings'
 
@@ -64,13 +65,14 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
 export default function EftApp() {
   const loc = useLocation()
   // Seans sirasinda alt menu gizlenir: dikkat dagilmasin, yanlislikla cikilmasin.
-  const inSession = loc.pathname.startsWith('/seans')
+  const inSession = loc.pathname.startsWith('/seans') || loc.pathname.startsWith('/akis')
   return (
     <div className="eft-app min-h-full min-h-[100dvh] flex flex-col max-w-xl mx-auto">
       <main className="flex-1 flex flex-col" style={{ paddingBottom: inSession ? 0 : 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/seans" element={<Session />} />
+          <Route path="/akis" element={<Flow />} />
           <Route path="/noktalar" element={<PointsPage />} />
           <Route path="/gecmis" element={<HistoryPage />} />
           <Route path="/ayarlar" element={<EftSettings />} />
