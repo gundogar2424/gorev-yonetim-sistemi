@@ -7,6 +7,7 @@
 import { Capacitor } from '@capacitor/core'
 import { readSettings } from './store'
 import { fallbackReady, fallbackSpeak, getFallbackError, stopFallback } from './fallbackTts'
+import { audioState, isUnlocked, unlockAudio } from './audioCtx'
 
 type Done = () => void
 type NativeTts = typeof import('@capacitor-community/text-to-speech').TextToSpeech
@@ -125,9 +126,11 @@ export function stopSpeaking(): void {
 // Onceki okumayi keser, yenisini okur. onDone bir kez cagrilir: okuma bitince,
 // ya da hicbir motor calismadiysa kullanicinin cumleyi kendi okuyabilecegi
 // tahmini sure sonra.
-export function speak(text: string, onDone?: Done): boolean {
+// force: sesli rehber kapali olsa da oku (Ayarlar > Sesi dene)
+export function speak(text: string, onDone?: Done, force = false): boolean {
   const s = readSettings()
-  if (!s.voice || !text.trim()) return false
+  if ((!s.voice && !force) || !text.trim()) return false
+  unlockAudio()
   stopSpeaking()
   const my = ++seq
   const rate = rateValue()
@@ -233,6 +236,9 @@ export function speak(text: string, onDone?: Done): boolean {
 
 export interface Diag {
   platform: 'apk' | 'web'
+  voiceOn: boolean
+  audioState: string
+  audioUnlocked: boolean
   nativeReady: boolean
   nativeTurkish: string | null
   nativeLanguages: string[]
@@ -245,6 +251,9 @@ export interface Diag {
 export async function diagnose(): Promise<Diag> {
   const d: Diag = {
     platform: Capacitor.isNativePlatform() ? 'apk' : 'web',
+    voiceOn: readSettings().voice,
+    audioState: audioState(),
+    audioUnlocked: isUnlocked(),
     nativeReady: false,
     nativeTurkish: null,
     nativeLanguages: [],
@@ -276,6 +285,7 @@ export async function diagnose(): Promise<Diag> {
   }
   d.lastEngine = lastEngine
   d.lastError = d.lastError || lastError
+  d.audioState = audioState()
   return d
 }
 

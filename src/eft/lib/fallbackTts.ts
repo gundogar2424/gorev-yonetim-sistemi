@@ -4,9 +4,9 @@
 // Ses WAV olarak uretilir ve Web Audio ile calinir (tik sesleriyle ayni yol).
 
 type Mespeak = typeof import('mespeak').default
+import { audioCtx } from './audioCtx'
 
 let modP: Promise<Mespeak | null> | null = null
-let ctx: AudioContext | null = null
 let source: AudioBufferSourceNode | null = null
 
 function base(): string {
@@ -44,20 +44,6 @@ export function getFallbackError(): string {
   return fallbackError
 }
 
-function audio(): AudioContext | null {
-  try {
-    if (!ctx) {
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-      if (!AC) return null
-      ctx = new AC()
-    }
-    if (ctx.state === 'suspended') void ctx.resume()
-    return ctx
-  } catch {
-    return null
-  }
-}
-
 export function stopFallback(): void {
   try {
     source?.stop()
@@ -79,8 +65,15 @@ export async function fallbackSpeak(text: string, rate: 'yavas' | 'normal', onDo
     return false
   }
   if (!Array.isArray(wav) || wav.length < 100) return false
-  const c = audio()
+  const c = audioCtx()
   if (!c) return false
+  if (c.state === 'suspended') {
+    try {
+      await c.resume()
+    } catch {
+      /* dokunus gerekebilir */
+    }
+  }
   try {
     const buf = await c.decodeAudioData(new Uint8Array(wav).buffer)
     const s = c.createBufferSource()
