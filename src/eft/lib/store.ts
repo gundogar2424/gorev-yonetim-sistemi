@@ -13,6 +13,7 @@ export interface Settings {
   auto: boolean // noktalar kendiliginden ilerlesin mi
   voice: boolean // sesli rehber: cumleleri ve nokta adlarini okur
   voiceRate: 'yavas' | 'normal' // konusma hizi
+  voiceEngine: 'auto' | 'telefon' | 'yedek' // ses motoru: otomatik / telefonun sesi / gomulu yedek
 }
 
 export const TEMPO_MS: Record<Tempo, number> = { yavas: 850, orta: 620, hizli: 460 }
@@ -65,7 +66,8 @@ export function readSettings(): Settings {
     taps: [5, 7, 9].includes(Number(s.taps)) ? Number(s.taps) : 7,
     auto: s.auto ?? true,
     voice: s.voice ?? true,
-    voiceRate: s.voiceRate === 'yavas' ? 'yavas' : 'normal'
+    voiceRate: s.voiceRate === 'yavas' ? 'yavas' : 'normal',
+    voiceEngine: s.voiceEngine === 'telefon' || s.voiceEngine === 'yedek' ? s.voiceEngine : 'auto'
   }
 }
 

@@ -4,7 +4,7 @@ import Switch from '../components/Switch'
 import { downloadBackup, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Tempo } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample } from '../lib/sound'
-import { openTtsInstall, speak, speechSupported, turkishAvailable } from '../lib/speech'
+import { diagnose, openTtsInstall, speak, type Diag } from '../lib/speech'
 
 export default function EftSettings() {
   const [ayar, setAyar] = useState(readSettings())
@@ -14,7 +14,8 @@ export default function EftSettings() {
   const [hata, setHata] = useState('')
   const [sayi, setSayi] = useState(readSessions().length)
   const dosyaRef = useRef<HTMLInputElement>(null)
-  const [sesDurum, setSesDurum] = useState<'' | 'var' | 'yok' | 'bilinmiyor'>('')
+  const [diag, setDiag] = useState<Diag | null>(null)
+  const [diagBekle, setDiagBekle] = useState(false)
 
   function bilgi(m: string) {
     setDurum(m)
@@ -125,12 +126,47 @@ export default function EftSettings() {
               ))}
             </div>
           </div>
+          <div>
+            <span className="text-[15px] text-slate-600 dark:text-[#b7cbc9]">Ses motoru</span>
+            <div className="grid grid-cols-3 gap-2 mt-1">
+              {(
+                [
+                  ['auto', 'Otomatik'],
+                  ['telefon', 'Telefon'],
+                  ['yedek', 'Yedek']
+                ] as ['auto' | 'telefon' | 'yedek', string][]
+              ).map(([v, l]) => (
+                <button
+                  key={v}
+                  onClick={() => {
+                    setAyar(saveSettings({ voiceEngine: v }))
+                    speak('Sesli rehber hazır. Kaş başı. Bu kaygı.')
+                  }}
+                  className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${
+                    ayar.voiceEngine === v ? 'bg-eft-600 text-white' : 'bg-slate-100 dark:bg-[#1e3231] text-slate-700 dark:text-[#d5e6e4]'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <p className="text-[13px] text-slate-500 dark:text-[#7f9896] mt-1">
+              <b>Otomatik:</b> önce telefonun Türkçe sesi, çalışmazsa uygulamanın içindeki yedek ses. <b>Yedek:</b> her telefonda çalışan, robotik
+              ama anlaşılır gömülü Türkçe ses.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <button
               className="eft-btn-soft min-h-[48px] text-[15px]"
+              disabled={diagBekle}
               onClick={async () => {
+                setDiagBekle(true)
                 speak('Merhaba. Sesli rehber çalışıyor. Kaş başı. Bu kaygı.')
-                setSesDurum(await turkishAvailable())
+                try {
+                  setDiag(await diagnose())
+                } finally {
+                  setDiagBekle(false)
+                }
               }}
             >
               🔊 Sesi dene
@@ -145,19 +181,39 @@ export default function EftSettings() {
               Türkçe ses yükle
             </button>
           </div>
-          {sesDurum === 'var' && <p className="text-[13px] text-emerald-700">Türkçe ses bulundu ✔ Ses gelmiyorsa telefonun medya sesini ve sessiz modunu kontrol edin.</p>}
-          {sesDurum === 'yok' && (
-            <p className="text-[13px] text-rose-600">
-              Bu telefonda Türkçe okuma sesi yüklü değil. "Türkçe ses yükle" ile açılan ekrandan Google Metin Okuma › Türkçe verisini indirin.
-            </p>
-          )}
-          {sesDurum === 'bilinmiyor' && <p className="text-[13px] text-slate-500 dark:text-[#7f9896]">Ses durumu sorgulanamadı; deneme cümlesi duyulduysa sorun yok.</p>}
-          {!speechSupported() && (
-            <p className="text-[13px] text-rose-600">Bu cihazda sesli okuma desteklenmiyor. Metinler ekranda gösterilmeye devam eder.</p>
+          {diag && (
+            <div className="rounded-2xl bg-slate-50 dark:bg-[#1e3231] p-3 text-[13px] leading-relaxed text-slate-700 dark:text-[#d5e6e4] space-y-1">
+              <div className="eft-label">Ses teşhisi</div>
+              {diag.platform === 'apk' ? (
+                <>
+                  <div>Telefon motoru: {diag.nativeReady ? 'hazır ✔' : 'hazır değil ✖'}</div>
+                  <div>Telefonda Türkçe: {diag.nativeTurkish ? `var ✔ (${diag.nativeTurkish})` : 'yok ✖'}</div>
+                  {diag.nativeLanguages.length > 0 && (
+                    <div className="text-slate-500 dark:text-[#7f9896]">
+                      Diller: {diag.nativeLanguages.slice(0, 12).join(', ')}
+                      {diag.nativeLanguages.length > 12 ? ` … (+${diag.nativeLanguages.length - 12})` : ''}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>Tarayıcı Türkçe sesi: {diag.webTurkish ? 'var ✔' : 'yok ✖'}</div>
+              )}
+              <div>Yedek ses: {diag.fallbackReady ? 'hazır ✔' : 'yüklenemedi ✖'}</div>
+              <div>
+                Son kullanılan motor: {diag.lastEngine === 'telefon' ? 'telefon' : diag.lastEngine === 'web' ? 'tarayıcı' : diag.lastEngine === 'yedek' ? 'yedek (gömülü)' : 'henüz yok'}
+              </div>
+              {diag.lastError && <div className="text-rose-600">Son hata: {diag.lastError}</div>}
+              {diag.platform === 'apk' && !diag.nativeTurkish && diag.fallbackReady && (
+                <div className="text-emerald-700">Telefonda Türkçe ses olmadığı için yedek ses kullanılır; deneme cümlesini duyduysanız hazır.</div>
+              )}
+              {!diag.fallbackReady && !diag.nativeTurkish && !diag.webTurkish && (
+                <div className="text-rose-600">Hiçbir ses motoru çalışmadı. Uygulamayı kapatıp yeniden açın; sorun sürerse bu ekranın görüntüsünü paylaşın.</div>
+              )}
+            </div>
           )}
           <p className="text-[13px] text-slate-500 dark:text-[#7f9896]">
-            Ses, telefonun kendi Türkçe okuma sesidir (Google Metin Okuma). Türkçe ses yüklü değilse Ayarlar › Dil ve giriş › Metin okuma
-            bölümünden Türkçe veri indirilebilir.
+            Telefon sesi, Android'in kendi Türkçe okuma sesidir (Google Metin Okuma). Daha doğal ses için Türkçe verisi yüklü olmalı;
+            "Türkçe ses yükle" bu ekranı açar. Yedek ses hiçbir kuruluma ihtiyaç duymaz.
           </p>
         </section>
 
