@@ -495,19 +495,19 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
     ]
   },
   tuzlu: {
-    setup: 'Her ne kadar elim durmadan {x} istese ve durmak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar şu an canım çok {x} çekse ve bir tane daha, bir tane daha demek istese de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
-      'elimin {x} paketine gitme isteği',
-      'o çıtır ses, o tuz',
+      'canımın {x} çekmesi',
+      'o tuzlu, çıtır tat',
       'sıkıntımı {x} ile bastırma isteği',
-      'bir tane daha, bir tane daha',
+      'bir tane daha, bir tane daha isteği',
       'midemdeki bu çekim',
       'kalan bu {x} isteği',
       'bu isteğin geçmesine izin veriyorum'
     ],
     positives: [
-      'ellerimi başka şeyle meşgul edebilirim',
+      'canım çekse de yemek zorunda değilim',
       'bu istek bir dalga, geçecek',
       'gerçekten aç mıyım, yoksa canım mı sıkkın?',
       'bedenime iyi geleni seçiyorum',
@@ -567,7 +567,7 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
     setup: 'Her ne kadar şu an canım çok {x} istese ve bu alışkanlığı bırakmak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
-      'elimde {x} olmadan eksik hissetme',
+      '{x} olmadan eksik hissetme',
       'bu alışkanlığın rahatlığı',
       'o ilk yudumun verdiği his',
       'boğazımdaki bu istek',
