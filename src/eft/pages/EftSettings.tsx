@@ -1,12 +1,10 @@
 import { useRef, useState } from 'react'
 import EftHeader from '../EftHeader'
 import Switch from '../components/Switch'
-import SesTesti from '../components/SesTesti'
 import { downloadBackup, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Tempo } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample, sfxTick } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
-import { diagnose, openTtsInstall, speak, type Diag } from '../lib/speech'
 
 export default function EftSettings() {
   const [ayar, setAyar] = useState(readSettings())
@@ -16,8 +14,6 @@ export default function EftSettings() {
   const [hata, setHata] = useState('')
   const [sayi, setSayi] = useState(readSessions().length)
   const dosyaRef = useRef<HTMLInputElement>(null)
-  const [diag, setDiag] = useState<Diag | null>(null)
-  const [diagBekle, setDiagBekle] = useState(false)
 
   function bilgi(m: string) {
     setDurum(m)
@@ -92,146 +88,6 @@ export default function EftSettings() {
             onChange={(v) => setAyar(saveSettings({ auto: v }))}
           />
         </section>
-
-        <section className="eft-card space-y-3">
-          <h3 className="eft-label">Sesli rehber</h3>
-          <Switch
-            label="Cümleleri sesli oku"
-            hint="Kurulum cümlesi, nokta adı ve ifadeler okunur; telefona bakmadan uygula"
-            checked={ayar.voice}
-            onChange={(v) => {
-              setAyar(saveSettings({ voice: v }))
-              if (v) speak('Sesli rehber açık. Kaş başı. Bu kaygı.')
-            }}
-          />
-          <div>
-            <span className="text-[15px] text-slate-600 dark:text-[#b7cbc9]">Konuşma hızı</span>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              {(
-                [
-                  ['yavas', 'Yavaş'],
-                  ['normal', 'Normal']
-                ] as ['yavas' | 'normal', string][]
-              ).map(([v, l]) => (
-                <button
-                  key={v}
-                  onClick={() => {
-                    setAyar(saveSettings({ voiceRate: v }))
-                    speak('Her ne kadar bu kaygıyı hissetsem de, kendimi kabul ediyorum.')
-                  }}
-                  className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${
-                    ayar.voiceRate === v ? 'bg-eft-600 text-white' : 'bg-slate-100 dark:bg-[#1e3231] text-slate-700 dark:text-[#d5e6e4]'
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <span className="text-[15px] text-slate-600 dark:text-[#b7cbc9]">Ses motoru</span>
-            <div className="grid grid-cols-3 gap-2 mt-1">
-              {(
-                [
-                  ['auto', 'Otomatik'],
-                  ['telefon', 'Telefon'],
-                  ['yedek', 'Yedek']
-                ] as ['auto' | 'telefon' | 'yedek', string][]
-              ).map(([v, l]) => (
-                <button
-                  key={v}
-                  onClick={() => {
-                    setAyar(saveSettings({ voiceEngine: v }))
-                    speak('Sesli rehber hazır. Kaş başı. Bu kaygı.')
-                  }}
-                  className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${
-                    ayar.voiceEngine === v ? 'bg-eft-600 text-white' : 'bg-slate-100 dark:bg-[#1e3231] text-slate-700 dark:text-[#d5e6e4]'
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-            <p className="text-[13px] text-slate-500 dark:text-[#7f9896] mt-1">
-              <b>Otomatik:</b> önce telefonun Türkçe sesi, çalışmazsa uygulamanın içindeki yedek ses. <b>Yedek:</b> her telefonda çalışan, robotik
-              ama anlaşılır gömülü Türkçe ses.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              className="eft-btn-soft min-h-[48px] text-[15px]"
-              disabled={diagBekle}
-              onClick={async () => {
-                setDiagBekle(true)
-                unlockAudio()
-                speak('Merhaba. Sesli rehber çalışıyor. Kaş başı. Bu kaygı.', undefined, true)
-                try {
-                  setDiag(await diagnose())
-                } finally {
-                  setDiagBekle(false)
-                }
-              }}
-            >
-              🔊 Sesi dene
-            </button>
-            <button
-              className="eft-btn-ghost min-h-[48px] text-[15px]"
-              onClick={async () => {
-                const ok = await openTtsInstall()
-                if (!ok) setHata('Bu ekran yalnızca Android uygulamasında açılır. Telefonda Ayarlar › Dil ve giriş › Metin okuma bölümünden Türkçe ses verisi yükleyin.')
-              }}
-            >
-              Türkçe ses yükle
-            </button>
-          </div>
-          {diag && (
-            <div className="rounded-2xl bg-slate-50 dark:bg-[#1e3231] p-3 text-[13px] leading-relaxed text-slate-700 dark:text-[#d5e6e4] space-y-1">
-              <div className="eft-label">Ses teşhisi</div>
-              <div>Sesli rehber anahtarı: {diag.voiceOn ? 'açık ✔' : 'KAPALI ✖ (yukarıdan açın)'}</div>
-              <div>
-                Ses bağlamı: {diag.audioState === 'running' ? 'çalışıyor ✔' : `${diag.audioState} ✖`}
-                {diag.audioUnlocked ? '' : ' · dokunuşla açılmadı'}
-              </div>
-              {diag.platform === 'apk' ? (
-                <>
-                  <div>Telefon motoru: {diag.nativeReady ? 'hazır ✔' : 'hazır değil ✖'}</div>
-                  <div>Telefonda Türkçe: {diag.nativeTurkish ? `var ✔ (${diag.nativeTurkish})` : 'yok ✖'}</div>
-                  {diag.nativeLanguages.length > 0 && (
-                    <div className="text-slate-500 dark:text-[#7f9896]">
-                      Diller: {diag.nativeLanguages.slice(0, 12).join(', ')}
-                      {diag.nativeLanguages.length > 12 ? ` … (+${diag.nativeLanguages.length - 12})` : ''}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div>Tarayıcı Türkçe sesi: {diag.webTurkish ? 'var ✔' : 'yok ✖'}</div>
-              )}
-              <div>Yedek ses: {diag.fallbackReady ? 'hazır ✔' : 'yüklenemedi ✖'}</div>
-              <div>
-                Son kullanılan motor: {diag.lastEngine === 'telefon' ? 'telefon' : diag.lastEngine === 'web' ? 'tarayıcı' : diag.lastEngine === 'yedek' ? 'yedek (gömülü)' : 'henüz yok'}
-              </div>
-              {diag.lastError && <div className="text-rose-600">Son hata: {diag.lastError}</div>}
-              {diag.platform === 'apk' && !diag.nativeTurkish && diag.fallbackReady && (
-                <div className="text-emerald-700">Telefonda Türkçe ses olmadığı için yedek ses kullanılır; deneme cümlesini duyduysanız hazır.</div>
-              )}
-              {diag.audioState !== 'running' && (
-                <div className="text-rose-600">
-                  Ses bağlamı çalışmıyor: ekrana bir kez dokunup "Sesi dene"ye yeniden basın. Telefonun MEDYA sesinin açık olduğundan
-                  emin olun (zil sesi değil).
-                </div>
-              )}
-              {!diag.fallbackReady && !diag.nativeTurkish && !diag.webTurkish && (
-                <div className="text-rose-600">Hiçbir ses motoru çalışmadı. Uygulamayı kapatıp yeniden açın; sorun sürerse bu ekranın görüntüsünü paylaşın.</div>
-              )}
-            </div>
-          )}
-          <p className="text-[13px] text-slate-500 dark:text-[#7f9896]">
-            Telefon sesi, Android'in kendi Türkçe okuma sesidir (Google Metin Okuma). Daha doğal ses için Türkçe verisi yüklü olmalı;
-            "Türkçe ses yükle" bu ekranı açar. Yedek ses hiçbir kuruluma ihtiyaç duymaz.
-          </p>
-        </section>
-
-        <SesTesti />
 
         <section className="eft-card space-y-3">
           <h3 className="eft-label">Geri bildirim</h3>
