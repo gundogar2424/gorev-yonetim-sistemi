@@ -5,7 +5,6 @@ import { HUNGER_ISSUES, ISSUES, QUICK_FOODS, tipOfDay } from '../lib/content'
 import { readRecentFoods, readSessions, readSettings, sessionsToday, streakDays } from '../lib/store'
 import { dayNumber, fmtShort } from '../lib/date'
 import { sudsColor } from '../components/SudsPicker'
-import SesTesti from '../components/SesTesti'
 
 function selam(): string {
   const h = new Date().getHours()
@@ -47,19 +46,29 @@ export default function Home() {
           </div>
         </div>
 
-        <SesTesti />
-
-        {/* Kayan yazi */}
+        {/* Kayan yazi: ana kullanim bicimi */}
         <section className="eft-card">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-eft-50 dark:bg-[#1e3231] grid place-items-center text-[30px]">📜</div>
             <div className="flex-1 min-w-0">
               <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-tight">Kayan yazı</h2>
-              <p className="text-[14px] text-slate-500 dark:text-[#7f9896]">Telefonu karşına koy; metin kendiliğinden aksın, oku ve vur. Hızı sen ayarla.</p>
+              <p className="text-[14px] text-slate-500 dark:text-[#7f9896]">Konuya dokun; metin ekranda kendiliğinden aksın, oku ve vur.</p>
             </div>
           </div>
-          <button className="eft-btn-primary w-full mt-3" onClick={() => navigate('/akis')}>
-            Kayan yazıyı başlat
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            {hizli.map((i) => (
+              <button
+                key={i.id}
+                onClick={() => navigate(`/akis?konu=${i.id}`)}
+                className="flex items-center gap-2.5 rounded-2xl bg-slate-50 dark:bg-[#1e3231] p-3 text-left transition active:scale-[0.98]"
+              >
+                <span className="text-[24px]">{i.emoji}</span>
+                <span className="text-[15px] font-semibold text-slate-800 dark:text-[#e8f2f1] leading-tight">{i.name}</span>
+              </button>
+            ))}
+          </div>
+          <button className="eft-btn-primary w-full mt-3 text-[19px] min-h-[62px]" onClick={() => navigate('/akis')}>
+            Başka konu / yemek / açlık
           </button>
         </section>
 
@@ -105,8 +114,8 @@ export default function Home() {
 
         {/* Yeni seans */}
         <section className="eft-card">
-          <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#e8f2f1] mb-1">Şu an seni ne rahatsız ediyor?</h2>
-          <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mb-3">Bir konu seç, yoğunluğunu puanla, rehberle birlikte vur.</p>
+          <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#e8f2f1] mb-1">Adım adım seans</h2>
+          <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mb-3">Puanla, kurulum cümlesi, noktalar tek tek; sonunda yeniden puanla ve kaydet.</p>
           <div className="grid grid-cols-2 gap-2">
             {hizli.map((i) => (
               <button

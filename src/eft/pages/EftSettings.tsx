@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import EftHeader from '../EftHeader'
 import Switch from '../components/Switch'
+import SesTesti from '../components/SesTesti'
 import { downloadBackup, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Tempo } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample, sfxTick } from '../lib/sound'
@@ -229,6 +230,8 @@ export default function EftSettings() {
             "Türkçe ses yükle" bu ekranı açar. Yedek ses hiçbir kuruluma ihtiyaç duymaz.
           </p>
         </section>
+
+        <SesTesti />
 
         <section className="eft-card space-y-3">
           <h3 className="eft-label">Geri bildirim</h3>
