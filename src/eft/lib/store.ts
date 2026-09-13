@@ -11,9 +11,6 @@ export interface Settings {
   tempo: Tempo // vurus hizi
   taps: number // nokta basina vurus sayisi
   auto: boolean // noktalar kendiliginden ilerlesin mi
-  voice: boolean // sesli rehber: cumleleri ve nokta adlarini okur
-  voiceRate: 'yavas' | 'normal' // konusma hizi
-  voiceEngine: 'auto' | 'telefon' | 'yedek' // ses motoru: otomatik / telefonun sesi / gomulu yedek
   flowSpeed: number // kayan yazi hizi (kademe indeksi)
   flowFont: number // kayan yazi boyutu (kademe indeksi)
 }
@@ -67,9 +64,6 @@ export function readSettings(): Settings {
     tempo: s.tempo === 'yavas' || s.tempo === 'hizli' ? s.tempo : 'orta',
     taps: [5, 7, 9].includes(Number(s.taps)) ? Number(s.taps) : 7,
     auto: s.auto ?? true,
-    voice: s.voice ?? false, // varsayilan KAPALI: kullanici kayan yaziyi tercih etti
-    voiceRate: s.voiceRate === 'yavas' ? 'yavas' : 'normal',
-    voiceEngine: s.voiceEngine === 'telefon' || s.voiceEngine === 'yedek' ? s.voiceEngine : 'auto',
     flowSpeed: Number.isInteger(s.flowSpeed) ? Number(s.flowSpeed) : 3,
     flowFont: Number.isInteger(s.flowFont) ? Number(s.flowFont) : 2
   }
