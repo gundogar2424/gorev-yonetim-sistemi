@@ -364,16 +364,16 @@ export default function Session() {
               halsizlikte bedenini besle; tıbbi diyet ve oruçta hekim/diyetisyen takibi önemlidir.
             </p>
           )}
-          <button className="eft-btn-primary w-full text-[19px] min-h-[62px]" onClick={() => basla(issue)}>
-            Vuruşlarla seansa başla
-          </button>
           <button
-            className="eft-btn-soft w-full"
+            className="eft-btn-primary w-full text-[19px] min-h-[62px]"
             onClick={() =>
               navigate(issue.id === 'yemek' ? `/akis?yemek=${encodeURIComponent(yemek)}` : issue.id === 'ozel' ? `/akis?ozel=${encodeURIComponent(issue.name)}` : `/akis?konu=${issue.id}`)
             }
           >
-            📜 Kayan yazıyla oku
+            📜 Kayan yazıyla başla
+          </button>
+          <button className="eft-btn-soft w-full" onClick={() => basla(issue)}>
+            Adım adım seans (puanlı)
           </button>
           <button
             className="eft-btn-ghost w-full"
@@ -458,6 +458,14 @@ export default function Session() {
                 Atla
               </button>
             )}
+            <button
+              className="w-full mt-1 text-[14px] font-semibold text-eft-700 dark:text-eft-300 min-h-[40px]"
+              onClick={() =>
+                navigate(issue.id === 'yemek' ? `/akis?yemek=${encodeURIComponent(issue.name.replace(/ isteği$/, ''))}` : issue.id === 'ozel' ? `/akis?ozel=${encodeURIComponent(issue.name)}` : `/akis?konu=${issue.id}`)
+              }
+            >
+              📜 Kayan yazı olarak göster
+            </button>
           </section>
         </div>
       </div>
