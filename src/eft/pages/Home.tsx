@@ -5,6 +5,7 @@ import { HUNGER_ISSUES, ISSUES, QUICK_FOODS, tipOfDay } from '../lib/content'
 import { readRecentFoods, readSessions, readSettings, sessionsToday, streakDays } from '../lib/store'
 import { dayNumber, fmtShort } from '../lib/date'
 import { sudsColor } from '../components/SudsPicker'
+import SesTesti from '../components/SesTesti'
 
 function selam(): string {
   const h = new Date().getHours()
@@ -45,6 +46,8 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        <SesTesti />
 
         {/* Kayan yazi */}
         <section className="eft-card">

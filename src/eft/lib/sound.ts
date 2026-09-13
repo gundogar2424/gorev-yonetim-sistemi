@@ -1,12 +1,18 @@
 // Kisa geri bildirim sesleri (WebAudio ile uretilir; ses dosyasi yok) + titresim.
 import { readSettings } from './store'
 import { audioCtx } from './audioCtx'
+import { sesLog } from './sesLog'
 
 const audio = audioCtx
 
+let toneLogged = 0
 function tone(freq: number, dur: number, type: OscillatorType = 'sine', gain = 0.12, when = 0): void {
   const c = audio()
   if (!c) return
+  if (toneLogged < 3) {
+    toneLogged++
+    sesLog(`tik sesi: ${freq}Hz ctx=${c.state}`)
+  }
   const o = c.createOscillator()
   const g = c.createGain()
   o.type = type
