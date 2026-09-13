@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import EftHeader from '../EftHeader'
+import BodyMap from '../components/BodyMap'
+import HandMap from '../components/HandMap'
+import { sfxTick } from '../lib/sound'
+import { unlockAudio } from '../lib/audioCtx'
 import { customIssue, foodIssue, HUNGER_ISSUES, ISSUES, issueById, phraseFor, POINTS, QUICK_FOODS, type Issue } from '../lib/content'
-import { readRecentFoods, readSettings, rememberCustomIssue, rememberFood, saveSettings } from '../lib/store'
+import { readRecentFoods, readSettings, rememberCustomIssue, rememberFood, saveSettings, TEMPO_MS } from '../lib/store'
 
 // KAYAN YAZI (teleprompter): EFT metni ekranda surekli yukari kayar.
 // Telefon karsiya konur, okunur, vurulur. Hiz ve yazi boyutu ayarlanir,
@@ -12,6 +16,7 @@ interface Line {
   kind: 'baslik' | 'cumle' | 'nokta' | 'ara'
   text: string
   sub?: string
+  point?: number // 'nokta' satiri: POINTS indeksi (ustteki mankende vurgulanir)
 }
 
 const ROUNDS = 3 // kurulum + 3 tur (3. tur olumlu), sonra basa
@@ -23,7 +28,7 @@ function buildScript(issue: Issue): Line[] {
   for (let r = 1; r <= ROUNDS; r++) {
     const positive = r === ROUNDS
     L.push({ kind: 'baslik', text: `Tur ${r}`, sub: positive ? 'Olumlu tur' : r === 1 ? 'Her noktaya yaklaşık 7 vuruş' : 'Kalan duyguyla' })
-    POINTS.forEach((p, i) => L.push({ kind: 'nokta', text: phraseFor(issue, r, i, positive), sub: `${i + 1} · ${p.name}` }))
+    POINTS.forEach((p, i) => L.push({ kind: 'nokta', text: phraseFor(issue, r, i, positive), sub: `${i + 1} · ${p.name}`, point: i }))
     L.push({ kind: 'ara', text: 'Derin bir nefes al… ve ver.', sub: positive ? 'Şimdi yeniden puanla' : 'Duyguyu yeniden hisset' })
   }
   L.push({ kind: 'ara', text: '· · ·', sub: 'Baştan başlıyor' })
@@ -50,6 +55,10 @@ export default function Flow() {
   const viewRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef(0)
+  const [cur, setCur] = useState(0) // okuma bandindaki satir
+  const curRef = useRef(0)
+  const [beat, setBeat] = useState(0)
+  const posRef = useRef<{ top: number; h: number }[]>([]) // ilk kopyadaki satir konumlari
 
   // Sayfa acikken adres degisirse (baska konuyla yeniden acilma) konuyu guncelle
   useEffect(() => {
@@ -79,6 +88,15 @@ export default function Flow() {
     }
   }, [])
 
+  // Satir konumlarini olc (ilk kopya); font/konu degisince yeniden
+  useLayoutEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    const n = lines.length
+    const kids = Array.from(track.children).slice(0, n) as HTMLElement[]
+    posRef.current = kids.map((el) => ({ top: el.offsetTop, h: el.offsetHeight }))
+  }, [lines, fontIx])
+
   // Kaydirma motoru: requestAnimationFrame ile piksel/sn cinsinden akis.
   // Icerik iki kez arka arkaya cizilir; ilk kopya bitince sessizce basa doner.
   useEffect(() => {
@@ -96,6 +114,22 @@ export default function Flow() {
           offsetRef.current += speed * dt
           if (half > 0 && offsetRef.current >= half) offsetRef.current -= half
           track.style.transform = `translateY(${-offsetRef.current}px)`
+          // Okuma bandinin ortasindaki satir hangisi? (bant: ustten %50)
+          const view = viewRef.current
+          if (view && half > 0) {
+            let y = offsetRef.current + view.clientHeight * 0.5
+            if (y >= half) y -= half
+            const pos = posRef.current
+            let ix = curRef.current
+            if (!(pos[ix] && y >= pos[ix].top && y < pos[ix].top + pos[ix].h)) {
+              ix = pos.findIndex((p) => y >= p.top && y < p.top + p.h)
+              if (ix < 0) ix = curRef.current
+            }
+            if (ix !== curRef.current) {
+              curRef.current = ix
+              setCur(ix)
+            }
+          }
         }
       }
       raf = requestAnimationFrame(tick)
@@ -104,8 +138,22 @@ export default function Flow() {
     return () => cancelAnimationFrame(raf)
   }, [issue, running, speedIx])
 
+  // Vurus ritmi: nokta ya da kurulum satiri bantta iken tempoyla tik + atim
+  const curLine = lines[cur]
+  const vurusta = !!curLine && (curLine.kind === 'nokta' || curLine.kind === 'cumle')
+  useEffect(() => {
+    if (!issue || !running || !vurusta) return
+    const id = setInterval(() => {
+      sfxTick()
+      setBeat((b) => b + 1)
+    }, TEMPO_MS[ayar.tempo])
+    return () => clearInterval(id)
+  }, [issue, running, vurusta, ayar.tempo])
+
   function basaDon() {
     offsetRef.current = 0
+    curRef.current = 0
+    setCur(0)
     if (trackRef.current) trackRef.current.style.transform = 'translateY(0px)'
   }
 
@@ -244,9 +292,40 @@ export default function Flow() {
         }
       />
 
+      {/* Ustte manken: banttaki noktaya gore vurgulu, ritimle atar */}
+      <div className="flex-shrink-0 h-[30vh] flex items-center justify-center gap-3 px-4 pt-1" onClick={() => unlockAudio()}>
+        {curLine?.kind === 'cumle' ? (
+          <HandMap beat={beat} className="h-full max-h-full" />
+        ) : (
+          <BodyMap active={curLine?.point !== undefined ? POINTS[curLine.point].id : undefined} beat={beat} className="h-full" />
+        )}
+        <div className="w-[38%] min-w-0">
+          {curLine?.kind === 'cumle' && (
+            <>
+              <div className="eft-label">Kurulum</div>
+              <div className="text-[18px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-tight">Karate noktası</div>
+              <div className="text-[13px] text-slate-500 dark:text-[#7f9896]">El kenarına vur, cümleyi söyle</div>
+            </>
+          )}
+          {curLine?.kind === 'nokta' && curLine.point !== undefined && (
+            <>
+              <div className="eft-label">Nokta {curLine.point + 1} / {POINTS.length}</div>
+              <div className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-tight">{POINTS[curLine.point].name}</div>
+              <div className="text-[13px] text-slate-500 dark:text-[#7f9896]">{POINTS[curLine.point].where}</div>
+            </>
+          )}
+          {(curLine?.kind === 'baslik' || curLine?.kind === 'ara') && (
+            <>
+              <div className="eft-label">{curLine.text}</div>
+              <div className="text-[15px] text-slate-600 dark:text-[#b7cbc9] leading-snug">{curLine.sub}</div>
+            </>
+          )}
+        </div>
+      </div>
+
       <div
         ref={viewRef}
-        className="relative flex-1 min-h-0 overflow-hidden px-5 select-none"
+        className="relative flex-1 min-h-0 overflow-hidden px-5 select-none border-t border-slate-200/60 dark:border-[#2b4442]"
         onClick={() => setRunning((r) => !r)}
         role="button"
         aria-label={running ? 'Duraklat' : 'Devam et'}
@@ -255,7 +334,7 @@ export default function Flow() {
         <div className="pointer-events-none absolute inset-x-0 top-[38%] h-[24%] bg-eft-50/50 dark:bg-[#1e3231]/50 border-y border-eft-100 dark:border-[#2b4442]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[22%] bg-gradient-to-b from-[#f2f8f7] dark:from-[#0f1a1a] to-transparent z-10" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[22%] bg-gradient-to-t from-[#f2f8f7] dark:from-[#0f1a1a] to-transparent z-10" />
-        <div ref={trackRef} className="will-change-transform pt-[40vh]">
+        <div ref={trackRef} className="will-change-transform pt-[20vh]">
           {renderLines(0)}
           {renderLines(1)}
         </div>
