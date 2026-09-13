@@ -52,22 +52,22 @@ export const ISSUES: Issue[] = [
     name: 'Sabah enerjisi',
     emoji: '🌅',
     hint: 'Uyanmakta zorlanma, sabah ağırlığı; güne enerjik başlamak',
-    setup: 'Her ne kadar sabah kalkmak zor gelse ve bedenim ağır hissetse de, kendimi derinden ve tamamen kabul ediyor ve bugüne enerjiyle başlamayı seçiyorum.',
+    setup: 'Her ne kadar sabah kalkmak zor gelse ve bedenim ağır hissetse de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu sabah ağırlığı',
-      'yataktan çıkmak istememe',
+      'yataktan çıkmak istememem',
       'gözlerimdeki bu uyku',
-      'biraz daha uyuyayım düşüncesi',
+      '“biraz daha uyuyayım” düşüncesi',
       'bedenimdeki bu yavaşlık',
       'güne isteksiz başlama hissi',
       'kalan bu ağırlık',
-      'bu ağırlığı bırakıyorum, uyanıyorum'
+      'bu ağırlığı bırakıyorum'
     ],
     positives: [
       'uyanıyorum, bedenim canlanıyor',
       'nefes alıyorum, enerji doluyor',
       'bugün benim günüm',
-      'ayağa kalkıyorum, hareket ediyorum',
+      'ayağa kalkıyorum, harekete geçiyorum',
       'zihnim açık, bedenim hazır',
       'güne güçle ve neşeyle başlıyorum',
       'her nefeste daha uyanığım',
@@ -84,9 +84,9 @@ export const ISSUES: Issue[] = [
       'bu kaygı',
       'göğsümdeki bu sıkışma',
       'bu endişe',
-      'ya olursa düşüncesi',
+      '“ya olursa” düşüncesi',
       'bedenimdeki bu huzursuzluk',
-      'bu kaygı hissi',
+      'bu kaygının ağırlığı',
       'kalan bu kaygı',
       'bu kaygıyı bırakmayı seçiyorum'
     ],
@@ -113,7 +113,7 @@ export const ISSUES: Issue[] = [
       'bu baskı',
       'yetişememe duygusu',
       'bedenimdeki bu gerginlik',
-      'bu kadar stres',
+      'zihnimdeki bu koşuşturma',
       'kalan bu gerginlik',
       'bu stresi bırakıyorum'
     ],
@@ -140,13 +140,13 @@ export const ISSUES: Issue[] = [
       'bu haksızlık hissi',
       'bu kızgınlık',
       'çenemdeki bu sıkılık',
-      'tüm bu öfke',
+      'bütün bu öfke',
       'kalan bu kızgınlık',
       'bu öfkeyi bırakmayı seçiyorum'
     ],
     positives: [
       'öfkemi hissedebilirim ve yine de sakin kalabilirim',
-      'bu duygu benim, ama ben bu duygu değilim',
+      'bu duygu bende, ama ben bu duygu değilim',
       'nefes alıyorum, gevşiyorum',
       'huzuru seçiyorum',
       'bunu bırakmak bana iyi gelecek',
@@ -167,9 +167,9 @@ export const ISSUES: Issue[] = [
       'bu keder',
       'boğazımdaki bu düğüm',
       'bu boşluk hissi',
-      'tüm bu üzüntü',
+      'bütün bu üzüntü',
       'kalan bu ağırlık',
-      'bu üzüntüye izin veriyorum'
+      'bu üzüntünün akıp gitmesine izin veriyorum'
     ],
     positives: [
       'üzülmeme izin veriyorum',
@@ -194,7 +194,7 @@ export const ISSUES: Issue[] = [
       'bu panik hissi',
       'kaçma isteği',
       'bedenimdeki bu titreme',
-      'tüm bu korku',
+      'bütün bu korku',
       'kalan bu korku',
       'bu korkuyu bırakmayı seçiyorum'
     ],
@@ -219,9 +219,9 @@ export const ISSUES: Issue[] = [
       'bu ağrı',
       'bedenimdeki bu rahatsızlık',
       'bu sızı',
-      'bu ağrının gerginliği',
+      'ağrının yarattığı gerginlik',
       'ağrının etrafındaki bu sıkılık',
-      'tüm bu ağrı',
+      'bütün bu ağrı',
       'kalan bu ağrı',
       'bedenimin gevşemesine izin veriyorum'
     ],
@@ -243,12 +243,12 @@ export const ISSUES: Issue[] = [
     hint: 'Uyuyamama, zihnin durmaması, yorgunluk',
     setup: 'Her ne kadar zihnim durmasa ve uyuyamasam da, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
-      'bu uyuyamama',
+      'bu uyuyamama hali',
       'durmayan bu düşünceler',
-      'yatakta dönüp durma',
+      'yatakta dönüp durmam',
       'bu yorgunluk',
       'zihnimdeki bu gürültü',
-      'uyuyamama korkusu',
+      '“ya uyuyamazsam” korkusu',
       'kalan bu huzursuzluk',
       'zihnimin sakinleşmesine izin veriyorum'
     ],
@@ -271,11 +271,11 @@ export const ISSUES: Issue[] = [
     setup: 'Her ne kadar kendimi yetersiz hissetsem de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu yetersizlik hissi',
-      'yapamam düşüncesi',
-      'kendimi küçük görme',
+      '“yapamam” düşüncesi',
+      'kendimi küçük görme alışkanlığım',
       'bu özgüven eksikliği',
       'beğenilmeme korkusu',
-      'tüm bu yetersizlik hissi',
+      'bütün bu yetersizlik hissi',
       'kalan bu kuşku',
       'bu inancı bırakmayı seçiyorum'
     ],
@@ -298,11 +298,11 @@ export const ISSUES: Issue[] = [
     setup: 'Her ne kadar şu an bu şiddetli isteği hissetsem de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu istek',
-      'bu canım çekme hissi',
-      'şimdi istiyorum duygusu',
+      'canımın çekmesi',
+      '“şimdi istiyorum” duygusu',
       'bedenimdeki bu çekim',
       'bu şiddetli istek',
-      'tüm bu istek',
+      'bütün bu istek',
       'kalan bu istek',
       'bu isteğin geçmesine izin veriyorum'
     ],
@@ -325,11 +325,11 @@ export const ISSUES: Issue[] = [
     setup: 'Her ne kadar bu suçluluğu ve pişmanlığı hissetsem de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu suçluluk',
-      'keşke düşüncesi',
-      'kendimi suçlama',
+      '“keşke” düşüncesi',
+      'kendimi suçlamam',
       'bu pişmanlık',
       'bu utanç hissi',
-      'tüm bu suçluluk',
+      'bütün bu suçluluk',
       'kalan bu ağırlık',
       'kendimi affetmeyi seçiyorum'
     ],
@@ -358,14 +358,14 @@ export function customIssue(text: string): Issue {
     name: x,
     emoji: '✍️',
     hint: '',
-    setup: `Her ne kadar "${x}" ile ilgili bu duyguyu hissetsem de, kendimi derinden ve tamamen kabul ediyorum.`,
+    setup: `Her ne kadar ${x} ile ilgili bu duyguyu hissetsem de, kendimi derinden ve tamamen kabul ediyorum.`,
     reminders: [
       `${x}`,
       `${x} ile ilgili bu duygu`,
-      `bedenimdeki bu his`,
-      `${x}`,
+      `${x} deyince bedenimde olan bu his`,
+      `bu ${x} meselesi`,
       `bu duygu`,
-      `tüm bu his`,
+      `bütün bu his`,
       `kalan bu duygu`,
       `bunu bırakmayı seçiyorum`
     ],
@@ -472,10 +472,10 @@ interface FoodScript {
 // oldugu gibi kabul, sonra bedende hissetme, sonra birakma.
 const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
   tatli: {
-    setup: 'Her ne kadar şu an canım çok {x} istese ve bu isteğe karşı koymak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar şu an canım çok {x} çekse ve bu isteğe karşı koymak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
-      'ağzımda {x} tadı',
+      'ağzımdaki {x} tadı',
       'şekerin vereceği o anlık rahatlama',
       'kendimi {x} ile ödüllendirme isteği',
       'bu tatlı isteğinin altındaki duygu',
@@ -484,7 +484,7 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
       'bu isteğin dalga gibi geçmesine izin veriyorum'
     ],
     positives: [
-      'şekere ihtiyacım yok, huzura ihtiyacım var',
+      'şekere değil, huzura ihtiyacım var',
       'bu istek bir dalga, birazdan geçecek',
       'bedenime gerçekten iyi geleni seçiyorum',
       'kendimi {x} olmadan da ödüllendirebilirim',
@@ -495,13 +495,13 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
     ]
   },
   tuzlu: {
-    setup: 'Her ne kadar şu an canım çok {x} çekse ve bir tane daha, bir tane daha demek istese de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar şu an canım çok {x} çekse ve “bir tane daha” demek istese de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
       'canımın {x} çekmesi',
       'o tuzlu, çıtır tat',
       'sıkıntımı {x} ile bastırma isteği',
-      'bir tane daha, bir tane daha isteği',
+      '“bir tane daha, bir tane daha” isteği',
       'midemdeki bu çekim',
       'kalan bu {x} isteği',
       'bu isteğin geçmesine izin veriyorum'
@@ -511,20 +511,20 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
       'bu istek bir dalga, geçecek',
       'gerçekten aç mıyım, yoksa canım mı sıkkın?',
       'bedenime iyi geleni seçiyorum',
-      'durabilirim; kontrol bende',
+      'durabilirim, kontrol bende',
       'nefes alıyorum, istek sönüyor',
       'özgür olmayı seçiyorum',
       'iyiyim'
     ]
   },
   hamur: {
-    setup: 'Her ne kadar şu an canım çok {x} istese ve doymak bilmediğimi hissetsem de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar şu an canım çok {x} çekse ve bir türlü doymadığımı hissetsem de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
       'o sıcak, doyurucu {x}',
       'boşluğu {x} ile doldurma isteği',
       'yedikten sonraki o ağırlık',
-      'bu doymak bilmeme hissi',
+      'doymak bilmeyen bu istek',
       'midemdeki bu çekim',
       'kalan bu {x} isteği',
       'bu isteği bırakmayı seçiyorum'
@@ -536,17 +536,17 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
       'hafif hissetmeyi seçiyorum',
       'bedenime iyi geleni seçiyorum',
       'kontrol bende',
-      'sakin ve tokum',
+      'sakinim ve tokum',
       'iyiyim'
     ]
   },
   fastfood: {
-    setup: 'Her ne kadar şu an canım çok {x} istese ve "bir kere yesem ne olur" diye düşünsem de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar şu an canım çok {x} çekse ve “bir kere yesem ne olur” diye düşünsem de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
-      'bir kere yesem ne olur düşüncesi',
-      'o kolay, hızlı, yağlı lezzet',
-      'yorgunluğumu {x} ile ödüllendirme isteği',
+      '“bir kere yesem ne olur” düşüncesi',
+      'o hızlı, yağlı lezzet',
+      'kendimi {x} ile ödüllendirme isteği',
       'yedikten sonraki pişmanlık',
       'midemdeki bu çekim',
       'kalan bu {x} isteği',
@@ -564,11 +564,11 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
     ]
   },
   icecek: {
-    setup: 'Her ne kadar şu an canım çok {x} istese ve bu alışkanlığı bırakmak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar şu an canım çok {x} çekse ve bu alışkanlığı bırakmak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
       '{x} olmadan eksik hissetme',
-      'bu alışkanlığın rahatlığı',
+      'bu alışkanlığın verdiği rahatlık',
       'o ilk yudumun verdiği his',
       'boğazımdaki bu istek',
       'bedenimdeki bu çekim',
@@ -587,11 +587,11 @@ const FOOD_SCRIPTS: Record<FoodKind, FoodScript> = {
     ]
   },
   genel: {
-    setup: 'Her ne kadar şu an canım çok {x} istese ve bu isteğe karşı koymak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar şu an canım çok {x} çekse ve bu isteğe karşı koymak zor gelse de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu {x} isteği',
-      'ağzımda {x} tadı',
-      'şimdi yemek istiyorum duygusu',
+      'ağzımdaki {x} tadı',
+      '“şimdi yemeliyim” hissi',
       'bu isteğin altındaki duygu',
       'bedenimdeki bu çekim',
       'bu şiddetli {x} isteği',
@@ -658,17 +658,17 @@ export const HUNGER_ISSUES: Issue[] = [
       'bu açlık hissi',
       'midemdeki bu boşluk',
       'bir şeyler atıştırma isteği',
-      'bu açlık gerçek mi, yoksa alışkanlık mı?',
-      'şimdi yemeliyim düşüncesi',
+      'gerçek açlık mı, alışkanlık mı?',
+      '“şimdi yemeliyim” düşüncesi',
       'bedenimdeki bu huzursuzluk',
       'kalan bu açlık hissi',
       'bu hissin dalga gibi geçmesine izin veriyorum'
     ],
     positives: [
       'bedenim bir sonraki öğüne kadar rahatça bekleyebilir',
-      'bu his bir dalga, 15 dakikada geçer',
+      'bu his bir dalga, on beş dakikada geçer',
       'bir bardak su içiyorum ve bekliyorum',
-      'gerçek açlıksa öğünümde doyarım; bu bir istekse bırakırım',
+      'gerçek açlıksa öğünümde doyarım, istekse bırakırım',
       'midem sakin, zihnim sakin',
       'ben açlığımdan daha güçlüyüm',
       'hafif ve rahat hissetmeyi seçiyorum',
@@ -684,7 +684,7 @@ export const HUNGER_ISSUES: Issue[] = [
     reminders: [
       'bu gece açlığı',
       'buzdolabına gitme isteği',
-      'yatmadan önce bir şey yeme alışkanlığı',
+      'yatmadan önce bir şeyler yeme alışkanlığım',
       'akşam boşluğunu yemekle doldurma isteği',
       'yorgunluğumu yemekle bastırma isteği',
       'midemdeki bu çekim',
@@ -711,12 +711,12 @@ export const HUNGER_ISSUES: Issue[] = [
     reminders: [
       'bu diyet açlığı',
       'pes etme isteği',
-      'şimdi yesem ne olur düşüncesi',
+      '“şimdi yesem ne olur” düşüncesi',
       'bu mahrumiyet hissi',
       'midemdeki bu boşluk',
-      'saat geçmiyor hissi',
+      '“saat geçmiyor” hissi',
       'kalan bu açlık',
-      'bu açlığa dayanabileceğime izin veriyorum'
+      'bu açlığın dalga gibi geçmesine izin veriyorum'
     ],
     positives: [
       'bu açlık, bedenimin yağ yaktığının işareti',
@@ -734,13 +734,13 @@ export const HUNGER_ISSUES: Issue[] = [
     name: 'Duygusal açlık',
     emoji: '🫥',
     hint: 'Can sıkıntısı, stres ya da üzüntüden yeme isteği',
-    setup: 'Her ne kadar aç olmadığımı bilsem de duygularımı yemekle bastırmak istesem de, kendimi derinden ve tamamen kabul ediyorum.',
+    setup: 'Her ne kadar aç olmadığımı bilsem ve yine de duygularımı yemekle bastırmak istesem de, kendimi derinden ve tamamen kabul ediyorum.',
     reminders: [
       'bu duygusal açlık',
       'can sıkıntısını yemekle doldurma isteği',
       'bu duyguyu hissetmek yerine yeme isteği',
-      'boşluğu tabakla kapatma isteği',
-      'yemekle kendimi teselli etme alışkanlığı',
+      'içimdeki boşluğu yemekle kapatma isteği',
+      'yemekle kendimi teselli etme alışkanlığım',
       'göğsümdeki bu boşluk',
       'kalan bu istek',
       'bu duyguyu yemeden hissetmeye izin veriyorum'
