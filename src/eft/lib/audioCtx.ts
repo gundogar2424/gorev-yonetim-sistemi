@@ -2,6 +2,8 @@
 // dokunmadan ses baslatmaya izin vermez ve baglam 'suspended' kalir; o zaman
 // tik sesi de yedek ses de SESSIZ olur. Bu yuzden ilk dokunusta baglam
 // olusturulup calistirilir ("kilit acma"), sonra her yerden kullanilir.
+import { sesLog } from './sesLog'
+
 let ctx: AudioContext | null = null
 let unlocked = false
 
@@ -9,12 +11,18 @@ export function audioCtx(): AudioContext | null {
   try {
     if (!ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-      if (!AC) return null
+      if (!AC) {
+        sesLog('AudioContext yok')
+        return null
+      }
       ctx = new AC()
+      sesLog(`AudioContext olusturuldu: ${ctx.state} sr=${ctx.sampleRate}`)
+      ctx.onstatechange = () => sesLog(`AudioContext durum: ${ctx?.state}`)
     }
     if (ctx.state === 'suspended') void ctx.resume()
     return ctx
-  } catch {
+  } catch (e) {
+    sesLog('AudioContext hata: ' + String((e as Error)?.message ?? e))
     return null
   }
 }
@@ -43,6 +51,7 @@ export function unlockAudio(): void {
     s.buffer = b
     s.connect(c.destination)
     s.start(0)
+    if (!unlocked) sesLog('ses kilidi acildi (dokunus)')
     unlocked = true
   } catch {
     /* yok say */

@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core'
 import { readSettings } from './store'
 import { fallbackReady, fallbackSpeak, getFallbackError, stopFallback } from './fallbackTts'
 import { audioState, isUnlocked, unlockAudio } from './audioCtx'
+import { sesLog } from './sesLog'
 
 type Done = () => void
 type NativeTts = typeof import('@capacitor-community/text-to-speech').TextToSpeech
@@ -129,8 +130,12 @@ export function stopSpeaking(): void {
 // force: sesli rehber kapali olsa da oku (Ayarlar > Sesi dene)
 export function speak(text: string, onDone?: Done, force = false): boolean {
   const s = readSettings()
-  if ((!s.voice && !force) || !text.trim()) return false
+  if ((!s.voice && !force) || !text.trim()) {
+    if (!s.voice && !force) sesLog('okuma atlandi: sesli rehber kapali')
+    return false
+  }
   unlockAudio()
+  sesLog(`oku [${s.voiceEngine}]: "${text.slice(0, 40)}${text.length > 40 ? '…' : ''}"`)
   stopSpeaking()
   const my = ++seq
   const rate = rateValue()
@@ -160,21 +165,26 @@ export function speak(text: string, onDone?: Done, force = false): boolean {
     const t = await native()
     if (!t) {
       lastError = 'Eklenti yüklenemedi'
+      sesLog('telefon motoru: eklenti yok')
       return false
     }
     const lang = await resolveNativeLang(t)
     if (!lang) {
       lastError = lastError || 'Telefonda Türkçe okuma sesi yok'
+      sesLog('telefon motoru: Turkce yok (' + lastError + ')')
       return false
     }
     for (let i = 0; i < 4; i++) {
       if (my !== seq) return true
       try {
         lastEngine = 'telefon'
+        sesLog(`telefon motoru: konusuyor (${lang}) deneme ${i + 1}`)
         await t.speak({ text, lang, rate, pitch: 1, volume: 1, queueStrategy: 0 })
+        sesLog('telefon motoru: bitti')
         return true
       } catch (e) {
         lastError = String((e as Error)?.message ?? e)
+        sesLog('telefon motoru hata: ' + lastError)
         if (/initialized|available/i.test(lastError)) {
           await sleep(700) // motor henuz hazir degil; kisa bekleyip yeniden dene
           continue
@@ -189,7 +199,10 @@ export function speak(text: string, onDone?: Done, force = false): boolean {
     new Promise((resolve) => {
       if (!webSupported()) return resolve(false)
       const v = turkishWebVoice()
-      if (!v) return resolve(false) // Turkce ses yoksa yedek motora birak
+      if (!v) {
+        sesLog('tarayici sesi: Turkce ses yok')
+        return resolve(false) // Turkce ses yoksa yedek motora birak
+      }
       try {
         const u = new SpeechSynthesisUtterance(text)
         u.lang = 'tr-TR'
@@ -225,7 +238,10 @@ export function speak(text: string, onDone?: Done, force = false): boolean {
       }
       if (!ok && pref === 'auto' && my === seq) ok = await viaFallback()
     }
-    if (!ok) finish(false)
+    if (!ok) {
+      sesLog('hicbir motor calmadi; tahmini sureyle devam')
+      finish(false)
+    }
     // yedek motor calindiysa 'onended' finish(true) cagirir
   })()
 
@@ -298,5 +314,25 @@ export async function openTtsInstall(): Promise<boolean> {
     return true
   } catch {
     return false
+  }
+}
+
+// Ses testi icin: telefon motorunu dogrudan dener, sonucu metin olarak doner.
+export async function nativeSpeakTest(text: string): Promise<string> {
+  if (!Capacitor.isNativePlatform()) return 'web ortami (telefon motoru yok)'
+  const t = await native()
+  if (!t) return 'eklenti yüklenemedi'
+  nativeLang = undefined
+  const lang = await resolveNativeLang(t)
+  if (!lang) return 'Türkçe yok: ' + (lastError || 'dil listesinde tr bulunamadı')
+  try {
+    sesLog(`telefon motoru TEST (${lang})`)
+    await t.speak({ text, lang, rate: rateValue(), pitch: 1, volume: 1, queueStrategy: 0 })
+    sesLog('telefon motoru TEST: bitti')
+    return `konuştu (${lang})`
+  } catch (e) {
+    const m = String((e as Error)?.message ?? e)
+    sesLog('telefon motoru TEST hata: ' + m)
+    return 'hata: ' + m
   }
 }
