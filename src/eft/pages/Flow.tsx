@@ -142,13 +142,32 @@ export default function Flow() {
   const curLine = lines[cur]
   const vurusta = !!curLine && (curLine.kind === 'nokta' || curLine.kind === 'cumle')
   useEffect(() => {
-    if (!issue || !running || !vurusta) return
+    if (!issue || !vurusta) return
     const id = setInterval(() => {
       sfxTick()
       setBeat((b) => b + 1)
     }, TEMPO_MS[ayar.tempo])
     return () => clearInterval(id)
-  }, [issue, running, vurusta, ayar.tempo])
+  }, [issue, vurusta, ayar.tempo])
+
+  // Elle ilerleme: hedef satiri okuma bandinin ortasina getirir ve akisi durdurur
+  function satiraGit(ix: number) {
+    const track = trackRef.current
+    const view = viewRef.current
+    const pos = posRef.current
+    if (!track || !view || pos.length === 0) return
+    const n = pos.length
+    const hedef = ((ix % n) + n) % n
+    const half = track.scrollHeight / 2
+    let off = pos[hedef].top + pos[hedef].h / 2 - view.clientHeight * 0.5
+    if (half > 0) off = ((off % half) + half) % half
+    offsetRef.current = off
+    track.style.transform = `translateY(${-off}px)`
+    curRef.current = hedef
+    setCur(hedef)
+    setRunning(false)
+    unlockAudio()
+  }
 
   function basaDon() {
     offsetRef.current = 0
@@ -282,7 +301,7 @@ export default function Flow() {
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       <EftHeader
         title={issue.name}
-        subtitle={`Kayan yazı · ${running ? 'akıyor' : 'duraklatıldı'} · hız ${speedIx + 1}/${SPEEDS.length}`}
+        subtitle={`Kayan yazı · ${running ? `akıyor · hız ${speedIx + 1}/${SPEEDS.length}` : 'elle · Önceki/Sonraki ile ilerle'}`}
         back={() => navigate(-1)}
         compact
         right={
@@ -293,7 +312,7 @@ export default function Flow() {
       />
 
       {/* Ustte manken: banttaki noktaya gore vurgulu, ritimle atar */}
-      <div className="flex-shrink-0 h-[30vh] flex items-center justify-center gap-3 px-4 pt-1" onClick={() => unlockAudio()}>
+      <div className="flex-shrink-0 h-[26vh] flex items-center justify-center gap-3 px-4 pt-1" onClick={() => unlockAudio()}>
         {curLine?.kind === 'cumle' ? (
           <HandMap beat={beat} className="h-full max-h-full" />
         ) : (
@@ -339,8 +358,8 @@ export default function Flow() {
           {renderLines(1)}
         </div>
         {!running && (
-          <div className="absolute inset-0 grid place-items-center z-20 pointer-events-none">
-            <div className="rounded-full bg-slate-900/70 text-white px-5 py-3 text-[17px] font-semibold">Duraklatıldı · dokun</div>
+          <div className="absolute inset-x-0 bottom-3 flex justify-center z-20 pointer-events-none">
+            <div className="rounded-full bg-slate-900/70 text-white px-5 py-2.5 text-[15px] font-semibold">Elle mod · Sonraki ▶ ile ilerle · akış için dokun</div>
           </div>
         )}
       </div>
@@ -350,6 +369,14 @@ export default function Flow() {
         className="flex-shrink-0 bg-white/90 dark:bg-[#0f1a1a]/90 border-t border-slate-200/60 dark:border-[#2b4442] px-4 pt-3"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
       >
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <button className="eft-btn-soft min-h-[56px] text-[18px]" onClick={() => satiraGit(curRef.current - 1)} aria-label="Önceki satır">
+            ◀ Önceki
+          </button>
+          <button className="eft-btn-primary min-h-[56px] text-[18px]" onClick={() => satiraGit(curRef.current + 1)} aria-label="Sonraki satır">
+            Sonraki ▶
+          </button>
+        </div>
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 mb-2">
           <button className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#1e3231] text-[22px] font-bold active:scale-95" onClick={() => hiz(-1)} aria-label="Yavaşlat">
             −
