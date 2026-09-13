@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import EftHeader from '../EftHeader'
 import BodyMap from '../components/BodyMap'
 import HandMap from '../components/HandMap'
+import SudsPicker, { sudsColor } from '../components/SudsPicker'
 import { sfxTick } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
 import { customIssue, foodIssue, HUNGER_ISSUES, ISSUES, issueById, phraseFor, POINTS, QUICK_FOODS, type Issue } from '../lib/content'
-import { readRecentFoods, readSettings, rememberCustomIssue, rememberFood, saveSettings, TEMPO_MS } from '../lib/store'
+import { addSession, readRecentFoods, readSettings, rememberCustomIssue, rememberFood, saveSettings, TEMPO_MS } from '../lib/store'
+import { fmtMinutes } from '../lib/date'
 
 // KAYAN YAZI (teleprompter): EFT metni ekranda surekli yukari kayar.
 // Telefon karsiya konur, okunur, vurulur. Hiz ve yazi boyutu ayarlanir,
@@ -55,6 +57,16 @@ export default function Flow() {
   const viewRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef(0)
+  // PUANLAMA: baslangicta 0-10, tur bitince ve istenince yeniden; kayit
+  const [phase, setPhase] = useState<'puan' | 'akis'>('puan')
+  const [pick, setPick] = useState<number | null>(null)
+  const [before, setBefore] = useState<number | null>(null)
+  const [current, setCurrent] = useState<number | null>(null)
+  const [ratingOpen, setRatingOpen] = useState(false)
+  const [rounds, setRounds] = useState(0)
+  const [saved, setSaved] = useState<{ before: number; after: number; rounds: number; ms: number } | null>(null)
+  const startRef = useRef<Date>(new Date())
+  const lastAraRef = useRef(-1)
   const [cur, setCur] = useState(0) // okuma bandindaki satir
   const curRef = useRef(0)
   const [beat, setBeat] = useState(0)
@@ -69,9 +81,63 @@ export default function Flow() {
     if (next) {
       setIssue(next)
       offsetRef.current = 0
+      yeniSeans()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
+
+  function yeniSeans() {
+    setPhase('puan')
+    setPick(null)
+    setBefore(null)
+    setCurrent(null)
+    setRatingOpen(false)
+    setRounds(0)
+    setSaved(null)
+    lastAraRef.current = -1
+    curRef.current = 0
+    setCur(0)
+    offsetRef.current = 0
+    startRef.current = new Date()
+  }
+
+  // Tur sayaci ve dongu sonunda otomatik puanlama
+  useEffect(() => {
+    if (phase !== 'akis' || !lines.length) return
+    const l = lines[cur]
+    if (!l) return
+    if (l.kind === 'ara' && l.sub !== 'Baştan başlıyor' && cur !== lastAraRef.current) {
+      lastAraRef.current = cur
+      setRounds((r) => r + 1)
+    }
+    if (cur === lines.length - 1 && !ratingOpen) {
+      // 3 tur bitti: dur ve yeniden puan iste
+      setRunning(false)
+      setPick(null)
+      setRatingOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cur, phase])
+
+  function puanlaVeBasla() {
+    if (pick === null) return
+    setBefore(pick)
+    setCurrent(pick)
+    startRef.current = new Date()
+    setPhase('akis')
+    setRunning(true)
+    unlockAudio()
+  }
+
+  function kaydet() {
+    if (!issue || before === null) return
+    const after = pick ?? current ?? before
+    const ms = Date.now() - startRef.current.getTime()
+    addSession({ issueId: issue.id, issue: issue.name, before, after, rounds: Math.max(1, rounds), ms }, startRef.current)
+    setSaved({ before, after, rounds: Math.max(1, rounds), ms })
+    setRatingOpen(false)
+    setRunning(false)
+  }
   const [speedIx, setSpeedIx] = useState(() => Math.max(0, Math.min(SPEEDS.length - 1, ayar.flowSpeed)))
   const [fontIx, setFontIx] = useState(() => Math.max(0, Math.min(FONTS.length - 1, ayar.flowFont)))
   const [running, setRunning] = useState(true)
@@ -95,12 +161,12 @@ export default function Flow() {
     const n = lines.length
     const kids = Array.from(track.children).slice(0, n) as HTMLElement[]
     posRef.current = kids.map((el) => ({ top: el.offsetTop, h: el.offsetHeight }))
-  }, [lines, fontIx])
+  }, [lines, fontIx, phase]) // phase: puan ekranindan akisa gecince pist yeni olusur
 
   // Kaydirma motoru: requestAnimationFrame ile piksel/sn cinsinden akis.
   // Icerik iki kez arka arkaya cizilir; ilk kopya bitince sessizce basa doner.
   useEffect(() => {
-    if (!issue) return
+    if (!issue || phase !== 'akis') return
     let raf = 0
     let last = performance.now()
     const speed = SPEEDS[speedIx]
@@ -136,19 +202,19 @@ export default function Flow() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [issue, running, speedIx])
+  }, [issue, running, speedIx, phase])
 
   // Vurus ritmi: nokta ya da kurulum satiri bantta iken tempoyla tik + atim
   const curLine = lines[cur]
   const vurusta = !!curLine && (curLine.kind === 'nokta' || curLine.kind === 'cumle')
   useEffect(() => {
-    if (!issue || !vurusta) return
+    if (!issue || !vurusta || phase !== 'akis' || ratingOpen || saved) return
     const id = setInterval(() => {
       sfxTick()
       setBeat((b) => b + 1)
     }, TEMPO_MS[ayar.tempo])
     return () => clearInterval(id)
-  }, [issue, vurusta, ayar.tempo])
+  }, [issue, vurusta, ayar.tempo, phase, ratingOpen, saved])
 
   // Elle ilerleme: hedef satiri okuma bandinin ortasina getirir ve akisi durdurur
   function satiraGit(ix: number) {
@@ -205,6 +271,7 @@ export default function Flow() {
               onClick={() => {
                 rememberCustomIssue(ozel)
                 setIssue(customIssue(ozel))
+                yeniSeans()
               }}
             >
               Başlat
@@ -221,6 +288,7 @@ export default function Flow() {
                   onClick={() => {
                     rememberFood(f)
                     setIssue(foodIssue(f))
+                    yeniSeans()
                   }}
                 >
                   {f}
@@ -233,13 +301,21 @@ export default function Flow() {
               onClick={() => {
                 rememberFood(yemek)
                 setIssue(foodIssue(yemek))
+                yeniSeans()
               }}
             >
               Başlat
             </button>
             <div className="grid grid-cols-2 gap-2 mt-3">
               {HUNGER_ISSUES.map((h) => (
-                <button key={h.id} onClick={() => setIssue(h)} className="flex items-center gap-2 rounded-2xl bg-white dark:bg-[#1e3231] p-2.5 text-left active:scale-[0.98]">
+                <button
+                  key={h.id}
+                  onClick={() => {
+                    setIssue(h)
+                    yeniSeans()
+                  }}
+                  className="flex items-center gap-2 rounded-2xl bg-white dark:bg-[#1e3231] p-2.5 text-left active:scale-[0.98]"
+                >
                   <span className="text-[20px]">{h.emoji}</span>
                   <span className="text-[13px] font-semibold text-slate-800 dark:text-[#e8f2f1] leading-tight">{h.name}</span>
                 </button>
@@ -251,7 +327,13 @@ export default function Flow() {
             <ul className="space-y-2">
               {ISSUES.map((i) => (
                 <li key={i.id}>
-                  <button onClick={() => setIssue(i)} className="w-full flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-[#1e3231] p-3 text-left active:scale-[0.98]">
+                  <button
+                    onClick={() => {
+                      setIssue(i)
+                      yeniSeans()
+                    }}
+                    className="w-full flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-[#1e3231] p-3 text-left active:scale-[0.98]"
+                  >
                     <span className="text-[24px]">{i.emoji}</span>
                     <span className="text-[16px] font-semibold text-slate-900 dark:text-[#e8f2f1]">{i.name}</span>
                   </button>
@@ -259,6 +341,42 @@ export default function Flow() {
               ))}
             </ul>
           </section>
+        </div>
+      </div>
+    )
+  }
+
+  const istek = issue.id === 'yemek' || issue.id.startsWith('aclik') || issue.id === 'istek'
+
+  // ---------------- BASLANGIC PUANI ----------------
+  if (phase === 'puan') {
+    return (
+      <div>
+        <EftHeader title={issue.name} subtitle="Başlamadan önce puanla" back={() => navigate(-1)} compact />
+        <div className="px-4 space-y-4 pb-6">
+          <section className="eft-card">
+            <h2 className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-snug">
+              {istek ? 'Şu an bu istek ne kadar şiddetli?' : 'Bu konuyu şimdi düşününce ne kadar rahatsız oluyorsun?'}
+            </h2>
+            <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mt-1 mb-4">
+              {istek ? 'Yemeği gözünün önüne getir, kokusunu ve tadını düşün. Sonra bir sayı seç.' : 'Gözlerini kapatıp bir an hisset. Sonra bir sayı seç.'}
+            </p>
+            <SudsPicker value={pick} onChange={setPick} />
+          </section>
+          <button className="eft-btn-primary w-full text-[19px] min-h-[62px]" disabled={pick === null} onClick={puanlaVeBasla}>
+            Kayan yazıyı başlat
+          </button>
+          <button
+            className="w-full text-[14px] font-semibold text-slate-500 dark:text-[#7f9896] min-h-[40px]"
+            onClick={() => {
+              setPick(0)
+              setBefore(null)
+              setPhase('akis')
+              setRunning(true)
+            }}
+          >
+            Puansız başla (kaydedilmez)
+          </button>
         </div>
       </div>
     )
@@ -298,7 +416,7 @@ export default function Flow() {
   // Sayfa ekran yuksekligine SABIT: kayan icerik binlerce piksel uzundur;
   // kapsayici onunla buyurse solma katmanlari ve okuma bandi kayar.
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
+    <div className="relative flex flex-col h-[100dvh] overflow-hidden">
       <EftHeader
         title={issue.name}
         subtitle={`Kayan yazı · ${running ? `akıyor · hız ${speedIx + 1}/${SPEEDS.length}` : 'elle · Önceki/Sonraki ile ilerle'}`}
@@ -411,14 +529,96 @@ export default function Flow() {
           <button className="eft-btn-ghost min-h-[48px] text-[15px]" onClick={() => yazi(1)} aria-label="Yazıyı büyüt">
             A+
           </button>
-          <button className="eft-btn-ghost min-h-[48px] text-[15px]" onClick={basaDon}>
-            Başa
+          <button
+            className="eft-btn-soft min-h-[48px] text-[15px]"
+            onClick={() => {
+              setRunning(false)
+              setPick(null)
+              setRatingOpen(true)
+            }}
+          >
+            Puanla
           </button>
           <button className={`${running ? 'eft-btn-soft' : 'eft-btn-primary'} min-h-[48px] text-[15px]`} onClick={() => setRunning((r) => !r)}>
             {running ? 'Duraklat' : 'Devam'}
           </button>
         </div>
       </div>
+
+      {/* YENIDEN PUANLAMA PANELI */}
+      {ratingOpen && (
+        <div className="absolute inset-0 z-30 bg-[#f2f8f7]/95 dark:bg-[#0f1a1a]/95 flex flex-col">
+          <div className="flex-1 overflow-y-auto px-4 pt-6 pb-4 space-y-4">
+            <section className="eft-card">
+              <h2 className="text-[20px] font-bold text-slate-900 dark:text-[#e8f2f1] leading-snug">
+                {istek ? 'Şimdi istek ne kadar şiddetli?' : 'Şimdi ne kadar rahatsız oluyorsun?'}
+              </h2>
+              <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mt-1 mb-4">
+                {before !== null ? `Başlangıçta ${before} demiştin.` : 'Başlangıç puanı verilmedi; bu seans kaydedilmez.'} {rounds > 0 ? `${rounds} tur yapıldı.` : ''}
+              </p>
+              <SudsPicker value={pick} onChange={setPick} />
+              {pick !== null && before !== null && (
+                <div className="flex items-center justify-center gap-3 text-[30px] font-bold tabular-nums mt-4">
+                  <span style={{ color: sudsColor(before) }}>{before}</span>
+                  <span className="text-slate-300 dark:text-[#5f7a78] text-[22px]">→</span>
+                  <span style={{ color: sudsColor(pick) }}>{pick}</span>
+                </div>
+              )}
+            </section>
+            <button
+              className="eft-btn-soft w-full"
+              onClick={() => {
+                if (pick !== null) setCurrent(pick)
+                setRatingOpen(false)
+                setRunning(true)
+              }}
+            >
+              Devam et (bir tur daha)
+            </button>
+            <button className="eft-btn-primary w-full text-[19px] min-h-[62px]" disabled={pick === null || before === null} onClick={kaydet}>
+              Bitir ve kaydet
+            </button>
+            <button
+              className="w-full text-[14px] font-semibold text-slate-500 dark:text-[#7f9896] min-h-[40px]"
+              onClick={() => {
+                setRatingOpen(false)
+                setRunning(false)
+              }}
+            >
+              Kapat
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* KAYIT SONUCU */}
+      {saved && (
+        <div className="absolute inset-0 z-30 bg-[#f2f8f7]/95 dark:bg-[#0f1a1a]/95 flex flex-col items-center justify-center px-4 space-y-4">
+          <section className="eft-card w-full text-center eft-pop">
+            <div className="text-[44px]">{saved.after <= 2 ? '🌿' : saved.after < saved.before ? '🙂' : '🤍'}</div>
+            <div className="flex items-center justify-center gap-3 text-[40px] font-bold tabular-nums mt-1">
+              <span style={{ color: sudsColor(saved.before) }}>{saved.before}</span>
+              <span className="text-slate-300 dark:text-[#5f7a78] text-[28px]">→</span>
+              <span style={{ color: sudsColor(saved.after) }}>{saved.after}</span>
+            </div>
+            <p className="text-[15px] text-slate-600 dark:text-[#d5e6e4] mt-2">
+              {saved.rounds} tur · {fmtMinutes(saved.ms)} · Geçmişe kaydedildi ✔
+            </p>
+          </section>
+          <button className="eft-btn-primary w-full text-[19px] min-h-[62px]" onClick={() => navigate('/')}>
+            Ana sayfa
+          </button>
+          <button
+            className="eft-btn-ghost w-full"
+            onClick={() => {
+              basaDon()
+              yeniSeans()
+            }}
+          >
+            Aynı konuyla yeni seans
+          </button>
+        </div>
+      )}
     </div>
   )
 }
