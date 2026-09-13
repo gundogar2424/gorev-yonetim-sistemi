@@ -67,7 +67,7 @@ export function readSettings(): Settings {
     tempo: s.tempo === 'yavas' || s.tempo === 'hizli' ? s.tempo : 'orta',
     taps: [5, 7, 9].includes(Number(s.taps)) ? Number(s.taps) : 7,
     auto: s.auto ?? true,
-    voice: s.voice ?? true,
+    voice: s.voice ?? false, // varsayilan KAPALI: kullanici kayan yaziyi tercih etti
     voiceRate: s.voiceRate === 'yavas' ? 'yavas' : 'normal',
     voiceEngine: s.voiceEngine === 'telefon' || s.voiceEngine === 'yedek' ? s.voiceEngine : 'auto',
     flowSpeed: Number.isInteger(s.flowSpeed) ? Number(s.flowSpeed) : 3,
