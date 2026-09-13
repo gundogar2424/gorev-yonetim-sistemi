@@ -113,7 +113,7 @@ Bu depodaki **beşinci bağımsız program**: **EFT Dokunma**. Kendi giriş sayf
 
 | Adım | Ekranda ne olur |
 |---|---|
-| 1 · **Konu** | 10 hazır konu (kaygı, stres, öfke, üzüntü, korku, ağrı, uykusuzluk, özgüven, istek krizi, suçluluk) ya da kendi yazdığın konu; son yazdıkların hızlı seçim olarak saklanır |
+| 1 · **Konu** | 11 hazır konu (sabah enerjisi, kaygı, stres, öfke, üzüntü, korku, ağrı, uykusuzluk, özgüven, istek krizi, suçluluk) ya da kendi yazdığın konu; son yazdıkların hızlı seçim olarak saklanır |
 | 2 · **Puan (0-10)** | Rahatsızlık yoğunluğunu büyük düğmelerle seç (SUDS ölçeği) |
 | 3 · **Kurulum cümlesi** | El çizimi üzerinde karate noktası atar; "Her ne kadar … olsa da, kendimi derinden ve tamamen kabul ediyorum" cümlesi düzenlenebilir, 3 kez söylenir |
 | 4 · **8 nokta** | Baş/gövde çizimi üzerinde aktif nokta ritimle "atar"; her vuruşta hafif tık sesi ve titreşim; nokta başına 5/7/9 vuruş, hız ayarlanabilir; noktalar kendiliğinden ilerler (istersen elle) ve her noktada söylenecek hatırlatma ifadesi büyük yazıyla gösterilir |

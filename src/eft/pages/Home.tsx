@@ -21,7 +21,7 @@ export default function Home() {
   const bugun = sessionsToday()
   const son = readSessions().slice(-3).reverse()
   const tip = tipOfDay(dayNumber())
-  const hizli = ISSUES.slice(0, 6)
+  const hizli = ['sabah', 'kaygi', 'stres', 'uyku', 'ofke', 'uzuntu'].map((id) => ISSUES.find((i) => i.id === id)!).filter(Boolean)
   const [yemek, setYemek] = useState('')
   const sonYemek = readRecentFoods()
   const yemekCipleri = [...sonYemek, ...QUICK_FOODS.filter((q) => !sonYemek.some((s) => s.toLocaleLowerCase('tr') === q))].slice(0, 6)
