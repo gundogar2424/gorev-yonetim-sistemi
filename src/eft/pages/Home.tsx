@@ -75,7 +75,7 @@ export default function Home() {
         {/* Yemek istegi */}
         <section className="eft-card bg-amber-50/60 dark:bg-[#2b2a1a]">
           <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#e8f2f1] mb-1">🍽️ Canın bir şey mi çekiyor?</h2>
-          <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mb-3">Yemeği yaz, ona özel telkinleri al; istersen vuruşlarla söndür.</p>
+          <p className="text-[14px] text-slate-500 dark:text-[#7f9896] mb-3">Yemeği yaz, ona özel telkinleri gör, kayan yazıyla uygula.</p>
           <div className="flex gap-2">
             <input
               className="eft-input flex-1"

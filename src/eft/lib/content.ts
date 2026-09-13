@@ -617,13 +617,14 @@ function fill(s: string, x: string): string {
 
 // Yemek adi -> o yemege ozel telkinlerle dolu Issue
 export function foodIssue(text: string): Issue & { kind: FoodKind } {
-  const x = text.trim()
+  const ad = text.trim()
+  const x = ad.toLocaleLowerCase('tr') // cumle icinde kucuk harf ("canım çok çikolata istese")
   const kind = foodKind(x)
   const sc = FOOD_SCRIPTS[kind]
   return {
     id: 'yemek',
     kind,
-    name: `${x} isteği`,
+    name: `${ad.charAt(0).toLocaleUpperCase('tr')}${ad.slice(1)} isteği`,
     emoji: '🍽️',
     hint: FOOD_KIND_LABEL[kind],
     setup: fill(sc.setup, x),
