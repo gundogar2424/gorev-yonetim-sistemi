@@ -48,6 +48,33 @@ export interface Issue {
 
 export const ISSUES: Issue[] = [
   {
+    id: 'sabah',
+    name: 'Sabah enerjisi',
+    emoji: '🌅',
+    hint: 'Uyanmakta zorlanma, sabah ağırlığı; güne enerjik başlamak',
+    setup: 'Her ne kadar sabah kalkmak zor gelse ve bedenim ağır hissetse de, kendimi derinden ve tamamen kabul ediyor ve bugüne enerjiyle başlamayı seçiyorum.',
+    reminders: [
+      'bu sabah ağırlığı',
+      'yataktan çıkmak istememe',
+      'gözlerimdeki bu uyku',
+      'biraz daha uyuyayım düşüncesi',
+      'bedenimdeki bu yavaşlık',
+      'güne isteksiz başlama hissi',
+      'kalan bu ağırlık',
+      'bu ağırlığı bırakıyorum, uyanıyorum'
+    ],
+    positives: [
+      'uyanıyorum, bedenim canlanıyor',
+      'nefes alıyorum, enerji doluyor',
+      'bugün benim günüm',
+      'ayağa kalkıyorum, hareket ediyorum',
+      'zihnim açık, bedenim hazır',
+      'güne güçle ve neşeyle başlıyorum',
+      'her nefeste daha uyanığım',
+      'enerjik, canlı ve hazırım'
+    ]
+  },
+  {
     id: 'kaygi',
     name: 'Kaygı / Endişe',
     emoji: '😰',
