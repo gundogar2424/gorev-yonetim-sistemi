@@ -71,8 +71,9 @@ export default function EftApp() {
       <main className="flex-1 flex flex-col" style={{ paddingBottom: inSession ? 0 : 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/seans" element={<Session />} />
-          <Route path="/akis" element={<Flow />} />
+          {/* key: adresteki konu degisince ekran sifirdan kurulur (eski konu kalmasin) */}
+          <Route path="/seans" element={<Session key={loc.search} />} />
+          <Route path="/akis" element={<Flow key={loc.search} />} />
           <Route path="/noktalar" element={<PointsPage />} />
           <Route path="/gecmis" element={<HistoryPage />} />
           <Route path="/ayarlar" element={<EftSettings />} />
