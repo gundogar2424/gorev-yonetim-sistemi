@@ -39,50 +39,11 @@ export interface Exercise {
   hold: number // saniye: tutma suresi (mpt'de kullanilmaz)
   rest: number // saniye: tekrarlar arasi dinlenme
   caution?: string // bu egzersize ozel dikkat
-  video?: Video // nasil yapildigini gosteren YouTube videosu (harici, isteğe bagli)
   clip?: string // uygulamaya gomulu kisa gosterim videosu (public/ses-video/<id>.mp4); internetsiz
 }
 
-export interface Video {
-  url: string
-  title: string
-  lang: 'tr' | 'en' | 'fr'
-}
 
-// Egzersiz videolari (YouTube; web aramasinda bulunan gercek baglantilar).
-// Uygulama disinda, telefonun tarayicisinda/YouTube'da acilir.
-export const VIDEOS = {
-  laxvox: { url: 'https://www.youtube.com/watch?v=I2kgqCa0kuE', title: 'DoctorVox Ses Terapisi Egzersiz #laxvox', lang: 'tr' as const },
-  glissando: { url: 'https://www.youtube.com/watch?v=ZuBRs2Nm0YU', title: 'DoctorVox · Glissando (perde kaydırma) #laxvox', lang: 'tr' as const },
-  pipet: { url: 'https://www.youtube.com/watch?v=UbuapADtz9c', title: 'Pipete Fonasyon – Ses Egzersizi', lang: 'tr' as const },
-  vfe: { url: 'https://www.youtube.com/watch?v=uM2TLN7nQW0', title: 'Vocal Function Exercises – Joseph Stemple (yöntemin sahibi)', lang: 'en' as const },
-  hga: { url: 'https://www.youtube.com/watch?v=MHa_JkztRGQ', title: 'Hard Glottal Attack', lang: 'en' as const },
-  phorte1: { url: 'https://www.youtube.com/watch?v=zNUGeFDSWlc', title: 'PhoRTE – Part 1', lang: 'en' as const },
-  phorte3: { url: 'https://www.youtube.com/watch?v=8aaHWfv32zc', title: 'PhoRTE – Part 3', lang: 'en' as const },
-  kalem: { url: 'https://m.youtube.com/watch?v=o7_TPc1vHKE', title: 'Diksiyon Eğitimi 5 – Kalem çalışması', lang: 'tr' as const },
-  tekerleme: { url: 'https://www.youtube.com/watch?v=40pRwpAgaFM', title: 'Tekerlemeler 3 – Diksiyon Egzersizleri', lang: 'tr' as const },
-  diksiyon: { url: 'https://www.youtube.com/watch?v=jetXqKPCUM0', title: 'Diksiyon Düzeltme Egzersizleri', lang: 'tr' as const },
-  nefes: { url: 'https://www.youtube.com/watch?v=74_QDyUcV6I', title: 'Ses Egzersizi #20 – Diyafram Nefesi Egzersizi', lang: 'tr' as const },
-  nefes2: { url: 'https://www.youtube.com/watch?v=4B1vrHCIVg4', title: 'Karın nefesi – diyafram nefesi', lang: 'tr' as const },
-  tril: { url: 'https://www.youtube.com/watch?v=ue2EgqA3YcY', title: 'Dudak Trili Nedir? Nasıl Yapılır? (uygulamalı)', lang: 'tr' as const },
-  humming: { url: 'https://m.youtube.com/watch?v=VBvJGb7fplY', title: 'Ses terapisi çalışması (basit ve etkili)', lang: 'tr' as const },
-  bum: { url: 'https://www.youtube.com/watch?v=9GLjqQlZRkk', title: 'Half-Boom Swallow Therapy Technique', lang: 'en' as const },
-  mpt: { url: 'https://www.youtube.com/watch?v=YI1F7fw75b0', title: 'Sustained Phonation /ah/ – Phonatory Resistance Exercises', lang: 'en' as const },
-  netkonusma: { url: 'https://www.youtube.com/watch?v=Ie-zR98Nxf4', title: 'Daha net konuşmanızı sağlayan kolay egzersiz – Diksiyon', lang: 'tr' as const },
-  diksiyon2: { url: 'https://www.youtube.com/watch?v=93QeQPkriCI', title: 'Diksiyon Nasıl Düzeltilir? Tekerlemeler, Egzersizler', lang: 'tr' as const },
-  tekerleme2: { url: 'https://www.youtube.com/watch?v=_ls4ppKNICg', title: 'Diksiyon Alıştırmaları – Tekerlemelerin tamamı + PDF', lang: 'tr' as const },
-  // Bu iki teknik icin birebir gosterim videosu bulunamadi; en yakin genel
-  // ses teli felci egzersiz videolari "(Genel)" etiketiyle verildi.
-  felcGenelEn: { url: 'https://www.youtube.com/watch?v=XDDL1ha9gOs', title: '(Genel) Ses teli felcinde hangi egzersizler yardımcı olur? – KBB uzmanı', lang: 'en' as const },
-  felcGenelFr: { url: 'https://www.youtube.com/watch?v=2UKE6tuCpPk', title: '(Genel) Tek taraflı ses teli felci: ses egzersizleri – Dr. F. Le Huche', lang: 'fr' as const }
-}
 
-// Uygulamadaki tum videolarin listesi (Videolar sayfasi icin)
-export function allVideos(): { video: Video; exercises: string[] }[] {
-  const m = new Map<string, { video: Video; exercises: string[] }>()
-  for (const e of EXERCISES) if (e.video) (m.get(e.video.url) ?? m.set(e.video.url, { video: e.video, exercises: [] }).get(e.video.url)!).exercises.push(e.name)
-  return [...m.values()]
-}
 
 export const EXERCISES: Exercise[] = [
   // ---------------- ISINMA ----------------
@@ -101,7 +62,6 @@ export const EXERCISES: Exercise[] = [
       'Süre dolana kadar yinele.'
     ],
     cue: 'AL (4) · VER "sss" (8)',
-    video: VIDEOS.nefes,
     clip: './ses-video/karin-nefesi.mp4',
     reps: 3,
     hold: 12,
@@ -122,7 +82,6 @@ export const EXERCISES: Exercise[] = [
       'Süre dolana kadar sürdür, nefesin bitince yeniden al.'
     ],
     cue: 'brrr…',
-    video: VIDEOS.tril,
     clip: './ses-video/dudak-tril.mp4',
     reps: 3,
     hold: 10,
@@ -142,7 +101,6 @@ export const EXERCISES: Exercise[] = [
       'Boğazını sıkma, ses yumuşak olsun.'
     ],
     cue: 'mmm…',
-    video: VIDEOS.humming,
     reps: 3,
     hold: 8,
     rest: 4
@@ -164,7 +122,6 @@ export const EXERCISES: Exercise[] = [
       'Alternatif: sandalyenin oturağını iki yandan tutup yukarı çekerken ya da masaya bastırırken de yapılabilir.'
     ],
     cue: 'A!',
-    video: VIDEOS.felcGenelEn,
     reps: 8,
     hold: 2,
     rest: 3,
@@ -184,7 +141,6 @@ export const EXERCISES: Exercise[] = [
       'Bırak, omuzlarını gevşet, nefes al.'
     ],
     cue: 'A!',
-    video: VIDEOS.felcGenelEn,
     reps: 8,
     hold: 2,
     rest: 3,
@@ -205,7 +161,6 @@ export const EXERCISES: Exercise[] = [
       'Ses kısa ve tok olsun; bağırma.'
     ],
     cue: ['A!', 'E!', 'İ!', 'O!', 'U!'],
-    video: VIDEOS.hga,
     reps: 10,
     hold: 2,
     rest: 2,
@@ -226,7 +181,6 @@ export const EXERCISES: Exercise[] = [
       'Dinlen, sonra tekrar.'
     ],
     cue: 'öhö-aaa',
-    video: VIDEOS.felcGenelEn,
     reps: 6,
     hold: 3,
     rest: 4,
@@ -247,7 +201,6 @@ export const EXERCISES: Exercise[] = [
       'Bir tarafın zayıfsa terapistin başını o tarafa çevirerek yapmanı isteyebilir.'
     ],
     cue: 'BUM!',
-    video: VIDEOS.bum,
     reps: 8,
     hold: 2,
     rest: 3
@@ -267,7 +220,6 @@ export const EXERCISES: Exercise[] = [
       'Hangi tarafta ses daha net çıkıyorsa not al; terapistin bunu bilmek ister.'
     ],
     cue: ['SAĞA çevir: iii', 'SOLA çevir: iii'],
-    video: VIDEOS.felcGenelFr,
     reps: 8,
     hold: 3,
     rest: 3
@@ -287,7 +239,6 @@ export const EXERCISES: Exercise[] = [
       'Üç deneme yap; en iyi süre kaydedilir.'
     ],
     cue: 'aaaa…',
-    video: VIDEOS.mpt,
     reps: 3,
     hold: 0,
     rest: 10
@@ -307,7 +258,6 @@ export const EXERCISES: Exercise[] = [
       'Bitene kadar tut; süreyi her hafta uzatmaya çalış.'
     ],
     cue: 'iiii… (yumuşak, net)',
-    video: VIDEOS.vfe,
     reps: 2,
     hold: 12,
     rest: 5
@@ -327,7 +277,6 @@ export const EXERCISES: Exercise[] = [
       'Ses kopmadan, yumuşak ve kesintisiz kaysın; kopan yerleri zorlamadan geç.'
     ],
     cue: ['kalından İNCEYE: nooool', 'inceden KALINA: nooool'],
-    video: VIDEOS.glissando,
     reps: 4,
     hold: 6,
     rest: 3
@@ -347,7 +296,6 @@ export const EXERCISES: Exercise[] = [
       'Zorlanmadan; sesi öne, dudaklara odakla.'
     ],
     cue: ['1. nota: ooool', '2. nota: ooool', '3. nota: ooool', '4. nota: ooool', '5. nota: ooool'],
-    video: VIDEOS.vfe,
     reps: 5,
     hold: 10,
     rest: 4
@@ -367,7 +315,6 @@ export const EXERCISES: Exercise[] = [
       'Hedef: normal konuşmandan belirgin daha gür; ses kısılmadan.'
     ],
     cue: ['GÜR: aaaa…', 'GÜR kalından inceye: aaaa', 'GÜR inceden kalına: aaaa'],
-    video: VIDEOS.phorte1,
     reps: 3,
     hold: 8,
     rest: 5,
@@ -388,7 +335,6 @@ export const EXERCISES: Exercise[] = [
       'Boğazını sıkma; gücü nefesten al.'
     ],
     cue: ['YÜKSEK: "Günaydın, nasılsın?"', 'ALÇAK: "Günaydın, nasılsın?"', 'YÜKSEK: "Kapıyı kapatır mısın?"', 'ALÇAK: "Kapıyı kapatır mısın?"', 'YÜKSEK: "Bugün hava çok güzel."', 'ALÇAK: "Bugün hava çok güzel."'],
-    video: VIDEOS.phorte3,
     reps: 6,
     hold: 4,
     rest: 3,
@@ -410,7 +356,6 @@ export const EXERCISES: Exercise[] = [
       'Süre dolana kadar sürdür; ikinci sette perdeyi hafifçe aşağı-yukarı kaydır, üçüncü sette kısa cümleler mırıldan.'
     ],
     cue: ['uuu… (kabarcıklar düzenli)', 'uuu… kalından inceye ve geri', 'tüpten "merhaba, nasılsın" mırıldan'],
-    video: VIDEOS.laxvox,
     reps: 3,
     hold: 20,
     rest: 8,
@@ -432,7 +377,6 @@ export const EXERCISES: Exercise[] = [
       'İstersen perdeyi hafifçe aşağı yukarı kaydır.'
     ],
     cue: 'uuu… (pipetten)',
-    video: VIDEOS.pipet,
     reps: 2,
     hold: 15,
     rest: 5
