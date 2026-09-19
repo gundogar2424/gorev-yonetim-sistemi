@@ -60,7 +60,23 @@ export const VIDEOS = {
   phorte3: { url: 'https://www.youtube.com/watch?v=8aaHWfv32zc', title: 'PhoRTE – Part 3', lang: 'en' as const },
   kalem: { url: 'https://m.youtube.com/watch?v=o7_TPc1vHKE', title: 'Diksiyon Eğitimi 5 – Kalem çalışması', lang: 'tr' as const },
   tekerleme: { url: 'https://www.youtube.com/watch?v=40pRwpAgaFM', title: 'Tekerlemeler 3 – Diksiyon Egzersizleri', lang: 'tr' as const },
-  diksiyon: { url: 'https://www.youtube.com/watch?v=jetXqKPCUM0', title: 'Diksiyon Düzeltme Egzersizleri', lang: 'tr' as const }
+  diksiyon: { url: 'https://www.youtube.com/watch?v=jetXqKPCUM0', title: 'Diksiyon Düzeltme Egzersizleri', lang: 'tr' as const },
+  nefes: { url: 'https://www.youtube.com/watch?v=74_QDyUcV6I', title: 'Ses Egzersizi #20 – Diyafram Nefesi Egzersizi', lang: 'tr' as const },
+  nefes2: { url: 'https://www.youtube.com/watch?v=4B1vrHCIVg4', title: 'Karın nefesi – diyafram nefesi', lang: 'tr' as const },
+  tril: { url: 'https://www.youtube.com/watch?v=ue2EgqA3YcY', title: 'Dudak Trili Nedir? Nasıl Yapılır? (uygulamalı)', lang: 'tr' as const },
+  humming: { url: 'https://m.youtube.com/watch?v=VBvJGb7fplY', title: 'Ses terapisi çalışması (basit ve etkili)', lang: 'tr' as const },
+  bum: { url: 'https://www.youtube.com/watch?v=9GLjqQlZRkk', title: 'Half-Boom Swallow Therapy Technique', lang: 'en' as const },
+  mpt: { url: 'https://www.youtube.com/watch?v=YI1F7fw75b0', title: 'Sustained Phonation /ah/ – Phonatory Resistance Exercises', lang: 'en' as const },
+  netkonusma: { url: 'https://www.youtube.com/watch?v=Ie-zR98Nxf4', title: 'Daha net konuşmanızı sağlayan kolay egzersiz – Diksiyon', lang: 'tr' as const },
+  diksiyon2: { url: 'https://www.youtube.com/watch?v=93QeQPkriCI', title: 'Diksiyon Nasıl Düzeltilir? Tekerlemeler, Egzersizler', lang: 'tr' as const },
+  tekerleme2: { url: 'https://www.youtube.com/watch?v=_ls4ppKNICg', title: 'Diksiyon Alıştırmaları – Tekerlemelerin tamamı + PDF', lang: 'tr' as const }
+}
+
+// Uygulamadaki tum videolarin listesi (Videolar sayfasi icin)
+export function allVideos(): { video: Video; exercises: string[] }[] {
+  const m = new Map<string, { video: Video; exercises: string[] }>()
+  for (const e of EXERCISES) if (e.video) (m.get(e.video.url) ?? m.set(e.video.url, { video: e.video, exercises: [] }).get(e.video.url)!).exercises.push(e.name)
+  return [...m.values()]
 }
 
 export const EXERCISES: Exercise[] = [
@@ -80,6 +96,7 @@ export const EXERCISES: Exercise[] = [
       'Süre dolana kadar yinele.'
     ],
     cue: 'AL (4) · VER "sss" (8)',
+    video: VIDEOS.nefes,
     reps: 3,
     hold: 12,
     rest: 3
@@ -99,6 +116,7 @@ export const EXERCISES: Exercise[] = [
       'Süre dolana kadar sürdür, nefesin bitince yeniden al.'
     ],
     cue: 'brrr…',
+    video: VIDEOS.tril,
     reps: 3,
     hold: 10,
     rest: 5
@@ -117,6 +135,7 @@ export const EXERCISES: Exercise[] = [
       'Boğazını sıkma, ses yumuşak olsun.'
     ],
     cue: 'mmm…',
+    video: VIDEOS.humming,
     reps: 3,
     hold: 8,
     rest: 4
@@ -218,6 +237,7 @@ export const EXERCISES: Exercise[] = [
       'Bir tarafın zayıfsa terapistin başını o tarafa çevirerek yapmanı isteyebilir.'
     ],
     cue: 'BUM!',
+    video: VIDEOS.bum,
     reps: 8,
     hold: 2,
     rest: 3
@@ -256,6 +276,7 @@ export const EXERCISES: Exercise[] = [
       'Üç deneme yap; en iyi süre kaydedilir.'
     ],
     cue: 'aaaa…',
+    video: VIDEOS.mpt,
     reps: 3,
     hold: 0,
     rest: 10

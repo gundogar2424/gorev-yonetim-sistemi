@@ -47,6 +47,9 @@ export default function DiksiyonPage() {
           </button>
         </section>
 
+        <button className="ses-btn-soft w-full" onClick={() => navigate('/videolar')}>
+          🎬 Tüm videolar
+        </button>
         <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] px-1">
           Egzersize dokun: açıklama ve "yalnızca bunu yap". Onay kutusu seansa dahil olup olmadığını belirler.
         </p>
