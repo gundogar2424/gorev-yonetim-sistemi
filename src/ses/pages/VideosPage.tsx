@@ -13,7 +13,7 @@ export default function VideosPage() {
       <SesHeader title="Videolar" subtitle="Egzersizler nasıl yapılır (YouTube)" back />
       <div className="px-4 space-y-5 pb-8">
         <p className="text-[16px] text-slate-700 dark:text-[#e2d5cd] px-1">
-          Dokununca video telefonun tarayıcısında ya da YouTube uygulamasında açılır. İngilizce videolar işaretlidir; altyazı için YouTube'da ⚙️ › Altyazılar › Türkçe (otomatik çeviri) seçilebilir.
+          Dokununca video telefonun tarayıcısında ya da YouTube uygulamasında açılır. İngilizce ve Fransızca videolar işaretlidir; altyazı için YouTube'da ⚙️ › Altyazılar › Türkçe (otomatik çeviri) seçilebilir. "(Genel)" etiketli videolar o tekniği özel olarak göstermeyebilir; bulunabilen en yakın kaynaktır.
         </p>
         <section>
           <h3 className="ses-label px-1 mb-2">Ses teli egzersizleri</h3>

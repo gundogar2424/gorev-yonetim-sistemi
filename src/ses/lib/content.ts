@@ -45,7 +45,7 @@ export interface Exercise {
 export interface Video {
   url: string
   title: string
-  lang: 'tr' | 'en'
+  lang: 'tr' | 'en' | 'fr'
 }
 
 // Egzersiz videolari (YouTube; web aramasinda bulunan gercek baglantilar).
@@ -69,7 +69,11 @@ export const VIDEOS = {
   mpt: { url: 'https://www.youtube.com/watch?v=YI1F7fw75b0', title: 'Sustained Phonation /ah/ – Phonatory Resistance Exercises', lang: 'en' as const },
   netkonusma: { url: 'https://www.youtube.com/watch?v=Ie-zR98Nxf4', title: 'Daha net konuşmanızı sağlayan kolay egzersiz – Diksiyon', lang: 'tr' as const },
   diksiyon2: { url: 'https://www.youtube.com/watch?v=93QeQPkriCI', title: 'Diksiyon Nasıl Düzeltilir? Tekerlemeler, Egzersizler', lang: 'tr' as const },
-  tekerleme2: { url: 'https://www.youtube.com/watch?v=_ls4ppKNICg', title: 'Diksiyon Alıştırmaları – Tekerlemelerin tamamı + PDF', lang: 'tr' as const }
+  tekerleme2: { url: 'https://www.youtube.com/watch?v=_ls4ppKNICg', title: 'Diksiyon Alıştırmaları – Tekerlemelerin tamamı + PDF', lang: 'tr' as const },
+  // Bu iki teknik icin birebir gosterim videosu bulunamadi; en yakin genel
+  // ses teli felci egzersiz videolari "(Genel)" etiketiyle verildi.
+  felcGenelEn: { url: 'https://www.youtube.com/watch?v=XDDL1ha9gOs', title: '(Genel) Ses teli felcinde hangi egzersizler yardımcı olur? – KBB uzmanı', lang: 'en' as const },
+  felcGenelFr: { url: 'https://www.youtube.com/watch?v=2UKE6tuCpPk', title: '(Genel) Tek taraflı ses teli felci: ses egzersizleri – Dr. F. Le Huche', lang: 'fr' as const }
 }
 
 // Uygulamadaki tum videolarin listesi (Videolar sayfasi icin)
@@ -157,6 +161,7 @@ export const EXERCISES: Exercise[] = [
       'Alternatif: sandalyenin oturağını iki yandan tutup yukarı çekerken ya da masaya bastırırken de yapılabilir.'
     ],
     cue: 'A!',
+    video: VIDEOS.felcGenelEn,
     reps: 8,
     hold: 2,
     rest: 3,
@@ -176,6 +181,7 @@ export const EXERCISES: Exercise[] = [
       'Bırak, omuzlarını gevşet, nefes al.'
     ],
     cue: 'A!',
+    video: VIDEOS.felcGenelEn,
     reps: 8,
     hold: 2,
     rest: 3,
@@ -217,6 +223,7 @@ export const EXERCISES: Exercise[] = [
       'Dinlen, sonra tekrar.'
     ],
     cue: 'öhö-aaa',
+    video: VIDEOS.felcGenelEn,
     reps: 6,
     hold: 3,
     rest: 4,
@@ -257,6 +264,7 @@ export const EXERCISES: Exercise[] = [
       'Hangi tarafta ses daha net çıkıyorsa not al; terapistin bunu bilmek ister.'
     ],
     cue: ['SAĞA çevir: iii', 'SOLA çevir: iii'],
+    video: VIDEOS.felcGenelFr,
     reps: 8,
     hold: 3,
     rest: 3
