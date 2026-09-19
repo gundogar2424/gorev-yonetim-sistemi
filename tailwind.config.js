@@ -66,6 +66,21 @@ export default {
           800: '#0b5c5b',
           900: '#0a4b4a'
         },
+        // SES EGZERSIZI'nin kendi rengi: sicak, enerjik bir turuncu (ses/nefes
+        // cagrisimi). Beyaz yaziyla okunakli koyulukta (600). Yalnizca
+        // src/ses/** kullanir; diger programlarin renkleri degismez.
+        ses: {
+          50: '#fff3e8',
+          100: '#ffe2c9',
+          200: '#ffc493',
+          300: '#ff9f57',
+          400: '#f97f2a',
+          500: '#e5660f',
+          600: '#c9560c', // eylem rengi (butonlar, secili sekme)
+          700: '#a5450a',
+          800: '#83380c',
+          900: '#6b2f0c'
+        },
         // MFP paletinden ORNEKLENEN renkler
         mfp: {
           bg: '#151724', // sayfa zemini

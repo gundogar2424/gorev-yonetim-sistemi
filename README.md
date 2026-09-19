@@ -135,6 +135,36 @@ Diğer ekranlar: **Noktalar** (çizim üzerinde noktaya dokun → nerede/nasıl 
 
 > EFT Dokunma verisini yalnızca `eft-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet, hesap ya da izin gerektirmez.
 
+## 🎤 Ses Egzersizi (ayrı program)
+
+Bu depodaki **altıncı bağımsız program**: **Ses Egzersizi**. Kendi giriş sayfası (`ses.html`), kendi rengi (turuncu) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **Ses Egzersizi** → `ses.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/ses.html`)
+- APK: `.github/workflows/ses-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **ses-latest** sürümüne `ses-egzersizi.apk` yüklenir.
+
+**Ne yapar?** Vokal kord (ses teli) **addüksiyon** egzersizlerini — ses tellerinin birbirine tam kapanmasını güçlendirmeye yönelik, ses terapisinde yaygın teknikleri — evde adım adım yaptırır. Hasta kendi başına kullanır; bir KBB hekimi / dil ve konuşma terapistinin önerisiyle başlanması ve uygun olmayan egzersizlerin Ayarlar'dan kapatılması beklenir.
+
+| Bölüm | Ekranda ne olur |
+|---|---|
+| ▶ **Rehberli seans** | Ana sayfada günlük hedef kartı (günde 1-3 seans, varsayılan 2; son 7 günün durumu). Egzersizler sırayla: önce nasıl yapılacağı, sonra her tekrar için 3-2-1 geri sayım, tutma süresi (büyük rakam + söylenecek ses), dinlenme arası; sesli tık/işaret ve titreşim; tekrar noktaları; duraklat / ileri / atla; ekran uyumaz |
+| 📋 **Egzersizler** | Isınma (karın nefesi, dudak titretme, mırıldanma) · Addüksiyon (sert başlangıçlı sesli harfler, öksürükten sese, yarım yutkunma "bum", başı çevirerek "iii", uzun "A" tutma, Vokal Fonksiyon Egzersizleri 1-4: yumuşak uzun "i", perde kaydırma "nol", beş basamak "ol", gür "A" ve gür ifadeler (PhoRTE), suda tüp fonasyonu (Lax Vox); itme/çekme ile "A!" varsayılan kapalı) · Soğutma (pipetle ses). Her biri için *neden yapılır*, *nasıl yapılır*, söylenecek ses ve varsa *dikkat* notu; tek başına yapma ve seanstan çıkarma |
+| 🗣️ **Diksiyon** | Aynı uygulamada ayrı sekme: nefes (diyafram, uzun "s"), sesli harfler (ağız şekli tarifiyle 8 sesli, geçişler), ünsüz/hece dizileri (dudak, diş-dudak, dil ucu, "r", damak, ıslıklı), 10 klasik tekerleme, kalemle okuma, vurgu değiştirme, tonlama, hız kontrolü. Rehberli diksiyon seansı: her satır büyük yazıyla, tempoya (yavaş/orta/hızlı) göre süre çubuğu, ◀/⏸/▶▶/atla, isteğe bağlı ses düzeyi çubuğu; egzersizler tek tek aç/kapat |
+| 🎙️ **Performans değerlendirmesi** | (1) **Konuşma tanıma ile doğruluk puanı**: diksiyonda her satırda söylenen, telefonun Türkçe konuşma tanımasıyla yazıya çevrilir, hedef metinle sözcük sözcük hizalanır; % doğruluk, sözcük/dk hızı, yutulan/yanlış sözcükler kırmızı işaretlenir, "yeniden dene". (2) **Öz değerlendirme 1-5**: diksiyonda her egzersiz sonunda, addüksiyon seansında seans sonunda. (3) **Yapay zeka geri bildirimi (Claude)**: seans sonunda sonuçlar (doğruluk, yutulan sözcükler, hız, öz değerlendirme, MPT, önceki 15 seansın eğilimi) gönderilir; yazılı geri bildirim + **sonraki seans planı** (tempo, yoğunluk, odak egzersizleri, hedef) alınır, "Öneriyi uygula" ile tek dokunuşta ayarlara işlenir (hiçbir egzersiz kapatılmaz, yalnızca açılır); API anahtarı Ayarlar'a girilir, yalnızca cihazda saklanır, yedeğe yazılmaz. Ses kaydı hiçbir yere gönderilmez; yapay zeka sesi duymaz |
+| ⏱️ **Ses ölçümü (MPT + akustik)** | En uzun "A" tutma süresi: mikrofon açılınca ses başladığında kronometre kendiliğinden başlar, sessizlikte durur; ses düzeyi çubuğu; sonuç yorumu; kayıt. Aynı sinyalden **ses kalitesi** de ölçülür (cihazda sinyal işleme, yapay zeka yok): perde (F0, Hz), perde titremesi (jitter %), şiddet titremesi (shimmer %), harmonik/gürültü oranı (HNR dB, düşükse ses nefesli = hava kaçağı). Sade dille yorum, iyi/orta/zayıf rozetleri, geçmiş ve grafik; Claude'a da gönderilir. Telefon mikrofonu klinik değildir: sayılar kişinin kendi geçmişiyle karşılaştırma içindir, tanı koymaz. Mikrofon izni yoksa elle kronometre. Ses **kaydedilmez**, yalnızca anlık ölçülür |
+| 🔔 **Günlük hatırlatma** | 3 ayrı saate kadar "egzersiz zamanı" bildirimi (yalnızca APK'da); bildirime dokununca seans açılır |
+| 📈 **İlerleme** | Seri (üst üste gün), seans/dakika sayısı (ses ve diksiyon ayrı sayılır), son 7 gün çubukları, MPT çizgi grafiği (10 sn hedef çizgisi), ses kalitesi (HNR) grafiği, diksiyon doğruluğu grafiği (%85 hedef çizgisi), öz değerlendirme grafiği, seans ve ölçüm listeleri, silme |
+| ⚙️ **Ayarlar** | Ad, yoğunluk (hafif/orta/yoğun = tekrar çarpanı), geri sayım, egzersiz aç/kapat, diksiyon temposu ve diksiyon egzersizleri, hatırlatma saatleri, ses/titreşim, tema, büyük yazı, yedek al/geri yükle, tümünü sil, uyarı metni |
+
+İlk açılışta uyarı metni gösterilir ve onaylatılır: ağrı, yanma, ses kısıklığında artış ya da baş dönmesinde durulmalı; itme/çekme egzersizleri kan basıncını geçici yükselttiği için tansiyon/kalp/glokom/fıtık sorunu olanlar önce hekime sormalıdır.
+
+**Program ön ayarları (kanıta dayalı):** İlk açılışta seçilir, Ayarlar'dan değiştirilir. *Ses teli felci / zayıf kapanma*: 2025 uzman uzlaşısı protokolü (karın nefesi, öksürükten sese, yarım yutkunma "bum", VFE) + sert başlangıç, baş çevirme, suda tüp fonasyonu (su direnci terapisi, 2024); gür ses egzersizleri başta kapalı. *Yaşa bağlı ses zayıflığı (presbifoni)*: PhoRTE + VFE + SOVT (2024 sistematik derleme ve kapsam derlemesi); zorlayıcı kapanma teknikleri kapalı. *Genel*: itme/çekme dışında tümü. Ana sayfada "2 dk pipet molası" (kısa-sık SOVT).
+
+**Kaynaklar:** Egzersiz seçimi ve dozu literatüre göre düzenlendi (tam liste ve bağlantılar uygulamada Ayarlar › Kaynaklar ve `src/ses/lib/sources.ts`): tek taraflı ses teli felci için Delphi ile seçilmiş eklektik protokol (öksürük-fonasyon, yarım yutkunma "bum", Vokal Fonksiyon Egzersizleri, karın nefesi; J Voice 2025), erken dönem fonasyonsuz addüksiyon egzersizleri RCT'si (J Voice 2025), sert glottal başlangıçla erken terapi (J Voice 2016), VFE sistematik derlemesi ve doz çalışması (günde 2 kez, 6-8 hafta), PhoRTE RCT'si (gür ses egzersizleri, presbifoni), yarı kapalı ses yolu derlemesi (2025), MPT ağ meta-analizi (2023) ve normları (Iowa protokolleri; yaşlı normları), telefon kayıtlarında akustik ölçüm güvenilirliği meta-analizi (AJSLP 2025: perde ve jitter güvenilir, shimmer/HNR daha az), AAO-HNS ses kısıklığı kılavuzu (2018). İtme/çekme egzersizleri literatürdeki hiperfonksiyon uyarısı nedeniyle **varsayılan kapalıdır**; terapist önerdiyse açılır. Günlük hedef kartı (varsayılan günde 2 seans) VFE doz çalışmasına dayanır.
+
+> **Önemli:** Ses Egzersizi bir egzersiz rehberidir; tıbbi cihaz değildir, tanı koymaz ve KBB hekimi / dil ve konuşma terapistinin değerlendirmesinin **yerini tutmaz**.
+
+> Ses Egzersizi verisini yalnızca `ses-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet ve hesap gerektirmez; yalnızca mikrofon (ölçüm ve konuşma tanıma için) ve bildirim (hatırlatma için) izni ister, ikisi de isteğe bağlıdır. Konuşma tanıma telefonun kendi servisini kullanır; çevrimdışı Türkçe paketi yüklüyse internetsiz de çalışır. Yapay zeka geri bildirimi isteğe bağlıdır ve internet + API anahtarı gerektirir.
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz

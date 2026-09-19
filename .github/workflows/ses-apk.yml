@@ -1,4 +1,4 @@
-name: APK Derle (EFT Dokunma)
+name: APK Derle (Ses Egzersizi)
 
 on:
   workflow_dispatch: {}
@@ -7,11 +7,11 @@ on:
     # telefonda denenebilsin. Surum olarak yayinlama yalnizca main'de yapilir.
     branches: [main, 'claude/**']
     paths:
-      - 'src/eft/**'
+      - 'src/ses/**'
       - 'src/index.css'
       - 'src/fonts/**'
-      - 'eft.html'
-      - 'assets-eft/**'
+      - 'ses.html'
+      - 'assets-ses/**'
       - 'capacitor.config.ts'
       - 'tailwind.config.js'
       - 'postcss.config.js'
@@ -19,7 +19,7 @@ on:
       - 'tsconfig*.json'
       - 'package.json'
       - 'package-lock.json'
-      - '.github/workflows/eft-apk.yml'
+      - '.github/workflows/ses-apk.yml'
 
 permissions:
   contents: write
@@ -44,19 +44,19 @@ jobs:
         env:
           APP_BUILD: ${{ github.run_number }}
 
-      - name: EFT Dokunma uygulamasını APK girişi yap
-        run: cp dist/eft.html dist/index.html
+      - name: Ses Egzersizi uygulamasını APK girişi yap
+        run: cp dist/ses.html dist/index.html
 
-      - name: EFT Dokunma Capacitor ayarı (ayrı uygulama kimliği/adı)
+      - name: Ses Egzersizi Capacitor ayarı (ayrı uygulama kimliği/adı)
         run: |
-          # Diger dort programdan AYRI kimlik/ad: telefonda besi de yan yana durur,
+          # Diger bes programdan AYRI kimlik/ad: telefonda altisi da yan yana durur,
           # biri digerinin uzerine yazmaz. Bu dosya yalnizca CI kopyasinda degisir.
           cat > capacitor.config.ts <<'CFG'
           import type { CapacitorConfig } from '@capacitor/cli'
 
           const config: CapacitorConfig = {
-            appId: 'com.eft.dokunma',
-            appName: 'EFT Dokunma',
+            appId: 'com.ses.egzersizi',
+            appName: 'Ses Egzersizi',
             webDir: 'dist'
           }
 
@@ -80,13 +80,13 @@ jobs:
 
       - name: Kullanılmayan ağır eklentileri çıkar (APK küçülsün)
         run: |
-          # Web derlemesi yukarida bitti. EFT Dokunma yalnizca @capacitor/core
-          # ve @capacitor/status-bar kullanir (izin gerektiren hicbir eklenti yok);
-          # digerlerini APK'ya koymaya gerek yok.
+          # Web derlemesi yukarida bitti. Ses Egzersizi @capacitor/core,
+          # @capacitor/status-bar ve @capacitor/local-notifications (gunluk
+          # hatirlatma) kullanir; mikrofon icin eklenti gerekmez (WebView
+          # getUserMedia). Digerlerini APK'ya koymaya gerek yok.
           # Once package.json'dan dusur (Capacitor eklenti listesini buradan okur),
           # sonra klasorleri sil. Bu yalnizca CI kopyasinda olur; depo degismez.
-          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-community/speech-recognition','@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor-community/contacts','@capacitor/geolocation','@capacitor/camera','@capacitor/filesystem','@capacitor/share','@capacitor/local-notifications']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
-          rm -rf node_modules/@capacitor-community/speech-recognition
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-mlkit/barcode-scanning','@flomentumsolutions/capacitor-health-extended','@capacitor-community/contacts','@capacitor/geolocation','@capacitor/camera','@capacitor/filesystem','@capacitor/share']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
           rm -rf node_modules/@capacitor-mlkit/barcode-scanning
           rm -rf node_modules/@flomentumsolutions/capacitor-health-extended
           rm -rf node_modules/@capacitor-community/contacts
@@ -94,7 +94,6 @@ jobs:
           rm -rf node_modules/@capacitor/camera
           rm -rf node_modules/@capacitor/filesystem
           rm -rf node_modules/@capacitor/share
-          rm -rf node_modules/@capacitor/local-notifications
           echo "Eklentiler cikarildi."
 
       - name: Android projesini oluştur (Capacitor)
@@ -103,10 +102,10 @@ jobs:
       - name: Web varlıklarını senkronla
         run: npx cap sync android
 
-      - name: Uygulama simgesi (EFT Dokunma'ya özel amblem)
+      - name: Uygulama simgesi (Ses Egzersizi'ne özel amblem)
         run: |
-          # Kaynak: assets-eft/ (diger programlarin simge klasorleri DEGISMEZ).
-          npx @capacitor/assets generate --assetPath assets-eft --android --iconBackgroundColor '#0e8c8a' --iconBackgroundColorDark '#0e8c8a'
+          # Kaynak: assets-ses/ (diger programlarin simge klasorleri DEGISMEZ).
+          npx @capacitor/assets generate --assetPath assets-ses --android --iconBackgroundColor '#c9560c' --iconBackgroundColorDark '#c9560c'
           echo "--- uretilen mipmap dosyalari ---"; ls -1 android/app/src/main/res/mipmap-xxxhdpi/ || true
 
       - name: SDK sürümleri
@@ -117,11 +116,14 @@ jobs:
           sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 24/" "$v"
           echo "--- variables.gradle ---"; grep -E "compileSdkVersion|targetSdkVersion|minSdkVersion" "$v"
 
-      - name: İzinler (yalnızca titreşim)
+      - name: İzinler (mikrofon ölçümü + hatırlatma bildirimi + titreşim)
         run: |
           f=android/app/src/main/AndroidManifest.xml
-          grep -q 'VIBRATE' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.VIBRATE" />\n</manifest>#' "$f"
-          echo "--- manifest izinleri ---"; grep -E "uses-permission" "$f" || true
+          # Mikrofon: WebView getUserMedia icin RECORD_AUDIO sart; Capacitor
+          # manifestte izin varsa calisma zamaninda kullaniciya sorar.
+          grep -q 'RECORD_AUDIO' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-feature android:name="android.hardware.microphone" android:required="false" />\n</manifest>#' "$f"
+          grep -q 'POST_NOTIFICATIONS' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
+          echo "--- manifest izinleri ---"; grep -E "uses-permission|uses-feature" "$f" || true
 
       - name: Sürüm kodunu artır (her güncelleme üstüne kurulabilsin)
         run: |
@@ -142,33 +144,34 @@ jobs:
           ./gradlew assembleDebug --no-daemon -I ../signing.gradle
 
       - name: APK'yı yeniden adlandır
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk eft-dokunma.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ses-egzersizi.apk
 
       - name: APK'yı ziple (Chrome APK indirme takılmasını atlatmak için)
-        run: zip -j eft-dokunma-apk.zip eft-dokunma.apk
+        run: zip -j ses-egzersizi-apk.zip ses-egzersizi.apk
 
       - name: APK'yı artifact olarak yükle
         uses: actions/upload-artifact@v4
         with:
-          name: eft-dokunma-apk
-          path: eft-dokunma.apk
+          name: ses-egzersizi-apk
+          path: ses-egzersizi.apk
 
       - name: Sürüm olarak yayınla (indirilebilir bağlantı)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: eft-latest
-          name: EFT Dokunma APK
+          tag_name: ses-latest
+          name: Ses Egzersizi APK
           body: |
-            EFT (Duygusal Özgürleşme Tekniği) rehberli dokunma seansı: konuyu seç,
-            0-10 puanla, kurulum cümlesi, 8 nokta sırayla ritimle vurulur, nefes,
-            yeniden puan. Seans geçmişi ve ilerleme. Tamamen çevrimdışı.
+            Vokal kord (ses teli) addüksiyon egzersizleri: rehberli seans (sayaç,
+            tekrar sayacı, dinlenme, sesli/titreşimli işaret), mikrofonla en uzun
+            "A" tutma ölçümü (MPT), günlük hatırlatma bildirimi, ilerleme takibi
+            ve yedek. Tamamen çevrimdışı.
 
             İndir, telefonda aç, "bilinmeyen kaynaklara izin ver" diyip kur.
 
-            Chrome APK indirmede %100'de takılıyorsa eft-dokunma-apk.zip'i indir,
+            Chrome APK indirmede %100'de takılıyorsa ses-egzersizi-apk.zip'i indir,
             Dosyalarım'da çıkart, içindeki .apk'yı kur.
           files: |
-            eft-dokunma.apk
-            eft-dokunma-apk.zip
+            ses-egzersizi.apk
+            ses-egzersizi-apk.zip
           make_latest: false

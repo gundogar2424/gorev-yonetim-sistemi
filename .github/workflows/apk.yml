@@ -56,6 +56,19 @@ jobs:
 
       - name: Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Varsayilan 'tools platform-tools' paketi yeni cmdline-tools'ta yok
+          # ("Failed to find package 'tools'") ve adim cokuyor; yalnizca
+          # platform-tools iste. Gerisini Gradle kendi indirir.
+          packages: platform-tools
+
+      - name: Ses Egzersizi'nin konuşma tanıma eklentisini çıkar (bu APK'ya girmesin)
+        run: |
+          # @capacitor-community/speech-recognition yalnizca Ses Egzersizi icindir;
+          # manifestine RECORD_AUDIO izni ekledigi icin Diyet Kocu APK'sina
+          # girmemeli. Yalnizca CI kopyasinda cikarilir; depo degismez.
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json'));for(const k of ['@capacitor-community/speech-recognition']){if(p.dependencies)delete p.dependencies[k];if(p.devDependencies)delete p.devDependencies[k]}fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
+          rm -rf node_modules/@capacitor-community/speech-recognition
 
       - name: Android projesini oluştur (Capacitor)
         run: npx cap add android
