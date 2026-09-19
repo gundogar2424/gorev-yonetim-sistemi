@@ -1,46 +1,69 @@
-// Tum egzersiz videolari tek sayfada (YouTube; telefonun tarayicisinda acilir).
+// Videolar sayfasi: once KENDI kisa gosterim kliplerimiz (uygulamaya gomulu,
+// internetsiz), sonra henuz kendi videosu olmayan egzersizler icin gecici
+// YouTube baglantilari.
 import SesHeader from '../SesHeader'
 import VideoEmbed from '../components/VideoEmbed'
-import { allVideos, EXERCISES } from '../lib/content'
-import { allDVideos, DEXERCISES } from '../lib/diksiyon'
+import ClipPlayer from '../components/ClipPlayer'
+import { EXERCISES } from '../lib/content'
+import { DEXERCISES } from '../lib/diksiyon'
 
 export default function VideosPage() {
-  const ses = allVideos()
-  const dik = allDVideos()
-  const yok = [...EXERCISES.filter((e) => !e.video).map((e) => e.name), ...DEXERCISES.filter((e) => !e.video).map((e) => e.name)]
+  const all = [...EXERCISES, ...DEXERCISES]
+  const bizim = all.filter((e) => e.clip)
+  // Kendi videosu olmayanlar, YouTube baglantisina gore gruplanir
+  const yt = new Map<string, { url: string; title: string; lang: string; exercises: string[] }>()
+  for (const e of all) {
+    if (e.clip || !e.video) continue
+    const cur = yt.get(e.video.url) ?? { ...e.video, exercises: [] }
+    cur.exercises.push(e.name)
+    yt.set(e.video.url, cur)
+  }
+  const eksik = all.filter((e) => !e.clip && !e.video).map((e) => e.name)
+
   return (
     <div>
-      <SesHeader title="Videolar" subtitle="Egzersizler nasıl yapılır (YouTube)" back />
+      <SesHeader title="Videolar" subtitle="Egzersizler nasıl yapılır" back />
       <div className="px-4 space-y-5 pb-8">
-        <p className="text-[16px] text-slate-700 dark:text-[#e2d5cd] px-1">
-          Dokununca video telefonun tarayıcısında ya da YouTube uygulamasında açılır. İngilizce ve Fransızca videolar işaretlidir; altyazı için YouTube'da ⚙️ › Altyazılar › Türkçe (otomatik çeviri) seçilebilir. "(Genel)" etiketli videolar o tekniği özel olarak göstermeyebilir; bulunabilen en yakın kaynaktır.
-        </p>
         <section>
-          <h3 className="ses-label px-1 mb-2">Ses teli egzersizleri</h3>
-          <div className="space-y-2">
-            {ses.map(({ video, exercises }) => (
-              <div key={video.url} className="ses-card space-y-2">
-                <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">{exercises.join(' · ')}</div>
-                <VideoEmbed video={video} />
-              </div>
-            ))}
-          </div>
-        </section>
-        <section>
-          <h3 className="ses-label px-1 mb-2">Diksiyon</h3>
-          <div className="space-y-2">
-            {dik.map(({ video, exercises }) => (
-              <div key={video.url} className="ses-card space-y-2">
-                <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">{exercises.join(' · ')}</div>
-                <VideoEmbed video={video} />
-              </div>
-            ))}
-          </div>
-        </section>
-        {yok.length > 0 && (
-          <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1">
-            Gösterim videosu bulunamayanlar (adım adım tarif geçerli): {yok.join(', ')}.
+          <h3 className="ses-label px-1 mb-2">Kendi videolarımız ({bizim.length} / {all.length})</h3>
+          {bizim.length > 0 ? (
+            <div className="space-y-3">
+              {bizim.map((e) => (
+                <div key={e.id} className="ses-card space-y-2">
+                  <div className="text-[17px] font-semibold text-slate-900 dark:text-[#f5ece4]">
+                    {e.emoji} {e.name}
+                  </div>
+                  <ClipPlayer src={e.clip!} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="ses-card text-[15px] text-slate-700 dark:text-[#e2d5cd]">Henüz kendi videomuz yok.</p>
+          )}
+          <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1 mt-2">
+            Bu videolar uygulamanın içindedir, internetsiz oynar. Yeni video ekledikçe aşağıdaki YouTube bağlantıları o egzersizden kalkar.
           </p>
+        </section>
+
+        {yt.size > 0 && (
+          <section>
+            <h3 className="ses-label px-1 mb-2">Kendi videomuz gelene kadar (YouTube)</h3>
+            <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1 mb-2">
+              İnternet gerekir. İngilizce ve Fransızca videolar işaretlidir; altyazı için YouTube'da ⚙️ › Altyazılar › Türkçe (otomatik çeviri) seçilebilir.
+            </p>
+            <div className="space-y-2">
+              {[...yt.values()].map((v) => (
+                <div key={v.url} className="ses-card space-y-2">
+                  <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">{v.exercises.join(' · ')}</div>
+                  <VideoEmbed video={{ url: v.url, title: v.title, lang: v.lang as 'tr' | 'en' | 'fr' }} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {eksik.length > 0 && (
+          <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1">Videosu olmayanlar (adım adım tarif geçerli): {eksik.join(', ')}.</p>
         )}
       </div>
     </div>

@@ -333,13 +333,9 @@ export default function DiksiyonSession() {
           {(ex.clip || ex.video) && (
             <section className="ses-card space-y-3">
               <h3 className="ses-label">Başlamadan önce izle · ▶ dokun, oynasın</h3>
-              {ex.clip && <ClipPlayer src={ex.clip} title="Kısa gösterim (internetsiz çalışır)" />}
-              {ex.video && (
-                <div>
-                  {ex.clip && <h4 className="text-[15px] font-semibold text-slate-700 dark:text-[#e2d5cd] mb-2">Uzun anlatım (YouTube)</h4>}
-                  <VideoEmbed video={ex.video} immediate={!ex.clip} />
-                </div>
-              )}
+              {/* Kendi videomuz varsa yalnizca o gosterilir; yoksa gecici olarak
+                  YouTube. Klip eklendiginde YouTube o egzersizden kalkar. */}
+              {ex.clip ? <ClipPlayer src={ex.clip} /> : <VideoEmbed video={ex.video} immediate />}
             </section>
           )}
           <section className="ses-card">
