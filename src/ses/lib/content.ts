@@ -40,6 +40,7 @@ export interface Exercise {
   rest: number // saniye: tekrarlar arasi dinlenme
   caution?: string // bu egzersize ozel dikkat
   video?: Video // nasil yapildigini gosteren YouTube videosu (harici, isteğe bagli)
+  clip?: string // uygulamaya gomulu kisa gosterim videosu (public/ses-video/<id>.mp4); internetsiz
 }
 
 export interface Video {
@@ -101,6 +102,7 @@ export const EXERCISES: Exercise[] = [
     ],
     cue: 'AL (4) · VER "sss" (8)',
     video: VIDEOS.nefes,
+    clip: './ses-video/karin-nefesi.mp4',
     reps: 3,
     hold: 12,
     rest: 3

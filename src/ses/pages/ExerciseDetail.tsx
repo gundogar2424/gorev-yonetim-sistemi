@@ -4,6 +4,7 @@ import { findExercise, GROUP_LABEL } from '../lib/content'
 import { readSettings, repsFor, saveSettings } from '../lib/store'
 import { useState } from 'react'
 import VideoEmbed from '../components/VideoEmbed'
+import ClipPlayer from '../components/ClipPlayer'
 
 export default function ExerciseDetail() {
   const { id = '' } = useParams()
@@ -63,10 +64,11 @@ export default function ExerciseDetail() {
           </section>
         )}
 
-        {e.video && (
-          <section className="ses-card">
-            <h3 className="ses-label mb-2">Nasıl yapılır (video)</h3>
-            <VideoEmbed video={e.video} immediate />
+        {(e.clip || e.video) && (
+          <section className="ses-card space-y-3">
+            <h3 className="ses-label">Nasıl yapılır (video)</h3>
+            {e.clip && <ClipPlayer src={e.clip} title="Kısa gösterim (internetsiz çalışır)" />}
+            {e.video && <VideoEmbed video={e.video} immediate={!e.clip} />}
           </section>
         )}
         <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={() => navigate(`/seans?tek=${e.id}`)}>
