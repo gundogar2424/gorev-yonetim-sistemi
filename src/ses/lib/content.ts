@@ -335,14 +335,35 @@ export const EXERCISES: Exercise[] = [
     caution: 'Gür ses = bağırmak değil. Ses kısılıyor ya da acıyorsa daha az güçle yap.'
   },
 
+  {
+    id: 'su-direnci',
+    name: 'Suda tüp fonasyonu (Lax Vox)',
+    emoji: '🫧',
+    group: 'ana',
+    mode: 'sure',
+    short: 'Silikon tüpün ucu 1-2 cm suda; tüpten "uuu" diye ses ver, kabarcıklar düzenli çıksın.',
+    why: 'Su direnci terapisi: sudaki tüp, ses tellerinin üstünde düzenli bir geri basınç ve titreşim yaratır; ses telleri daha az güçle, daha tam kapanarak titreşir. 2024\'te tek taraflı ses teli felcinde yoğun su direnci programı, Vokal Fonksiyon Egzersizleriyle benzer olumlu sonuç verdi; 2025 çalışmaları tüm yarı kapalı ses yolu egzersizlerinin ses bozukluklarında etkili olduğunu gösteriyor.',
+    steps: [
+      'Gereç: 30-35 cm uzunluğunda, ~1 cm çapında silikon tüp (eczane/akvaryum hortumu) ve yarıya kadar su dolu bir şişe. Tüp yoksa kalın pipetle kuru yap.',
+      'Tüpün ucunu suya 1-2 cm batır (derinlik arttıkça direnç artar; 2 cm\'yi geçme).',
+      'Dudaklarını tüpe kapat; rahat perdede "uuu" diye ses ver. Kabarcıklar DÜZENLİ ve yumuşak çıksın; yanaklar şişmesin, boğaz sıkılmasın.',
+      'Süre dolana kadar sürdür; ikinci sette perdeyi hafifçe aşağı-yukarı kaydır, üçüncü sette kısa cümleler mırıldan.'
+    ],
+    cue: ['uuu… (kabarcıklar düzenli)', 'uuu… kalından inceye ve geri', 'tüpten "merhaba, nasılsın" mırıldan'],
+    reps: 3,
+    hold: 20,
+    rest: 8,
+    caution: 'Su yutma riskine karşı oturarak yap. Baş dönmesi olursa dur. Tüpü her kullanımdan sonra yıka.'
+  },
+
   // ---------------- SOGUTMA ----------------
   {
     id: 'pipet',
-    name: 'Pipetle ses (soğutma)',
+    name: 'Pipetle ses (soğutma / mola)',
     emoji: '🥤',
     group: 'sogutma',
     mode: 'sure',
-    short: 'Bir pipetten "uuu" diye ses ver; ses tellerini dinlendirir.',
+    short: 'Bir pipetten "uuu" diye ses ver; ses tellerini dinlendirir. Gün içinde 2 dakikalık "mola" olarak da yapılır.',
     why: 'Yarı kapalı ses yolu (pipet) egzersizleri: ağızdaki daralma geri basınç yaratır, ses telleri daha az güçle ve daha tam kapanarak titreşir. Derlemeler ses bozukluklarında akustik ölçümleri ve glottal verimi iyileştirdiğini gösteriyor; kısa ve sık (günde birkaç kez 1-3 dk) yapılabilir.',
     steps: [
       'Bir pipeti dudaklarının arasına al (yoksa dudaklarını küçük bir "u" yapıp üfle).',
@@ -378,6 +399,31 @@ export const DISCLAIMER = [
 
 // Varsayilan KAPALI adduksiyon egzersizleri (bkz. ustteki kaynak notu)
 export const DEFAULT_DISABLED = ['itme', 'cekme']
+
+// KANITA DAYALI PROGRAM ON AYARLARI. Literatur iki tabloyu ayirir:
+//  - felc: tek tarafli ses teli felci / zayif kapanma (erken donem, <3-4 ay):
+//    2025 eklektik protokol (oksuruk-fonasyon, bum, VFE, karin nefesi) +
+//    sert baslangic + su direnci/SOVT. Gur ses egzersizleri sonra eklenir.
+//  - presbifoni: yasa bagli ses teli incelmesi / ses zayifligi: PhoRTE (gur
+//    ses) + VFE + SOVT; zorlayici kapanma teknikleri gereksiz.
+//  - genel: hepsi acik (itme/cekme haric).
+export type Program = 'genel' | 'felc' | 'presbifoni'
+export const PROGRAM_LABEL: Record<Program, string> = {
+  genel: 'Genel (tümü)',
+  felc: 'Ses teli felci / zayıf kapanma',
+  presbifoni: 'Yaşa bağlı ses zayıflığı'
+}
+export const PROGRAM_DESC: Record<Program, string> = {
+  genel: 'İtme/çekme dışında tüm egzersizler. Terapistinin verdiği listeye göre kendin düzenle.',
+  felc: 'Tek taraflı ses teli felci, felç sonrası zayıf kapanma, nefesli ses. 2025 uzman uzlaşısı protokolü: karın nefesi, öksürükten sese, yarım yutkunma "bum", Vokal Fonksiyon Egzersizleri + sert başlangıç, baş çevirme, suda tüp. Gür ses egzersizleri ilk haftalarda kapalı.',
+  presbifoni: 'Yaşla incelen ses telleri, güçsüz/nefesli ses, konuşurken yorulma. Kanıtı en güçlü ikili: PhoRTE (gür ses) + Vokal Fonksiyon Egzersizleri, yanında suda tüp/pipet. Zorlayıcı kapanma teknikleri kapalı.'
+}
+// Her programda KAPALI gelecek egzersizler
+export const PROGRAM_DISABLED: Record<Program, string[]> = {
+  genel: ['itme', 'cekme'],
+  felc: ['itme', 'cekme', 'gur-a', 'gur-ifadeler'],
+  presbifoni: ['itme', 'cekme', 'sert-baslangic', 'oksuruk', 'yarim-yutkunma', 'bas-cevirme']
+}
 
 // Gunun ipucu (kucuk, gunluk degisen)
 const TIPS = [

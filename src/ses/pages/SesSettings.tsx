@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
 import SesHeader from '../SesHeader'
 import Switch from '../components/Switch'
-import { DISCLAIMER, EXERCISES } from '../lib/content'
+import { DISCLAIMER, EXERCISES, PROGRAM_DESC, PROGRAM_LABEL, type Program } from '../lib/content'
 import { SOURCES } from '../lib/sources'
 import { DEXERCISES, DGROUP_LABEL, DTEMPO_LABEL, type DGroup, type DTempo } from '../lib/diksiyon'
-import { downloadBackup, LEVEL_LABEL, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Level, type Reminder } from '../lib/store'
+import { applyProgram, downloadBackup, LEVEL_LABEL, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Level, type Reminder } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
@@ -101,9 +101,25 @@ export default function SesSettings() {
           </div>
         </section>
 
+        <section className="ses-card space-y-3">
+          <h3 className="ses-label">Program (kanıta dayalı ön ayar)</h3>
+          {(['felc', 'presbifoni', 'genel'] as Program[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => {
+                if (ayar.program === p || confirm('Program değişince kapalı egzersiz listesi bu programa göre yeniden kurulur. Devam?')) setAyar(applyProgram(p))
+              }}
+              className={`w-full text-left rounded-2xl p-3 border-2 transition ${ayar.program === p ? 'border-ses-600 bg-ses-50 dark:bg-[#352820]' : 'border-slate-200 dark:border-[#4a3a30]'}`}
+            >
+              <span className="block text-[16px] font-semibold text-slate-900 dark:text-[#f5ece4]">{PROGRAM_LABEL[p]}</span>
+              <span className="block text-[13px] text-slate-600 dark:text-[#d8c8bf] mt-0.5">{PROGRAM_DESC[p]}</span>
+            </button>
+          ))}
+        </section>
+
         <section className="ses-card space-y-2">
           <h3 className="ses-label">Seanstaki egzersizler</h3>
-          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Hekimin/terapistin önermediklerini kapat.</p>
+          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Program ön ayarının üstüne tek tek düzenle; hekimin/terapistin önermediklerini kapat.</p>
           {EXERCISES.map((e) => (
             <Switch
               key={e.id}

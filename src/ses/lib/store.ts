@@ -1,7 +1,7 @@
 // Tum kayit localStorage'da (kucuk veri; veritabani gerekmez). Anahtarlar
 // 'ses-' onekiyle baslar; diger programlarin verisine dokunulmaz.
 import { todayKey } from './date'
-import { DEFAULT_DISABLED, EXERCISES } from './content'
+import { DEFAULT_DISABLED, EXERCISES, PROGRAM_DISABLED, type Program } from './content'
 import { DEFAULT_DISABLED_D, DEXERCISES, DTEMPO_MULT, type DTempo } from './diksiyon'
 import type { AcousticResult } from './acoustic'
 
@@ -29,6 +29,7 @@ export interface Settings {
   score: boolean // diksiyonda konusma tanima ile puanlama acik mi
   apiKey: string // Claude API anahtari (yapay zeka geri bildirimi; yalnizca cihazda)
   dailyGoal: number // gunluk hedef seans sayisi (1-3; arastirmalarda 2)
+  program: Program | '' // kanita dayali on ayar ('' = henuz secilmedi)
 }
 
 export type SessionKind = 'ses' | 'diksiyon'
@@ -158,8 +159,14 @@ export function readSettings(): Settings {
     dTempo: s.dTempo === 'yavas' || s.dTempo === 'hizli' ? s.dTempo : 'orta',
     score: s.score ?? true,
     apiKey: typeof s.apiKey === 'string' ? s.apiKey : '',
-    dailyGoal: [1, 2, 3].includes(Number(s.dailyGoal)) ? Number(s.dailyGoal) : 2
+    dailyGoal: [1, 2, 3].includes(Number(s.dailyGoal)) ? Number(s.dailyGoal) : 2,
+    program: s.program === 'genel' || s.program === 'felc' || s.program === 'presbifoni' ? s.program : ''
   }
+}
+
+// Program on ayarini uygula: kapali egzersiz listesi programa gore sifirlanir
+export function applyProgram(p: Program): Settings {
+  return saveSettings({ program: p, disabled: [...PROGRAM_DISABLED[p]] })
 }
 
 // Son 7 gun: her gun hedefe ulasildi mi (eski -> yeni)

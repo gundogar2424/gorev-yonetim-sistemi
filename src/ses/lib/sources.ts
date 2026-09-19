@@ -8,6 +8,41 @@ export interface Source {
 
 export const SOURCES: Source[] = [
   {
+    title: 'Effectiveness of Voice Therapy in Unilateral Vocal Fold Paralysis: Systematic Review and Meta-Analysis (J Voice, 2024)',
+    note: 'Tek taraflı ses teli felcinde ses terapisi ses kalitesini ve işlevini iyileştirir (havuzlanmış kanıt).',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/39122575/'
+  },
+  {
+    title: 'Two SOVT-Based Treatment Protocols in UVFP: Proof-of-Concept (J Voice, 2024)',
+    note: 'Yoğun su direnci terapisi (tüp suda) ve VFE protokolleri; akut ve kronik felçte akustik, algısal ve öz bildirim ölçümlerinde olumlu etki. "Suda tüp fonasyonu" egzersizinin dayanağı.',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/39395877/'
+  },
+  {
+    title: 'Impact of SOVT Exercises on Multidimensional Measures of Voice in Dysphonia: RCT (J Voice, 2025)',
+    note: 'Üç farklı yarı kapalı ses yolu egzersizi de tedavisiz gruba göre anlamlı iyileşme sağladı; fonasyon çabası (subglottik basınç, eşik basıncı) düşer.',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/40451716/'
+  },
+  {
+    title: 'Systematic Review of SLP Interventions for Presbyphonia (J Voice, 2024)',
+    note: 'Yaşa bağlı ses zayıflığında ses terapisi: öz bildirim, aerodinamik, akustik ve uzman değerlendirmesinde ikna edici iyileşme. VFE ve PhoRTE en çok incelenen ikili; PhoRTE algılanan çabayı da azaltır.',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/38195333/'
+  },
+  {
+    title: 'Treating Presbyphonia in 2024: A Scoping Review (J Voice)',
+    note: 'Önce ses terapisi; farklı egzersiz ve tekniklerin birleştirilmesi önerilir. Program ön ayarlarının mantığı.',
+    url: 'https://www.jvoice.org/article/S0892-1997(24)00460-0/abstract'
+  },
+  {
+    title: 'Effect of an iOS App on Voice Therapy Adherence and Motivation: RCT',
+    note: 'Uygulama desteği ev egzersizi kaçırmayı yaklaşık yarıya indirir. Günlük hedef kartı ve hatırlatmaların dayanağı.',
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC8740599/'
+  },
+  {
+    title: 'Speech therapy with or without transcutaneous electrical stimulation in vocal cord paralysis (J Thorac Dis, 2025)',
+    note: 'Klinikte terapiye eklenen elektriksel uyarım kapanmayı daha çok iyileştirebilir; cihaz ve uzman gerektirir, uygulamada yok — terapistine sor.',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/41229841/'
+  },
+  {
     title: 'Efficacy of an Eclectic Voice Therapy Protocol in Unilateral Vocal Fold Paralysis (J Voice, 2025)',
     note: 'Delphi ile seçilen 4 teknik: öksürük-fonasyon, yarım yutkunma "bum", Vokal Fonksiyon Egzersizleri, karın nefesi; 3 haftada algısal, akustik ve öz bildirim ölçümlerinde anlamlı iyileşme.',
     url: 'https://pubmed.ncbi.nlm.nih.gov/41339132/'

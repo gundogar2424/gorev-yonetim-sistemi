@@ -10,6 +10,7 @@
 import { findDExercise } from './diksiyon'
 import { findExercise } from './content'
 import { readSettings, sessionKind, type NextPlan, type Session } from './store'
+import { PROGRAM_LABEL } from './content'
 import { DEXERCISES } from './diksiyon'
 import { EXERCISES } from './content'
 
@@ -19,7 +20,8 @@ const SYSTEM = `Sen deneyimli bir Türk dil ve konuşma terapisti / diksiyon eğ
 
 Kurallar:
 - Sesi DUYMUYORSUN; yalnızca bu sayılara ve metinlere dayanarak yorum yap. Ses kalitesi hakkında yalnızca verilen AKUSTİK ÖLÇÜMLER varsa konuş: F0 (perde, Hz), jitter (% perde titremesi; ~1'in altı iyi), shimmer (% şiddet titremesi; ~4'ün altı iyi), HNR (dB harmonik/gürültü oranı; ~18-20 üstü iyi, düşükse ses nefesli/gürültülü = hava kaçağı, ses tellerinin tam kapanmadığına işaret edebilir). Bu ölçümler telefon mikrofonuyla alınmıştır: meta-analizlere göre F0 ve jitter telefonda güvenilir, shimmer ve HNR ise klinik sistemden sapabilir; bu yüzden shimmer/HNR'yi mutlak eşiklerle değil, kişinin kendi geçmişiyle karşılaştırarak ve eğilim olarak yorumla.
-- Doz bilgisi: literatürde etkili doz günde 2 kısa seans, 6-8 hafta (VFE doz çalışması). Kullanıcı bunun altındaysa nazikçe hatırlat; üstündeyse ses yorgunluğu uyarısı yap.
+- Program bilgisi: "Ses teli felci / zayıf kapanma" programında öncelik kapanma teknikleri + VFE + su direnci; gür ses egzersizleri kapanma iyileşince eklenir. "Yaşa bağlı ses zayıflığı" programında öncelik PhoRTE (gür ses) + VFE + SOVT; zorlayıcı kapanma teknikleri önerilmez. Planı programa uygun ver.
+- Doz bilgisi: literatürde etkili doz günde 2 kısa seans, 6-8 hafta (VFE doz çalışması). SOVT/pipet ayrıca gün içinde kısa (1-3 dk) molalar hâlinde sık yapılabilir. Kullanıcı bunun altındaysa nazikçe hatırlat; üstündeyse ses yorgunluğu uyarısı yap.
 - İtme/çekme egzersizleri kapanmayı zorlar ama boğazın üst kısmını sıkma (supraglottik hiperfonksiyon) riski taşır; ses "kaba/boğuk/zorlu" tarifleniyorsa bunları azaltmayı ve yumuşak tekniklere (VFE, pipet) ağırlık vermeyi öner.
 - Konuşma tanıma hata yapabilir; tek bir düşük satırı "sorun" ilan etme, tekrar eden örüntülere bak (örneğin sürekli yutulan "r", sözcük sonları, belirli ünsüz grupları).
 - Türkçe, samimi ama profesyonel; "sen" diye hitap et. Kısa tut: en fazla 8-10 cümle. Somut ol: hangi ses/harf/sözcük, ne yapılmalı, bir sonraki seansta ne denenmeli.
@@ -40,7 +42,8 @@ export function hasApiKey(): boolean {
 export function sessionSummaryText(s: Session): string {
   const kind = sessionKind(s)
   const out: string[] = []
-  out.push(`Seans türü: ${kind === 'diksiyon' ? 'diksiyon' : 'vokal kord addüksiyon'} · süre ${Math.round(s.ms / 60000)} dk · tarih ${s.t.slice(0, 16).replace('T', ' ')}`)
+  const prog = readSettings().program
+  out.push(`Seans türü: ${kind === 'diksiyon' ? 'diksiyon' : 'vokal kord addüksiyon'} · süre ${Math.round(s.ms / 60000)} dk · tarih ${s.t.slice(0, 16).replace('T', ' ')}${prog ? ` · program: ${PROGRAM_LABEL[prog]}` : ''}`)
   if (typeof s.rating === 'number') out.push(`Seans geneli öz değerlendirme: ${s.rating}/5`)
   for (const d of s.done) {
     const e = kind === 'diksiyon' ? findDExercise(d.id) : findExercise(d.id)

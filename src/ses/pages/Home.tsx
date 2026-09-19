@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SesHeader from '../SesHeader'
-import { DISCLAIMER, tipOfDay } from '../lib/content'
-import { activeDExercises, activeExercises, bestMpt, estimateDMinutes, estimateMinutes, readSessions, readSettings, saveSettings, sessionKind, sessionsToday, streakDays, weekGoal } from '../lib/store'
+import { DISCLAIMER, PROGRAM_DESC, PROGRAM_LABEL, tipOfDay, type Program } from '../lib/content'
+import { activeDExercises, activeExercises, applyProgram, bestMpt, estimateDMinutes, estimateMinutes, readSessions, readSettings, saveSettings, sessionKind, sessionsToday, streakDays, weekGoal } from '../lib/store'
 import { fmtMinutes, fmtShort } from '../lib/date'
 
 function selam(): string {
@@ -52,9 +52,28 @@ export default function Home() {
     )
   }
 
+  if (!ayar.program) {
+    return (
+      <div>
+        <SesHeader title="Programını seç" subtitle="Durumuna en uygun egzersiz seti" />
+        <div className="px-4 space-y-3 pb-6">
+          <p className="text-[14px] text-slate-600 dark:text-[#d8c8bf] px-1">
+            Araştırmalar iki farklı tabloya farklı egzersizler önerir. Seçimin egzersiz listesini ayarlar; istediğin zaman Ayarlar'dan değiştirebilir ya da tek tek düzenleyebilirsin. Emin değilsen hekimine/terapistine sor.
+          </p>
+          {(['felc', 'presbifoni', 'genel'] as Program[]).map((p) => (
+            <button key={p} onClick={() => setAyar(applyProgram(p))} className="ses-card w-full text-left active:scale-[0.99] transition">
+              <span className="block text-[18px] font-bold text-slate-900 dark:text-[#f5ece4]">{PROGRAM_LABEL[p]}</span>
+              <span className="block text-[14px] text-slate-600 dark:text-[#d8c8bf] mt-1">{PROGRAM_DESC[p]}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <SesHeader title={`${selam()}${ayar.name ? `, ${ayar.name}` : ''}`} subtitle="Ses Egzersizi · ses tellerini güçlendir" />
+      <SesHeader title={`${selam()}${ayar.name ? `, ${ayar.name}` : ''}`} subtitle={`Ses Egzersizi · ${PROGRAM_LABEL[ayar.program]}`} />
 
       <div className="px-4 space-y-4">
         {/* Seri */}
@@ -110,9 +129,15 @@ export default function Home() {
           <button className="ses-btn-primary w-full mt-3 text-[19px] min-h-[62px]" onClick={() => navigate('/seans')}>
             ▶ Seansa başla
           </button>
-          <button className="w-full text-[14px] text-slate-500 dark:text-[#a3908a] underline pt-3" onClick={() => navigate('/egzersizler')}>
-            Egzersizleri önce incele
-          </button>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button className="ses-btn-soft min-h-[48px] text-[15px]" onClick={() => navigate('/seans?tek=pipet')}>
+              🥤 2 dk pipet molası
+            </button>
+            <button className="ses-btn-ghost min-h-[48px] text-[15px]" onClick={() => navigate('/egzersizler')}>
+              Egzersizleri incele
+            </button>
+          </div>
+          <p className="text-[12px] text-slate-400 dark:text-[#a3908a] mt-2">Pipet molası: gün içinde birkaç kez 1-3 dk; ses tellerini az güçle, dengeli çalıştırır (yarı kapalı ses yolu).</p>
         </section>
 
         {/* Diksiyon */}
