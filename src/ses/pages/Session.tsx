@@ -8,7 +8,6 @@ import MptMeter, { type MptResult } from '../components/MptMeter'
 import { findExercise, GROUP_LABEL, type Exercise } from '../lib/content'
 import { activeExercises, addMpt, addSession, readSettings, repsFor, updateSession, type DoneExercise, type Session as SessionRec } from '../lib/store'
 import Rating from '../components/Rating'
-import VideoEmbed from '../components/VideoEmbed'
 import ClipPlayer from '../components/ClipPlayer'
 import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest, sfxTick } from '../lib/sound'
@@ -288,12 +287,10 @@ export default function Session() {
           back={() => (done.length > 0 || idx > 0 ? bitir(done) : navigate(-1))}
         />
         <div className="px-4 space-y-5 pb-8 flex-1 flex flex-col">
-          {(ex.clip || ex.video) && (
+          {ex.clip && (
             <section className="ses-card space-y-3">
               <h3 className="ses-label">Başlamadan önce izle · ▶ dokun, oynasın</h3>
-              {/* Kendi videomuz varsa yalnizca o gosterilir; yoksa gecici olarak
-                  YouTube. Klip eklendiginde YouTube o egzersizden kalkar. */}
-              {ex.clip ? <ClipPlayer src={ex.clip} /> : <VideoEmbed video={ex.video} immediate />}
+              <ClipPlayer src={ex.clip} />
             </section>
           )}
           <section className="ses-card">

@@ -31,7 +31,7 @@ export default function ExercisesPage() {
                       <span className="block text-[17px] font-semibold text-slate-900 dark:text-[#f5ece4] leading-tight">{e.name}</span>
                       <span className="block text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-0.5">
                         {kapali ? 'Kapalı (Ayarlar)' : e.mode === 'mpt' ? `${n} deneme` : e.mode === 'sure' ? `${n} × ${e.hold} sn` : `${n} tekrar × ${e.hold} sn`}
-                        {(e.clip || e.video) && <span className="ml-2" aria-label="videosu var">🎬</span>}
+                        {e.clip && <span className="ml-2" aria-label="videosu var">🎬</span>}
                       </span>
                     </span>
                     <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-300 dark:text-[#cdbdb3]" fill="none" stroke="currentColor" strokeWidth={2.2}>

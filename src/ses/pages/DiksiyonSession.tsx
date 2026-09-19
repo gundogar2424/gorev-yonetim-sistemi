@@ -8,7 +8,6 @@ import { DGROUP_LABEL, findDExercise, type DExercise } from '../lib/diksiyon'
 import { activeDExercises, addSession, dSecFor, readSettings, updateSession, type DoneExercise, type LineScore, type Session as SessionRec } from '../lib/store'
 import { accuracyComment, listenOnce, scoreText, speechAvailable, speechPermission, type Listener, type Score } from '../lib/speech'
 import Rating from '../components/Rating'
-import VideoEmbed from '../components/VideoEmbed'
 import ClipPlayer from '../components/ClipPlayer'
 import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest } from '../lib/sound'
@@ -330,12 +329,10 @@ export default function DiksiyonSession() {
       <div className="flex-1 flex flex-col">
         <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · ${DGROUP_LABEL[ex.group]}`} compact back={() => (done.length > 0 || idx > 0 ? bitir(done) : navigate(-1))} />
         <div className="px-4 space-y-5 pb-8 flex-1 flex flex-col">
-          {(ex.clip || ex.video) && (
+          {ex.clip && (
             <section className="ses-card space-y-3">
               <h3 className="ses-label">Başlamadan önce izle · ▶ dokun, oynasın</h3>
-              {/* Kendi videomuz varsa yalnizca o gosterilir; yoksa gecici olarak
-                  YouTube. Klip eklendiginde YouTube o egzersizden kalkar. */}
-              {ex.clip ? <ClipPlayer src={ex.clip} /> : <VideoEmbed video={ex.video} immediate />}
+              <ClipPlayer src={ex.clip} />
             </section>
           )}
           <section className="ses-card">

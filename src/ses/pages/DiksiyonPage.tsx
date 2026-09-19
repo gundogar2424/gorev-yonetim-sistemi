@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import SesHeader from '../SesHeader'
 import { DEXERCISES, DGROUP_LABEL, DTEMPO_LABEL, type DExercise, type DGroup, type DTempo } from '../lib/diksiyon'
 import { activeDExercises, dSecFor, estimateDMinutes, readSettings, saveSettings, sessionsToday } from '../lib/store'
-import VideoEmbed from '../components/VideoEmbed'
+import ClipPlayer from '../components/ClipPlayer'
 
 export default function DiksiyonPage() {
   const navigate = useNavigate()
@@ -104,7 +104,7 @@ export default function DiksiyonPage() {
                           {e.lines.length > 3 && <div className="text-[14px] text-slate-700 dark:text-[#d8c8bf]">… ve {e.lines.length - 3} satır daha</div>}
                         </div>
                         {e.tip && <p className="text-[14px] text-amber-800 dark:text-amber-200">⚠️ {e.tip}</p>}
-                        <VideoEmbed video={e.video} />
+                        {e.clip && <ClipPlayer src={e.clip} />}
                         <button className="ses-btn-soft w-full" onClick={() => navigate(`/diksiyon-seans?tek=${e.id}`)}>
                           ▶ Yalnızca bunu yap
                         </button>
