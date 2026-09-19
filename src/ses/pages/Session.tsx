@@ -219,8 +219,8 @@ export default function Session() {
         <div className="px-4 space-y-5 pb-8">
           <section className="ses-card text-center py-6">
             <div className="text-[60px]">{done.length > 0 ? '🎉' : '🙂'}</div>
-            <div className="text-[26px] font-bold text-slate-900 dark:text-[#f5ece4] mt-1">{done.length} egzersiz</div>
-            <div className="text-[17px] text-slate-700 dark:text-[#d8c8bf]">
+            <div className="text-[22px] font-bold text-slate-900 dark:text-[#f5ece4] mt-1">{done.length} egzersiz</div>
+            <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">
               {fmtMinutes(ms)}
               {best > 0 ? ` · en uzun "A": ${best.toFixed(1).replace('.', ',')} sn` : ''}
             </div>
@@ -231,7 +231,7 @@ export default function Session() {
                 {done.map((d, i) => {
                   const e = findExercise(d.id)
                   return (
-                    <li key={i} className="py-2 flex items-center justify-between text-[17px]">
+                    <li key={i} className="py-2 flex items-center justify-between text-[16px]">
                       <span className="text-slate-800 dark:text-[#f5ece4]">
                         {e?.emoji} {e?.name ?? d.id}
                       </span>
@@ -269,7 +269,7 @@ export default function Session() {
             </section>
           )}
           {saved && <FeedbackCard session={{ ...saved, note, rating }} />}
-          <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={() => navigate('/')}>
+          <button className="ses-btn-primary w-full min-h-[58px] text-[18px]" onClick={() => navigate('/')}>
             Ana sayfa
           </button>
         </div>
@@ -291,36 +291,32 @@ export default function Session() {
           {(ex.clip || ex.video) && (
             <section className="ses-card space-y-3">
               <h3 className="ses-label">Başlamadan önce izle · ▶ dokun, oynasın</h3>
-              {ex.clip && <ClipPlayer src={ex.clip} title="Kısa gösterim (internetsiz çalışır)" />}
-              {ex.video && (
-                <div>
-                  {ex.clip && <h4 className="text-[15px] font-semibold text-slate-700 dark:text-[#e2d5cd] mb-2">Uzun anlatım (YouTube)</h4>}
-                  <VideoEmbed video={ex.video} immediate={!ex.clip} />
-                </div>
-              )}
+              {/* Kendi videomuz varsa yalnizca o gosterilir; yoksa gecici olarak
+                  YouTube. Klip eklendiginde YouTube o egzersizden kalkar. */}
+              {ex.clip ? <ClipPlayer src={ex.clip} /> : <VideoEmbed video={ex.video} immediate />}
             </section>
           )}
           <section className="ses-card">
             <div className="flex items-center gap-3">
-              <span className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[32px]">{ex.emoji}</span>
-              <p className="text-[18px] text-slate-700 dark:text-[#d8c8bf]">{ex.short}</p>
+              <span className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[28px]">{ex.emoji}</span>
+              <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">{ex.short}</p>
             </div>
             <ol className="space-y-2 mt-4">
               {ex.steps.map((s, i) => (
-                <li key={i} className="flex gap-3 text-[17px] text-slate-700 dark:text-[#d8c8bf]">
-                  <span className="w-7 h-7 rounded-full bg-ses-600 text-white grid place-items-center text-[15px] font-bold flex-shrink-0">{i + 1}</span>
+                <li key={i} className="flex gap-3 text-[16px] text-slate-700 dark:text-[#d8c8bf]">
+                  <span className="w-7 h-7 rounded-full bg-ses-600 text-white grid place-items-center text-[14px] font-bold flex-shrink-0">{i + 1}</span>
                   <span>{s}</span>
                 </li>
               ))}
             </ol>
-            {ex.caution && <p className="mt-3 rounded-2xl bg-amber-50 dark:bg-[#2b2418] p-3 text-[16px] text-amber-800 dark:text-amber-200">⚠️ {ex.caution}</p>}
+            {ex.caution && <p className="mt-3 rounded-2xl bg-amber-50 dark:bg-[#2b2418] p-3 text-[15px] text-amber-800 dark:text-amber-200">⚠️ {ex.caution}</p>}
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="ses-pill">{ex.mode === 'mpt' ? `${n} deneme` : ex.mode === 'sure' ? `${n} set × ${ex.hold} sn` : `${n} tekrar × ${ex.hold} sn`}</span>
               {ex.mode !== 'mpt' && <span className="ses-pill">ara: {ex.rest} sn</span>}
             </div>
           </section>
           <div className="mt-auto space-y-2">
-            <button className="ses-btn-primary w-full min-h-[72px] text-[22px]" onClick={basla}>
+            <button className="ses-btn-primary w-full min-h-[58px] text-[19px]" onClick={basla}>
               ▶ Başla
             </button>
             <button className="ses-btn-ghost w-full" onClick={atla}>
@@ -341,9 +337,9 @@ export default function Session() {
           <section className="ses-card">
             <MptMeter key={mptAttempt} onResult={mptSonuc} attempt={mptAttempt} attempts={n} compact />
           </section>
-          {mptBest > 0 && <div className="text-center text-[17px] text-slate-700 dark:text-[#d8c8bf]">Bu seansta en iyi: {mptBest.toFixed(1).replace('.', ',')} sn</div>}
+          {mptBest > 0 && <div className="text-center text-[16px] text-slate-700 dark:text-[#d8c8bf]">Bu seansta en iyi: {mptBest.toFixed(1).replace('.', ',')} sn</div>}
           <div className="mt-auto space-y-2">
-            <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={mptSonraki} disabled={!mptResult}>
+            <button className="ses-btn-primary w-full min-h-[58px] text-[18px]" onClick={mptSonraki} disabled={!mptResult}>
               {mptAttempt < n ? 'Sonraki deneme ▶' : 'Devam ▶'}
             </button>
             <button className="ses-btn-ghost w-full" onClick={atla}>
@@ -364,12 +360,12 @@ export default function Session() {
       <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · ${ex.mode === 'sure' ? 'set' : 'tekrar'} ${rep + 1} / ${n}`} compact back={() => bitir(done)} />
       <div className="px-4 pb-8 flex-1 flex flex-col">
         <div className={`flex-1 flex flex-col items-center justify-center rounded-3xl p-6 text-center transition-colors ${isGo ? 'bg-ses-600 text-white' : isReady ? 'bg-ses-50 dark:bg-[#352820]' : 'bg-white dark:bg-[#261d16]'}`}>
-          <div className={`text-[16px] font-semibold uppercase tracking-[0.1em] ${isGo ? 'text-white/80' : 'text-ses-700 dark:text-ses-300'}`}>{baslik}</div>
+          <div className={`text-[15px] font-semibold uppercase tracking-[0.1em] ${isGo ? 'text-white/80' : 'text-ses-700 dark:text-ses-300'}`}>{baslik}</div>
           <div className={`font-bold leading-none tabular-nums my-4 ${isGo ? 'text-[96px] ses-pulse' : 'text-[84px] text-slate-900 dark:text-[#f5ece4]'}`}>{Math.ceil(left)}</div>
-          <div className={`text-[32px] font-bold leading-tight ${isGo ? 'text-white' : 'text-slate-800 dark:text-[#f5ece4]'}`}>
+          <div className={`text-[28px] font-bold leading-tight ${isGo ? 'text-white' : 'text-slate-800 dark:text-[#f5ece4]'}`}>
             {isReady ? (ex.mode === 'sure' ? 'Nefes al…' : 'Nefes al…') : isGo ? cue : 'Gevşe, nefes al'}
           </div>
-          {phase === 'rest' && <div className="text-[17px] text-slate-700 dark:text-[#d8c8bf] mt-2">Sonraki: {Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue}</div>}
+          {phase === 'rest' && <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-2">Sonraki: {Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue}</div>}
           <div className={`w-full h-2.5 rounded-full mt-6 overflow-hidden ${isGo ? 'bg-white/25' : 'bg-slate-200 dark:bg-[#4a3a30]'}`}>
             <div className={`h-full rounded-full transition-[width] duration-100 ${isGo ? 'bg-[#ffffff]' : 'bg-ses-500'}`} style={{ width: `${pct}%` }} />
           </div>

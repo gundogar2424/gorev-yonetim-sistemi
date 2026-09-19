@@ -34,16 +34,16 @@ export default function Home() {
         <SesHeader title="Hoş geldin" subtitle="Ses Egzersizi · başlamadan önce" />
         <div className="px-4 space-y-5">
           <section className="ses-card space-y-3">
-            <h2 className="text-[22px] font-bold text-slate-900 dark:text-[#f5ece4]">⚠️ Lütfen oku</h2>
+            <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#f5ece4]">⚠️ Lütfen oku</h2>
             <ul className="space-y-2">
               {DISCLAIMER.map((m, i) => (
-                <li key={i} className="flex gap-2 text-[17px] text-slate-700 dark:text-[#d8c8bf]">
+                <li key={i} className="flex gap-2 text-[16px] text-slate-700 dark:text-[#d8c8bf]">
                   <span className="text-ses-600">•</span>
                   <span>{m}</span>
                 </li>
               ))}
             </ul>
-            <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={() => setAyar(saveSettings({ accepted: true }))}>
+            <button className="ses-btn-primary w-full min-h-[58px] text-[18px]" onClick={() => setAyar(saveSettings({ accepted: true }))}>
               Anladım, başlayalım
             </button>
           </section>
@@ -57,13 +57,13 @@ export default function Home() {
       <div>
         <SesHeader title="Programını seç" subtitle="Durumuna en uygun egzersiz seti" />
         <div className="px-4 space-y-4 pb-6">
-          <p className="text-[16px] text-slate-700 dark:text-[#e2d5cd] px-1">
+          <p className="text-[15px] text-slate-700 dark:text-[#e2d5cd] px-1">
             Araştırmalar iki farklı tabloya farklı egzersizler önerir. Seçimin egzersiz listesini ayarlar; istediğin zaman Ayarlar'dan değiştirebilir ya da tek tek düzenleyebilirsin. Emin değilsen hekimine/terapistine sor.
           </p>
           {(['felc', 'presbifoni', 'genel'] as Program[]).map((p) => (
             <button key={p} onClick={() => setAyar(applyProgram(p))} className="ses-card w-full text-left active:scale-[0.99] transition">
-              <span className="block text-[20px] font-bold text-slate-900 dark:text-[#f5ece4]">{PROGRAM_LABEL[p]}</span>
-              <span className="block text-[16px] text-slate-700 dark:text-[#e2d5cd] mt-1">{PROGRAM_DESC[p]}</span>
+              <span className="block text-[18px] font-bold text-slate-900 dark:text-[#f5ece4]">{PROGRAM_LABEL[p]}</span>
+              <span className="block text-[15px] text-slate-700 dark:text-[#e2d5cd] mt-1">{PROGRAM_DESC[p]}</span>
             </button>
           ))}
         </div>
@@ -78,10 +78,10 @@ export default function Home() {
       <div className="px-4 space-y-5">
         {/* Seri */}
         <div className="rounded-3xl p-4 flex items-center gap-4 bg-gradient-to-br from-ses-600 to-ses-800 text-white shadow-raised">
-          <div className="w-14 h-14 rounded-2xl bg-white/15 grid place-items-center text-[32px]">🔥</div>
+          <div className="w-14 h-14 rounded-2xl bg-white/15 grid place-items-center text-[28px]">🔥</div>
           <div className="flex-1">
-            <div className="text-[24px] font-bold leading-tight">{seri === 0 ? 'Bugün başla' : `${seri} gündür üst üste`}</div>
-            <div className="text-[16px] text-white/80">
+            <div className="text-[19px] font-bold leading-tight">{seri === 0 ? 'Bugün başla' : `${seri} gündür üst üste`}</div>
+            <div className="text-[15px] text-white/80">
               {bugun > 0 ? `Bugün ${bugun} seans yaptın ✔` : seri === 0 ? 'Kısa ve düzenli seanslar en iyisi' : 'Bugün de bir seans yap'}
             </div>
           </div>
@@ -89,10 +89,10 @@ export default function Home() {
 
         {/* Gunluk hedef */}
         <section className="ses-card">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#f5ece4]">🎯 Bugünün hedefi</h2>
-            <span className={`ses-pill ${bugunOk ? '!bg-emerald-50 !text-emerald-700 dark:!bg-[#1f2e22] dark:!text-emerald-300' : ''}`}>
-              {Math.min(bugun, ayar.dailyGoal)} / {ayar.dailyGoal} seans{bugunOk ? ' ✔' : ''}
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-[#f5ece4] whitespace-nowrap">🎯 Bugünün hedefi</h2>
+            <span className={`ses-pill whitespace-nowrap ${bugunOk ? '!bg-emerald-50 !text-emerald-700 dark:!bg-[#1f2e22] dark:!text-emerald-300' : ''}`}>
+              {Math.min(bugun, ayar.dailyGoal)} / {ayar.dailyGoal}{bugunOk ? ' ✔' : ''}
             </span>
           </div>
           <div className="flex gap-2 mt-3">
@@ -100,16 +100,16 @@ export default function Home() {
               <div key={i} className={`flex-1 h-3 rounded-full ${i < bugun ? 'bg-ses-600' : 'bg-slate-200 dark:bg-[#4a3a30]'}`} />
             ))}
           </div>
-          <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-2">
+          <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-2">
             {bugunOk ? 'Bugünlük tamam. Yarın yine görüşürüz.' : ayar.dailyGoal === 2 ? (bugun === 0 ? 'Sabah bir seans, akşam bir seans: araştırmalarda etkili bulunan doz.' : 'Bir seans daha kaldı (akşam için ideal).') : `${ayar.dailyGoal - bugun} seans kaldı.`}
           </p>
           <div className="flex items-end justify-between gap-1.5 mt-3">
             {hafta.map((g) => (
               <div key={g.key} className="flex-1 flex flex-col items-center gap-1">
-                <div className={`w-8 h-8 rounded-full grid place-items-center text-[15px] font-bold ${g.ok ? 'bg-ses-600 text-white' : g.count > 0 ? 'bg-ses-100 text-ses-700 dark:bg-[#4a3a30] dark:text-ses-300' : 'bg-slate-100 dark:bg-[#352820] text-slate-600 dark:text-[#cdbdb3]'}`}>
+                <div className={`w-8 h-8 rounded-full grid place-items-center text-[14px] font-bold ${g.ok ? 'bg-ses-600 text-white' : g.count > 0 ? 'bg-ses-100 text-ses-700 dark:bg-[#4a3a30] dark:text-ses-300' : 'bg-slate-100 dark:bg-[#352820] text-slate-600 dark:text-[#cdbdb3]'}`}>
                   {g.ok ? '✓' : g.count > 0 ? g.count : '·'}
                 </div>
-                <span className="text-[14px] text-slate-700 dark:text-[#d8c8bf]">{g.label}</span>
+                <span className="text-[13px] text-slate-700 dark:text-[#d8c8bf]">{g.label}</span>
               </div>
             ))}
           </div>
@@ -118,44 +118,44 @@ export default function Home() {
         {/* Seans */}
         <section className="ses-card">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[32px]">🎤</div>
+            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[28px]">🎤</div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-[21px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Rehberli seans</h2>
-              <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">
-                {n} egzersiz · yaklaşık {dk} dk · sayaç ve tekrar sayacı seni yönlendirir
+              <h2 className="text-[18px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Rehberli seans</h2>
+              <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">
+                {n} egzersiz · yaklaşık {dk} dk
               </p>
             </div>
           </div>
-          <button className="ses-btn-primary w-full mt-3 text-[21px] min-h-[68px]" onClick={() => navigate('/seans')}>
+          <button className="ses-btn-primary w-full mt-3 text-[18px] min-h-[58px]" onClick={() => navigate('/seans')}>
             ▶ Seansa başla
           </button>
           <div className="grid grid-cols-2 gap-2 mt-2">
-            <button className="ses-btn-soft min-h-[54px] text-[17px]" onClick={() => navigate('/seans?tek=pipet')}>
-              🥤 2 dk pipet molası
+            <button className="ses-btn-soft min-h-[50px] text-[15px] px-3" onClick={() => navigate('/seans?tek=pipet')}>
+              🥤 Pipet molası
             </button>
-            <button className="ses-btn-ghost min-h-[54px] text-[17px]" onClick={() => navigate('/videolar')}>
+            <button className="ses-btn-ghost min-h-[50px] text-[15px] px-3" onClick={() => navigate('/videolar')}>
               🎬 Videolar
             </button>
           </div>
-          <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] mt-2">Pipet molası: gün içinde birkaç kez 1-3 dk; ses tellerini az güçle, dengeli çalıştırır (yarı kapalı ses yolu).</p>
+          <p className="text-[13px] text-slate-600 dark:text-[#cdbdb3] mt-2">Gün içinde birkaç kez 1-3 dakikalık pipet molası ses tellerini dinlendirir.</p>
         </section>
 
         {/* Diksiyon */}
         <section className="ses-card">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[32px]">🗣️</div>
+            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[28px]">🗣️</div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-[21px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Diksiyon seansı</h2>
-              <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">
-                {dn} egzersiz · yaklaşık {ddk} dk · nefes, harfler, tekerlemeler, vurgu
+              <h2 className="text-[18px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Diksiyon seansı</h2>
+              <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">
+                {dn} egzersiz · yaklaşık {ddk} dk
               </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3">
-            <button className="ses-btn-primary text-[19px]" onClick={() => navigate('/diksiyon-seans')}>
+            <button className="ses-btn-primary text-[17px]" onClick={() => navigate('/diksiyon-seans')}>
               ▶ Başla
             </button>
-            <button className="ses-btn-soft text-[19px]" onClick={() => navigate('/diksiyon')}>
+            <button className="ses-btn-soft text-[17px]" onClick={() => navigate('/diksiyon')}>
               Egzersizler
             </button>
           </div>
@@ -163,12 +163,12 @@ export default function Home() {
 
         {/* Olcum */}
         <section className="ses-card flex items-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[32px]">⏱️</div>
+          <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[28px]">⏱️</div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Ses ölçümü</h2>
-            <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">{best > 0 ? `Rekorun: ${best.toFixed(1).replace('.', ',')} sn` : 'En uzun "A" tutma süreni ölç'}</p>
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Ses ölçümü</h2>
+            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">{best > 0 ? `Rekorun: ${best.toFixed(1).replace('.', ',')} sn` : 'En uzun "A" tutma süreni ölç'}</p>
           </div>
-          <button className="ses-btn-soft min-h-[54px] px-4" onClick={() => navigate('/olcum')}>
+          <button className="ses-btn-soft min-h-[50px] px-4" onClick={() => navigate('/olcum')}>
             Ölç
           </button>
         </section>
@@ -176,7 +176,7 @@ export default function Home() {
         {/* Ipucu */}
         <section className="ses-card bg-amber-50/70 dark:bg-[#2b2418]">
           <h3 className="ses-label mb-1">Günün ipucu</h3>
-          <p className="text-[17px] text-slate-700 dark:text-[#d8c8bf]">{tip}</p>
+          <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">{tip}</p>
         </section>
 
         {/* Son seanslar */}
@@ -184,13 +184,13 @@ export default function Home() {
           <section className="ses-card">
             <div className="flex items-center justify-between mb-1">
               <h3 className="ses-label">Son seanslar</h3>
-              <button className="text-[16px] text-ses-700 font-semibold" onClick={() => navigate('/ilerleme')}>
+              <button className="text-[15px] text-ses-700 font-semibold" onClick={() => navigate('/ilerleme')}>
                 Tümü
               </button>
             </div>
             <ul className="divide-y divide-slate-100 dark:divide-[#4a3a30]">
               {son.map((s) => (
-                <li key={s.id} className="py-2 flex items-center justify-between text-[17px]">
+                <li key={s.id} className="py-2 flex items-center justify-between text-[16px]">
                   <span className="text-slate-700 dark:text-[#d8c8bf]">{fmtShort(s.t)}</span>
                   <span className="text-slate-800 dark:text-[#f5ece4]">
                     {sessionKind(s) === 'diksiyon' ? '🗣️ ' : '🎤 '}
@@ -202,7 +202,7 @@ export default function Home() {
           </section>
         )}
 
-        <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1 pb-2">
+        <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] px-1 pb-2">
           Ağrı, yanma ya da ses kısıklığında artış olursa dur ve hekimine haber ver. Bu uygulama tıbbi tedavinin yerini tutmaz.
         </p>
       </div>

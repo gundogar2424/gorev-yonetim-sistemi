@@ -116,7 +116,7 @@ export default function SesApp() {
               {({ isActive }) => (
                 <>
                   <NavIcon name={t.icon} className={`h-[24px] w-[24px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-slate-600 dark:text-[#cdbdb3]'}`} />
-                  <span className={`text-[14px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-600 dark:text-[#cdbdb3] font-medium'}`}>
+                  <span className={`text-[13px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-600 dark:text-[#cdbdb3] font-medium'}`}>
                     {t.label}
                   </span>
                 </>

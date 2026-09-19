@@ -40,7 +40,7 @@ export default function ClipPlayer({ src, title }: { src: string; title?: string
           </button>
         )}
       </div>
-      {title && <p className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">{title}</p>}
+      {title && <p className="text-[14px] text-slate-700 dark:text-[#e2d5cd]">{title}</p>}
     </div>
   )
 }
