@@ -72,6 +72,11 @@ jobs:
 
       - name: Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Varsayilan 'tools platform-tools' paketi yeni cmdline-tools'ta yok
+          # ("Failed to find package 'tools'") ve adim cokuyor; yalnizca
+          # platform-tools iste. Gerisini Gradle kendi indirir.
+          packages: platform-tools
 
       - name: Kullanılmayan ağır eklentileri çıkar (APK küçülsün)
         run: |
