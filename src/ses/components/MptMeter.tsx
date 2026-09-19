@@ -3,6 +3,8 @@
 // verilmediyse elle kronometre (Basla / Bitti).
 import { useEffect, useRef, useState } from 'react'
 import { createMic, mptComment, mptInit, mptStep, type Mic, type MicStatus, type MptState } from '../lib/mic'
+import { AcousticAccumulator, type AcousticResult } from '../lib/acoustic'
+import AcousticCard from './AcousticCard'
 import { sfxDone, sfxGo } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
 
@@ -10,6 +12,7 @@ export interface MptResult {
   sec: number
   db?: number
   manual: boolean
+  ac?: AcousticResult // akustik olcum (mikrofonla)
 }
 
 interface Props {
@@ -31,6 +34,7 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
   const [manualT0, setManualT0] = useState(0)
   const [manualSec, setManualSec] = useState(0)
   const [result, setResult] = useState<MptResult | null>(null)
+  const accRef = useRef<AcousticAccumulator>(new AcousticAccumulator())
 
   useEffect(() => {
     stRef.current = st
@@ -56,11 +60,14 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
     setResult(null)
     setSt(mptInit())
     memRef.current = { t0: 0, lastVoice: 0, firstVoice: 0 }
+    accRef.current = new AcousticAccumulator()
     if (!micRef.current) micRef.current = createMic()
     const mic = micRef.current
     mic.onFrame((f) => {
       setLevel(f.db)
       if (!armedRef.current) return
+      // Ses surerken akustik analiz (perde/jitter/shimmer/HNR)
+      if (stRef.current.phase === 'olcuyor' && f.voiced) accRef.current.push(f.buf, f.sr)
       const next = mptStep(stRef.current, f, performance.now(), memRef.current)
       if (next !== stRef.current) {
         if (next.phase === 'olcuyor' && stRef.current.phase === 'bekliyor') sfxGo()
@@ -86,7 +93,7 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
     armedRef.current = false
     setArmed(false)
     const sec = forced && s.phase === 'olcuyor' ? (performance.now() - memRef.current.t0) / 1000 : s.sec
-    const r: MptResult = { sec: Math.round(sec * 10) / 10, db: s.dbN ? Math.round(s.dbSum / s.dbN) : undefined, manual: false }
+    const r: MptResult = { sec: Math.round(sec * 10) / 10, db: s.dbN ? Math.round(s.dbSum / s.dbN) : undefined, manual: false, ac: accRef.current.result() ?? undefined }
     micRef.current?.stop()
     setStatus('kapali')
     setResult(r)
@@ -133,6 +140,7 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
         )}
         {result && <p className="text-[15px] text-slate-600 dark:text-[#d8c8bf] mt-3 px-4">{mptComment(result.sec)}</p>}
       </div>
+      {result?.ac && <AcousticCard ac={result.ac} compact={compact} />}
 
       {!manual ? (
         <div className="grid grid-cols-2 gap-2">

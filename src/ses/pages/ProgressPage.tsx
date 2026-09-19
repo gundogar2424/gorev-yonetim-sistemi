@@ -17,6 +17,7 @@ export default function ProgressPage() {
   const maxG = Math.max(1, ...gunler.map((g) => g.count))
   const mpt = readMpt()
   const mptSon = mpt.slice(-20)
+  const acSon = mpt.filter((r) => r.ac).slice(-20)
   const best = bestMpt()
   const [sekme, setSekme] = useState<'seans' | 'olcum'>('seans')
   const accSeries = sessions.map((x) => ({ d: x.d, v: sessionAccuracy(x) })).filter((x): x is { d: string; v: number } => x.v != null).slice(-20)
@@ -56,6 +57,25 @@ export default function ProgressPage() {
             </div>
           ) : (
             <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Grafik için en az 2 ölçüm gerekir. Ana sayfadan "Ölç" ile ölçüm yap.</p>
+          )}
+        </section>
+
+        <section className="ses-card">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="ses-label">Ses kalitesi · HNR (dB)</h3>
+            {acSon.length > 0 && (
+              <span className="ses-pill">
+                son {String(acSon[acSon.length - 1].ac!.hnr).replace('.', ',')} dB · jitter %{String(acSon[acSon.length - 1].ac!.jitter).replace('.', ',')} · shimmer %{String(acSon[acSon.length - 1].ac!.shimmer).replace('.', ',')}
+              </span>
+            )}
+          </div>
+          {acSon.length >= 2 ? (
+            <div className="text-slate-700 dark:text-[#d8c8bf]">
+              <LineChart values={acSon.map((r) => r.ac!.hnr)} labels={acSon.map((r) => fmtDay(r.d))} ref={18} />
+              <p className="text-[12px] text-slate-500 dark:text-[#a3908a] mt-1">Harmonik/gürültü oranı: yükseldikçe ses daha tok, daha az nefesli. Kesik çizgi: 18 dB. Telefon mikrofonu; kendi geçmişinle karşılaştır.</p>
+            </div>
+          ) : (
+            <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Grafik için mikrofonla en az 2 "A" ölçümü gerekir.</p>
           )}
         </section>
 
@@ -156,7 +176,10 @@ export default function ProgressPage() {
                   {r.manual ? ' · elle' : ''}
                 </span>
                 <span className="flex items-center gap-3">
-                  <span className="font-semibold tabular-nums text-slate-800 dark:text-[#f5ece4]">{r.sec.toFixed(1).replace('.', ',')} sn</span>
+                  <span className="text-right">
+                    <span className="block font-semibold tabular-nums text-slate-800 dark:text-[#f5ece4]">{r.sec.toFixed(1).replace('.', ',')} sn</span>
+                    {r.ac && <span className="block text-[11px] text-slate-500 dark:text-[#a3908a] tabular-nums">{r.ac.f0} Hz · HNR {String(r.ac.hnr).replace('.', ',')} · j %{String(r.ac.jitter).replace('.', ',')} · s %{String(r.ac.shimmer).replace('.', ',')}</span>}
+                  </span>
                   <button
                     className="text-[13px] text-rose-500"
                     onClick={() => {

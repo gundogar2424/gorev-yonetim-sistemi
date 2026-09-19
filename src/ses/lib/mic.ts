@@ -6,6 +6,8 @@
 export interface MicFrame {
   db: number // goreli dB (yaklasik -90..0)
   voiced: boolean
+  buf: Float32Array // ham ornekler (bu cerceve; akustik analiz icin)
+  sr: number // ornekleme hizi (Hz)
 }
 
 export type MicStatus = 'kapali' | 'aciliyor' | 'acik' | 'izin-yok' | 'yok'
@@ -62,7 +64,7 @@ export function createMic(): Mic {
           for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]
           const rms = Math.sqrt(sum / buf.length)
           const db = rms > 0 ? Math.max(-90, 20 * Math.log10(rms)) : -90
-          cb?.({ db, voiced: db > SILENCE_DB })
+          cb?.({ db, voiced: db > SILENCE_DB, buf, sr: ctx?.sampleRate ?? 48000 })
           raf = requestAnimationFrame(tick)
         }
         raf = requestAnimationFrame(tick)

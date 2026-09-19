@@ -3,6 +3,7 @@
 import { todayKey } from './date'
 import { EXERCISES } from './content'
 import { DEFAULT_DISABLED_D, DEXERCISES, DTEMPO_MULT, type DTempo } from './diksiyon'
+import type { AcousticResult } from './acoustic'
 
 export type Level = 'hafif' | 'orta' | 'yogun'
 export const LEVEL_MULT: Record<Level, number> = { hafif: 0.6, orta: 1, yogun: 1.4 }
@@ -35,6 +36,7 @@ export interface DoneExercise {
   id: string
   reps: number // yapilan tekrar/set
   mpt?: number // uzun-a egzersizinde en iyi sure (sn)
+  ac?: AcousticResult // en iyi denemenin akustik olcumu (perde, jitter, shimmer, HNR)
   rating?: number // oz degerlendirme 1-5 (ne kadar net/rahat oldu)
   acc?: number // konusma tanima dogrulugu % (diksiyon; satirlarin ortalamasi)
   wpm?: number // dakikadaki sozcuk (diksiyon; ortalama)
@@ -97,6 +99,7 @@ export interface MptRecord {
   sec: number // saniye (en iyi deneme)
   db?: number // ortalama ses duzeyi (goreli dB)
   manual: boolean // elle kronometre mi (mikrofon degil)
+  ac?: AcousticResult // akustik olcum (mikrofonla olculdugunde)
 }
 
 const K_SET = 'ses-settings'

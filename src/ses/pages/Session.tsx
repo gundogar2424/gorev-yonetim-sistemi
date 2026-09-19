@@ -38,6 +38,7 @@ export default function Session() {
   const [mptBest, setMptBest] = useState(0)
   const [mptAttempt, setMptAttempt] = useState(1)
   const [mptResult, setMptResult] = useState<MptResult | null>(null)
+  const [mptBestAc, setMptBestAc] = useState<MptResult['ac']>(undefined)
   const [note, setNote] = useState('')
   const [savedId, setSavedId] = useState<string | null>(null)
   const [saved, setSaved] = useState<SessionRec | null>(null)
@@ -96,6 +97,7 @@ export default function Session() {
     setRep(0)
     setMptAttempt(1)
     setMptBest(0)
+    setMptBestAc(undefined)
     setMptResult(null)
     if (ex.mode === 'mpt') {
       setPhase('mpt')
@@ -184,8 +186,11 @@ export default function Session() {
 
   function mptSonuc(r: MptResult) {
     setMptResult(r)
-    if (r.sec > mptBest) setMptBest(r.sec)
-    if (r.sec > 0) addMpt({ sec: r.sec, db: r.db, manual: r.manual })
+    if (r.sec > mptBest) {
+      setMptBest(r.sec)
+      setMptBestAc(r.ac)
+    }
+    if (r.sec > 0) addMpt({ sec: r.sec, db: r.db, manual: r.manual, ac: r.ac })
   }
 
   function mptSonraki() {
@@ -194,7 +199,7 @@ export default function Session() {
       setMptAttempt(mptAttempt + 1)
       setMptResult(null)
     } else {
-      egzersizBitti({ id: ex.id, reps: mptAttempt, mpt: mptBest || undefined })
+      egzersizBitti({ id: ex.id, reps: mptAttempt, mpt: mptBest || undefined, ac: mptBestAc })
     }
   }
 

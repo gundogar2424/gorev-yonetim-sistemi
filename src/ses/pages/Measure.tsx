@@ -14,7 +14,7 @@ export default function Measure() {
 
   function kaydet() {
     if (!son || son.sec <= 0) return
-    addMpt({ sec: son.sec, db: son.db, manual: son.manual })
+    addMpt({ sec: son.sec, db: son.db, manual: son.manual, ac: son.ac })
     setKayit(true)
   }
 
@@ -51,7 +51,10 @@ export default function Measure() {
               {gecmis.map((r) => (
                 <li key={r.id} className="py-2 flex items-center justify-between text-[15px]">
                   <span className="text-slate-500 dark:text-[#a3908a]">{fmtShort(r.t)}{r.manual ? ' · elle' : ''}</span>
-                  <span className="font-semibold tabular-nums text-slate-800 dark:text-[#f5ece4]">{r.sec.toFixed(1).replace('.', ',')} sn</span>
+                  <span className="text-right">
+                    <span className="block font-semibold tabular-nums text-slate-800 dark:text-[#f5ece4]">{r.sec.toFixed(1).replace('.', ',')} sn</span>
+                    {r.ac && <span className="block text-[12px] text-slate-500 dark:text-[#a3908a] tabular-nums">HNR {String(r.ac.hnr).replace('.', ',')} dB · jitter %{String(r.ac.jitter).replace('.', ',')} · shimmer %{String(r.ac.shimmer).replace('.', ',')}</span>}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -61,7 +64,7 @@ export default function Measure() {
         </section>
 
         <p className="text-[13px] text-slate-500 dark:text-[#a3908a] px-1">
-          Bilgi: yetişkinlerde tipik süre kadınlarda 15-25 sn, erkeklerde 25-35 sn dolayındadır. 10 sn'nin altı ses tellerinin tam kapanmadığına işaret edebilir.
+          Bilgi: mikrofonla ölçümde süreyle birlikte ses kalitesi de hesaplanır (perde, nefeslilik, titreme); "Ölçümü başlat" ile sessiz bir odada yap. Yetişkinlerde tipik süre kadınlarda 15-25 sn, erkeklerde 25-35 sn dolayındadır. 10 sn'nin altı ses tellerinin tam kapanmadığına işaret edebilir.
           Bu ölçüm tanı koymaz; sonucu hekimin/terapistinle paylaş.
         </p>
       </div>
