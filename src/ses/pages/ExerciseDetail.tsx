@@ -3,6 +3,7 @@ import SesHeader from '../SesHeader'
 import { findExercise, GROUP_LABEL } from '../lib/content'
 import { readSettings, repsFor, saveSettings } from '../lib/store'
 import { useState } from 'react'
+import VideoButton from '../components/VideoButton'
 
 export default function ExerciseDetail() {
   const { id = '' } = useParams()
@@ -62,6 +63,7 @@ export default function ExerciseDetail() {
           </section>
         )}
 
+        <VideoButton video={e.video} />
         <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={() => navigate(`/seans?tek=${e.id}`)}>
           ▶ Yalnızca bunu yap
         </button>

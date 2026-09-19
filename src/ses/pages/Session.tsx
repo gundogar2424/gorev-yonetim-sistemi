@@ -8,6 +8,7 @@ import MptMeter, { type MptResult } from '../components/MptMeter'
 import { findExercise, GROUP_LABEL, type Exercise } from '../lib/content'
 import { activeExercises, addMpt, addSession, readSettings, repsFor, updateSession, type DoneExercise, type Session as SessionRec } from '../lib/store'
 import Rating from '../components/Rating'
+import VideoButton from '../components/VideoButton'
 import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest, sfxTick } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
@@ -306,6 +307,7 @@ export default function Session() {
             </div>
           </section>
           <div className="mt-auto space-y-2">
+            <VideoButton video={ex.video} compact />
             <button className="ses-btn-primary w-full min-h-[72px] text-[22px]" onClick={basla}>
               ▶ Başla
             </button>

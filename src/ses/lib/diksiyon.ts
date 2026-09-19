@@ -5,6 +5,8 @@
 // Her egzersizde ekranda buyuk yazilan "satirlar" vardir; kullanici bunlari
 // verilen surede okur/soyler. Tempo (yavas/orta/hizli) sureyi olceklendirir.
 
+import { VIDEOS, type Video } from './content'
+
 export type DGroup = 'nefes' | 'sesli' | 'unsuz' | 'tekerleme' | 'kalem' | 'vurgu'
 
 export interface DExercise {
@@ -19,6 +21,7 @@ export interface DExercise {
   reps: number // tekrar sayisi (satir sayisindan bagimsiz: her tekrar = bir satir)
   sec: number // bir tekrar icin saniye (orta tempoda)
   tip?: string
+  video?: Video // nasil yapildigini gosteren YouTube videosu
 }
 
 export const DGROUP_LABEL: Record<DGroup, string> = {
@@ -94,6 +97,7 @@ export const DEXERCISES: DExercise[] = [
       'U — dudaklar büzük, küçük yuvarlak',
       'Ü — dudaklar iyice büzük ve öne'
     ],
+    video: VIDEOS.diksiyon,
     reps: 8,
     sec: 4
   },
@@ -120,6 +124,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'P, B, M dudakların tam kapanıp açılmasıyla çıkar; tembel dudaklar bu sesleri yutar ("bir" yerine "bi").',
     steps: ['Dudaklarını iyice kapat, havayı bırakırken heceyi söyle.', 'Her heceyi net ve eşit uzunlukta söyle; hızlanınca netlik bozulmasın.'],
     lines: ['pa pe pı pi po pö pu pü', 'ba be bı bi bo bö bu bü', 'ma me mı mi mo mö mu mü', 'pam pem pım pim pom pöm pum püm'],
+    video: VIDEOS.diksiyon,
     reps: 4,
     sec: 7
   },
@@ -144,6 +149,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'T, D, N, L dil ucunun üst diş etine net vurmasıyla çıkar; "gelmedi"nin "gemedi" olması bu tembellikten kaynaklanır.',
     steps: ['Dil ucunu üst ön dişlerinin hemen arkasına vur.', 'Her hecede dil ucunun aynı noktaya değdiğini hisset.'],
     lines: ['ta te tı ti to tö tu tü', 'da de dı di do dö du dü', 'na ne nı ni no nö nu nü', 'la le lı li lo lö lu lü'],
+    video: VIDEOS.diksiyon,
     reps: 4,
     sec: 7
   },
@@ -156,6 +162,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Türkçede en çok yutulan ses "r"dir ("bir" → "bi", "geliyor" → "geliyo"). Dil ucu titreşimi çalışılınca sözcük sonları netleşir.',
     steps: ['Dil ucunu üst damağa yaklaştır, güçlü hava ver: "rrrr" (dil ucu titresin).', 'Sonra hecelerde: tra-tre… dra-dre…', 'Sözcük sonlarındaki r\'yi özellikle vurgula: biR, vaR, geliyoR.'],
     lines: ['rrrrr… rrrrr… rrrrr…', 'tra tre trı tri tro trö tru trü', 'dra dre drı dri dro drö dru drü', 'biR · vaR · geliyoR · alıyoR · kadaR', 'kara kara kargalar kırk kere kırkıyor'],
+    video: VIDEOS.diksiyon,
     reps: 5,
     sec: 8
   },
@@ -180,6 +187,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Islıklı sesler dişlerin ve dilin ince konumuna bağlıdır; peltek çıkışlar ("s" yerine "th") burada düzelir.',
     steps: ['S\'de dişler kapalıya yakın, dil ucu alt dişlerin arkasında; hava ince bir kanaldan çıksın.', 'Ş\'de dudaklar hafif öne, dil biraz geride.', 'Her diziyi net ve eşit hızda söyle.'],
     lines: ['sa se sı si so sö su sü', 'za ze zı zi zo zö zu zü', 'şa şe şı şi şo şö şu şü', 'ja je jı ji jo jö ju jü', 'ça çe çı çi ço çö çu çü', 'ca ce cı ci co cö cu cü'],
+    video: VIDEOS.diksiyon,
     reps: 6,
     sec: 7
   },
@@ -194,6 +202,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Tekerlemeler dudak, dil ve çeneyi hızlı ve doğru çalıştırır; tek seste takılmadan geçmeyi öğretir.',
     steps: ['Önce yavaş ve her sesi net söyleyerek oku.', 'Sonra hızlan; hata yapınca yeniden yavaşla.', 'Nefesi cümle başında al, ortada kesme.'],
     lines: ['Bir berber bir berbere "Gel beraber bir berber dükkânı açalım" demiş.'],
+    video: VIDEOS.tekerleme,
     reps: 3,
     sec: 8
   },
@@ -206,6 +215,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Ş ve S ayrımını, yayvan ve yuvarlak sesli geçişlerini çalıştırır.',
     steps: ['"Ş" ile "s"yi karıştırmadan, yavaştan hızlıya.'],
     lines: ['Şu köşe yaz köşesi, şu köşe kış köşesi, ortada su şişesi.'],
+    video: VIDEOS.tekerleme,
     reps: 3,
     sec: 7
   },
@@ -218,6 +228,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'K, L, R ve dil ucu sesleri; sözcük sonlarındaki r\'leri yutmadan söylemeyi çalıştırır.',
     steps: ['Her sözcüğün sonundaki "r"yi bırakma.'],
     lines: ['Kartal kalkar dal sarkar, dal sarkar kartal kalkar.'],
+    video: VIDEOS.tekerleme,
     reps: 3,
     sec: 6
   },
@@ -230,6 +241,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Ş-S-Z ıslıklıları ve ü-ü-e sesli geçişleri.',
     steps: ['Islıklı sesleri karıştırmadan, ağzı yeterince açarak.'],
     lines: ['Şemsipaşa Pasajı\'nda sesi büzüşesiceler.'],
+    video: VIDEOS.tekerleme,
     reps: 3,
     sec: 6
   },
@@ -242,6 +254,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Kısa ama zor: ç-t-s-h art arda; her ünsüzü net çıkarmayı öğretir.',
     steps: ['Kısa; 5 kez art arda, hiç takılmadan söylemeye çalış.'],
     lines: ['Üç tunç tas has hoşaf.'],
+    video: VIDEOS.tekerleme,
     reps: 5,
     sec: 4
   },
@@ -254,6 +267,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Uzun sözcüklerde nefes kontrolü ve hece netliği.',
     steps: ['Tek nefeste bitirmeye çalış; olmuyorsa virgülde nefes al.'],
     lines: ['Al bu takatukaları takatukacıya takatukalatmaya götür. Takatukacı takatukaları takatukalatmazsa takatukaları takatukacıdan takatukalatmadan geri getir.'],
+    video: VIDEOS.tekerleme,
     reps: 2,
     sec: 14
   },
@@ -266,6 +280,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'S-K-L dizileri ve soru tonlaması.',
     steps: ['Soru tonlamasını da ver: cümle sonu yükselsin.'],
     lines: ['Bu yoğurdu sarımsaklasak da mı saklasak, sarımsaklamasak da mı saklasak?'],
+    video: VIDEOS.tekerleme,
     reps: 3,
     sec: 8
   },
@@ -278,6 +293,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'K ve R yoğun; dil sırtı ve dil ucu arasında hızlı geçiş.',
     steps: ['Her "k"yı damaktan net patlat, "r"leri titret.'],
     lines: ['Kırk kırık küp, kırkının da kulpu kırık kara küp.'],
+    video: VIDEOS.tekerleme,
     reps: 3,
     sec: 6
   },
@@ -290,6 +306,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'K-P-T patlayıcıları ve ritim.',
     steps: ['Ritmini koruyarak, her sözcüğü ayrı ayrı duyurarak.'],
     lines: ['Değirmene girdi köpek, değirmenci çaldı kötek; hem kepek yedi köpek, hem kötek yedi köpek.'],
+    video: VIDEOS.tekerleme,
     reps: 3,
     sec: 9
   },
@@ -302,6 +319,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Tek uzun sözcükte hece hece netlik ve nefes.',
     steps: ['Önce hecelere bölerek: Çe-kos-lo-vak-ya-lı-laş-tı-ra-ma-dık-la-rı-mız-dan. Sonra bütün.'],
     lines: ['Çekoslovakyalılaştıramadıklarımızdan mısınız?', 'Ocak kıvılcımlandırıcılardan mısınız, kapı gıcırdatıcılardan mısınız?'],
+    video: VIDEOS.tekerleme,
     reps: 4,
     sec: 7
   },
@@ -320,6 +338,7 @@ export const DEXERCISES: DExercise[] = [
       'Sonra kalemi çıkar, aynı paragrafı yeniden oku; farkı hisset.'
     ],
     lines: ['KALEMLE: ' + PARAGRAF_1, 'KALEMSİZ: ' + PARAGRAF_1, 'KALEMLE: ' + PARAGRAF_2, 'KALEMSİZ: ' + PARAGRAF_2],
+    video: VIDEOS.kalem,
     reps: 4,
     sec: 30,
     tip: 'Çene ağrırsa ara ver; günde 5 dakikadan fazla yapma.'

@@ -39,6 +39,28 @@ export interface Exercise {
   hold: number // saniye: tutma suresi (mpt'de kullanilmaz)
   rest: number // saniye: tekrarlar arasi dinlenme
   caution?: string // bu egzersize ozel dikkat
+  video?: Video // nasil yapildigini gosteren YouTube videosu (harici, isteğe bagli)
+}
+
+export interface Video {
+  url: string
+  title: string
+  lang: 'tr' | 'en'
+}
+
+// Egzersiz videolari (YouTube; web aramasinda bulunan gercek baglantilar).
+// Uygulama disinda, telefonun tarayicisinda/YouTube'da acilir.
+export const VIDEOS = {
+  laxvox: { url: 'https://www.youtube.com/watch?v=I2kgqCa0kuE', title: 'DoctorVox Ses Terapisi Egzersiz #laxvox', lang: 'tr' as const },
+  glissando: { url: 'https://www.youtube.com/watch?v=ZuBRs2Nm0YU', title: 'DoctorVox · Glissando (perde kaydırma) #laxvox', lang: 'tr' as const },
+  pipet: { url: 'https://www.youtube.com/watch?v=UbuapADtz9c', title: 'Pipete Fonasyon – Ses Egzersizi', lang: 'tr' as const },
+  vfe: { url: 'https://www.youtube.com/watch?v=uM2TLN7nQW0', title: 'Vocal Function Exercises – Joseph Stemple (yöntemin sahibi)', lang: 'en' as const },
+  hga: { url: 'https://www.youtube.com/watch?v=MHa_JkztRGQ', title: 'Hard Glottal Attack', lang: 'en' as const },
+  phorte1: { url: 'https://www.youtube.com/watch?v=zNUGeFDSWlc', title: 'PhoRTE – Part 1', lang: 'en' as const },
+  phorte3: { url: 'https://www.youtube.com/watch?v=8aaHWfv32zc', title: 'PhoRTE – Part 3', lang: 'en' as const },
+  kalem: { url: 'https://m.youtube.com/watch?v=o7_TPc1vHKE', title: 'Diksiyon Eğitimi 5 – Kalem çalışması', lang: 'tr' as const },
+  tekerleme: { url: 'https://www.youtube.com/watch?v=40pRwpAgaFM', title: 'Tekerlemeler 3 – Diksiyon Egzersizleri', lang: 'tr' as const },
+  diksiyon: { url: 'https://www.youtube.com/watch?v=jetXqKPCUM0', title: 'Diksiyon Düzeltme Egzersizleri', lang: 'tr' as const }
 }
 
 export const EXERCISES: Exercise[] = [
@@ -155,6 +177,7 @@ export const EXERCISES: Exercise[] = [
       'Ses kısa ve tok olsun; bağırma.'
     ],
     cue: ['A!', 'E!', 'İ!', 'O!', 'U!'],
+    video: VIDEOS.hga,
     reps: 10,
     hold: 2,
     rest: 2,
@@ -252,6 +275,7 @@ export const EXERCISES: Exercise[] = [
       'Bitene kadar tut; süreyi her hafta uzatmaya çalış.'
     ],
     cue: 'iiii… (yumuşak, net)',
+    video: VIDEOS.vfe,
     reps: 2,
     hold: 12,
     rest: 5
@@ -271,6 +295,7 @@ export const EXERCISES: Exercise[] = [
       'Ses kopmadan, yumuşak ve kesintisiz kaysın; kopan yerleri zorlamadan geç.'
     ],
     cue: ['kalından İNCEYE: nooool', 'inceden KALINA: nooool'],
+    video: VIDEOS.glissando,
     reps: 4,
     hold: 6,
     rest: 3
@@ -290,6 +315,7 @@ export const EXERCISES: Exercise[] = [
       'Zorlanmadan; sesi öne, dudaklara odakla.'
     ],
     cue: ['1. nota: ooool', '2. nota: ooool', '3. nota: ooool', '4. nota: ooool', '5. nota: ooool'],
+    video: VIDEOS.vfe,
     reps: 5,
     hold: 10,
     rest: 4
@@ -309,6 +335,7 @@ export const EXERCISES: Exercise[] = [
       'Hedef: normal konuşmandan belirgin daha gür; ses kısılmadan.'
     ],
     cue: ['GÜR: aaaa…', 'GÜR kalından inceye: aaaa', 'GÜR inceden kalına: aaaa'],
+    video: VIDEOS.phorte1,
     reps: 3,
     hold: 8,
     rest: 5,
@@ -329,6 +356,7 @@ export const EXERCISES: Exercise[] = [
       'Boğazını sıkma; gücü nefesten al.'
     ],
     cue: ['YÜKSEK: "Günaydın, nasılsın?"', 'ALÇAK: "Günaydın, nasılsın?"', 'YÜKSEK: "Kapıyı kapatır mısın?"', 'ALÇAK: "Kapıyı kapatır mısın?"', 'YÜKSEK: "Bugün hava çok güzel."', 'ALÇAK: "Bugün hava çok güzel."'],
+    video: VIDEOS.phorte3,
     reps: 6,
     hold: 4,
     rest: 3,
@@ -350,6 +378,7 @@ export const EXERCISES: Exercise[] = [
       'Süre dolana kadar sürdür; ikinci sette perdeyi hafifçe aşağı-yukarı kaydır, üçüncü sette kısa cümleler mırıldan.'
     ],
     cue: ['uuu… (kabarcıklar düzenli)', 'uuu… kalından inceye ve geri', 'tüpten "merhaba, nasılsın" mırıldan'],
+    video: VIDEOS.laxvox,
     reps: 3,
     hold: 20,
     rest: 8,
@@ -371,6 +400,7 @@ export const EXERCISES: Exercise[] = [
       'İstersen perdeyi hafifçe aşağı yukarı kaydır.'
     ],
     cue: 'uuu… (pipetten)',
+    video: VIDEOS.pipet,
     reps: 2,
     hold: 15,
     rest: 5
