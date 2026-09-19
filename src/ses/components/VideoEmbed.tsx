@@ -10,8 +10,10 @@ export function youtubeId(url: string): string | null {
   return m ? m[1] : null
 }
 
-export default function VideoEmbed({ video }: { video?: Video }) {
-  const [play, setPlay] = useState(false)
+// immediate: oynatici hemen yuklenir (kapak/dokunma adimi yok) — egzersiz
+// giris ekraninda kullanilir; listelerde kapak resmi + oynat kullanilir.
+export default function VideoEmbed({ video, immediate }: { video?: Video; immediate?: boolean }) {
+  const [play, setPlay] = useState(!!immediate)
   const [imgOk, setImgOk] = useState(true)
   if (!video) return null
   const id = youtubeId(video.url)
@@ -22,7 +24,7 @@ export default function VideoEmbed({ video }: { video?: Video }) {
         {play ? (
           <iframe
             className="absolute inset-0 w-full h-full"
-            src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0&hl=tr&cc_lang_pref=tr`}
+            src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=${immediate ? 0 : 1}&playsinline=1&rel=0&hl=tr&cc_lang_pref=tr&cc_load_policy=${video.lang === 'tr' ? 0 : 1}`}
             title={video.title}
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
