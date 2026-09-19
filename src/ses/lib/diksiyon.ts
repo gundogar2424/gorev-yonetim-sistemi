@@ -22,6 +22,7 @@ export interface DExercise {
   sec: number // bir tekrar icin saniye (orta tempoda)
   tip?: string
   video?: Video // nasil yapildigini gosteren YouTube videosu
+  clip?: string // uygulamaya gomulu kisa gosterim videosu
 }
 
 export const DGROUP_LABEL: Record<DGroup, string> = {
@@ -59,6 +60,7 @@ export const DEXERCISES: DExercise[] = [
     ],
     lines: ['AL (4) · TUT (4) · VER "sssss" (8)'],
     video: VIDEOS.nefes,
+    clip: './ses-video/karin-nefesi.mp4',
     reps: 5,
     sec: 16
   },

@@ -9,6 +9,7 @@ import { activeDExercises, addSession, dSecFor, readSettings, updateSession, typ
 import { accuracyComment, listenOnce, scoreText, speechAvailable, speechPermission, type Listener, type Score } from '../lib/speech'
 import Rating from '../components/Rating'
 import VideoEmbed from '../components/VideoEmbed'
+import ClipPlayer from '../components/ClipPlayer'
 import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
@@ -329,10 +330,16 @@ export default function DiksiyonSession() {
       <div className="flex-1 flex flex-col">
         <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · ${DGROUP_LABEL[ex.group]}`} compact back={() => (done.length > 0 || idx > 0 ? bitir(done) : navigate(-1))} />
         <div className="px-4 space-y-5 pb-8 flex-1 flex flex-col">
-          {ex.video && (
-            <section className="ses-card">
-              <h3 className="ses-label mb-2">Başlamadan önce izle · ▶ dokun, oynasın</h3>
-              <VideoEmbed video={ex.video} immediate />
+          {(ex.clip || ex.video) && (
+            <section className="ses-card space-y-3">
+              <h3 className="ses-label">Başlamadan önce izle · ▶ dokun, oynasın</h3>
+              {ex.clip && <ClipPlayer src={ex.clip} title="Kısa gösterim (internetsiz çalışır)" />}
+              {ex.video && (
+                <div>
+                  {ex.clip && <h4 className="text-[15px] font-semibold text-slate-700 dark:text-[#e2d5cd] mb-2">Uzun anlatım (YouTube)</h4>}
+                  <VideoEmbed video={ex.video} immediate={!ex.clip} />
+                </div>
+              )}
             </section>
           )}
           <section className="ses-card">
