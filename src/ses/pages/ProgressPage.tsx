@@ -2,13 +2,16 @@ import { useState } from 'react'
 import SesHeader from '../SesHeader'
 import LineChart from '../components/LineChart'
 import { findExercise } from '../lib/content'
-import { bestMpt, deleteMpt, deleteSession, lastDaysActivity, readMpt, readSessions, stats, streakDays } from '../lib/store'
+import { findDExercise } from '../lib/diksiyon'
+import { bestMpt, deleteMpt, deleteSession, lastDaysActivity, readMpt, readSessions, sessionKind, stats, streakDays } from '../lib/store'
 import { fmtDay, fmtMinutes, fmtShort } from '../lib/date'
 
 export default function ProgressPage() {
   const [, bump] = useState(0)
   const sessions = readSessions()
   const st = stats(sessions)
+  const nSes = sessions.filter((s) => sessionKind(s) === 'ses').length
+  const nDik = sessions.length - nSes
   const seri = streakDays()
   const gunler = lastDaysActivity(7)
   const maxG = Math.max(1, ...gunler.map((g) => g.count))
@@ -23,7 +26,7 @@ export default function ProgressPage() {
       <div className="px-4 space-y-4 pb-6">
         <div className="grid grid-cols-3 gap-2">
           <Kutu deger={String(seri)} etiket="gün seri" />
-          <Kutu deger={String(st.count)} etiket="seans" />
+          <Kutu deger={String(st.count)} etiket={`seans (${nSes} ses · ${nDik} diksiyon)`} />
           <Kutu deger={String(st.minutes)} etiket="dakika" />
         </div>
 
@@ -75,11 +78,18 @@ export default function ProgressPage() {
               {[...sessions].reverse().map((s) => (
                 <li key={s.id} className="ses-card">
                   <div className="flex items-center justify-between">
-                    <span className="text-[15px] font-semibold text-slate-800 dark:text-[#f5ece4]">{fmtShort(s.t)}</span>
+                    <span className="text-[15px] font-semibold text-slate-800 dark:text-[#f5ece4]">
+                      {sessionKind(s) === 'diksiyon' ? '🗣️ Diksiyon' : '🎤 Ses'} · {fmtShort(s.t)}
+                    </span>
                     <span className="text-[14px] text-slate-500 dark:text-[#a3908a]">{fmtMinutes(s.ms)}</span>
                   </div>
                   <div className="text-[14px] text-slate-600 dark:text-[#d8c8bf] mt-1">
-                    {s.done.map((d) => `${findExercise(d.id)?.emoji ?? ''} ${findExercise(d.id)?.name ?? d.id}${d.mpt ? ` (${d.mpt.toFixed(1).replace('.', ',')} sn)` : ''}`).join(' · ')}
+                    {s.done
+                      .map((d) => {
+                        const e = sessionKind(s) === 'diksiyon' ? findDExercise(d.id) : findExercise(d.id)
+                        return `${e?.emoji ?? ''} ${e?.name ?? d.id}${d.mpt ? ` (${d.mpt.toFixed(1).replace('.', ',')} sn)` : ''}`
+                      })
+                      .join(' · ')}
                   </div>
                   {s.note && <div className="text-[14px] italic text-slate-500 dark:text-[#a3908a] mt-1">“{s.note}”</div>}
                   <button

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import SesHeader from '../SesHeader'
 import Switch from '../components/Switch'
 import { DISCLAIMER, EXERCISES } from '../lib/content'
+import { DEXERCISES, DGROUP_LABEL, DTEMPO_LABEL, type DGroup, type DTempo } from '../lib/diksiyon'
 import { downloadBackup, LEVEL_LABEL, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Level, type Reminder } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample } from '../lib/sound'
@@ -98,6 +99,35 @@ export default function SesSettings() {
               checked={!ayar.disabled.includes(e.id)}
               onChange={(v) => setAyar(saveSettings({ disabled: v ? ayar.disabled.filter((x) => x !== e.id) : [...ayar.disabled, e.id] }))}
             />
+          ))}
+        </section>
+
+        <section className="ses-card space-y-3">
+          <h3 className="ses-label">Diksiyon</h3>
+          <div>
+            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Okuma temposu</span>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {(['yavas', 'orta', 'hizli'] as DTempo[]).map((v) => (
+                <button key={v} onClick={() => setAyar(saveSettings({ dTempo: v }))} className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${ayar.dTempo === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                  {DTEMPO_LABEL[v]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-1">Her satır için verilen süreyi ayarlar. Başlarken Yavaş seç; netleşince hızlan.</p>
+          </div>
+          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Diksiyon seansındaki egzersizler:</p>
+          {(['nefes', 'sesli', 'unsuz', 'tekerleme', 'kalem', 'vurgu'] as DGroup[]).map((g) => (
+            <div key={g}>
+              <div className="text-[12px] font-semibold text-slate-400 dark:text-[#a3908a] mt-2 mb-1">{DGROUP_LABEL[g]}</div>
+              {DEXERCISES.filter((e) => e.group === g).map((e) => (
+                <Switch
+                  key={e.id}
+                  label={`${e.emoji} ${e.name}`}
+                  checked={!ayar.dDisabled.includes(e.id)}
+                  onChange={(v) => setAyar(saveSettings({ dDisabled: v ? ayar.dDisabled.filter((x) => x !== e.id) : [...ayar.dDisabled, e.id] }))}
+                />
+              ))}
+            </div>
           ))}
         </section>
 

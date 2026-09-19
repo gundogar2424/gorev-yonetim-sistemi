@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SesHeader from '../SesHeader'
 import { DISCLAIMER, tipOfDay } from '../lib/content'
-import { activeExercises, bestMpt, estimateMinutes, readSessions, readSettings, saveSettings, sessionsToday, streakDays } from '../lib/store'
+import { activeDExercises, activeExercises, bestMpt, estimateDMinutes, estimateMinutes, readSessions, readSettings, saveSettings, sessionKind, sessionsToday, streakDays } from '../lib/store'
 import { fmtMinutes, fmtShort } from '../lib/date'
 
 function selam(): string {
@@ -22,6 +22,8 @@ export default function Home() {
   const best = bestMpt()
   const dk = estimateMinutes(ayar)
   const n = activeExercises(ayar).length
+  const dn = activeDExercises(ayar).length
+  const ddk = estimateDMinutes(ayar)
   const tip = tipOfDay(Math.floor(Date.now() / 86400000))
 
   if (!ayar.accepted) {
@@ -83,6 +85,27 @@ export default function Home() {
           </button>
         </section>
 
+        {/* Diksiyon */}
+        <section className="ses-card">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[30px]">🗣️</div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Diksiyon seansı</h2>
+              <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">
+                {dn} egzersiz · yaklaşık {ddk} dk · nefes, harfler, tekerlemeler, vurgu
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <button className="ses-btn-primary text-[17px]" onClick={() => navigate('/diksiyon-seans')}>
+              ▶ Başla
+            </button>
+            <button className="ses-btn-soft text-[17px]" onClick={() => navigate('/diksiyon')}>
+              Egzersizler
+            </button>
+          </div>
+        </section>
+
         {/* Olcum */}
         <section className="ses-card flex items-center gap-3">
           <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[30px]">⏱️</div>
@@ -115,6 +138,7 @@ export default function Home() {
                 <li key={s.id} className="py-2 flex items-center justify-between text-[15px]">
                   <span className="text-slate-500 dark:text-[#a3908a]">{fmtShort(s.t)}</span>
                   <span className="text-slate-800 dark:text-[#f5ece4]">
+                    {sessionKind(s) === 'diksiyon' ? '🗣️ ' : '🎤 '}
                     {s.done.length} egzersiz · {fmtMinutes(s.ms)}
                   </span>
                 </li>

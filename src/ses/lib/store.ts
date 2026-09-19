@@ -2,6 +2,7 @@
 // 'ses-' onekiyle baslar; diger programlarin verisine dokunulmaz.
 import { todayKey } from './date'
 import { EXERCISES } from './content'
+import { DEFAULT_DISABLED_D, DEXERCISES, DTEMPO_MULT, type DTempo } from './diksiyon'
 
 export type Level = 'hafif' | 'orta' | 'yogun'
 export const LEVEL_MULT: Record<Level, number> = { hafif: 0.6, orta: 1, yogun: 1.4 }
@@ -22,7 +23,11 @@ export interface Settings {
   disabled: string[] // kapali egzersiz id'leri
   reminders: Reminder[]
   accepted: boolean // uyari metni onaylandi mi
+  dDisabled: string[] // kapali DIKSIYON egzersizleri
+  dTempo: DTempo // diksiyon okuma temposu
 }
+
+export type SessionKind = 'ses' | 'diksiyon'
 
 export interface DoneExercise {
   id: string
@@ -37,6 +42,11 @@ export interface Session {
   ms: number // toplam sure
   done: DoneExercise[]
   note?: string
+  kind?: SessionKind // yok = 'ses' (adduksiyon)
+}
+
+export function sessionKind(s: Session): SessionKind {
+  return s.kind === 'diksiyon' ? 'diksiyon' : 'ses'
 }
 
 export interface MptRecord {
@@ -98,7 +108,9 @@ export function readSettings(): Settings {
     countdown: s.countdown ?? true,
     disabled: Array.isArray(s.disabled) ? s.disabled.filter((x) => typeof x === 'string') : [],
     reminders: rem,
-    accepted: s.accepted ?? false
+    accepted: s.accepted ?? false,
+    dDisabled: Array.isArray(s.dDisabled) ? s.dDisabled.filter((x) => typeof x === 'string') : [...DEFAULT_DISABLED_D],
+    dTempo: s.dTempo === 'yavas' || s.dTempo === 'hizli' ? s.dTempo : 'orta'
   }
 }
 
@@ -125,6 +137,22 @@ export function estimateMinutes(s = readSettings()): number {
     if (e.mode === 'mpt') sec += n * (15 + e.rest) + 10
     else sec += n * (e.hold + e.rest) + 8
   }
+  return Math.max(1, Math.round(sec / 60))
+}
+
+// Diksiyon seansinda yapilacak egzersizler
+export function activeDExercises(s = readSettings()) {
+  return DEXERCISES.filter((e) => !s.dDisabled.includes(e.id))
+}
+
+export function dSecFor(base: number, s = readSettings()): number {
+  return Math.max(2, Math.round(base * DTEMPO_MULT[s.dTempo]))
+}
+
+// Tahmini diksiyon seansi suresi (dakika)
+export function estimateDMinutes(s = readSettings()): number {
+  let sec = 0
+  for (const e of activeDExercises(s)) sec += e.reps * (dSecFor(e.sec, s) + 2) + 6
   return Math.max(1, Math.round(sec / 60))
 }
 
@@ -157,9 +185,9 @@ export function deleteSession(id: string): void {
   )
 }
 
-export function sessionsToday(): number {
+export function sessionsToday(kind?: SessionKind): number {
   const d = todayKey()
-  return readSessions().filter((s) => s.d === d).length
+  return readSessions().filter((s) => s.d === d && (!kind || sessionKind(s) === kind)).length
 }
 
 // ---- MPT olcumleri ----

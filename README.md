@@ -148,10 +148,11 @@ Bu depodaki **altıncı bağımsız program**: **Ses Egzersizi**. Kendi giriş s
 |---|---|
 | ▶ **Rehberli seans** | Egzersizler sırayla: önce nasıl yapılacağı, sonra her tekrar için 3-2-1 geri sayım, tutma süresi (büyük rakam + söylenecek ses), dinlenme arası; sesli tık/işaret ve titreşim; tekrar noktaları; duraklat / ileri / atla; ekran uyumaz |
 | 📋 **Egzersizler** | Isınma (dudak titretme, mırıldanma) · Addüksiyon (itme ile "A!", çekme ile "A!", sert başlangıçlı sesli harfler, öksürükten sese, yarım yutkunma "bum", başı çevirerek "iii", uzun "A" tutma, perde kaydırma, yüksek sesle sayma) · Soğutma (pipetle ses). Her biri için *neden yapılır*, *nasıl yapılır*, söylenecek ses ve varsa *dikkat* notu; tek başına yapma ve seanstan çıkarma |
+| 🗣️ **Diksiyon** | Aynı uygulamada ayrı sekme: nefes (diyafram, uzun "s"), sesli harfler (ağız şekli tarifiyle 8 sesli, geçişler), ünsüz/hece dizileri (dudak, diş-dudak, dil ucu, "r", damak, ıslıklı), 10 klasik tekerleme, kalemle okuma, vurgu değiştirme, tonlama, hız kontrolü. Rehberli diksiyon seansı: her satır büyük yazıyla, tempoya (yavaş/orta/hızlı) göre süre çubuğu, ◀/⏸/▶▶/atla, isteğe bağlı ses düzeyi çubuğu; egzersizler tek tek aç/kapat |
 | ⏱️ **Ses ölçümü (MPT)** | En uzun "A" tutma süresi: mikrofon açılınca ses başladığında kronometre kendiliğinden başlar, sessizlikte durur; ses düzeyi çubuğu; sonuç yorumu; kayıt. Mikrofon izni yoksa elle kronometre. Ses **kaydedilmez**, yalnızca anlık ölçülür |
 | 🔔 **Günlük hatırlatma** | 3 ayrı saate kadar "egzersiz zamanı" bildirimi (yalnızca APK'da); bildirime dokununca seans açılır |
-| 📈 **İlerleme** | Seri (üst üste gün), seans/dakika sayısı, son 7 gün çubukları, MPT çizgi grafiği (10 sn hedef çizgisi), seans ve ölçüm listeleri, silme |
-| ⚙️ **Ayarlar** | Ad, yoğunluk (hafif/orta/yoğun = tekrar çarpanı), geri sayım, egzersiz aç/kapat, hatırlatma saatleri, ses/titreşim, tema, büyük yazı, yedek al/geri yükle, tümünü sil, uyarı metni |
+| 📈 **İlerleme** | Seri (üst üste gün), seans/dakika sayısı (ses ve diksiyon ayrı sayılır), son 7 gün çubukları, MPT çizgi grafiği (10 sn hedef çizgisi), seans ve ölçüm listeleri, silme |
+| ⚙️ **Ayarlar** | Ad, yoğunluk (hafif/orta/yoğun = tekrar çarpanı), geri sayım, egzersiz aç/kapat, diksiyon temposu ve diksiyon egzersizleri, hatırlatma saatleri, ses/titreşim, tema, büyük yazı, yedek al/geri yükle, tümünü sil, uyarı metni |
 
 İlk açılışta uyarı metni gösterilir ve onaylatılır: ağrı, yanma, ses kısıklığında artış ya da baş dönmesinde durulmalı; itme/çekme egzersizleri kan basıncını geçici yükselttiği için tansiyon/kalp/glokom/fıtık sorunu olanlar önce hekime sormalıdır.
 

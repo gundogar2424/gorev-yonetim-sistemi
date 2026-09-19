@@ -7,9 +7,11 @@ import ExercisesPage from './pages/ExercisesPage'
 import ExerciseDetail from './pages/ExerciseDetail'
 import ProgressPage from './pages/ProgressPage'
 import SesSettings from './pages/SesSettings'
+import DiksiyonPage from './pages/DiksiyonPage'
+import DiksiyonSession from './pages/DiksiyonSession'
 import { installNotificationTap } from './lib/notify'
 
-type IconName = 'home' | 'list' | 'chart' | 'settings'
+type IconName = 'home' | 'list' | 'mic' | 'chart' | 'settings'
 
 function NavIcon({ name, className }: { name: IconName; className?: string }) {
   const common = {
@@ -41,6 +43,15 @@ function NavIcon({ name, className }: { name: IconName; className?: string }) {
           <path d="M3 18h.01" />
         </svg>
       )
+    case 'mic':
+      return (
+        <svg {...common}>
+          <rect x="9" y="3" width="6" height="11" rx="3" />
+          <path d="M5 11a7 7 0 0 0 14 0" />
+          <path d="M12 18v3" />
+          <path d="M9 21h6" />
+        </svg>
+      )
     case 'chart':
       return (
         <svg {...common}>
@@ -62,7 +73,8 @@ function NavIcon({ name, className }: { name: IconName; className?: string }) {
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Bugün', icon: 'home', end: true },
-  { to: '/egzersizler', label: 'Egzersizler', icon: 'list', end: false },
+  { to: '/egzersizler', label: 'Egzersiz', icon: 'list', end: false },
+  { to: '/diksiyon', label: 'Diksiyon', icon: 'mic', end: false },
   { to: '/ilerleme', label: 'İlerleme', icon: 'chart', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: 'settings', end: false }
 ]
@@ -75,7 +87,7 @@ export default function SesApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // Seans ve olcum sirasinda alt menu gizlenir: dikkat dagilmasin.
-  const inSession = loc.pathname.startsWith('/seans') || loc.pathname.startsWith('/olcum')
+  const inSession = loc.pathname.startsWith('/seans') || loc.pathname.startsWith('/olcum') || loc.pathname.startsWith('/diksiyon-seans')
   return (
     <div className="ses-app min-h-full min-h-[100dvh] flex flex-col max-w-xl mx-auto">
       <main className="flex-1 flex flex-col" style={{ paddingBottom: inSession ? 0 : 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
@@ -85,6 +97,8 @@ export default function SesApp() {
           <Route path="/olcum" element={<Measure />} />
           <Route path="/egzersizler" element={<ExercisesPage />} />
           <Route path="/egzersiz/:id" element={<ExerciseDetail />} />
+          <Route path="/diksiyon" element={<DiksiyonPage />} />
+          <Route path="/diksiyon-seans" element={<DiksiyonSession key={loc.search} />} />
           <Route path="/ilerleme" element={<ProgressPage />} />
           <Route path="/ayarlar" element={<SesSettings />} />
         </Routes>
@@ -92,7 +106,7 @@ export default function SesApp() {
 
       {!inSession && (
         <nav
-          className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-4 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#1a1410]/85 border-t border-slate-200/60 dark:border-[#4a3a30]"
+          className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-5 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#1a1410]/85 border-t border-slate-200/60 dark:border-[#4a3a30]"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           {tabs.map((t) => (
@@ -100,7 +114,7 @@ export default function SesApp() {
               {({ isActive }) => (
                 <>
                   <NavIcon name={t.icon} className={`h-[24px] w-[24px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-slate-400 dark:text-[#a3908a]'}`} />
-                  <span className={`text-[12px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-400 dark:text-[#a3908a] font-medium'}`}>
+                  <span className={`text-[11px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-400 dark:text-[#a3908a] font-medium'}`}>
                     {t.label}
                   </span>
                 </>
