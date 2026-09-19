@@ -13,7 +13,7 @@ export default function VideoButton({ video, compact }: { video?: Video; compact
     >
       <span className="text-[26px]">🎬</span>
       <span className="flex-1 min-w-0">
-        <span className="block">{compact ? 'YouTube\'da aç' : 'Videoyu izle'}{video.lang === 'en' ? ' (İngilizce)' : ''}</span>
+        <span className="block">{compact ? 'YouTube\'da aç' : 'Videoyu izle'}{video.lang === 'en' ? ' (İngilizce)' : video.lang === 'fr' ? ' (Fransızca)' : ''}</span>
         <span className="block text-[14px] font-normal text-rose-600/80 dark:text-rose-200/80 truncate">{video.title}</span>
       </span>
       <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2}>

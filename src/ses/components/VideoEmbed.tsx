@@ -40,7 +40,7 @@ export default function VideoEmbed({ video }: { video?: Video }) {
             </span>
             <span className="absolute left-3 right-3 bottom-3 text-left text-white text-[15px] font-semibold drop-shadow">
               🎬 Nasıl yapılır: {video.title}
-              {video.lang === 'en' ? ' (İngilizce)' : ''}
+              {video.lang === 'en' ? ' (İngilizce)' : video.lang === 'fr' ? ' (Fransızca)' : ''}
             </span>
           </button>
         )}
