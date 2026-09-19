@@ -123,6 +123,7 @@ export const EXERCISES: Exercise[] = [
     ],
     cue: 'brrr…',
     video: VIDEOS.tril,
+    clip: './ses-video/dudak-tril.mp4',
     reps: 3,
     hold: 10,
     rest: 5
