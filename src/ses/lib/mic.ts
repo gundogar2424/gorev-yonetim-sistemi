@@ -141,14 +141,15 @@ export function mptStep(st: MptState, f: MicFrame, now: number, mem: { t0: numbe
   return st
 }
 
-// Yetiskinlerde tipik MPT: kadin ~15-25 sn, erkek ~25-35 sn. 10 sn'nin
-// altindaki degerler ses tellerinin tam kapanmadigina isaret edebilir.
-// Yalnizca BILGI amacli; tani koymaz.
+// Yetiskinlerde tipik MPT: kadin ~15-25 sn, erkek ~25-35 sn (Iowa Voice Clinic
+// protokolleri); yaslilarda kadin 10-21, erkek 13-23 sn. 10 sn'nin altinda
+// konusurken nefessiz kalma bildirilir; 12 sn'nin alti yasa bagli ses
+// zayifligi olasiligini artirir. Yalnizca BILGI amacli; tani koymaz.
 export function mptComment(sec: number): string {
   if (sec <= 0) return ''
   if (sec < 5) return 'Çok kısa. Nefesi derin al, sesi rahat tut. Zamanla uzayacak.'
-  if (sec < 10) return 'Kısa sayılır; düzenli egzersizle uzaması beklenir.'
-  if (sec < 15) return 'Orta. İyi gidiyorsun, sürdür.'
-  if (sec < 25) return 'İyi bir süre 👏'
-  return 'Çok iyi! Ses tellerin verimli kapanıyor.'
+  if (sec < 10) return '10 sn altı: konuşurken nefessiz kalmayla ilişkili aralık. Düzenli egzersizle uzaması beklenir; hekimin/terapistinle paylaş.'
+  if (sec < 15) return 'Orta (yaşlı yetişkinlerde normal aralığın içinde). İyi gidiyorsun, sürdür.'
+  if (sec < 25) return 'İyi bir süre 👏 (yetişkin kadın normali 15-25 sn)'
+  return 'Çok iyi! (yetişkin erkek normali 25-35 sn) Ses tellerin verimli kapanıyor.'
 }

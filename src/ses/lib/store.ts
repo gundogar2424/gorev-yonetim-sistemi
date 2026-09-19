@@ -1,7 +1,7 @@
 // Tum kayit localStorage'da (kucuk veri; veritabani gerekmez). Anahtarlar
 // 'ses-' onekiyle baslar; diger programlarin verisine dokunulmaz.
 import { todayKey } from './date'
-import { EXERCISES } from './content'
+import { DEFAULT_DISABLED, EXERCISES } from './content'
 import { DEFAULT_DISABLED_D, DEXERCISES, DTEMPO_MULT, type DTempo } from './diksiyon'
 import type { AcousticResult } from './acoustic'
 
@@ -28,6 +28,7 @@ export interface Settings {
   dTempo: DTempo // diksiyon okuma temposu
   score: boolean // diksiyonda konusma tanima ile puanlama acik mi
   apiKey: string // Claude API anahtari (yapay zeka geri bildirimi; yalnizca cihazda)
+  dailyGoal: number // gunluk hedef seans sayisi (1-3; arastirmalarda 2)
 }
 
 export type SessionKind = 'ses' | 'diksiyon'
@@ -150,14 +151,20 @@ export function readSettings(): Settings {
     vibrate: s.vibrate ?? true,
     level: s.level === 'hafif' || s.level === 'yogun' ? s.level : 'orta',
     countdown: s.countdown ?? true,
-    disabled: Array.isArray(s.disabled) ? s.disabled.filter((x) => typeof x === 'string') : [],
+    disabled: Array.isArray(s.disabled) ? s.disabled.filter((x) => typeof x === 'string') : [...DEFAULT_DISABLED],
     reminders: rem,
     accepted: s.accepted ?? false,
     dDisabled: Array.isArray(s.dDisabled) ? s.dDisabled.filter((x) => typeof x === 'string') : [...DEFAULT_DISABLED_D],
     dTempo: s.dTempo === 'yavas' || s.dTempo === 'hizli' ? s.dTempo : 'orta',
     score: s.score ?? true,
-    apiKey: typeof s.apiKey === 'string' ? s.apiKey : ''
+    apiKey: typeof s.apiKey === 'string' ? s.apiKey : '',
+    dailyGoal: [1, 2, 3].includes(Number(s.dailyGoal)) ? Number(s.dailyGoal) : 2
   }
+}
+
+// Son 7 gun: her gun hedefe ulasildi mi (eski -> yeni)
+export function weekGoal(goal = readSettings().dailyGoal): { key: string; label: string; count: number; ok: boolean }[] {
+  return lastDaysActivity(7).map((g) => ({ ...g, ok: g.count >= goal }))
 }
 
 // Seans icindeki puanlarin ozeti (ilerleme grafikleri icin)

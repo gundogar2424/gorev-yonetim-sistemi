@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SesHeader from '../SesHeader'
 import { DISCLAIMER, tipOfDay } from '../lib/content'
-import { activeDExercises, activeExercises, bestMpt, estimateDMinutes, estimateMinutes, readSessions, readSettings, saveSettings, sessionKind, sessionsToday, streakDays } from '../lib/store'
+import { activeDExercises, activeExercises, bestMpt, estimateDMinutes, estimateMinutes, readSessions, readSettings, saveSettings, sessionKind, sessionsToday, streakDays, weekGoal } from '../lib/store'
 import { fmtMinutes, fmtShort } from '../lib/date'
 
 function selam(): string {
@@ -25,6 +25,8 @@ export default function Home() {
   const dn = activeDExercises(ayar).length
   const ddk = estimateDMinutes(ayar)
   const tip = tipOfDay(Math.floor(Date.now() / 86400000))
+  const hafta = weekGoal(ayar.dailyGoal)
+  const bugunOk = bugun >= ayar.dailyGoal
 
   if (!ayar.accepted) {
     return (
@@ -65,6 +67,34 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Gunluk hedef */}
+        <section className="ses-card">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-[#f5ece4]">🎯 Bugünün hedefi</h2>
+            <span className={`ses-pill ${bugunOk ? '!bg-emerald-50 !text-emerald-700 dark:!bg-[#1f2e22] dark:!text-emerald-300' : ''}`}>
+              {Math.min(bugun, ayar.dailyGoal)} / {ayar.dailyGoal} seans{bugunOk ? ' ✔' : ''}
+            </span>
+          </div>
+          <div className="flex gap-2 mt-3">
+            {Array.from({ length: ayar.dailyGoal }).map((_, i) => (
+              <div key={i} className={`flex-1 h-3 rounded-full ${i < bugun ? 'bg-ses-600' : 'bg-slate-200 dark:bg-[#4a3a30]'}`} />
+            ))}
+          </div>
+          <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-2">
+            {bugunOk ? 'Bugünlük tamam. Yarın yine görüşürüz.' : ayar.dailyGoal === 2 ? (bugun === 0 ? 'Sabah bir seans, akşam bir seans: araştırmalarda etkili bulunan doz.' : 'Bir seans daha kaldı (akşam için ideal).') : `${ayar.dailyGoal - bugun} seans kaldı.`}
+          </p>
+          <div className="flex items-end justify-between gap-1.5 mt-3">
+            {hafta.map((g) => (
+              <div key={g.key} className="flex-1 flex flex-col items-center gap-1">
+                <div className={`w-8 h-8 rounded-full grid place-items-center text-[13px] font-bold ${g.ok ? 'bg-ses-600 text-white' : g.count > 0 ? 'bg-ses-100 text-ses-700 dark:bg-[#4a3a30] dark:text-ses-300' : 'bg-slate-100 dark:bg-[#352820] text-slate-400 dark:text-[#a3908a]'}`}>
+                  {g.ok ? '✓' : g.count > 0 ? g.count : '·'}
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-[#a3908a]">{g.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Seans */}
         <section className="ses-card">

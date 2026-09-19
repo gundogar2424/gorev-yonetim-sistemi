@@ -29,7 +29,11 @@ export default function AcousticCard({ ac, compact }: { ac: AcousticResult; comp
         ))}
       </ul>
       {!compact && <p className="text-[13px] text-slate-600 dark:text-[#d8c8bf] mt-2">{acousticComment(ac)}</p>}
-      {!compact && <p className="text-[11px] text-slate-400 dark:text-[#a3908a] mt-1">Telefon mikrofonuyla ölçüldü; sayılar kendi geçmişinle karşılaştırmak içindir, tanı koymaz.</p>}
+      {!compact && (
+        <p className="text-[11px] text-slate-400 dark:text-[#a3908a] mt-1">
+          Telefon mikrofonuyla ölçüldü: perde ve jitter güvenilir, shimmer ve HNR mikrofona/gürültüye duyarlı (2025 meta-analizi). Aynı telefon, aynı oda, aynı uzaklıkla ölçüp kendi geçmişinle karşılaştır; tanı koymaz.
+        </p>
+      )}
     </div>
   )
 }

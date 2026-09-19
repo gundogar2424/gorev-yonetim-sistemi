@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import SesHeader from '../SesHeader'
 import Switch from '../components/Switch'
 import { DISCLAIMER, EXERCISES } from '../lib/content'
+import { SOURCES } from '../lib/sources'
 import { DEXERCISES, DGROUP_LABEL, DTEMPO_LABEL, type DGroup, type DTempo } from '../lib/diksiyon'
 import { downloadBackup, LEVEL_LABEL, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Level, type Reminder } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
@@ -87,6 +88,17 @@ export default function SesSettings() {
             <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-1">Hafif: %60 · Orta: standart · Yoğun: %140. Sesin yorgunsa Hafif seç.</p>
           </div>
           <Switch label="Her tekrardan önce 3-2-1 geri sayım" checked={ayar.countdown} onChange={(v) => setAyar(saveSettings({ countdown: v }))} />
+          <div>
+            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Günlük hedef (seans sayısı)</span>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {[1, 2, 3].map((n) => (
+                <button key={n} onClick={() => setAyar(saveSettings({ dailyGoal: n }))} className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${ayar.dailyGoal === n ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                  {n} / gün
+                </button>
+              ))}
+            </div>
+            <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-1">Araştırmalarda etkili bulunan doz günde 2 kısa seans (sabah/akşam), 6-8 hafta. Ana sayfadaki hedef kartı buna göre işler.</p>
+          </div>
         </section>
 
         <section className="ses-card space-y-2">
@@ -255,6 +267,21 @@ export default function SesSettings() {
           >
             Tüm verileri sil
           </button>
+        </section>
+
+        <section className="ses-card space-y-2">
+          <h3 className="ses-label">Kaynaklar</h3>
+          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Egzersiz seçimi, dozu ve ölçüm eşikleri aşağıdaki çalışmalara dayanır. Bağlantılar özet sayfalarını açar.</p>
+          <ul className="space-y-2">
+            {SOURCES.map((k) => (
+              <li key={k.url} className="text-[13px]">
+                <a href={k.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-ses-700 dark:text-ses-300 underline">
+                  {k.title}
+                </a>
+                <span className="block text-slate-600 dark:text-[#d8c8bf]">{k.note}</span>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="ses-card space-y-2">

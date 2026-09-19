@@ -64,8 +64,8 @@ export default function Measure() {
         </section>
 
         <p className="text-[13px] text-slate-500 dark:text-[#a3908a] px-1">
-          Bilgi: mikrofonla ölçümde süreyle birlikte ses kalitesi de hesaplanır (perde, nefeslilik, titreme); "Ölçümü başlat" ile sessiz bir odada yap. Yetişkinlerde tipik süre kadınlarda 15-25 sn, erkeklerde 25-35 sn dolayındadır. 10 sn'nin altı ses tellerinin tam kapanmadığına işaret edebilir.
-          Bu ölçüm tanı koymaz; sonucu hekimin/terapistinle paylaş.
+          Bilgi: mikrofonla ölçümde süreyle birlikte ses kalitesi de hesaplanır (perde, nefeslilik, titreme); "Ölçümü başlat" ile sessiz bir odada yap. Yetişkinlerde tipik süre kadınlarda 15-25 sn, erkeklerde 25-35 sn; 65 yaş üstünde kadın 10-21, erkek 13-23 sn. 10 sn'nin altı konuşurken nefessiz kalmayla, 12 sn'nin altı yaşa bağlı ses zayıflığı olasılığıyla ilişkilendirilmiştir.
+          Ses kalitesi sayılarından perde ve jitter telefonda güvenilirdir; shimmer ve HNR telefon mikrofonundan etkilenir, yalnızca kendi geçmişinle karşılaştır. Bu ölçüm tanı koymaz; sonucu hekimin/terapistinle paylaş.
         </p>
       </div>
     </div>
