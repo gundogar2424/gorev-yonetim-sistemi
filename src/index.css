@@ -879,3 +879,126 @@ html.eft-big {
     animation: none;
   }
 }
+
+/* =========================================================================
+   SES EGZERSIZI — yalnizca ses-* siniflari (src/ses/**). Diger programlarin
+   kurallarina dokunulmadi. Buyuk yazi, buyuk dokunma alanli, sakin arayuz.
+   ========================================================================= */
+.ses-app {
+  background-color: #fdf7f2;
+}
+.dark .ses-app {
+  background-color: #1a1410;
+}
+/* Ayarlar > Buyuk yazi */
+html.ses-big {
+  font-size: 118%;
+}
+@layer components {
+  .ses-card {
+    @apply bg-white rounded-3xl p-4 shadow-card;
+  }
+  .ses-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 font-semibold transition select-none;
+    @apply min-h-[56px] text-[17px] active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
+  }
+  .ses-btn-primary {
+    @apply ses-btn bg-ses-600 text-white hover:bg-ses-700;
+  }
+  .ses-btn-soft {
+    @apply ses-btn bg-ses-50 text-ses-700 hover:bg-ses-100;
+  }
+  .ses-btn-ghost {
+    @apply ses-btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  }
+  .ses-btn-danger {
+    @apply ses-btn bg-rose-50 text-rose-600 hover:bg-rose-100;
+  }
+  .ses-label {
+    @apply text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-400;
+  }
+  .ses-pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold bg-ses-50 text-ses-700;
+  }
+  .ses-input {
+    @apply w-full rounded-2xl bg-slate-50 px-4 py-3 text-[17px] outline-none focus:ring-4 focus:ring-ses-100;
+  }
+}
+.dark .ses-card {
+  background-color: #261d16;
+  box-shadow: none;
+}
+.dark .ses-btn-soft {
+  background-color: #352820;
+  color: #ffb27a;
+}
+.dark .ses-btn-ghost {
+  background-color: #352820;
+  color: #f5ece4;
+}
+.dark .ses-btn-danger {
+  background-color: #2a1a1d;
+}
+.dark .ses-label {
+  color: #a3908a;
+}
+.dark .ses-pill {
+  background-color: #352820;
+  color: #ffb27a;
+}
+.dark .ses-input {
+  background-color: #352820;
+  color: #f5ece4;
+}
+.dark .bg-ses-50 {
+  background-color: #352820;
+}
+.dark .text-ses-800,
+.dark .text-ses-700,
+.dark .text-ses-600 {
+  color: #ffb27a;
+}
+.dark .border-ses-100,
+.dark .border-ses-200 {
+  border-color: #4a3a30;
+}
+.ses-app input[type='range'] {
+  accent-color: #c9560c;
+}
+.ses-app input[type='time'] {
+  min-height: 48px;
+}
+@keyframes ses-pop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.ses-pop {
+  animation: ses-pop 0.2s ease-out;
+}
+/* Tutma sirasinda buyuyen halka */
+@keyframes ses-pulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+.ses-pulse {
+  animation: ses-pulse 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ses-pop,
+  .ses-pulse {
+    animation: none;
+  }
+}

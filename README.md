@@ -135,6 +135,30 @@ Diğer ekranlar: **Noktalar** (çizim üzerinde noktaya dokun → nerede/nasıl 
 
 > EFT Dokunma verisini yalnızca `eft-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet, hesap ya da izin gerektirmez.
 
+## 🎤 Ses Egzersizi (ayrı program)
+
+Bu depodaki **altıncı bağımsız program**: **Ses Egzersizi**. Kendi giriş sayfası (`ses.html`), kendi rengi (turuncu) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **Ses Egzersizi** → `ses.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/ses.html`)
+- APK: `.github/workflows/ses-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **ses-latest** sürümüne `ses-egzersizi.apk` yüklenir.
+
+**Ne yapar?** Vokal kord (ses teli) **addüksiyon** egzersizlerini — ses tellerinin birbirine tam kapanmasını güçlendirmeye yönelik, ses terapisinde yaygın teknikleri — evde adım adım yaptırır. Hasta kendi başına kullanır; bir KBB hekimi / dil ve konuşma terapistinin önerisiyle başlanması ve uygun olmayan egzersizlerin Ayarlar'dan kapatılması beklenir.
+
+| Bölüm | Ekranda ne olur |
+|---|---|
+| ▶ **Rehberli seans** | Egzersizler sırayla: önce nasıl yapılacağı, sonra her tekrar için 3-2-1 geri sayım, tutma süresi (büyük rakam + söylenecek ses), dinlenme arası; sesli tık/işaret ve titreşim; tekrar noktaları; duraklat / ileri / atla; ekran uyumaz |
+| 📋 **Egzersizler** | Isınma (dudak titretme, mırıldanma) · Addüksiyon (itme ile "A!", çekme ile "A!", sert başlangıçlı sesli harfler, öksürükten sese, yarım yutkunma "bum", başı çevirerek "iii", uzun "A" tutma, perde kaydırma, yüksek sesle sayma) · Soğutma (pipetle ses). Her biri için *neden yapılır*, *nasıl yapılır*, söylenecek ses ve varsa *dikkat* notu; tek başına yapma ve seanstan çıkarma |
+| ⏱️ **Ses ölçümü (MPT)** | En uzun "A" tutma süresi: mikrofon açılınca ses başladığında kronometre kendiliğinden başlar, sessizlikte durur; ses düzeyi çubuğu; sonuç yorumu; kayıt. Mikrofon izni yoksa elle kronometre. Ses **kaydedilmez**, yalnızca anlık ölçülür |
+| 🔔 **Günlük hatırlatma** | 3 ayrı saate kadar "egzersiz zamanı" bildirimi (yalnızca APK'da); bildirime dokununca seans açılır |
+| 📈 **İlerleme** | Seri (üst üste gün), seans/dakika sayısı, son 7 gün çubukları, MPT çizgi grafiği (10 sn hedef çizgisi), seans ve ölçüm listeleri, silme |
+| ⚙️ **Ayarlar** | Ad, yoğunluk (hafif/orta/yoğun = tekrar çarpanı), geri sayım, egzersiz aç/kapat, hatırlatma saatleri, ses/titreşim, tema, büyük yazı, yedek al/geri yükle, tümünü sil, uyarı metni |
+
+İlk açılışta uyarı metni gösterilir ve onaylatılır: ağrı, yanma, ses kısıklığında artış ya da baş dönmesinde durulmalı; itme/çekme egzersizleri kan basıncını geçici yükselttiği için tansiyon/kalp/glokom/fıtık sorunu olanlar önce hekime sormalıdır.
+
+> **Önemli:** Ses Egzersizi bir egzersiz rehberidir; tıbbi cihaz değildir, tanı koymaz ve KBB hekimi / dil ve konuşma terapistinin değerlendirmesinin **yerini tutmaz**.
+
+> Ses Egzersizi verisini yalnızca `ses-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet ve hesap gerektirmez; yalnızca mikrofon (ölçüm için) ve bildirim (hatırlatma için) izni ister, ikisi de isteğe bağlıdır.
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz

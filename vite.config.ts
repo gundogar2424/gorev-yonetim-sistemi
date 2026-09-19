@@ -17,19 +17,21 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // BES AYRI uygulama, ayri giris sayfalari:
+      // ALTI AYRI uygulama, ayri giris sayfalari:
       //  - index.html                  -> Saha CRM (degismedi)
       //  - diyet.html / diyetkocu.html -> Diyet Kocu (bagimsiz program)
       //  - termomiks.html              -> Termomiks Defteri (bagimsiz program)
       //  - zihin.html                  -> Zihin Jimnastigi (bagimsiz program)
       //  - eft.html                    -> EFT Dokunma (bagimsiz program)
+      //  - ses.html                    -> Ses Egzersizi (bagimsiz program)
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         diyet: fileURLToPath(new URL('./diyet.html', import.meta.url)),
         diyetkocu: fileURLToPath(new URL('./diyetkocu.html', import.meta.url)),
         termomiks: fileURLToPath(new URL('./termomiks.html', import.meta.url)),
         zihin: fileURLToPath(new URL('./zihin.html', import.meta.url)),
-        eft: fileURLToPath(new URL('./eft.html', import.meta.url))
+        eft: fileURLToPath(new URL('./eft.html', import.meta.url)),
+        ses: fileURLToPath(new URL('./ses.html', import.meta.url))
       }
     }
   },
