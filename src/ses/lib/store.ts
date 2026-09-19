@@ -59,6 +59,31 @@ export interface Session {
   kind?: SessionKind // yok = 'ses' (adduksiyon)
   rating?: number // seans geneli oz degerlendirme 1-5
   feedback?: string // yapay zeka geri bildirimi (metin)
+  plan?: NextPlan // yapay zekanin sonraki seans onerisi
+}
+
+// Yapay zekanin bir sonraki seans icin onerisi
+export interface NextPlan {
+  tempo: DTempo // diksiyon okuma temposu
+  level: Level // adduksiyon yogunlugu
+  focus: string[] // odaklanilacak egzersiz id'leri (diksiyon ya da adduksiyon)
+  goal: string // tek cumlelik hedef
+}
+
+// Oneriyi ayarlara uygula: tempo/yogunluk degisir, odak egzersizleri acilir.
+// Bilinmeyen id'ler yok sayilir; hicbir egzersiz KAPATILMAZ (kullanici karari).
+export function applyPlan(plan: NextPlan): Settings {
+  const s = readSettings()
+  const dIds = new Set(DEXERCISES.map((e) => e.id))
+  const sIds = new Set(EXERCISES.map((e) => e.id))
+  const dDisabled = s.dDisabled.filter((id) => !plan.focus.includes(id))
+  const disabled = s.disabled.filter((id) => !plan.focus.includes(id))
+  return saveSettings({
+    dTempo: plan.tempo,
+    level: plan.level,
+    dDisabled: dDisabled.filter((id) => dIds.has(id)),
+    disabled: disabled.filter((id) => sIds.has(id))
+  })
 }
 
 export function sessionKind(s: Session): SessionKind {
