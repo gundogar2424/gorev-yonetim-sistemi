@@ -3,7 +3,7 @@ import SesHeader from '../SesHeader'
 import LineChart from '../components/LineChart'
 import { findExercise } from '../lib/content'
 import { findDExercise } from '../lib/diksiyon'
-import { bestMpt, deleteMpt, deleteSession, lastDaysActivity, readMpt, readSessions, sessionKind, stats, streakDays } from '../lib/store'
+import { bestMpt, deleteMpt, deleteSession, lastDaysActivity, readMpt, readSessions, sessionAccuracy, sessionKind, sessionRating, stats, streakDays } from '../lib/store'
 import { fmtDay, fmtMinutes, fmtShort } from '../lib/date'
 
 export default function ProgressPage() {
@@ -19,6 +19,8 @@ export default function ProgressPage() {
   const mptSon = mpt.slice(-20)
   const best = bestMpt()
   const [sekme, setSekme] = useState<'seans' | 'olcum'>('seans')
+  const accSeries = sessions.map((x) => ({ d: x.d, v: sessionAccuracy(x) })).filter((x): x is { d: string; v: number } => x.v != null).slice(-20)
+  const ratSeries = sessions.map((x) => ({ d: x.d, v: sessionRating(x) })).filter((x): x is { d: string; v: number } => x.v != null).slice(-20)
 
   return (
     <div>
@@ -57,6 +59,35 @@ export default function ProgressPage() {
           )}
         </section>
 
+        <section className="ses-card">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="ses-label">Diksiyon doğruluğu (%)</h3>
+            {accSeries.length > 0 && <span className="ses-pill">son %{accSeries[accSeries.length - 1].v}</span>}
+          </div>
+          {accSeries.length >= 2 ? (
+            <div className="text-slate-700 dark:text-[#d8c8bf]">
+              <LineChart values={accSeries.map((r) => r.v)} labels={accSeries.map((r) => fmtDay(r.d))} ref={85} />
+              <p className="text-[12px] text-slate-500 dark:text-[#a3908a] mt-1">Konuşma tanıma ile seans ortalaması. Kesik çizgi: %85 (hedef).</p>
+            </div>
+          ) : (
+            <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Grafik için puanlamalı en az 2 diksiyon seansı gerekir.</p>
+          )}
+        </section>
+
+        <section className="ses-card">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="ses-label">Öz değerlendirme (1-5)</h3>
+            {ratSeries.length > 0 && <span className="ses-pill">son {ratSeries[ratSeries.length - 1].v}</span>}
+          </div>
+          {ratSeries.length >= 2 ? (
+            <div className="text-slate-700 dark:text-[#d8c8bf]">
+              <LineChart values={ratSeries.map((r) => r.v)} labels={ratSeries.map((r) => fmtDay(r.d))} />
+            </div>
+          ) : (
+            <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Seans sonlarında verdiğin puanlar burada birikir.</p>
+          )}
+        </section>
+
         <div className="grid grid-cols-2 gap-2">
           {(
             [
@@ -91,7 +122,14 @@ export default function ProgressPage() {
                       })
                       .join(' · ')}
                   </div>
+                  {(sessionAccuracy(s) != null || sessionRating(s) != null) && (
+                    <div className="flex gap-2 mt-2">
+                      {sessionAccuracy(s) != null && <span className="ses-pill">doğruluk %{sessionAccuracy(s)}</span>}
+                      {sessionRating(s) != null && <span className="ses-pill">★ {sessionRating(s)}</span>}
+                    </div>
+                  )}
                   {s.note && <div className="text-[14px] italic text-slate-500 dark:text-[#a3908a] mt-1">“{s.note}”</div>}
+                  {s.feedback && <div className="text-[13px] text-slate-600 dark:text-[#d8c8bf] mt-2 whitespace-pre-wrap rounded-2xl bg-ses-50 dark:bg-[#352820] p-2">🤖 {s.feedback}</div>}
                   <button
                     className="text-[13px] text-rose-500 mt-2"
                     onClick={() => {

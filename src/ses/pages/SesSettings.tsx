@@ -115,6 +115,12 @@ export default function SesSettings() {
             </div>
             <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-1">Her satır için verilen süreyi ayarlar. Başlarken Yavaş seç; netleşince hızlan.</p>
           </div>
+          <Switch
+            label="Konuşma tanıma ile puanlama"
+            hint="Her satırda söylediğin yazıya çevrilir, hedefle karşılaştırılıp % doğruluk verilir. Ses kaydedilmez."
+            checked={ayar.score}
+            onChange={(v) => setAyar(saveSettings({ score: v }))}
+          />
           <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Diksiyon seansındaki egzersizler:</p>
           {(['nefes', 'sesli', 'unsuz', 'tekerleme', 'kalem', 'vurgu'] as DGroup[]).map((g) => (
             <div key={g}>
@@ -129,6 +135,27 @@ export default function SesSettings() {
               ))}
             </div>
           ))}
+        </section>
+
+        <section className="ses-card space-y-3">
+          <h3 className="ses-label">Yapay zeka geri bildirimi</h3>
+          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">
+            Seans sonunda sonuçların (doğruluk, yutulan sözcükler, hız, öz değerlendirme, MPT) Claude'a gönderilir ve kısa bir yazılı geri bildirim alırsın. Ses kaydı gönderilmez; yapay zeka sesi duymaz, yalnızca yazıya çevrilmiş metni ve sayıları değerlendirir. Anahtar yalnızca bu cihazda saklanır, yedeğe yazılmaz.
+          </p>
+          <label className="block">
+            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Claude API anahtarı</span>
+            <input
+              className="ses-input mt-1"
+              type="password"
+              autoComplete="off"
+              value={ayar.apiKey}
+              placeholder="sk-ant-…"
+              onChange={(e) => setAyar(saveSettings({ apiKey: e.target.value.trim() }))}
+            />
+          </label>
+          <p className="text-[12px] text-slate-400 dark:text-[#a3908a]">
+            Anahtar console.anthropic.com › API Keys bölümünden alınır. {ayar.apiKey ? `Kayıtlı: ${ayar.apiKey.length} karakter, sonu …${ayar.apiKey.slice(-4)}` : 'Henüz anahtar yok.'}
+          </p>
         </section>
 
         <section className="ses-card space-y-3">

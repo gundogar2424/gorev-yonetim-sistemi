@@ -25,6 +25,8 @@ export interface Settings {
   accepted: boolean // uyari metni onaylandi mi
   dDisabled: string[] // kapali DIKSIYON egzersizleri
   dTempo: DTempo // diksiyon okuma temposu
+  score: boolean // diksiyonda konusma tanima ile puanlama acik mi
+  apiKey: string // Claude API anahtari (yapay zeka geri bildirimi; yalnizca cihazda)
 }
 
 export type SessionKind = 'ses' | 'diksiyon'
@@ -33,6 +35,18 @@ export interface DoneExercise {
   id: string
   reps: number // yapilan tekrar/set
   mpt?: number // uzun-a egzersizinde en iyi sure (sn)
+  rating?: number // oz degerlendirme 1-5 (ne kadar net/rahat oldu)
+  acc?: number // konusma tanima dogrulugu % (diksiyon; satirlarin ortalamasi)
+  wpm?: number // dakikadaki sozcuk (diksiyon; ortalama)
+  lines?: LineScore[] // satir satir sonuc (yapay zeka geri bildirimi icin)
+}
+
+export interface LineScore {
+  target: string
+  heard: string
+  acc: number
+  wpm: number
+  missed: string[] // yutulan/yanlis sozcukler
 }
 
 export interface Session {
@@ -43,6 +57,8 @@ export interface Session {
   done: DoneExercise[]
   note?: string
   kind?: SessionKind // yok = 'ses' (adduksiyon)
+  rating?: number // seans geneli oz degerlendirme 1-5
+  feedback?: string // yapay zeka geri bildirimi (metin)
 }
 
 export function sessionKind(s: Session): SessionKind {
@@ -110,8 +126,22 @@ export function readSettings(): Settings {
     reminders: rem,
     accepted: s.accepted ?? false,
     dDisabled: Array.isArray(s.dDisabled) ? s.dDisabled.filter((x) => typeof x === 'string') : [...DEFAULT_DISABLED_D],
-    dTempo: s.dTempo === 'yavas' || s.dTempo === 'hizli' ? s.dTempo : 'orta'
+    dTempo: s.dTempo === 'yavas' || s.dTempo === 'hizli' ? s.dTempo : 'orta',
+    score: s.score ?? true,
+    apiKey: typeof s.apiKey === 'string' ? s.apiKey : ''
   }
+}
+
+// Seans icindeki puanlarin ozeti (ilerleme grafikleri icin)
+export function sessionAccuracy(s: Session): number | null {
+  const v = s.done.map((d) => d.acc).filter((x): x is number => typeof x === 'number')
+  return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null
+}
+
+export function sessionRating(s: Session): number | null {
+  if (typeof s.rating === 'number') return s.rating
+  const v = s.done.map((d) => d.rating).filter((x): x is number => typeof x === 'number')
+  return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null
 }
 
 export function saveSettings(patch: Partial<Settings>): Settings {
@@ -279,7 +309,8 @@ export function makeBackup(): Backup {
   } catch {
     /* yok say */
   }
-  return { app: 'ses-egzersizi', v: 1, at: new Date().toISOString(), settings: readSettings(), sessions: readSessions(), mpt: readMpt(), theme, big }
+  // API anahtari yedege YAZILMAZ (dosya paylasilirsa sizmasin)
+  return { app: 'ses-egzersizi', v: 1, at: new Date().toISOString(), settings: { ...readSettings(), apiKey: '' }, sessions: readSessions(), mpt: readMpt(), theme, big }
 }
 
 export function downloadBackup(): void {
@@ -328,7 +359,7 @@ export async function restoreBackup(file: File): Promise<number> {
     m.sort((a, c) => a.t.localeCompare(c.t))
     write(K_MPT, m.slice(-MAX))
   }
-  if (b.settings) write(K_SET, { ...readSettings(), ...b.settings })
+  if (b.settings) write(K_SET, { ...readSettings(), ...b.settings, apiKey: readSettings().apiKey })
   try {
     if (b.theme) localStorage.setItem('ses-theme', b.theme)
     if (b.big) localStorage.setItem('ses-big', b.big)

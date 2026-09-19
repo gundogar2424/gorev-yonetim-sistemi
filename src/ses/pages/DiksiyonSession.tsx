@@ -5,13 +5,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import SesHeader from '../SesHeader'
 import { DGROUP_LABEL, findDExercise, type DExercise } from '../lib/diksiyon'
-import { activeDExercises, addSession, dSecFor, readSettings, updateSession, type DoneExercise } from '../lib/store'
+import { activeDExercises, addSession, dSecFor, readSettings, updateSession, type DoneExercise, type LineScore, type Session as SessionRec } from '../lib/store'
+import { accuracyComment, listenOnce, scoreText, speechAvailable, speechPermission, type Listener, type Score } from '../lib/speech'
+import Rating from '../components/Rating'
+import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
 import { createMic, type Mic } from '../lib/mic'
 import { fmtMinutes } from '../lib/date'
 
-type Phase = 'intro' | 'oku' | 'done'
+type Phase = 'intro' | 'oku' | 'sonuc' | 'puan' | 'done'
 
 export default function DiksiyonSession() {
   const navigate = useNavigate()
@@ -34,6 +37,17 @@ export default function DiksiyonSession() {
   const [done, setDone] = useState<DoneExercise[]>([])
   const [note, setNote] = useState('')
   const [savedId, setSavedId] = useState<string | null>(null)
+  const [saved, setSaved] = useState<SessionRec | null>(null)
+  // Konusma tanima ile puanlama
+  const [scoreOn, setScoreOn] = useState(ayar.score)
+  const [speechOk, setSpeechOk] = useState<boolean | null>(null)
+  const listenerRef = useRef<Listener | null>(null)
+  const [listening, setListening] = useState(false)
+  const [lineScore, setLineScore] = useState<Score | null>(null)
+  const [lineScores, setLineScores] = useState<LineScore[]>([])
+  const [rating, setRating] = useState<number | undefined>(undefined)
+  const lineT0 = useRef(0)
+  const finishing = useRef(false) // satir bitirme surerken (tanima sonucu beklenirken) yeniden tetiklenmesin
   const [micOn, setMicOn] = useState(false)
   const [level, setLevel] = useState(-90)
   const micRef = useRef<Mic | null>(null)
@@ -61,13 +75,17 @@ export default function DiksiyonSession() {
     }
   }, [])
 
+  useEffect(() => {
+    void speechAvailable().then(setSpeechOk)
+  }, [])
+
   // Satir sayaci
   useEffect(() => {
     if (phase !== 'oku' || paused) return
     const id = setInterval(() => {
       const kalan = (endAt.current - Date.now()) / 1000
       setLeft(Math.max(0, kalan))
-      if (kalan <= 0) ilerle()
+      if (kalan <= 0 && !finishing.current) ilerle()
     }, 100)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,31 +96,104 @@ export default function DiksiyonSession() {
     setLeft(s)
   }
 
+  const puanla = scoreOn && speechOk === true
+
+  async function dinlemeyeBasla() {
+    finishing.current = false
+    if (!puanla) return
+    try {
+      if (!(await speechPermission())) {
+        setSpeechOk(false)
+        return
+      }
+      listenerRef.current?.stop()
+      lineT0.current = Date.now()
+      listenerRef.current = await listenOnce()
+      setListening(true)
+    } catch {
+      setSpeechOk(false)
+      setListening(false)
+    }
+  }
+
+  // Satiri bitir: dinlemeyi durdur, puanla; puanlama acikse sonuc ekranina gec
+  async function satiriBitir(next: () => void) {
+    if (finishing.current) return
+    if (!puanla || !listenerRef.current) {
+      next()
+      return
+    }
+    finishing.current = true
+    const l = listenerRef.current
+    listenerRef.current = null
+    setListening(false)
+    l.stop()
+    const r = await l.done
+    const target = ex ? ex.lines[rep % ex.lines.length] : ''
+    const sc = scoreText(target, r.text, Math.max(r.ms, Date.now() - lineT0.current))
+    setLineScore(sc)
+    setLineScores((xs) => [...xs, { target, heard: r.text, acc: sc.accuracy, wpm: sc.wpm, missed: sc.marks.filter((m) => !m.ok).map((m) => m.w) }])
+    setPhase('sonuc')
+    pendingNext.current = next
+    finishing.current = false
+  }
+  const pendingNext = useRef<() => void>(() => {})
+
   function basla() {
     unlockAudio()
     if (!ex) return
     setRep(0)
+    setLineScores([])
+    setLineScore(null)
+    setRating(undefined)
     setPhase('oku')
     zamanla(sec)
     sfxGo()
+    void dinlemeyeBasla()
+  }
+
+  function sonrakiSatir() {
+    if (!ex) return
+    if (rep + 1 < n) {
+      setRep(rep + 1)
+      setPhase('oku')
+      zamanla(sec)
+      sfxRest()
+      void dinlemeyeBasla()
+    } else {
+      // egzersiz bitti -> oz degerlendirme
+      setPhase('puan')
+    }
   }
 
   function ilerle() {
     if (!ex) return
-    if (rep + 1 < n) {
-      setRep(rep + 1)
-      zamanla(sec)
-      sfxRest()
-    } else {
-      egzersizBitti({ id: ex.id, reps: n })
-    }
+    void satiriBitir(sonrakiSatir)
   }
 
   function geri() {
     if (rep > 0) {
+      listenerRef.current?.stop()
+      listenerRef.current = null
+      setListening(false)
       setRep(rep - 1)
       zamanla(sec)
+      void dinlemeyeBasla()
     }
+  }
+
+  function puanKaydet() {
+    if (!ex) return
+    const accs = lineScores.map((l) => l.acc)
+    const wpms = lineScores.map((l) => l.wpm).filter((w) => w > 0)
+    egzersizBitti({
+      id: ex.id,
+      reps: n,
+      rating,
+      acc: accs.length ? Math.round(accs.reduce((a, b) => a + b, 0) / accs.length) : undefined,
+      wpm: wpms.length ? Math.round(wpms.reduce((a, b) => a + b, 0) / wpms.length) : undefined,
+      lines: lineScores.length ? lineScores : undefined
+    })
   }
 
   function egzersizBitti(d: DoneExercise) {
@@ -118,6 +209,9 @@ export default function DiksiyonSession() {
 
   function atla() {
     setPaused(false)
+    listenerRef.current?.stop()
+    listenerRef.current = null
+    setListening(false)
     if (idx + 1 < list.length) {
       setIdx(idx + 1)
       setRep(0)
@@ -130,9 +224,13 @@ export default function DiksiyonSession() {
     setPhase('done')
     micRef.current?.stop()
     setMicOn(false)
+    listenerRef.current?.stop()
+    listenerRef.current = null
+    setListening(false)
     if (yapilan.length > 0 && !savedId) {
       const s = addSession({ ms: Date.now() - startedAt.current.getTime(), done: yapilan, kind: 'diksiyon' }, startedAt.current)
       setSavedId(s.id)
+      setSaved(s)
     }
   }
 
@@ -172,7 +270,13 @@ export default function DiksiyonSession() {
           <section className="ses-card text-center py-6">
             <div className="text-[56px]">{done.length > 0 ? '🎉' : '🙂'}</div>
             <div className="text-[24px] font-bold text-slate-900 dark:text-[#f5ece4] mt-1">{done.length} egzersiz</div>
-            <div className="text-[15px] text-slate-500 dark:text-[#a3908a]">{fmtMinutes(ms)} · diksiyon</div>
+            <div className="text-[15px] text-slate-500 dark:text-[#a3908a]">
+              {fmtMinutes(ms)} · diksiyon
+              {(() => {
+                const a = done.map((d) => d.acc).filter((x): x is number => typeof x === 'number')
+                return a.length ? ` · doğruluk %${Math.round(a.reduce((x, y) => x + y, 0) / a.length)}` : ''
+              })()}
+            </div>
           </section>
           {done.length > 0 && (
             <section className="ses-card">
@@ -184,7 +288,11 @@ export default function DiksiyonSession() {
                       <span className="text-slate-800 dark:text-[#f5ece4]">
                         {e?.emoji} {e?.name ?? d.id}
                       </span>
-                      <span className="text-slate-500 dark:text-[#a3908a]">{d.reps} ×</span>
+                      <span className="text-slate-500 dark:text-[#a3908a]">
+                        {typeof d.acc === 'number' ? `%${d.acc} · ` : ''}
+                        {typeof d.rating === 'number' ? `${'★'.repeat(d.rating)} · ` : ''}
+                        {d.reps} ×
+                      </span>
                     </li>
                   )
                 })}
@@ -205,6 +313,7 @@ export default function DiksiyonSession() {
               />
             </section>
           )}
+          {saved && <FeedbackCard session={{ ...saved, note }} />}
           <button className="ses-btn-primary w-full min-h-[62px] text-[19px]" onClick={() => navigate('/diksiyon')}>
             Diksiyon sayfası
           </button>
@@ -255,6 +364,83 @@ export default function DiksiyonSession() {
     )
   }
 
+  // ---------- SATIR SONUCU (konusma tanima) ----------
+  if (phase === 'sonuc' && lineScore) {
+    const sc = lineScore
+    const renk = sc.accuracy >= 85 ? 'text-emerald-600 dark:text-emerald-300' : sc.accuracy >= 60 ? 'text-amber-600 dark:text-amber-300' : 'text-rose-600 dark:text-rose-300'
+    return (
+      <div className="flex-1 flex flex-col">
+        <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · satır ${rep + 1} / ${n} · sonuç`} compact back={() => bitir(done)} />
+        <div className="px-4 pb-8 flex-1 flex flex-col space-y-3">
+          <section className="ses-card ses-pop text-center py-5">
+            <div className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300">Doğruluk</div>
+            <div className={`text-[64px] font-bold leading-none tabular-nums mt-1 ${renk}`}>%{sc.accuracy}</div>
+            <div className="text-[14px] text-slate-500 dark:text-[#a3908a] mt-1">{sc.wpm > 0 ? `${sc.wpm} sözcük/dk` : ''}</div>
+            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-2">{accuracyComment(sc.accuracy)}</p>
+          </section>
+          <section className="ses-card">
+            <div className="ses-label mb-2">Hedef metin (kırmızı: yutulan / yanlış)</div>
+            <p className="text-[18px] leading-relaxed">
+              {sc.marks.map((m, i) => (
+                <span key={i} className={m.ok ? 'text-slate-800 dark:text-[#f5ece4]' : 'text-rose-600 dark:text-rose-300 font-bold underline decoration-2'}>
+                  {m.w}{' '}
+                </span>
+              ))}
+            </p>
+            <div className="ses-label mt-3 mb-1">Duyulan</div>
+            <p className="text-[15px] text-slate-500 dark:text-[#a3908a] italic">{sc.heard || '(bir şey anlaşılmadı — telefonu yaklaştır, daha gür söyle)'}</p>
+          </section>
+          <div className="mt-auto grid grid-cols-2 gap-2">
+            <button
+              className="ses-btn-ghost"
+              onClick={() => {
+                setLineScores((xs) => xs.slice(0, -1))
+                setPhase('oku')
+                zamanla(sec)
+                void dinlemeyeBasla()
+              }}
+            >
+              🔁 Yeniden dene
+            </button>
+            <button className="ses-btn-primary" onClick={() => pendingNext.current()}>
+              Devam ▶
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ---------- OZ DEGERLENDIRME ----------
+  if (phase === 'puan') {
+    const accs = lineScores.map((l) => l.acc)
+    const ort = accs.length ? Math.round(accs.reduce((a, b) => a + b, 0) / accs.length) : null
+    return (
+      <div className="flex-1 flex flex-col">
+        <SesHeader title={ex.name} subtitle="Egzersiz bitti · değerlendir" compact back={() => bitir(done)} />
+        <div className="px-4 pb-8 flex-1 flex flex-col space-y-3">
+          <section className="ses-card ses-pop space-y-3">
+            {ort != null && (
+              <div className="text-center">
+                <div className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300">Bu egzersizde ortalama doğruluk</div>
+                <div className="text-[48px] font-bold leading-none tabular-nums mt-1 text-slate-900 dark:text-[#f5ece4]">%{ort}</div>
+              </div>
+            )}
+            <Rating value={rating} onChange={setRating} />
+          </section>
+          <div className="mt-auto space-y-2">
+            <button className="ses-btn-primary w-full min-h-[62px] text-[19px]" onClick={puanKaydet}>
+              {idx + 1 < list.length ? 'Sonraki egzersiz ▶' : 'Seansı bitir ✔'}
+            </button>
+            <button className="ses-btn-ghost w-full" onClick={puanKaydet}>
+              Puan vermeden geç
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ---------- OKUMA ----------
   const satir = ex.lines[rep % ex.lines.length]
   const uzun = satir.length > 80
@@ -263,7 +449,9 @@ export default function DiksiyonSession() {
       <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · satır ${rep + 1} / ${n}`} compact back={() => bitir(done)} />
       <div className="px-4 pb-8 flex-1 flex flex-col">
         <div className="flex-1 flex flex-col rounded-3xl p-5 bg-white dark:bg-[#261d16]">
-          <div className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300 text-center">{paused ? 'Duraklatıldı' : 'Oku / söyle'}</div>
+          <div className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300 text-center">
+            {paused ? 'Duraklatıldı' : listening ? '🔴 Dinliyor · oku / söyle' : 'Oku / söyle'}
+          </div>
           <div className={`flex-1 flex items-center justify-center text-center font-bold leading-snug text-slate-900 dark:text-[#f5ece4] py-4 ${uzun ? 'text-[20px]' : 'text-[30px]'}`}>{satir}</div>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2.5 rounded-full bg-slate-200 dark:bg-[#4a3a30] overflow-hidden">
@@ -299,9 +487,27 @@ export default function DiksiyonSession() {
             Atla
           </button>
         </div>
-        <button className={`mt-2 w-full min-h-[44px] rounded-2xl text-[14px] font-semibold ${micOn ? 'bg-emerald-50 dark:bg-[#1f2e22] text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-[#a3908a]'}`} onClick={() => void micToggle()}>
-          {micOn ? '🎤 Mikrofon açık (kapat)' : '🎤 Ses düzeyi çubuğunu aç'}
-        </button>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <button
+            className={`min-h-[44px] rounded-2xl text-[13px] font-semibold ${puanla ? 'bg-emerald-50 dark:bg-[#1f2e22] text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-[#a3908a]'}`}
+            onClick={() => {
+              const v = !scoreOn
+              setScoreOn(v)
+              if (!v) {
+                listenerRef.current?.stop()
+                listenerRef.current = null
+                setListening(false)
+              } else void dinlemeyeBasla()
+            }}
+            disabled={speechOk === false}
+          >
+            {speechOk === false ? '🎙️ Konuşma tanıma yok' : puanla ? '🎙️ Puanlama açık' : '🎙️ Puanlamayı aç'}
+          </button>
+          <button className={`min-h-[44px] rounded-2xl text-[13px] font-semibold ${micOn ? 'bg-emerald-50 dark:bg-[#1f2e22] text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-[#a3908a]'}`} onClick={() => void micToggle()}>
+            {micOn ? '🎤 Düzey çubuğu açık' : '🎤 Ses düzeyi çubuğu'}
+          </button>
+        </div>
+        {puanla && <p className="text-[12px] text-slate-400 dark:text-[#a3908a] text-center mt-1">Satırı okuyunca ▶▶'ye bas: tanıma durur ve doğruluk hesaplanır. Süre bitince de kendiliğinden değerlendirilir.</p>}
       </div>
     </div>
   )

@@ -6,7 +6,9 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import SesHeader from '../SesHeader'
 import MptMeter, { type MptResult } from '../components/MptMeter'
 import { findExercise, GROUP_LABEL, type Exercise } from '../lib/content'
-import { activeExercises, addMpt, addSession, readSettings, repsFor, updateSession, type DoneExercise } from '../lib/store'
+import { activeExercises, addMpt, addSession, readSettings, repsFor, updateSession, type DoneExercise, type Session as SessionRec } from '../lib/store'
+import Rating from '../components/Rating'
+import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest, sfxTick } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
 import { fmtMinutes } from '../lib/date'
@@ -38,6 +40,8 @@ export default function Session() {
   const [mptResult, setMptResult] = useState<MptResult | null>(null)
   const [note, setNote] = useState('')
   const [savedId, setSavedId] = useState<string | null>(null)
+  const [saved, setSaved] = useState<SessionRec | null>(null)
+  const [rating, setRating] = useState<number | undefined>(undefined)
   const startedAt = useRef(new Date())
   const endAt = useRef(0)
   const pausedLeft = useRef(0)
@@ -164,6 +168,7 @@ export default function Session() {
     if (yapilan.length > 0 && !savedId) {
       const s = addSession({ ms: Date.now() - startedAt.current.getTime(), done: yapilan }, startedAt.current)
       setSavedId(s.id)
+      setSaved(s)
     }
   }
 
@@ -231,6 +236,18 @@ export default function Session() {
             </section>
           )}
           {savedId && (
+            <section className="ses-card">
+              <Rating
+                value={rating}
+                label="Bugün sesin nasıldı? (öz değerlendirme)"
+                onChange={(v) => {
+                  setRating(v)
+                  updateSession(savedId, { rating: v })
+                }}
+              />
+            </section>
+          )}
+          {savedId && (
             <section className="ses-card space-y-2">
               <h3 className="ses-label">Not (isteğe bağlı)</h3>
               <textarea
@@ -244,6 +261,7 @@ export default function Session() {
               />
             </section>
           )}
+          {saved && <FeedbackCard session={{ ...saved, note, rating }} />}
           <button className="ses-btn-primary w-full min-h-[62px] text-[19px]" onClick={() => navigate('/')}>
             Ana sayfa
           </button>
