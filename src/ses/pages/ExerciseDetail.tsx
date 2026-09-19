@@ -66,7 +66,7 @@ export default function ExerciseDetail() {
         {e.video && (
           <section className="ses-card">
             <h3 className="ses-label mb-2">Nasıl yapılır (video)</h3>
-            <VideoEmbed video={e.video} />
+            <VideoEmbed video={e.video} immediate />
           </section>
         )}
         <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={() => navigate(`/seans?tek=${e.id}`)}>

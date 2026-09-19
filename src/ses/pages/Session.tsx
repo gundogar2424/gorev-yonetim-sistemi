@@ -289,8 +289,8 @@ export default function Session() {
         <div className="px-4 space-y-5 pb-8 flex-1 flex flex-col">
           {ex.video && (
             <section className="ses-card">
-              <h3 className="ses-label mb-2">Başlamadan önce izle</h3>
-              <VideoEmbed video={ex.video} />
+              <h3 className="ses-label mb-2">Başlamadan önce izle · ▶ dokun, oynasın</h3>
+              <VideoEmbed video={ex.video} immediate />
             </section>
           )}
           <section className="ses-card">
