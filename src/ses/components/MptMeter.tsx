@@ -126,26 +126,26 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
       {attempt != null && attempts != null && <div className="ses-pill">Deneme {attempt} / {attempts}</div>}
 
       <div className={`rounded-3xl bg-ses-50 dark:bg-[#352820] text-center ${compact ? 'py-4' : 'py-7'}`}>
-        <div className="text-[15px] font-semibold uppercase tracking-[0.08em] text-ses-700 dark:text-ses-300">
+        <div className="text-[14px] font-semibold uppercase tracking-[0.08em] text-ses-700 dark:text-ses-300">
           {manual ? (manualT0 ? 'Sürüyor…' : result ? 'Sonuç' : 'Elle kronometre') : armed ? (olcuyor ? 'Sürüyor… sesi tut' : 'Hazır — "aaaa" de') : result ? 'Sonuç' : 'En uzun "A" tutma'}
         </div>
         <div className={`font-bold tabular-nums text-slate-900 dark:text-[#f5ece4] ${compact ? 'text-[60px]' : 'text-[76px]'} leading-none mt-2`}>
           {shownSec.toFixed(1).replace('.', ',')}
-          <span className="text-[24px] font-semibold text-slate-700 dark:text-[#d8c8bf] ml-1">sn</span>
+          <span className="text-[20px] font-semibold text-slate-700 dark:text-[#d8c8bf] ml-1">sn</span>
         </div>
         {!manual && (
           <div className="mx-8 mt-4 h-3 rounded-full bg-white/70 dark:bg-black/25 overflow-hidden">
             <div className="h-full rounded-full bg-ses-500 transition-[width] duration-75" style={{ width: `${status === 'acik' ? pct : 0}%` }} />
           </div>
         )}
-        {result && <p className="text-[17px] text-slate-700 dark:text-[#e2d5cd] mt-3 px-4">{mptComment(result.sec)}</p>}
+        {result && <p className="text-[16px] text-slate-700 dark:text-[#e2d5cd] mt-3 px-4">{mptComment(result.sec)}</p>}
       </div>
       {result?.ac && <AcousticCard ac={result.ac} compact={compact} />}
 
       {!manual ? (
         <div className="grid grid-cols-2 gap-2">
           {!armed ? (
-            <button className="ses-btn-primary col-span-2 min-h-[68px] text-[21px]" onClick={baslat} disabled={status === 'aciliyor'}>
+            <button className="ses-btn-primary col-span-2 min-h-[58px] text-[18px]" onClick={baslat} disabled={status === 'aciliyor'}>
               {status === 'aciliyor' ? 'Mikrofon açılıyor…' : result ? '🎤 Yeniden ölç' : '🎤 Ölçümü başlat'}
             </button>
           ) : (
@@ -167,28 +167,28 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
               </button>
             </>
           )}
-          <button className="col-span-2 text-[16px] text-slate-700 dark:text-[#d8c8bf] underline py-1" onClick={() => setManual(true)}>
+          <button className="col-span-2 text-[15px] text-slate-700 dark:text-[#d8c8bf] underline py-1" onClick={() => setManual(true)}>
             Mikrofon yerine elle kronometre kullan
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
           {!manualT0 ? (
-            <button className="ses-btn-primary col-span-2 min-h-[68px] text-[21px]" onClick={elleBasla}>
+            <button className="ses-btn-primary col-span-2 min-h-[58px] text-[18px]" onClick={elleBasla}>
               ▶ Başla (nefes al, "aaaa" de)
             </button>
           ) : (
-            <button className="ses-btn-primary col-span-2 min-h-[68px] text-[21px]" onClick={elleBitir}>
+            <button className="ses-btn-primary col-span-2 min-h-[58px] text-[18px]" onClick={elleBitir}>
               ■ Bitti
             </button>
           )}
           {status === 'izin-yok' && (
-            <p className="col-span-2 text-[15px] text-slate-700 dark:text-[#d8c8bf]">
+            <p className="col-span-2 text-[14px] text-slate-700 dark:text-[#d8c8bf]">
               Mikrofon izni verilmedi. Telefon ayarlarından uygulamaya mikrofon izni verirsen süre kendiliğinden ölçülür.
             </p>
           )}
           {status !== 'izin-yok' && status !== 'yok' && (
-            <button className="col-span-2 text-[16px] text-slate-700 dark:text-[#d8c8bf] underline py-1" onClick={() => setManual(false)}>
+            <button className="col-span-2 text-[15px] text-slate-700 dark:text-[#d8c8bf] underline py-1" onClick={() => setManual(false)}>
               Mikrofonla ölç
             </button>
           )}

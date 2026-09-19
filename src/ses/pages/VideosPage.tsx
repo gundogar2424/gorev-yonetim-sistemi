@@ -30,7 +30,7 @@ export default function VideosPage() {
             <div className="space-y-3">
               {bizim.map((e) => (
                 <div key={e.id} className="ses-card space-y-2">
-                  <div className="text-[17px] font-semibold text-slate-900 dark:text-[#f5ece4]">
+                  <div className="text-[16px] font-semibold text-slate-900 dark:text-[#f5ece4]">
                     {e.emoji} {e.name}
                   </div>
                   <ClipPlayer src={e.clip!} />
@@ -38,9 +38,9 @@ export default function VideosPage() {
               ))}
             </div>
           ) : (
-            <p className="ses-card text-[15px] text-slate-700 dark:text-[#e2d5cd]">Henüz kendi videomuz yok.</p>
+            <p className="ses-card text-[14px] text-slate-700 dark:text-[#e2d5cd]">Henüz kendi videomuz yok.</p>
           )}
-          <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1 mt-2">
+          <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] px-1 mt-2">
             Bu videolar uygulamanın içindedir, internetsiz oynar. Yeni video ekledikçe aşağıdaki YouTube bağlantıları o egzersizden kalkar.
           </p>
         </section>
@@ -48,13 +48,13 @@ export default function VideosPage() {
         {yt.size > 0 && (
           <section>
             <h3 className="ses-label px-1 mb-2">Kendi videomuz gelene kadar (YouTube)</h3>
-            <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1 mb-2">
+            <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] px-1 mb-2">
               İnternet gerekir. İngilizce ve Fransızca videolar işaretlidir; altyazı için YouTube'da ⚙️ › Altyazılar › Türkçe (otomatik çeviri) seçilebilir.
             </p>
             <div className="space-y-2">
               {[...yt.values()].map((v) => (
                 <div key={v.url} className="ses-card space-y-2">
-                  <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">{v.exercises.join(' · ')}</div>
+                  <div className="text-[14px] text-slate-700 dark:text-[#e2d5cd]">{v.exercises.join(' · ')}</div>
                   <VideoEmbed video={{ url: v.url, title: v.title, lang: v.lang as 'tr' | 'en' | 'fr' }} />
                 </div>
               ))}
@@ -63,7 +63,7 @@ export default function VideosPage() {
         )}
 
         {eksik.length > 0 && (
-          <p className="text-[15px] text-slate-600 dark:text-[#cdbdb3] px-1">Videosu olmayanlar (adım adım tarif geçerli): {eksik.join(', ')}.</p>
+          <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] px-1">Videosu olmayanlar (adım adım tarif geçerli): {eksik.join(', ')}.</p>
         )}
       </div>
     </div>

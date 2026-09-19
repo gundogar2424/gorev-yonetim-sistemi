@@ -26,8 +26,8 @@ export default function SesHeader({ title, subtitle, back, right, compact }: Pro
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className={`font-bold leading-tight tracking-[-0.02em] text-slate-900 dark:text-[#f5ece4] ${compact ? 'text-[22px]' : 'text-[28px] truncate'}`}>{title}</h1>
-          {subtitle && <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-0.5 truncate">{subtitle}</p>}
+          <h1 className={`font-bold leading-tight tracking-[-0.02em] text-slate-900 dark:text-[#f5ece4] ${compact ? 'text-[19px]' : 'text-[24px] truncate'}`}>{title}</h1>
+          {subtitle && <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-0.5 truncate">{subtitle}</p>}
         </div>
         {right && <div className="flex-shrink-0">{right}</div>}
       </div>

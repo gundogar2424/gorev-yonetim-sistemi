@@ -53,12 +53,12 @@ export function setThemePref(pref: ThemePref): void {
   applyTheme()
 }
 
-// Varsayilan ACIK (yakini gormekte zorlanan kullanici); kapatmak icin '0'.
+// Varsayilan KAPALI; Ayarlar > Gorunum'den acilir (yaklasik %15 buyutur).
 export function getBigText(): boolean {
   try {
-    return localStorage.getItem(BIG_KEY) !== '0'
+    return localStorage.getItem(BIG_KEY) === '1'
   } catch {
-    return true
+    return false
   }
 }
 
