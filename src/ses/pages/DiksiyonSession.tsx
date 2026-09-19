@@ -8,6 +8,7 @@ import { DGROUP_LABEL, findDExercise, type DExercise } from '../lib/diksiyon'
 import { activeDExercises, addSession, dSecFor, readSettings, updateSession, type DoneExercise, type LineScore, type Session as SessionRec } from '../lib/store'
 import { accuracyComment, listenOnce, scoreText, speechAvailable, speechPermission, type Listener, type Score } from '../lib/speech'
 import Rating from '../components/Rating'
+import VideoButton from '../components/VideoButton'
 import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
@@ -352,6 +353,7 @@ export default function DiksiyonSession() {
             </div>
           </section>
           <div className="mt-auto space-y-2">
+            <VideoButton video={ex.video} compact />
             <button className="ses-btn-primary w-full min-h-[72px] text-[22px]" onClick={basla}>
               ▶ Başla
             </button>
