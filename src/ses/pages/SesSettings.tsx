@@ -62,14 +62,14 @@ export default function SesSettings() {
   return (
     <div>
       <SesHeader title="Ayarlar" subtitle={`Ses Egzersizi · sürüm ${__APP_BUILD__}`} />
-      <div className="px-4 space-y-4 pb-6">
-        {durum && <div className="ses-card py-3 text-[15px] text-emerald-700 bg-emerald-50">{durum}</div>}
-        {hata && <div className="ses-card py-3 text-[15px] text-rose-600 bg-rose-50 whitespace-pre-wrap">{hata}</div>}
+      <div className="px-4 space-y-5 pb-6">
+        {durum && <div className="ses-card py-3 text-[17px] text-emerald-700 bg-emerald-50">{durum}</div>}
+        {hata && <div className="ses-card py-3 text-[17px] text-rose-600 bg-rose-50 whitespace-pre-wrap">{hata}</div>}
 
         <section className="ses-card space-y-3">
           <h3 className="ses-label">Kişisel</h3>
           <label className="block">
-            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Adın (selamlamada kullanılır)</span>
+            <span className="text-[17px] text-slate-700 dark:text-[#e2d5cd]">Adın (selamlamada kullanılır)</span>
             <input className="ses-input mt-1" value={ayar.name} placeholder="örn. Ayşe" onChange={(e) => setAyar(saveSettings({ name: e.target.value.slice(0, 24) }))} />
           </label>
         </section>
@@ -77,27 +77,27 @@ export default function SesSettings() {
         <section className="ses-card space-y-3">
           <h3 className="ses-label">Seans</h3>
           <div>
-            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Yoğunluk (tekrar sayısı)</span>
+            <span className="text-[17px] text-slate-700 dark:text-[#e2d5cd]">Yoğunluk (tekrar sayısı)</span>
             <div className="grid grid-cols-3 gap-2 mt-2">
               {(['hafif', 'orta', 'yogun'] as Level[]).map((v) => (
-                <button key={v} onClick={() => setAyar(saveSettings({ level: v }))} className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${ayar.level === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                <button key={v} onClick={() => setAyar(saveSettings({ level: v }))} className={`min-h-[54px] rounded-2xl text-[17px] font-semibold transition ${ayar.level === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
                   {LEVEL_LABEL[v]}
                 </button>
               ))}
             </div>
-            <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-1">Hafif: %60 · Orta: standart · Yoğun: %140. Sesin yorgunsa Hafif seç.</p>
+            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-1">Hafif: %60 · Orta: standart · Yoğun: %140. Sesin yorgunsa Hafif seç.</p>
           </div>
           <Switch label="Her tekrardan önce 3-2-1 geri sayım" checked={ayar.countdown} onChange={(v) => setAyar(saveSettings({ countdown: v }))} />
           <div>
-            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Günlük hedef (seans sayısı)</span>
+            <span className="text-[17px] text-slate-700 dark:text-[#e2d5cd]">Günlük hedef (seans sayısı)</span>
             <div className="grid grid-cols-3 gap-2 mt-2">
               {[1, 2, 3].map((n) => (
-                <button key={n} onClick={() => setAyar(saveSettings({ dailyGoal: n }))} className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${ayar.dailyGoal === n ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                <button key={n} onClick={() => setAyar(saveSettings({ dailyGoal: n }))} className={`min-h-[54px] rounded-2xl text-[17px] font-semibold transition ${ayar.dailyGoal === n ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
                   {n} / gün
                 </button>
               ))}
             </div>
-            <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-1">Araştırmalarda etkili bulunan doz günde 2 kısa seans (sabah/akşam), 6-8 hafta. Ana sayfadaki hedef kartı buna göre işler.</p>
+            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-1">Araştırmalarda etkili bulunan doz günde 2 kısa seans (sabah/akşam), 6-8 hafta. Ana sayfadaki hedef kartı buna göre işler.</p>
           </div>
         </section>
 
@@ -111,15 +111,15 @@ export default function SesSettings() {
               }}
               className={`w-full text-left rounded-2xl p-3 border-2 transition ${ayar.program === p ? 'border-ses-600 bg-ses-50 dark:bg-[#352820]' : 'border-slate-200 dark:border-[#4a3a30]'}`}
             >
-              <span className="block text-[16px] font-semibold text-slate-900 dark:text-[#f5ece4]">{PROGRAM_LABEL[p]}</span>
-              <span className="block text-[13px] text-slate-600 dark:text-[#d8c8bf] mt-0.5">{PROGRAM_DESC[p]}</span>
+              <span className="block text-[18px] font-semibold text-slate-900 dark:text-[#f5ece4]">{PROGRAM_LABEL[p]}</span>
+              <span className="block text-[15px] text-slate-700 dark:text-[#e2d5cd] mt-0.5">{PROGRAM_DESC[p]}</span>
             </button>
           ))}
         </section>
 
         <section className="ses-card space-y-2">
           <h3 className="ses-label">Seanstaki egzersizler</h3>
-          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Program ön ayarının üstüne tek tek düzenle; hekimin/terapistin önermediklerini kapat.</p>
+          <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Program ön ayarının üstüne tek tek düzenle; hekimin/terapistin önermediklerini kapat.</p>
           {EXERCISES.map((e) => (
             <Switch
               key={e.id}
@@ -133,15 +133,15 @@ export default function SesSettings() {
         <section className="ses-card space-y-3">
           <h3 className="ses-label">Diksiyon</h3>
           <div>
-            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Okuma temposu</span>
+            <span className="text-[17px] text-slate-700 dark:text-[#e2d5cd]">Okuma temposu</span>
             <div className="grid grid-cols-3 gap-2 mt-2">
               {(['yavas', 'orta', 'hizli'] as DTempo[]).map((v) => (
-                <button key={v} onClick={() => setAyar(saveSettings({ dTempo: v }))} className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${ayar.dTempo === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                <button key={v} onClick={() => setAyar(saveSettings({ dTempo: v }))} className={`min-h-[54px] rounded-2xl text-[17px] font-semibold transition ${ayar.dTempo === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
                   {DTEMPO_LABEL[v]}
                 </button>
               ))}
             </div>
-            <p className="text-[13px] text-slate-500 dark:text-[#a3908a] mt-1">Her satır için verilen süreyi ayarlar. Başlarken Yavaş seç; netleşince hızlan.</p>
+            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-1">Her satır için verilen süreyi ayarlar. Başlarken Yavaş seç; netleşince hızlan.</p>
           </div>
           <Switch
             label="Konuşma tanıma ile puanlama"
@@ -149,10 +149,10 @@ export default function SesSettings() {
             checked={ayar.score}
             onChange={(v) => setAyar(saveSettings({ score: v }))}
           />
-          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Diksiyon seansındaki egzersizler:</p>
+          <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Diksiyon seansındaki egzersizler:</p>
           {(['nefes', 'sesli', 'unsuz', 'tekerleme', 'kalem', 'vurgu'] as DGroup[]).map((g) => (
             <div key={g}>
-              <div className="text-[12px] font-semibold text-slate-400 dark:text-[#a3908a] mt-2 mb-1">{DGROUP_LABEL[g]}</div>
+              <div className="text-[14px] font-semibold text-slate-600 dark:text-[#cdbdb3] mt-2 mb-1">{DGROUP_LABEL[g]}</div>
               {DEXERCISES.filter((e) => e.group === g).map((e) => (
                 <Switch
                   key={e.id}
@@ -167,11 +167,11 @@ export default function SesSettings() {
 
         <section className="ses-card space-y-3">
           <h3 className="ses-label">Yapay zeka geri bildirimi</h3>
-          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">
+          <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">
             Seans sonunda sonuçların (doğruluk, yutulan sözcükler, hız, öz değerlendirme, MPT) Claude'a gönderilir ve kısa bir yazılı geri bildirim alırsın. Ses kaydı gönderilmez; yapay zeka sesi duymaz, yalnızca yazıya çevrilmiş metni ve sayıları değerlendirir. Anahtar yalnızca bu cihazda saklanır, yedeğe yazılmaz.
           </p>
           <label className="block">
-            <span className="text-[15px] text-slate-600 dark:text-[#d8c8bf]">Claude API anahtarı</span>
+            <span className="text-[17px] text-slate-700 dark:text-[#e2d5cd]">Claude API anahtarı</span>
             <input
               className="ses-input mt-1"
               type="password"
@@ -181,14 +181,14 @@ export default function SesSettings() {
               onChange={(e) => setAyar(saveSettings({ apiKey: e.target.value.trim() }))}
             />
           </label>
-          <p className="text-[12px] text-slate-400 dark:text-[#a3908a]">
+          <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3]">
             Anahtar console.anthropic.com › API Keys bölümünden alınır. {ayar.apiKey ? `Kayıtlı: ${ayar.apiKey.length} karakter, sonu …${ayar.apiKey.slice(-4)}` : 'Henüz anahtar yok.'}
           </p>
         </section>
 
         <section className="ses-card space-y-3">
           <h3 className="ses-label">Günlük hatırlatma</h3>
-          {!isNative() && <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Bildirimler yalnızca telefona kurulan uygulamada (APK) çalışır.</p>}
+          {!isNative() && <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Bildirimler yalnızca telefona kurulan uygulamada (APK) çalışır.</p>}
           {ayar.reminders.map((r) => (
             <div key={r.id} className="flex items-center gap-3">
               <input
@@ -203,7 +203,7 @@ export default function SesSettings() {
               />
               <button
                 onClick={() => void hatirlaticiKaydet(ayar.reminders.map((x) => (x.id === r.id ? { ...x, enabled: !x.enabled } : x)))}
-                className={`min-h-[48px] px-4 rounded-2xl text-[15px] font-semibold transition ${r.enabled ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}
+                className={`min-h-[54px] px-4 rounded-2xl text-[17px] font-semibold transition ${r.enabled ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}
               >
                 {r.enabled ? 'Açık' : 'Kapalı'}
               </button>
@@ -244,7 +244,7 @@ export default function SesSettings() {
                   setThemePref(v)
                   setTema(v)
                 }}
-                className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${tema === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}
+                className={`min-h-[54px] rounded-2xl text-[17px] font-semibold transition ${tema === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}
               >
                 {l}
               </button>
@@ -262,7 +262,7 @@ export default function SesSettings() {
 
         <section className="ses-card space-y-3">
           <h3 className="ses-label">Yedek</h3>
-          <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">{sayi} seans kayıtlı. Veriler yalnızca bu telefonda.</p>
+          <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">{sayi} seans kayıtlı. Veriler yalnızca bu telefonda.</p>
           <button className="ses-btn-soft w-full" onClick={downloadBackup}>
             ⬇️ Yedeği indir
           </button>
@@ -287,14 +287,14 @@ export default function SesSettings() {
 
         <section className="ses-card space-y-2">
           <h3 className="ses-label">Kaynaklar</h3>
-          <p className="text-[13px] text-slate-500 dark:text-[#a3908a]">Egzersiz seçimi, dozu ve ölçüm eşikleri aşağıdaki çalışmalara dayanır. Bağlantılar özet sayfalarını açar.</p>
+          <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Egzersiz seçimi, dozu ve ölçüm eşikleri aşağıdaki çalışmalara dayanır. Bağlantılar özet sayfalarını açar.</p>
           <ul className="space-y-2">
             {SOURCES.map((k) => (
-              <li key={k.url} className="text-[13px]">
+              <li key={k.url} className="text-[15px]">
                 <a href={k.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-ses-700 dark:text-ses-300 underline">
                   {k.title}
                 </a>
-                <span className="block text-slate-600 dark:text-[#d8c8bf]">{k.note}</span>
+                <span className="block text-slate-700 dark:text-[#e2d5cd]">{k.note}</span>
               </li>
             ))}
           </ul>
@@ -304,7 +304,7 @@ export default function SesSettings() {
           <h3 className="ses-label">Önemli uyarı</h3>
           <ul className="space-y-2">
             {DISCLAIMER.map((m, i) => (
-              <li key={i} className="flex gap-2 text-[14px] text-slate-600 dark:text-[#d8c8bf]">
+              <li key={i} className="flex gap-2 text-[16px] text-slate-700 dark:text-[#e2d5cd]">
                 <span className="text-ses-600">•</span>
                 <span>{m}</span>
               </li>

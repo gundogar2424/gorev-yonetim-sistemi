@@ -266,11 +266,11 @@ export default function DiksiyonSession() {
     return (
       <div className="flex-1 flex flex-col">
         <SesHeader title="Seans bitti" subtitle={done.length > 0 ? 'Aferin, her gün birkaç dakika yeter' : 'Bir dahaki sefere'} back={() => navigate('/diksiyon')} />
-        <div className="px-4 space-y-4 pb-8">
+        <div className="px-4 space-y-5 pb-8">
           <section className="ses-card text-center py-6">
-            <div className="text-[56px]">{done.length > 0 ? '🎉' : '🙂'}</div>
-            <div className="text-[24px] font-bold text-slate-900 dark:text-[#f5ece4] mt-1">{done.length} egzersiz</div>
-            <div className="text-[15px] text-slate-500 dark:text-[#a3908a]">
+            <div className="text-[60px]">{done.length > 0 ? '🎉' : '🙂'}</div>
+            <div className="text-[26px] font-bold text-slate-900 dark:text-[#f5ece4] mt-1">{done.length} egzersiz</div>
+            <div className="text-[17px] text-slate-700 dark:text-[#d8c8bf]">
               {fmtMinutes(ms)} · diksiyon
               {(() => {
                 const a = done.map((d) => d.acc).filter((x): x is number => typeof x === 'number')
@@ -284,11 +284,11 @@ export default function DiksiyonSession() {
                 {done.map((d, i) => {
                   const e = findDExercise(d.id)
                   return (
-                    <li key={i} className="py-2 flex items-center justify-between text-[15px]">
+                    <li key={i} className="py-2 flex items-center justify-between text-[17px]">
                       <span className="text-slate-800 dark:text-[#f5ece4]">
                         {e?.emoji} {e?.name ?? d.id}
                       </span>
-                      <span className="text-slate-500 dark:text-[#a3908a]">
+                      <span className="text-slate-700 dark:text-[#d8c8bf]">
                         {typeof d.acc === 'number' ? `%${d.acc} · ` : ''}
                         {typeof d.rating === 'number' ? `${'★'.repeat(d.rating)} · ` : ''}
                         {d.reps} ×
@@ -314,7 +314,7 @@ export default function DiksiyonSession() {
             </section>
           )}
           {saved && <FeedbackCard session={{ ...saved, note }} />}
-          <button className="ses-btn-primary w-full min-h-[62px] text-[19px]" onClick={() => navigate('/diksiyon')}>
+          <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={() => navigate('/diksiyon')}>
             Diksiyon sayfası
           </button>
         </div>
@@ -327,24 +327,24 @@ export default function DiksiyonSession() {
     return (
       <div className="flex-1 flex flex-col">
         <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · ${DGROUP_LABEL[ex.group]}`} compact back={() => (done.length > 0 || idx > 0 ? bitir(done) : navigate(-1))} />
-        <div className="px-4 space-y-4 pb-8 flex-1 flex flex-col">
-          <section className="ses-card ses-pop">
+        <div className="px-4 space-y-5 pb-8 flex-1 flex flex-col">
+          <section className="ses-card">
             <div className="flex items-center gap-3">
-              <span className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[30px]">{ex.emoji}</span>
-              <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">{ex.short}</p>
+              <span className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[32px]">{ex.emoji}</span>
+              <p className="text-[18px] text-slate-700 dark:text-[#d8c8bf]">{ex.short}</p>
             </div>
-            <p className="text-[14px] text-slate-600 dark:text-[#d8c8bf] mt-3">
+            <p className="text-[16px] text-slate-700 dark:text-[#e2d5cd] mt-3">
               <b>Neden:</b> {ex.why}
             </p>
             <ol className="space-y-2 mt-3">
               {ex.steps.map((s, i) => (
-                <li key={i} className="flex gap-3 text-[15px] text-slate-700 dark:text-[#d8c8bf]">
-                  <span className="w-7 h-7 rounded-full bg-ses-600 text-white grid place-items-center text-[13px] font-bold flex-shrink-0">{i + 1}</span>
+                <li key={i} className="flex gap-3 text-[17px] text-slate-700 dark:text-[#d8c8bf]">
+                  <span className="w-7 h-7 rounded-full bg-ses-600 text-white grid place-items-center text-[15px] font-bold flex-shrink-0">{i + 1}</span>
                   <span>{s}</span>
                 </li>
               ))}
             </ol>
-            {ex.tip && <p className="mt-3 rounded-2xl bg-amber-50 dark:bg-[#2b2418] p-3 text-[14px] text-amber-800 dark:text-amber-200">⚠️ {ex.tip}</p>}
+            {ex.tip && <p className="mt-3 rounded-2xl bg-amber-50 dark:bg-[#2b2418] p-3 text-[16px] text-amber-800 dark:text-amber-200">⚠️ {ex.tip}</p>}
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="ses-pill">
                 {n} satır × {sec} sn
@@ -352,7 +352,7 @@ export default function DiksiyonSession() {
             </div>
           </section>
           <div className="mt-auto space-y-2">
-            <button className="ses-btn-primary w-full min-h-[66px] text-[20px]" onClick={basla}>
+            <button className="ses-btn-primary w-full min-h-[72px] text-[22px]" onClick={basla}>
               ▶ Başla
             </button>
             <button className="ses-btn-ghost w-full" onClick={atla}>
@@ -373,14 +373,14 @@ export default function DiksiyonSession() {
         <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · satır ${rep + 1} / ${n} · sonuç`} compact back={() => bitir(done)} />
         <div className="px-4 pb-8 flex-1 flex flex-col space-y-3">
           <section className="ses-card ses-pop text-center py-5">
-            <div className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300">Doğruluk</div>
-            <div className={`text-[64px] font-bold leading-none tabular-nums mt-1 ${renk}`}>%{sc.accuracy}</div>
-            <div className="text-[14px] text-slate-500 dark:text-[#a3908a] mt-1">{sc.wpm > 0 ? `${sc.wpm} sözcük/dk` : ''}</div>
-            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-2">{accuracyComment(sc.accuracy)}</p>
+            <div className="text-[15px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300">Doğruluk</div>
+            <div className={`text-[68px] font-bold leading-none tabular-nums mt-1 ${renk}`}>%{sc.accuracy}</div>
+            <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-1">{sc.wpm > 0 ? `${sc.wpm} sözcük/dk` : ''}</div>
+            <p className="text-[17px] text-slate-700 dark:text-[#d8c8bf] mt-2">{accuracyComment(sc.accuracy)}</p>
           </section>
           <section className="ses-card">
             <div className="ses-label mb-2">Hedef metin (kırmızı: yutulan / yanlış)</div>
-            <p className="text-[18px] leading-relaxed">
+            <p className="text-[20px] leading-relaxed">
               {sc.marks.map((m, i) => (
                 <span key={i} className={m.ok ? 'text-slate-800 dark:text-[#f5ece4]' : 'text-rose-600 dark:text-rose-300 font-bold underline decoration-2'}>
                   {m.w}{' '}
@@ -388,7 +388,7 @@ export default function DiksiyonSession() {
               ))}
             </p>
             <div className="ses-label mt-3 mb-1">Duyulan</div>
-            <p className="text-[15px] text-slate-500 dark:text-[#a3908a] italic">{sc.heard || '(bir şey anlaşılmadı — telefonu yaklaştır, daha gür söyle)'}</p>
+            <p className="text-[17px] text-slate-700 dark:text-[#d8c8bf] italic">{sc.heard || '(bir şey anlaşılmadı — telefonu yaklaştır, daha gür söyle)'}</p>
           </section>
           <div className="mt-auto grid grid-cols-2 gap-2">
             <button
@@ -422,14 +422,14 @@ export default function DiksiyonSession() {
           <section className="ses-card ses-pop space-y-3">
             {ort != null && (
               <div className="text-center">
-                <div className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300">Bu egzersizde ortalama doğruluk</div>
-                <div className="text-[48px] font-bold leading-none tabular-nums mt-1 text-slate-900 dark:text-[#f5ece4]">%{ort}</div>
+                <div className="text-[15px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300">Bu egzersizde ortalama doğruluk</div>
+                <div className="text-[52px] font-bold leading-none tabular-nums mt-1 text-slate-900 dark:text-[#f5ece4]">%{ort}</div>
               </div>
             )}
             <Rating value={rating} onChange={setRating} />
           </section>
           <div className="mt-auto space-y-2">
-            <button className="ses-btn-primary w-full min-h-[62px] text-[19px]" onClick={puanKaydet}>
+            <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={puanKaydet}>
               {idx + 1 < list.length ? 'Sonraki egzersiz ▶' : 'Seansı bitir ✔'}
             </button>
             <button className="ses-btn-ghost w-full" onClick={puanKaydet}>
@@ -449,19 +449,19 @@ export default function DiksiyonSession() {
       <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · satır ${rep + 1} / ${n}`} compact back={() => bitir(done)} />
       <div className="px-4 pb-8 flex-1 flex flex-col">
         <div className="flex-1 flex flex-col rounded-3xl p-5 bg-white dark:bg-[#261d16]">
-          <div className="text-[13px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300 text-center">
+          <div className="text-[15px] font-semibold uppercase tracking-[0.1em] text-ses-700 dark:text-ses-300 text-center">
             {paused ? 'Duraklatıldı' : listening ? '🔴 Dinliyor · oku / söyle' : 'Oku / söyle'}
           </div>
-          <div className={`flex-1 flex items-center justify-center text-center font-bold leading-snug text-slate-900 dark:text-[#f5ece4] py-4 ${uzun ? 'text-[20px]' : 'text-[30px]'}`}>{satir}</div>
+          <div className={`flex-1 flex items-center justify-center text-center font-bold leading-snug text-slate-900 dark:text-[#f5ece4] py-4 ${uzun ? 'text-[22px]' : 'text-[32px]'}`}>{satir}</div>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2.5 rounded-full bg-slate-200 dark:bg-[#4a3a30] overflow-hidden">
               <div className="h-full rounded-full bg-ses-500 transition-[width] duration-100" style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-[18px] font-bold tabular-nums text-slate-700 dark:text-[#f5ece4] w-8 text-right">{Math.ceil(left)}</span>
+            <span className="text-[20px] font-bold tabular-nums text-slate-700 dark:text-[#f5ece4] w-8 text-right">{Math.ceil(left)}</span>
           </div>
           {micOn && (
             <div className="mt-3">
-              <div className="text-[12px] text-slate-500 dark:text-[#a3908a] mb-1">Ses düzeyi</div>
+              <div className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mb-1">Ses düzeyi</div>
               <div className="h-3 rounded-full bg-slate-200 dark:bg-[#4a3a30] overflow-hidden">
                 <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-75" style={{ width: `${lvl}%` }} />
               </div>
@@ -489,7 +489,7 @@ export default function DiksiyonSession() {
         </div>
         <div className="grid grid-cols-2 gap-2 mt-2">
           <button
-            className={`min-h-[44px] rounded-2xl text-[13px] font-semibold ${puanla ? 'bg-emerald-50 dark:bg-[#1f2e22] text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-[#a3908a]'}`}
+            className={`min-h-[52px] rounded-2xl text-[15px] font-semibold ${puanla ? 'bg-emerald-50 dark:bg-[#1f2e22] text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-[#d8c8bf]'}`}
             onClick={() => {
               const v = !scoreOn
               setScoreOn(v)
@@ -503,11 +503,11 @@ export default function DiksiyonSession() {
           >
             {speechOk === false ? '🎙️ Konuşma tanıma yok' : puanla ? '🎙️ Puanlama açık' : '🎙️ Puanlamayı aç'}
           </button>
-          <button className={`min-h-[44px] rounded-2xl text-[13px] font-semibold ${micOn ? 'bg-emerald-50 dark:bg-[#1f2e22] text-emerald-700 dark:text-emerald-300' : 'text-slate-500 dark:text-[#a3908a]'}`} onClick={() => void micToggle()}>
+          <button className={`min-h-[52px] rounded-2xl text-[15px] font-semibold ${micOn ? 'bg-emerald-50 dark:bg-[#1f2e22] text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-[#d8c8bf]'}`} onClick={() => void micToggle()}>
             {micOn ? '🎤 Düzey çubuğu açık' : '🎤 Ses düzeyi çubuğu'}
           </button>
         </div>
-        {puanla && <p className="text-[12px] text-slate-400 dark:text-[#a3908a] text-center mt-1">Satırı okuyunca ▶▶'ye bas: tanıma durur ve doğruluk hesaplanır. Süre bitince de kendiliğinden değerlendirilir.</p>}
+        {puanla && <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] text-center mt-1">Satırı okuyunca ▶▶'ye bas: tanıma durur ve doğruluk hesaplanır. Süre bitince de kendiliğinden değerlendirilir.</p>}
       </div>
     </div>
   )

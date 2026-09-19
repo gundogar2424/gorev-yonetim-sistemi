@@ -113,8 +113,8 @@ export default function SesApp() {
             <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-3 pb-2.5 gap-1.5">
               {({ isActive }) => (
                 <>
-                  <NavIcon name={t.icon} className={`h-[24px] w-[24px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-slate-400 dark:text-[#a3908a]'}`} />
-                  <span className={`text-[11px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-400 dark:text-[#a3908a] font-medium'}`}>
+                  <NavIcon name={t.icon} className={`h-[24px] w-[24px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-slate-600 dark:text-[#cdbdb3]'}`} />
+                  <span className={`text-[14px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-600 dark:text-[#cdbdb3] font-medium'}`}>
                     {t.label}
                   </span>
                 </>

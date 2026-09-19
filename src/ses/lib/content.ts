@@ -413,6 +413,11 @@ export const PROGRAM_LABEL: Record<Program, string> = {
   felc: 'Ses teli felci / zayıf kapanma',
   presbifoni: 'Yaşa bağlı ses zayıflığı'
 }
+export const PROGRAM_SHORT: Record<Program, string> = {
+  genel: 'Genel program',
+  felc: 'Ses teli felci programı',
+  presbifoni: 'Yaşa bağlı zayıflık programı'
+}
 export const PROGRAM_DESC: Record<Program, string> = {
   genel: 'İtme/çekme dışında tüm egzersizler. Terapistinin verdiği listeye göre kendin düzenle.',
   felc: 'Tek taraflı ses teli felci, felç sonrası zayıf kapanma, nefesli ses. 2025 uzman uzlaşısı protokolü: karın nefesi, öksürükten sese, yarım yutkunma "bum", Vokal Fonksiyon Egzersizleri + sert başlangıç, baş çevirme, suda tüp. Gür ses egzersizleri ilk haftalarda kapalı.',

@@ -890,17 +890,33 @@ html.eft-big {
 .dark .ses-app {
   background-color: #1a1410;
 }
-/* Ayarlar > Buyuk yazi */
-html.ses-big {
-  font-size: 118%;
+/* Ayarlar > Buyuk yazi: piksel tabanli boyutlar da buyusun diye zoom
+   (WebView/Chrome destekler). Varsayilan ACIK: yakini gormekte zorlanan
+   kullanici icin. */
+html.ses-big .ses-app {
+  zoom: 1.12;
+}
+/* Okunabilirlik: daha genis satir araligi, normal harf araligi, koyu metin */
+.ses-app {
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: #0f172a;
+  -webkit-text-size-adjust: 100%;
+}
+.dark .ses-app {
+  color: #f5ece4;
+}
+.ses-app p,
+.ses-app li {
+  line-height: 1.55;
 }
 @layer components {
   .ses-card {
-    @apply bg-white rounded-3xl p-4 shadow-card;
+    @apply bg-white rounded-3xl p-5 shadow-card;
   }
   .ses-btn {
     @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 font-semibold transition select-none;
-    @apply min-h-[56px] text-[17px] active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
+    @apply min-h-[60px] text-[19px] active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
   }
   .ses-btn-primary {
     @apply ses-btn bg-ses-600 text-white hover:bg-ses-700;
@@ -915,13 +931,13 @@ html.ses-big {
     @apply ses-btn bg-rose-50 text-rose-600 hover:bg-rose-100;
   }
   .ses-label {
-    @apply text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-400;
+    @apply text-[14px] font-bold uppercase tracking-[0.06em] text-slate-600;
   }
   .ses-pill {
-    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold bg-ses-50 text-ses-700;
+    @apply inline-flex items-center rounded-full px-3 py-1.5 text-[14px] font-semibold bg-ses-50 text-ses-800;
   }
   .ses-input {
-    @apply w-full rounded-2xl bg-slate-50 px-4 py-3 text-[17px] outline-none focus:ring-4 focus:ring-ses-100;
+    @apply w-full rounded-2xl bg-slate-50 px-4 py-3.5 text-[19px] outline-none focus:ring-4 focus:ring-ses-100 border border-slate-200;
   }
 }
 .dark .ses-card {
@@ -940,7 +956,7 @@ html.ses-big {
   background-color: #2a1a1d;
 }
 .dark .ses-label {
-  color: #a3908a;
+  color: #cdbdb3;
 }
 .dark .ses-pill {
   background-color: #352820;
@@ -949,6 +965,7 @@ html.ses-big {
 .dark .ses-input {
   background-color: #352820;
   color: #f5ece4;
+  border-color: #4a3a30;
 }
 .dark .bg-ses-50 {
   background-color: #352820;

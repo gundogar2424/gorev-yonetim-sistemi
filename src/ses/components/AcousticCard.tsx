@@ -3,7 +3,7 @@ import { acousticComment, rateHnr, rateJitter, rateShimmer, type AcousticResult,
 
 function Rozet({ l }: { l: Level3 }) {
   const cls = l === 'iyi' ? 'bg-emerald-50 text-emerald-700 dark:bg-[#1f2e22] dark:text-emerald-300' : l === 'orta' ? 'bg-amber-50 text-amber-700 dark:bg-[#2b2418] dark:text-amber-200' : 'bg-rose-50 text-rose-700 dark:bg-[#2a1a1d] dark:text-rose-300'
-  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{l === 'iyi' ? 'iyi' : l === 'orta' ? 'orta' : 'zayıf'}</span>
+  return <span className={`inline-flex rounded-full px-2 py-0.5 text-[14px] font-semibold ${cls}`}>{l === 'iyi' ? 'iyi' : l === 'orta' ? 'orta' : 'zayıf'}</span>
 }
 
 export default function AcousticCard({ ac, compact }: { ac: AcousticResult; compact?: boolean }) {
@@ -20,17 +20,17 @@ export default function AcousticCard({ ac, compact }: { ac: AcousticResult; comp
         {items.map((it) => (
           <li key={it.ad} className="py-1.5 flex items-center gap-2">
             <span className="flex-1 min-w-0">
-              <span className="block text-[14px] text-slate-700 dark:text-[#f5ece4]">{it.ad}</span>
-              <span className="block text-[11px] text-slate-400 dark:text-[#a3908a]">{it.aciklama}</span>
+              <span className="block text-[16px] text-slate-700 dark:text-[#f5ece4]">{it.ad}</span>
+              <span className="block text-[14px] text-slate-600 dark:text-[#cdbdb3]">{it.aciklama}</span>
             </span>
-            <span className="text-[15px] font-bold tabular-nums text-slate-900 dark:text-[#f5ece4]">{it.deger}</span>
+            <span className="text-[17px] font-bold tabular-nums text-slate-900 dark:text-[#f5ece4]">{it.deger}</span>
             {it.l && <Rozet l={it.l} />}
           </li>
         ))}
       </ul>
-      {!compact && <p className="text-[13px] text-slate-600 dark:text-[#d8c8bf] mt-2">{acousticComment(ac)}</p>}
+      {!compact && <p className="text-[15px] text-slate-700 dark:text-[#e2d5cd] mt-2">{acousticComment(ac)}</p>}
       {!compact && (
-        <p className="text-[11px] text-slate-400 dark:text-[#a3908a] mt-1">
+        <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] mt-1">
           Telefon mikrofonuyla ölçüldü: perde ve jitter güvenilir, shimmer ve HNR mikrofona/gürültüye duyarlı (2025 meta-analizi). Aynı telefon, aynı oda, aynı uzaklıkla ölçüp kendi geçmişinle karşılaştır; tanı koymaz.
         </p>
       )}

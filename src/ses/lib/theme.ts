@@ -53,11 +53,12 @@ export function setThemePref(pref: ThemePref): void {
   applyTheme()
 }
 
+// Varsayilan ACIK (yakini gormekte zorlanan kullanici); kapatmak icin '0'.
 export function getBigText(): boolean {
   try {
-    return localStorage.getItem(BIG_KEY) === '1'
+    return localStorage.getItem(BIG_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 

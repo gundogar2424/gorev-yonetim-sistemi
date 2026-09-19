@@ -26,7 +26,7 @@ export default function ProgressPage() {
   return (
     <div>
       <SesHeader title="İlerleme" subtitle="Seanslar ve ses ölçümleri" />
-      <div className="px-4 space-y-4 pb-6">
+      <div className="px-4 space-y-5 pb-6">
         <div className="grid grid-cols-3 gap-2">
           <Kutu deger={String(seri)} etiket="gün seri" />
           <Kutu deger={String(st.count)} etiket={`seans (${nSes} ses · ${nDik} diksiyon)`} />
@@ -39,7 +39,7 @@ export default function ProgressPage() {
             {gunler.map((g) => (
               <div key={g.key} className="flex-1 flex flex-col items-center gap-1">
                 <div className="w-full rounded-t-lg bg-ses-500/90 transition-all" style={{ height: `${(g.count / maxG) * 72}px`, minHeight: g.count ? 8 : 2, opacity: g.count ? 1 : 0.25 }} />
-                <span className="text-[12px] text-slate-500 dark:text-[#a3908a]">{g.label}</span>
+                <span className="text-[14px] text-slate-700 dark:text-[#d8c8bf]">{g.label}</span>
               </div>
             ))}
           </div>
@@ -53,10 +53,10 @@ export default function ProgressPage() {
           {mptSon.length >= 2 ? (
             <div className="text-slate-700 dark:text-[#d8c8bf]">
               <LineChart values={mptSon.map((r) => r.sec)} labels={mptSon.map((r) => fmtDay(r.d))} ref={10} />
-              <p className="text-[12px] text-slate-500 dark:text-[#a3908a] mt-1">Kesik çizgi: 10 sn (bunun üstü hedef). Süre zamanla uzuyorsa kapanma iyileşiyor demektir.</p>
+              <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-1">Kesik çizgi: 10 sn (bunun üstü hedef). Süre zamanla uzuyorsa kapanma iyileşiyor demektir.</p>
             </div>
           ) : (
-            <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Grafik için en az 2 ölçüm gerekir. Ana sayfadan "Ölç" ile ölçüm yap.</p>
+            <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">Grafik için en az 2 ölçüm gerekir. Ana sayfadan "Ölç" ile ölçüm yap.</p>
           )}
         </section>
 
@@ -72,10 +72,10 @@ export default function ProgressPage() {
           {acSon.length >= 2 ? (
             <div className="text-slate-700 dark:text-[#d8c8bf]">
               <LineChart values={acSon.map((r) => r.ac!.hnr)} labels={acSon.map((r) => fmtDay(r.d))} ref={18} />
-              <p className="text-[12px] text-slate-500 dark:text-[#a3908a] mt-1">Harmonik/gürültü oranı: yükseldikçe ses daha tok, daha az nefesli. Kesik çizgi: 18 dB. Telefon mikrofonu; kendi geçmişinle karşılaştır.</p>
+              <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-1">Harmonik/gürültü oranı: yükseldikçe ses daha tok, daha az nefesli. Kesik çizgi: 18 dB. Telefon mikrofonu; kendi geçmişinle karşılaştır.</p>
             </div>
           ) : (
-            <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Grafik için mikrofonla en az 2 "A" ölçümü gerekir.</p>
+            <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">Grafik için mikrofonla en az 2 "A" ölçümü gerekir.</p>
           )}
         </section>
 
@@ -87,10 +87,10 @@ export default function ProgressPage() {
           {accSeries.length >= 2 ? (
             <div className="text-slate-700 dark:text-[#d8c8bf]">
               <LineChart values={accSeries.map((r) => r.v)} labels={accSeries.map((r) => fmtDay(r.d))} ref={85} />
-              <p className="text-[12px] text-slate-500 dark:text-[#a3908a] mt-1">Konuşma tanıma ile seans ortalaması. Kesik çizgi: %85 (hedef).</p>
+              <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-1">Konuşma tanıma ile seans ortalaması. Kesik çizgi: %85 (hedef).</p>
             </div>
           ) : (
-            <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Grafik için puanlamalı en az 2 diksiyon seansı gerekir.</p>
+            <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">Grafik için puanlamalı en az 2 diksiyon seansı gerekir.</p>
           )}
         </section>
 
@@ -104,7 +104,7 @@ export default function ProgressPage() {
               <LineChart values={ratSeries.map((r) => r.v)} labels={ratSeries.map((r) => fmtDay(r.d))} />
             </div>
           ) : (
-            <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">Seans sonlarında verdiğin puanlar burada birikir.</p>
+            <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">Seans sonlarında verdiğin puanlar burada birikir.</p>
           )}
         </section>
 
@@ -115,7 +115,7 @@ export default function ProgressPage() {
               ['olcum', 'Ölçümler']
             ] as const
           ).map(([v, l]) => (
-            <button key={v} onClick={() => setSekme(v)} className={`min-h-[48px] rounded-2xl text-[15px] font-semibold transition ${sekme === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+            <button key={v} onClick={() => setSekme(v)} className={`min-h-[54px] rounded-2xl text-[17px] font-semibold transition ${sekme === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
               {l}
             </button>
           ))}
@@ -123,18 +123,18 @@ export default function ProgressPage() {
 
         {sekme === 'seans' ? (
           sessions.length === 0 ? (
-            <p className="text-[15px] text-slate-500 dark:text-[#a3908a] text-center py-6">Henüz seans yok.</p>
+            <p className="text-[17px] text-slate-700 dark:text-[#d8c8bf] text-center py-6">Henüz seans yok.</p>
           ) : (
             <ul className="space-y-2">
               {[...sessions].reverse().map((s) => (
                 <li key={s.id} className="ses-card">
                   <div className="flex items-center justify-between">
-                    <span className="text-[15px] font-semibold text-slate-800 dark:text-[#f5ece4]">
+                    <span className="text-[17px] font-semibold text-slate-800 dark:text-[#f5ece4]">
                       {sessionKind(s) === 'diksiyon' ? '🗣️ Diksiyon' : '🎤 Ses'} · {fmtShort(s.t)}
                     </span>
-                    <span className="text-[14px] text-slate-500 dark:text-[#a3908a]">{fmtMinutes(s.ms)}</span>
+                    <span className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">{fmtMinutes(s.ms)}</span>
                   </div>
-                  <div className="text-[14px] text-slate-600 dark:text-[#d8c8bf] mt-1">
+                  <div className="text-[16px] text-slate-700 dark:text-[#e2d5cd] mt-1">
                     {s.done
                       .map((d) => {
                         const e = sessionKind(s) === 'diksiyon' ? findDExercise(d.id) : findExercise(d.id)
@@ -148,10 +148,10 @@ export default function ProgressPage() {
                       {sessionRating(s) != null && <span className="ses-pill">★ {sessionRating(s)}</span>}
                     </div>
                   )}
-                  {s.note && <div className="text-[14px] italic text-slate-500 dark:text-[#a3908a] mt-1">“{s.note}”</div>}
-                  {s.feedback && <div className="text-[13px] text-slate-600 dark:text-[#d8c8bf] mt-2 whitespace-pre-wrap rounded-2xl bg-ses-50 dark:bg-[#352820] p-2">🤖 {s.feedback}</div>}
+                  {s.note && <div className="text-[16px] italic text-slate-700 dark:text-[#d8c8bf] mt-1">“{s.note}”</div>}
+                  {s.feedback && <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd] mt-2 whitespace-pre-wrap rounded-2xl bg-ses-50 dark:bg-[#352820] p-2">🤖 {s.feedback}</div>}
                   <button
-                    className="text-[13px] text-rose-500 mt-2"
+                    className="text-[15px] text-rose-500 mt-2"
                     onClick={() => {
                       if (confirm('Bu seans silinsin mi?')) {
                         deleteSession(s.id)
@@ -166,22 +166,22 @@ export default function ProgressPage() {
             </ul>
           )
         ) : mpt.length === 0 ? (
-          <p className="text-[15px] text-slate-500 dark:text-[#a3908a] text-center py-6">Henüz ölçüm yok.</p>
+          <p className="text-[17px] text-slate-700 dark:text-[#d8c8bf] text-center py-6">Henüz ölçüm yok.</p>
         ) : (
           <ul className="ses-card divide-y divide-slate-100 dark:divide-[#4a3a30]">
             {[...mpt].reverse().map((r) => (
-              <li key={r.id} className="py-2 flex items-center justify-between text-[15px]">
-                <span className="text-slate-500 dark:text-[#a3908a]">
+              <li key={r.id} className="py-2 flex items-center justify-between text-[17px]">
+                <span className="text-slate-700 dark:text-[#d8c8bf]">
                   {fmtShort(r.t)}
                   {r.manual ? ' · elle' : ''}
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="text-right">
                     <span className="block font-semibold tabular-nums text-slate-800 dark:text-[#f5ece4]">{r.sec.toFixed(1).replace('.', ',')} sn</span>
-                    {r.ac && <span className="block text-[11px] text-slate-500 dark:text-[#a3908a] tabular-nums">{r.ac.f0} Hz · HNR {String(r.ac.hnr).replace('.', ',')} · j %{String(r.ac.jitter).replace('.', ',')} · s %{String(r.ac.shimmer).replace('.', ',')}</span>}
+                    {r.ac && <span className="block text-[14px] text-slate-700 dark:text-[#d8c8bf] tabular-nums">{r.ac.f0} Hz · HNR {String(r.ac.hnr).replace('.', ',')} · j %{String(r.ac.jitter).replace('.', ',')} · s %{String(r.ac.shimmer).replace('.', ',')}</span>}
                   </span>
                   <button
-                    className="text-[13px] text-rose-500"
+                    className="text-[15px] text-rose-500"
                     onClick={() => {
                       if (confirm('Bu ölçüm silinsin mi?')) {
                         deleteMpt(r.id)
@@ -204,8 +204,8 @@ export default function ProgressPage() {
 function Kutu({ deger, etiket }: { deger: string; etiket: string }) {
   return (
     <div className="ses-card text-center py-3">
-      <div className="text-[26px] font-bold text-slate-900 dark:text-[#f5ece4] tabular-nums leading-none">{deger}</div>
-      <div className="text-[12px] text-slate-500 dark:text-[#a3908a] mt-1">{etiket}</div>
+      <div className="text-[28px] font-bold text-slate-900 dark:text-[#f5ece4] tabular-nums leading-none">{deger}</div>
+      <div className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-1">{etiket}</div>
     </div>
   )
 }

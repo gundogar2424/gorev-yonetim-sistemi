@@ -20,33 +20,33 @@ export default function DiksiyonPage() {
   return (
     <div>
       <SesHeader title="Diksiyon" subtitle="Net, anlaşılır ve akıcı konuşma" />
-      <div className="px-4 space-y-4 pb-6">
+      <div className="px-4 space-y-5 pb-6">
         <section className="ses-card">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[30px]">🗣️</div>
+            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[32px]">🗣️</div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-[19px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Diksiyon seansı</h2>
-              <p className="text-[14px] text-slate-500 dark:text-[#a3908a]">
+              <h2 className="text-[21px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Diksiyon seansı</h2>
+              <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">
                 {n} egzersiz · yaklaşık {estimateDMinutes(ayar)} dk{bugun > 0 ? ` · bugün ${bugun} seans ✔` : ''}
               </p>
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-[13px] text-slate-500 dark:text-[#a3908a]">Okuma temposu</span>
+            <span className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Okuma temposu</span>
             <div className="grid grid-cols-3 gap-2 mt-1">
               {(['yavas', 'orta', 'hizli'] as DTempo[]).map((v) => (
-                <button key={v} onClick={() => setAyar(saveSettings({ dTempo: v }))} className={`min-h-[44px] rounded-2xl text-[15px] font-semibold transition ${ayar.dTempo === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                <button key={v} onClick={() => setAyar(saveSettings({ dTempo: v }))} className={`min-h-[52px] rounded-2xl text-[17px] font-semibold transition ${ayar.dTempo === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
                   {DTEMPO_LABEL[v]}
                 </button>
               ))}
             </div>
           </div>
-          <button className="ses-btn-primary w-full mt-3 text-[19px] min-h-[62px]" onClick={() => navigate('/diksiyon-seans')} disabled={n === 0}>
+          <button className="ses-btn-primary w-full mt-3 text-[21px] min-h-[68px]" onClick={() => navigate('/diksiyon-seans')} disabled={n === 0}>
             ▶ Seansa başla
           </button>
         </section>
 
-        <p className="text-[13px] text-slate-500 dark:text-[#a3908a] px-1">
+        <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf] px-1">
           Egzersize dokun: açıklama ve "yalnızca bunu yap". Onay kutusu seansa dahil olup olmadığını belirler.
         </p>
 
@@ -72,34 +72,34 @@ export default function DiksiyonPage() {
                         )}
                       </button>
                       <button className="flex-1 min-w-0 text-left" onClick={() => setAcik(acikMi ? null : e.id)}>
-                        <span className="block text-[17px] font-semibold text-slate-900 dark:text-[#f5ece4] leading-tight">
+                        <span className="block text-[19px] font-semibold text-slate-900 dark:text-[#f5ece4] leading-tight">
                           {e.emoji} {e.name}
                         </span>
-                        <span className="block text-[13px] text-slate-500 dark:text-[#a3908a] mt-0.5">
+                        <span className="block text-[15px] text-slate-700 dark:text-[#d8c8bf] mt-0.5">
                           {e.reps} × {dSecFor(e.sec, ayar)} sn · {e.short}
                         </span>
                       </button>
                     </div>
                     {acikMi && (
                       <div className="mt-3 space-y-3 ses-pop">
-                        <p className="text-[14px] text-slate-600 dark:text-[#d8c8bf]">
+                        <p className="text-[16px] text-slate-700 dark:text-[#e2d5cd]">
                           <b>Neden:</b> {e.why}
                         </p>
                         <ol className="space-y-1.5">
                           {e.steps.map((s, i) => (
-                            <li key={i} className="flex gap-2 text-[14px] text-slate-700 dark:text-[#d8c8bf]">
-                              <span className="w-6 h-6 rounded-full bg-ses-600 text-white grid place-items-center text-[12px] font-bold flex-shrink-0">{i + 1}</span>
+                            <li key={i} className="flex gap-2 text-[16px] text-slate-700 dark:text-[#d8c8bf]">
+                              <span className="w-6 h-6 rounded-full bg-ses-600 text-white grid place-items-center text-[14px] font-bold flex-shrink-0">{i + 1}</span>
                               <span>{s}</span>
                             </li>
                           ))}
                         </ol>
-                        <div className="rounded-2xl bg-ses-50 dark:bg-[#352820] p-3 text-[15px] text-slate-800 dark:text-[#f5ece4] space-y-1">
+                        <div className="rounded-2xl bg-ses-50 dark:bg-[#352820] p-3 text-[17px] text-slate-800 dark:text-[#f5ece4] space-y-1">
                           {e.lines.slice(0, 3).map((l, i) => (
                             <div key={i}>{l}</div>
                           ))}
-                          {e.lines.length > 3 && <div className="text-[13px] text-slate-500 dark:text-[#a3908a]">… ve {e.lines.length - 3} satır daha</div>}
+                          {e.lines.length > 3 && <div className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">… ve {e.lines.length - 3} satır daha</div>}
                         </div>
-                        {e.tip && <p className="text-[13px] text-amber-800 dark:text-amber-200">⚠️ {e.tip}</p>}
+                        {e.tip && <p className="text-[15px] text-amber-800 dark:text-amber-200">⚠️ {e.tip}</p>}
                         <button className="ses-btn-soft w-full" onClick={() => navigate(`/diksiyon-seans?tek=${e.id}`)}>
                           ▶ Yalnızca bunu yap
                         </button>
