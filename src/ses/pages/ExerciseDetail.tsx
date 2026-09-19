@@ -3,7 +3,7 @@ import SesHeader from '../SesHeader'
 import { findExercise, GROUP_LABEL } from '../lib/content'
 import { readSettings, repsFor, saveSettings } from '../lib/store'
 import { useState } from 'react'
-import VideoButton from '../components/VideoButton'
+import VideoEmbed from '../components/VideoEmbed'
 
 export default function ExerciseDetail() {
   const { id = '' } = useParams()
@@ -63,7 +63,12 @@ export default function ExerciseDetail() {
           </section>
         )}
 
-        <VideoButton video={e.video} />
+        {e.video && (
+          <section className="ses-card">
+            <h3 className="ses-label mb-2">Nasıl yapılır (video)</h3>
+            <VideoEmbed video={e.video} />
+          </section>
+        )}
         <button className="ses-btn-primary w-full min-h-[68px] text-[21px]" onClick={() => navigate(`/seans?tek=${e.id}`)}>
           ▶ Yalnızca bunu yap
         </button>

@@ -1,6 +1,6 @@
 // Tum egzersiz videolari tek sayfada (YouTube; telefonun tarayicisinda acilir).
 import SesHeader from '../SesHeader'
-import VideoButton from '../components/VideoButton'
+import VideoEmbed from '../components/VideoEmbed'
 import { allVideos, EXERCISES } from '../lib/content'
 import { allDVideos, DEXERCISES } from '../lib/diksiyon'
 
@@ -21,7 +21,7 @@ export default function VideosPage() {
             {ses.map(({ video, exercises }) => (
               <div key={video.url} className="ses-card space-y-2">
                 <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">{exercises.join(' · ')}</div>
-                <VideoButton video={video} compact />
+                <VideoEmbed video={video} />
               </div>
             ))}
           </div>
@@ -32,7 +32,7 @@ export default function VideosPage() {
             {dik.map(({ video, exercises }) => (
               <div key={video.url} className="ses-card space-y-2">
                 <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">{exercises.join(' · ')}</div>
-                <VideoButton video={video} compact />
+                <VideoEmbed video={video} />
               </div>
             ))}
           </div>

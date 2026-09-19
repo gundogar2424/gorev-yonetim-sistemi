@@ -8,7 +8,7 @@ import { DGROUP_LABEL, findDExercise, type DExercise } from '../lib/diksiyon'
 import { activeDExercises, addSession, dSecFor, readSettings, updateSession, type DoneExercise, type LineScore, type Session as SessionRec } from '../lib/store'
 import { accuracyComment, listenOnce, scoreText, speechAvailable, speechPermission, type Listener, type Score } from '../lib/speech'
 import Rating from '../components/Rating'
-import VideoButton from '../components/VideoButton'
+import VideoEmbed from '../components/VideoEmbed'
 import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
@@ -329,6 +329,12 @@ export default function DiksiyonSession() {
       <div className="flex-1 flex flex-col">
         <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · ${DGROUP_LABEL[ex.group]}`} compact back={() => (done.length > 0 || idx > 0 ? bitir(done) : navigate(-1))} />
         <div className="px-4 space-y-5 pb-8 flex-1 flex flex-col">
+          {ex.video && (
+            <section className="ses-card">
+              <h3 className="ses-label mb-2">Başlamadan önce izle</h3>
+              <VideoEmbed video={ex.video} />
+            </section>
+          )}
           <section className="ses-card">
             <div className="flex items-center gap-3">
               <span className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[32px]">{ex.emoji}</span>
@@ -353,7 +359,6 @@ export default function DiksiyonSession() {
             </div>
           </section>
           <div className="mt-auto space-y-2">
-            <VideoButton video={ex.video} compact />
             <button className="ses-btn-primary w-full min-h-[72px] text-[22px]" onClick={basla}>
               ▶ Başla
             </button>
