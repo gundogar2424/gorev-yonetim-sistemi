@@ -133,8 +133,8 @@ export default function Home() {
             <button className="ses-btn-soft min-h-[54px] text-[17px]" onClick={() => navigate('/seans?tek=pipet')}>
               🥤 2 dk pipet molası
             </button>
-            <button className="ses-btn-ghost min-h-[54px] text-[17px]" onClick={() => navigate('/egzersizler')}>
-              Egzersizleri incele
+            <button className="ses-btn-ghost min-h-[54px] text-[17px]" onClick={() => navigate('/videolar')}>
+              🎬 Videolar
             </button>
           </div>
           <p className="text-[14px] text-slate-600 dark:text-[#cdbdb3] mt-2">Pipet molası: gün içinde birkaç kez 1-3 dk; ses tellerini az güçle, dengeli çalıştırır (yarı kapalı ses yolu).</p>

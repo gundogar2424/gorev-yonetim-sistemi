@@ -58,6 +58,7 @@ export const DEXERCISES: DExercise[] = [
       'Dişlerinin arasından "sssss" diyerek 8 sayarak eşit biçimde ver.'
     ],
     lines: ['AL (4) · TUT (4) · VER "sssss" (8)'],
+    video: VIDEOS.nefes,
     reps: 5,
     sec: 16
   },
@@ -70,6 +71,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Nefesi ölçülü kullanmayı öğretir; uzun cümleleri tek nefeste, sesi düşürmeden bitirmeni sağlar.',
     steps: ['Derin bir diyafram nefesi al.', 'Dişlerin arasından "sssss" diye eşit ve ince bir ses ver; ses ne gürleşsin ne zayıflasın.', 'Nefesin bitene kadar sürdür; her seferinde biraz daha uzatmaya çalış.'],
     lines: ['sssssssss…'],
+    video: VIDEOS.nefes2,
     reps: 3,
     sec: 20
   },
@@ -110,6 +112,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Sesliler arasında ağız şekli hızlı ve temiz değişmeli; bu geçişler konuşmada akıcılığı verir.',
     steps: ['Tek nefeste, ses kopmadan sırayla söyle.', 'Her harfte ağız şeklinin değiştiğini hisset.', 'Önce yavaş, sonra hızlan.'],
     lines: ['a — e — ı — i — o — ö — u — ü', 'ü — u — ö — o — i — ı — e — a', 'a — o — u — a — o — u', 'e — i — ü — e — i — ü'],
+    video: VIDEOS.netkonusma,
     reps: 4,
     sec: 8
   },
@@ -137,6 +140,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'F ve V\'de üst dişler alt dudağa hafifçe değmeli; değmezse ses "h" gibi belirsizleşir.',
     steps: ['Üst dişlerini alt dudağına hafifçe dayayıp havayı sürt.', 'F sessiz, V titreşimli: eline dokunup titreşimi hisset.'],
     lines: ['fa fe fı fi fo fö fu fü', 'va ve vı vi vo vö vu vü', 'fav fev fıv fiv fov föv fuv füv'],
+    video: VIDEOS.diksiyon2,
     reps: 3,
     sec: 7
   },
@@ -175,6 +179,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'K ve G dil sırtının yumuşak damağa net vurmasıyla çıkar; gevşek çıkınca "h"ye kayar.',
     steps: ['Dilin arka kısmını damağa yapıştırıp aniden bırak.', 'Ka-ke\'de ağız açık, ki-kü\'de dil daha önde: farkı hisset.'],
     lines: ['ka ke kı ki ko kö ku kü', 'ga ge gı gi go gö gu gü', 'kak kek kık kik kok kök kuk kük'],
+    video: VIDEOS.diksiyon2,
     reps: 3,
     sec: 7
   },
@@ -267,7 +272,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Uzun sözcüklerde nefes kontrolü ve hece netliği.',
     steps: ['Tek nefeste bitirmeye çalış; olmuyorsa virgülde nefes al.'],
     lines: ['Al bu takatukaları takatukacıya takatukalatmaya götür. Takatukacı takatukaları takatukalatmazsa takatukaları takatukacıdan takatukalatmadan geri getir.'],
-    video: VIDEOS.tekerleme,
+    video: VIDEOS.tekerleme2,
     reps: 2,
     sec: 14
   },
@@ -280,7 +285,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'S-K-L dizileri ve soru tonlaması.',
     steps: ['Soru tonlamasını da ver: cümle sonu yükselsin.'],
     lines: ['Bu yoğurdu sarımsaklasak da mı saklasak, sarımsaklamasak da mı saklasak?'],
-    video: VIDEOS.tekerleme,
+    video: VIDEOS.tekerleme2,
     reps: 3,
     sec: 8
   },
@@ -293,7 +298,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'K ve R yoğun; dil sırtı ve dil ucu arasında hızlı geçiş.',
     steps: ['Her "k"yı damaktan net patlat, "r"leri titret.'],
     lines: ['Kırk kırık küp, kırkının da kulpu kırık kara küp.'],
-    video: VIDEOS.tekerleme,
+    video: VIDEOS.tekerleme2,
     reps: 3,
     sec: 6
   },
@@ -306,7 +311,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'K-P-T patlayıcıları ve ritim.',
     steps: ['Ritmini koruyarak, her sözcüğü ayrı ayrı duyurarak.'],
     lines: ['Değirmene girdi köpek, değirmenci çaldı kötek; hem kepek yedi köpek, hem kötek yedi köpek.'],
-    video: VIDEOS.tekerleme,
+    video: VIDEOS.tekerleme2,
     reps: 3,
     sec: 9
   },
@@ -319,7 +324,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Tek uzun sözcükte hece hece netlik ve nefes.',
     steps: ['Önce hecelere bölerek: Çe-kos-lo-vak-ya-lı-laş-tı-ra-ma-dık-la-rı-mız-dan. Sonra bütün.'],
     lines: ['Çekoslovakyalılaştıramadıklarımızdan mısınız?', 'Ocak kıvılcımlandırıcılardan mısınız, kapı gıcırdatıcılardan mısınız?'],
-    video: VIDEOS.tekerleme,
+    video: VIDEOS.tekerleme2,
     reps: 4,
     sec: 7
   },
@@ -360,6 +365,7 @@ export const DEXERCISES: DExercise[] = [
       'Ben yarın sabah İZMİR\'E gidiyorum.',
       'Ben yarın sabah İzmir\'e GİDİYORUM.'
     ],
+    video: VIDEOS.diksiyon2,
     reps: 5,
     sec: 5
   },
@@ -372,6 +378,7 @@ export const DEXERCISES: DExercise[] = [
     why: 'Ses perdesinin iniş çıkışı duyguyu taşır; tekdüze konuşma dinleyiciyi yorar.',
     steps: ['Her satırdaki duyguyu yüzünle de yaşayarak söyle; ses kendiliğinden değişir.'],
     lines: ['Geldin mi? (soru — sonu yükselsin)', 'Geldin! (sevinç — canlı, yüksek)', 'Geldin… (üzüntü — alçak, yavaş)', 'Geldin?! (şaşkınlık — ani yükseliş)', 'Geldin. (düz bildirme — sonu düşsün)'],
+    video: VIDEOS.netkonusma,
     reps: 5,
     sec: 4
   },
@@ -384,10 +391,17 @@ export const DEXERCISES: DExercise[] = [
     why: 'Heyecanlanınca hızlanmak sesleri yutturur. Farklı hızlarda netliği korumak, günlük konuşmada kontrol sağlar.',
     steps: ['YAVAŞ: her sözcüğü ayrı ayrı, abartılı net.', 'NORMAL: doğal konuşma hızı, noktalama işaretlerinde dur.', 'HIZLI: hızlan ama tek bir ses bile yutulmasın; yutulursa yeniden yavaşla.'],
     lines: ['YAVAŞ: ' + PARAGRAF_2, 'NORMAL: ' + PARAGRAF_2, 'HIZLI: ' + PARAGRAF_2],
+    video: VIDEOS.netkonusma,
     reps: 3,
     sec: 25
   }
 ]
+
+export function allDVideos(): { video: Video; exercises: string[] }[] {
+  const m = new Map<string, { video: Video; exercises: string[] }>()
+  for (const e of DEXERCISES) if (e.video) (m.get(e.video.url) ?? m.set(e.video.url, { video: e.video, exercises: [] }).get(e.video.url)!).exercises.push(e.name)
+  return [...m.values()]
+}
 
 export function findDExercise(id: string): DExercise | undefined {
   return DEXERCISES.find((e) => e.id === id)

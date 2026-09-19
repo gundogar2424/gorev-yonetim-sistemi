@@ -9,6 +9,7 @@ import ProgressPage from './pages/ProgressPage'
 import SesSettings from './pages/SesSettings'
 import DiksiyonPage from './pages/DiksiyonPage'
 import DiksiyonSession from './pages/DiksiyonSession'
+import VideosPage from './pages/VideosPage'
 import { installNotificationTap } from './lib/notify'
 
 type IconName = 'home' | 'list' | 'mic' | 'chart' | 'settings'
@@ -98,6 +99,7 @@ export default function SesApp() {
           <Route path="/egzersizler" element={<ExercisesPage />} />
           <Route path="/egzersiz/:id" element={<ExerciseDetail />} />
           <Route path="/diksiyon" element={<DiksiyonPage />} />
+          <Route path="/videolar" element={<VideosPage />} />
           <Route path="/diksiyon-seans" element={<DiksiyonSession key={loc.search} />} />
           <Route path="/ilerleme" element={<ProgressPage />} />
           <Route path="/ayarlar" element={<SesSettings />} />
