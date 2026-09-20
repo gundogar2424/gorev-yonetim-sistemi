@@ -65,7 +65,7 @@ export const EXERCISES: Exercise[] = [
     clip: './ses-video/karin-nefesi.mp4',
     reps: 3,
     hold: 12,
-    rest: 3
+    rest: 4
   },
   {
     id: 'dudak-tril',
@@ -125,7 +125,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'A!',
     reps: 8,
     hold: 2,
-    rest: 3,
+    rest: 4,
     caution: 'Klasik ama ZORLAYICI bir teknik; bu yüzden varsayılan olarak kapalıdır, terapistin önerdiyse Ayarlar\'dan aç. Sesi bulmaya çalışırken boğazın üst kısmını sıkma, ince/falsetto sese kaçma; ses kaba ve boğuk çıkıyorsa daha az güçle yap. Itme sırasında kan basıncı geçici yükselir: tansiyon, kalp, glokom ya da fıtık varsa önce hekimine sor. Baş dönmesi olursa dur.'
   },
   {
@@ -144,7 +144,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'A!',
     reps: 8,
     hold: 2,
-    rest: 3,
+    rest: 4,
     caution: 'İtme egzersizindeki uyarılar bunun için de geçerlidir: varsayılan kapalıdır, terapist önerdiyse aç; boğazın üstünü sıkmadan, az güçle.'
   },
   {
@@ -164,7 +164,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['A!', 'E!', 'İ!', 'O!', 'U!'],
     reps: 10,
     hold: 2,
-    rest: 2,
+    rest: 4,
     caution: 'Boğazda yanma ya da ağrı olursa hemen dur; bu teknik abartılırsa ses tellerini yorabilir.'
   },
   {
@@ -205,7 +205,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'BUM!',
     reps: 8,
     hold: 2,
-    rest: 3
+    rest: 4
   },
   {
     id: 'bas-cevirme',
@@ -225,7 +225,7 @@ export const EXERCISES: Exercise[] = [
     clip: './ses-video/bas-cevirme.mp4',
     reps: 8,
     hold: 3,
-    rest: 3
+    rest: 4
   },
   {
     id: 'uzun-a',
@@ -282,7 +282,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['kalından İNCEYE: nooool', 'inceden KALINA: nooool'],
     reps: 4,
     hold: 6,
-    rest: 3
+    rest: 4
   },
   {
     id: 'vfe-notalar',
@@ -340,7 +340,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['YÜKSEK: "Günaydın, nasılsın?"', 'ALÇAK: "Günaydın, nasılsın?"', 'YÜKSEK: "Kapıyı kapatır mısın?"', 'ALÇAK: "Kapıyı kapatır mısın?"', 'YÜKSEK: "Bugün hava çok güzel."', 'ALÇAK: "Bugün hava çok güzel."'],
     reps: 6,
     hold: 4,
-    rest: 3,
+    rest: 4,
     caution: 'Gür ses = bağırmak değil. Ses kısılıyor ya da acıyorsa daha az güçle yap.'
   },
 

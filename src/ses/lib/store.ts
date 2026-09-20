@@ -9,6 +9,12 @@ export type Level = 'hafif' | 'orta' | 'yogun'
 export const LEVEL_MULT: Record<Level, number> = { hafif: 0.6, orta: 1, yogun: 1.4 }
 export const LEVEL_LABEL: Record<Level, string> = { hafif: 'Hafif', orta: 'Orta', yogun: 'Yoğun' }
 
+// Seans temposu: tekrarlar arasindaki dinlenme ve geri sayim uzunlugu.
+// "Yavas"ta nefes almak icin belirgin sekilde daha cok zaman kalir.
+export type Pace = 'normal' | 'yavas'
+export const PACE_MULT: Record<Pace, number> = { normal: 1, yavas: 1.6 }
+export const PACE_LABEL: Record<Pace, string> = { normal: 'Normal', yavas: 'Yavaş' }
+
 export interface Reminder {
   id: number // 1..3
   time: string // "HH:MM"
@@ -21,6 +27,7 @@ export interface Settings {
   vibrate: boolean
   level: Level // tekrar sayisi carpani
   countdown: boolean // her tekrardan once 3-2-1 geri sayim
+  pace: Pace // tekrarlar arasi tempo (dinlenme ve geri sayim uzunlugu)
   disabled: string[] // kapali egzersiz id'leri
   reminders: Reminder[]
   accepted: boolean // uyari metni onaylandi mi
@@ -152,6 +159,7 @@ export function readSettings(): Settings {
     vibrate: s.vibrate ?? true,
     level: s.level === 'hafif' || s.level === 'yogun' ? s.level : 'orta',
     countdown: s.countdown ?? true,
+    pace: s.pace === 'yavas' ? 'yavas' : 'normal',
     disabled: Array.isArray(s.disabled) ? s.disabled.filter((x) => typeof x === 'string') : [...DEFAULT_DISABLED],
     reminders: rem,
     accepted: s.accepted ?? false,
@@ -201,13 +209,24 @@ export function repsFor(base: number, s = readSettings()): number {
   return Math.max(1, Math.round(base * LEVEL_MULT[s.level]))
 }
 
+// Tekrarlar arasi dinlenme (tempoya gore uzar)
+export function restFor(base: number, s = readSettings()): number {
+  return Math.max(2, Math.round(base * PACE_MULT[s.pace]))
+}
+
+// Her tekrardan onceki 3-2-1 geri sayimin uzunlugu (yavas temposunda 5 sn)
+export function readySec(s = readSettings()): number {
+  return s.pace === 'yavas' ? 5 : 3
+}
+
 // Tahmini seans suresi (dakika)
 export function estimateMinutes(s = readSettings()): number {
   let sec = 0
+  const ready = s.countdown ? readySec(s) : 0
   for (const e of activeExercises(s)) {
     const n = repsFor(e.reps, s)
-    if (e.mode === 'mpt') sec += n * (15 + e.rest) + 10
-    else sec += n * (e.hold + e.rest) + 8
+    if (e.mode === 'mpt') sec += n * (15 + restFor(e.rest, s)) + 10
+    else sec += n * (e.hold + restFor(e.rest, s) + ready) + 8
   }
   return Math.max(1, Math.round(sec / 60))
 }
