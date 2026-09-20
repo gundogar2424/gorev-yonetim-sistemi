@@ -182,6 +182,7 @@ export const EXERCISES: Exercise[] = [
       'Dinlen, sonra tekrar.'
     ],
     cue: 'öhö-aaa',
+    clip: './ses-video/oksuruk.mp4',
     reps: 6,
     hold: 3,
     rest: 4,
