@@ -113,3 +113,53 @@ export const LIBRARY: LibTopic[] = [
 export function libCount(): number {
   return LIBRARY.reduce((n, t) => n + t.videos.length, 0)
 }
+
+// ---------------------------------------------------------------------------
+// EGZERSIZE GORE: her ses egzersizi icin yukaridaki listeden secilmis videolar.
+// "urls" LIBRARY icindeki baglantilara isaret eder (tek yerden yonetilsin diye
+// kopyalanmaz). "search" ise YouTube arama sorgusudur: tek tek videolar
+// kaldirilsa/gizlense bile arama baglantisi her zaman calisir.
+export interface ExVideos {
+  id: string // content.ts'teki egzersiz id'si
+  urls: string[]
+  search: string
+}
+
+export const EX_VIDEOS: ExVideos[] = [
+  { id: 'karin-nefesi', search: 'diyafram nefesi egzersizi', urls: ['https://www.youtube.com/watch?v=74_QDyUcV6I', 'https://www.youtube.com/watch?v=4B1vrHCIVg4', 'https://www.youtube.com/shorts/Zy1WYm-aJ58'] },
+  { id: 'dudak-tril', search: 'dudak trili ses egzersizi', urls: ['https://www.youtube.com/watch?v=ue2EgqA3YcY', 'https://www.youtube.com/watch?v=vpgM3iMvFOs', 'https://www.youtube.com/watch?v=xj57IDmkxME'] },
+  { id: 'mirildanma', search: 'mırıldanma rezonans ses egzersizi', urls: ['https://www.youtube.com/watch?v=oVAOV0PtUPk', 'https://www.youtube.com/watch?v=xj57IDmkxME', 'https://m.youtube.com/watch?v=1SePvXrpxQE'] },
+  { id: 'itme', search: 'ses teli felci itme egzersizi', urls: ['https://www.youtube.com/watch?v=XDDL1ha9gOs', 'https://www.youtube.com/watch?v=34F-JKZQKb0'] },
+  { id: 'cekme', search: 'vocal fold paralysis pulling exercise', urls: ['https://www.youtube.com/watch?v=XDDL1ha9gOs', 'https://www.youtube.com/watch?v=34F-JKZQKb0'] },
+  { id: 'sert-baslangic', search: 'hard glottal attack exercise ses egzersizi', urls: ['https://www.youtube.com/watch?v=MHa_JkztRGQ', 'https://m.youtube.com/watch?v=1SePvXrpxQE'] },
+  { id: 'oksuruk', search: 'öksürükten sese ses teli egzersizi', urls: ['https://www.youtube.com/watch?v=XDDL1ha9gOs', 'https://www.youtube.com/watch?v=MHa_JkztRGQ'] },
+  { id: 'yarim-yutkunma', search: 'half swallow boom exercise', urls: ['https://www.youtube.com/watch?v=9GLjqQlZRkk'] },
+  { id: 'bas-cevirme', search: 'head turn voice exercise vocal fold', urls: ['https://www.youtube.com/watch?v=XDDL1ha9gOs'] },
+  { id: 'uzun-a', search: 'maksimum fonasyon süresi ölçümü', urls: ['https://www.youtube.com/watch?v=YI1F7fw75b0'] },
+  { id: 'vfe-i', search: 'vocal function exercises warm up', urls: ['https://www.youtube.com/watch?v=uM2TLN7nQW0', 'https://www.youtube.com/watch?v=IeuY84lq3Iw', 'https://www.youtube.com/watch?v=1rzZupWzYes'] },
+  { id: 'perde-kaydirma', search: 'glissando ses egzersizi', urls: ['https://www.youtube.com/watch?v=ZuBRs2Nm0YU', 'https://www.youtube.com/watch?v=rkWlwlKHhpM', 'https://www.youtube.com/watch?v=uM2TLN7nQW0'] },
+  { id: 'vfe-notalar', search: 'vocal function exercises power exercise', urls: ['https://www.youtube.com/watch?v=d6lJdSbd-h8', 'https://www.youtube.com/watch?v=uM2TLN7nQW0', 'https://www.youtube.com/watch?v=t7Mm4HgyKlo'] },
+  { id: 'gur-a', search: 'PhoRTE voice therapy exercise', urls: ['https://www.youtube.com/watch?v=zNUGeFDSWlc', 'https://www.youtube.com/watch?v=8aaHWfv32zc'] },
+  { id: 'gur-ifadeler', search: 'PhoRTE loud phrases exercise', urls: ['https://www.youtube.com/watch?v=8aaHWfv32zc', 'https://www.youtube.com/watch?v=zNUGeFDSWlc'] },
+  { id: 'su-direnci', search: 'lax vox tüp egzersizi', urls: ['https://www.youtube.com/watch?v=PsjUJjrSE7A', 'https://www.youtube.com/watch?v=I2kgqCa0kuE', 'https://www.youtube.com/playlist?list=PLvsYVnIbuA5NCgsUOx_0FHsMTCpo9SlCl'] },
+  { id: 'pipet', search: 'pipete fonasyon egzersizi', urls: ['https://www.youtube.com/watch?v=UbuapADtz9c', 'https://www.youtube.com/watch?v=WvtgFbCgY8E'] }
+]
+
+const BY_URL = new Map<string, LibVideo>(LIBRARY.flatMap((t) => t.videos.map((v) => [v.url, v])))
+
+// Bir egzersize baglanan videolar (listede olmayan baglanti sessizce atlanir)
+export function videosFor(id: string): LibVideo[] {
+  const e = EX_VIDEOS.find((x) => x.id === id)
+  if (!e) return []
+  return e.urls.map((u) => BY_URL.get(u)).filter((v): v is LibVideo => !!v)
+}
+
+export function searchFor(id: string): string {
+  return EX_VIDEOS.find((x) => x.id === id)?.search ?? ''
+}
+
+// Arama baglantisi: video kaldirilsa bile bu her zaman calisir
+export function searchUrl(q: string): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`
+}
+
