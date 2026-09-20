@@ -222,6 +222,7 @@ export const EXERCISES: Exercise[] = [
       'Hangi tarafta ses daha net çıkıyorsa not al; terapistin bunu bilmek ister.'
     ],
     cue: ['SAĞA çevir: iii', 'SOLA çevir: iii'],
+    clip: './ses-video/bas-cevirme.mp4',
     reps: 8,
     hold: 3,
     rest: 3
