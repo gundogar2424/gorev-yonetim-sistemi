@@ -10,9 +10,10 @@ import SesSettings from './pages/SesSettings'
 import DiksiyonPage from './pages/DiksiyonPage'
 import DiksiyonSession from './pages/DiksiyonSession'
 import VideosPage from './pages/VideosPage'
+import LibraryPage from './pages/LibraryPage'
 import { installNotificationTap } from './lib/notify'
 
-type IconName = 'home' | 'list' | 'mic' | 'chart' | 'settings'
+type IconName = 'home' | 'list' | 'mic' | 'play' | 'chart' | 'settings'
 
 function NavIcon({ name, className }: { name: IconName; className?: string }) {
   const common = {
@@ -53,6 +54,13 @@ function NavIcon({ name, className }: { name: IconName; className?: string }) {
           <path d="M9 21h6" />
         </svg>
       )
+    case 'play':
+      return (
+        <svg {...common}>
+          <rect x="2.5" y="5" width="19" height="14" rx="3" />
+          <path d="M10.5 9.5v5l4.5-2.5z" />
+        </svg>
+      )
     case 'chart':
       return (
         <svg {...common}>
@@ -76,6 +84,7 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Bugün', icon: 'home', end: true },
   { to: '/egzersizler', label: 'Egzersiz', icon: 'list', end: false },
   { to: '/diksiyon', label: 'Diksiyon', icon: 'mic', end: false },
+  { to: '/izle', label: 'İzle', icon: 'play', end: false },
   { to: '/ilerleme', label: 'İlerleme', icon: 'chart', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: 'settings', end: false }
 ]
@@ -100,6 +109,7 @@ export default function SesApp() {
           <Route path="/egzersiz/:id" element={<ExerciseDetail />} />
           <Route path="/diksiyon" element={<DiksiyonPage />} />
           <Route path="/videolar" element={<VideosPage />} />
+          <Route path="/izle" element={<LibraryPage />} />
           <Route path="/diksiyon-seans" element={<DiksiyonSession key={loc.search} />} />
           <Route path="/ilerleme" element={<ProgressPage />} />
           <Route path="/ayarlar" element={<SesSettings />} />
@@ -108,15 +118,15 @@ export default function SesApp() {
 
       {!inSession && (
         <nav
-          className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-5 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#1a1410]/85 border-t border-slate-200/60 dark:border-[#4a3a30]"
+          className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-6 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#1a1410]/85 border-t border-slate-200/60 dark:border-[#4a3a30]"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           {tabs.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-3 pb-2.5 gap-1.5">
+            <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-3 pb-2.5 gap-1">
               {({ isActive }) => (
                 <>
-                  <NavIcon name={t.icon} className={`h-[24px] w-[24px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-slate-600 dark:text-[#cdbdb3]'}`} />
-                  <span className={`text-[13px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-600 dark:text-[#cdbdb3] font-medium'}`}>
+                  <NavIcon name={t.icon} className={`h-[22px] w-[22px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-slate-600 dark:text-[#cdbdb3]'}`} />
+                  <span className={`text-[11px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-600 dark:text-[#cdbdb3] font-medium'}`}>
                     {t.label}
                   </span>
                 </>
