@@ -3,7 +3,7 @@ import SesHeader from '../SesHeader'
 import { findExercise, GROUP_LABEL } from '../lib/content'
 import { readSettings, repsFor, saveSettings } from '../lib/store'
 import { useState } from 'react'
-import ClipPlayer from '../components/ClipPlayer'
+import VideoTabs from '../components/VideoTabs'
 
 export default function ExerciseDetail() {
   const { id = '' } = useParams()
@@ -63,12 +63,7 @@ export default function ExerciseDetail() {
           </section>
         )}
 
-        {e.clip && (
-          <section className="ses-card space-y-3">
-            <h3 className="ses-label">Nasıl yapılır (video)</h3>
-            <ClipPlayer src={e.clip} />
-          </section>
-        )}
+        <VideoTabs id={e.id} clip={e.clip} title="Nasıl yapılır (video)" />
         <button className="ses-btn-primary w-full min-h-[58px] text-[18px]" onClick={() => navigate(`/seans?tek=${e.id}`)}>
           ▶ Yalnızca bunu yap
         </button>
