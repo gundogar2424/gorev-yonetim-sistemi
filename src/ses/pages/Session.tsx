@@ -13,6 +13,7 @@ import FeedbackCard from '../components/FeedbackCard'
 import { sfxDone, sfxGo, sfxRest, sfxTick } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
 import { fmtMinutes } from '../lib/date'
+import Icon from '../components/Icon'
 
 type Phase = 'intro' | 'ready' | 'go' | 'rest' | 'mpt' | 'done'
 
@@ -221,25 +222,25 @@ export default function Session() {
       <div className="flex-1 flex flex-col">
         <SesHeader title="Seans bitti" subtitle={done.length > 0 ? 'Aferin, düzenli olmak en önemlisi' : 'Bir dahaki sefere'} back={() => navigate('/')} />
         <div className="px-4 space-y-5 pb-8">
-          <section className="ses-card text-center py-6">
-            <div className="text-[60px]">{done.length > 0 ? '🎉' : '🙂'}</div>
-            <div className="text-[22px] font-bold text-slate-900 dark:text-[#f5ece4] mt-1">{done.length} egzersiz</div>
-            <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">
+          <section className="ses-card text-center py-7">
+            <div className="inline-flex w-12 h-12 rounded-full bg-ses-50 dark:bg-sesui-dsoft text-ses-700 dark:text-ses-300 items-center justify-center">
+              <Icon name={done.length > 0 ? 'check' : 'info'} size={24} strokeWidth={1.8} />
+            </div>
+            <div className="text-[28px] font-semibold tabular-nums text-sesui-text dark:text-sesui-dtext mt-3 leading-none">{done.length} egzersiz</div>
+            <div className="text-[14px] text-sesui-muted dark:text-sesui-dmuted mt-1.5">
               {fmtMinutes(ms)}
               {best > 0 ? ` · en uzun "A": ${best.toFixed(1).replace('.', ',')} sn` : ''}
             </div>
           </section>
           {done.length > 0 && (
             <section className="ses-card">
-              <ul className="divide-y divide-slate-100 dark:divide-[#4a3a30]">
+              <ul className="divide-y divide-sesui-line dark:divide-sesui-dline">
                 {done.map((d, i) => {
                   const e = findExercise(d.id)
                   return (
-                    <li key={i} className="py-2 flex items-center justify-between text-[16px]">
-                      <span className="text-slate-800 dark:text-[#f5ece4]">
-                        {e?.emoji} {e?.name ?? d.id}
-                      </span>
-                      <span className="text-slate-700 dark:text-[#d8c8bf]">{d.mpt ? `${d.mpt.toFixed(1).replace('.', ',')} sn` : `${d.reps} ×`}</span>
+                    <li key={i} className="py-2.5 flex items-center justify-between gap-3 text-[15px]">
+                      <span className="text-sesui-text dark:text-sesui-dtext min-w-0 truncate">{e?.name ?? d.id}</span>
+                      <span className="text-[13px] tabular-nums text-sesui-muted dark:text-sesui-dmuted flex-shrink-0">{d.mpt ? `${d.mpt.toFixed(1).replace('.', ',')} sn` : `${d.reps} tekrar`}</span>
                     </li>
                   )
                 })}
@@ -273,7 +274,7 @@ export default function Session() {
             </section>
           )}
           {saved && <FeedbackCard session={{ ...saved, note, rating }} />}
-          <button className="ses-btn-primary w-full min-h-[58px] text-[18px]" onClick={() => navigate('/')}>
+          <button className="ses-btn-primary w-full" onClick={() => navigate('/')}>
             Ana sayfa
           </button>
         </div>
@@ -294,30 +295,33 @@ export default function Session() {
         <div className="px-4 space-y-5 pb-8 flex-1 flex flex-col">
           <VideoTabs id={ex.id} clip={ex.clip} title="Başlamadan önce izle" />
           <section className="ses-card">
-            <div className="flex items-center gap-3">
-              <span className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[28px]">{ex.emoji}</span>
-              <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf]">{ex.short}</p>
-            </div>
-            <ol className="space-y-2 mt-4">
+            <p className="text-[15px] leading-relaxed text-sesui-body dark:text-sesui-dbody">{ex.short}</p>
+            <ol className="mt-3">
               {ex.steps.map((s, i) => (
-                <li key={i} className="flex gap-3 text-[16px] text-slate-700 dark:text-[#d8c8bf]">
-                  <span className="w-7 h-7 rounded-full bg-ses-600 text-white grid place-items-center text-[14px] font-bold flex-shrink-0">{i + 1}</span>
+                <li key={i} className="ses-row flex gap-3 text-[15px] leading-relaxed text-sesui-body dark:text-sesui-dbody">
+                  <span className="text-[12px] font-semibold tabular-nums text-sesui-muted dark:text-sesui-dmuted pt-1 w-4 flex-shrink-0">{i + 1}</span>
                   <span>{s}</span>
                 </li>
               ))}
             </ol>
-            {ex.caution && <p className="mt-3 rounded-2xl bg-amber-50 dark:bg-[#2b2418] p-3 text-[15px] text-amber-800 dark:text-amber-200">⚠️ {ex.caution}</p>}
-            <div className="flex flex-wrap gap-2 mt-3">
+            {ex.caution && (
+              <p className="ses-row flex gap-2.5 text-[14px] leading-relaxed text-amber-800 dark:text-amber-300">
+                <Icon name="alert" size={16} className="mt-0.5" />
+                <span>{ex.caution}</span>
+              </p>
+            )}
+            <div className="ses-row flex flex-wrap gap-1.5">
               <span className="ses-pill">{ex.mode === 'mpt' ? `${n} deneme` : ex.mode === 'sure' ? `${n} set × ${ex.hold} sn` : `${n} tekrar × ${ex.hold} sn`}</span>
               {ex.mode !== 'mpt' && <span className="ses-pill">ara: {restLen} sn</span>}
               {ex.mode !== 'mpt' && ayar.countdown && <span className="ses-pill">her tekrar öncesi {readyLen} sn geri sayım</span>}
             </div>
           </section>
-          <div className="mt-auto space-y-2">
-            <button className="ses-btn-primary w-full min-h-[58px] text-[19px]" onClick={basla}>
-              ▶ Başla
+          <div className="mt-auto space-y-2 pt-2">
+            <button className="ses-btn-primary w-full min-h-[54px] text-[17px]" onClick={basla}>
+              <Icon name="play" size={16} />
+              Başla
             </button>
-            <button className="ses-btn-ghost w-full" onClick={atla}>
+            <button className="ses-btn-ghost w-full min-h-[44px] text-[14px]" onClick={atla}>
               Bu egzersizi atla
             </button>
           </div>
@@ -335,10 +339,10 @@ export default function Session() {
           <section className="ses-card">
             <MptMeter key={mptAttempt} onResult={mptSonuc} attempt={mptAttempt} attempts={n} compact />
           </section>
-          {mptBest > 0 && <div className="text-center text-[16px] text-slate-700 dark:text-[#d8c8bf]">Bu seansta en iyi: {mptBest.toFixed(1).replace('.', ',')} sn</div>}
+          {mptBest > 0 && <div className="text-center text-[16px] text-sesui-body dark:text-sesui-dbody">Bu seansta en iyi: {mptBest.toFixed(1).replace('.', ',')} sn</div>}
           <div className="mt-auto space-y-2">
-            <button className="ses-btn-primary w-full min-h-[58px] text-[18px]" onClick={mptSonraki} disabled={!mptResult}>
-              {mptAttempt < n ? 'Sonraki deneme ▶' : 'Devam ▶'}
+            <button className="ses-btn-primary w-full" onClick={mptSonraki} disabled={!mptResult}>
+              {mptAttempt < n ? 'Sonraki deneme' : 'Devam'}
             </button>
             <button className="ses-btn-ghost w-full" onClick={atla}>
               Atla
@@ -357,34 +361,36 @@ export default function Session() {
     <div className="flex-1 flex flex-col">
       <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · ${ex.mode === 'sure' ? 'set' : 'tekrar'} ${rep + 1} / ${n}`} compact back={() => bitir(done)} />
       <div className="px-4 pb-8 flex-1 flex flex-col">
-        <div className={`flex-1 flex flex-col items-center justify-center rounded-3xl p-6 text-center transition-colors ${isGo ? 'bg-ses-600 text-white' : isReady ? 'bg-ses-50 dark:bg-[#352820]' : 'bg-white dark:bg-[#261d16]'}`}>
-          <div className={`text-[15px] font-semibold uppercase tracking-[0.1em] ${isGo ? 'text-white/80' : 'text-ses-700 dark:text-ses-300'}`}>{baslik}</div>
-          <div className={`font-bold leading-none tabular-nums my-4 ${isGo ? 'text-[96px] ses-pulse' : 'text-[84px] text-slate-900 dark:text-[#f5ece4]'}`}>{Math.ceil(left)}</div>
-          <div className={`text-[28px] font-bold leading-tight ${isGo ? 'text-white' : 'text-slate-800 dark:text-[#f5ece4]'}`}>
+        <div className={`flex-1 flex flex-col items-center justify-center rounded-[14px] p-6 text-center transition-colors border ${isGo ? 'bg-ses-600 border-ses-600 text-white' : isReady ? 'bg-white dark:bg-sesui-dcard border-sesui-line dark:border-sesui-dline' : 'bg-sesui-soft dark:bg-sesui-dsoft border-transparent'}`}>
+          <div className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${isGo ? 'text-white/70' : 'text-sesui-muted dark:text-sesui-dmuted'}`}>{baslik}</div>
+          <div className={`font-semibold leading-none tabular-nums my-5 ${isGo ? 'text-[88px] ses-pulse' : 'text-[76px] text-sesui-text dark:text-sesui-dtext'}`}>{Math.ceil(left)}</div>
+          <div className={`text-[24px] font-semibold leading-tight ${isGo ? 'text-white' : 'text-sesui-text dark:text-sesui-dtext'}`}>
             {isReady ? 'Nefes al…' : isGo ? cue : 'Gevşe, nefes al'}
           </div>
-          {isReady && <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-2">Sırada: {cue}</div>}
+          {isReady && <div className="text-[14px] text-sesui-muted dark:text-sesui-dmuted mt-2">Sırada: {cue}</div>}
           {phase === 'rest' && (
-            <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-2">Sonraki: {Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue}</div>
+            <div className="text-[14px] text-sesui-muted dark:text-sesui-dmuted mt-2">Sonraki: {Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue}</div>
           )}
-          <div className={`w-full h-2.5 rounded-full mt-6 overflow-hidden ${isGo ? 'bg-white/25' : 'bg-slate-200 dark:bg-[#4a3a30]'}`}>
+          <div className={`w-full h-1.5 rounded-full mt-7 overflow-hidden ${isGo ? 'bg-white/25' : 'bg-sesui-line dark:bg-sesui-dline'}`}>
             <div className={`h-full rounded-full transition-[width] duration-100 ${isGo ? 'bg-[#ffffff]' : 'bg-ses-500'}`} style={{ width: `${pct}%` }} />
           </div>
           {/* tekrar noktalari */}
-          <div className="flex flex-wrap justify-center gap-1.5 mt-4 max-w-[260px]">
+          <div className="flex flex-wrap justify-center gap-1 mt-5 max-w-[240px]">
             {Array.from({ length: n }).map((_, i) => (
-              <span key={i} className={`w-2.5 h-2.5 rounded-full ${i < rep || (i === rep && phase === 'rest') ? (isGo ? 'bg-[#ffffff]' : 'bg-ses-600') : i === rep ? (isGo ? 'bg-[#ffffff]/70' : 'bg-ses-300') : isGo ? 'bg-white/25' : 'bg-slate-200 dark:bg-[#4a3a30]'}`} />
+              <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < rep || (i === rep && phase === 'rest') ? (isGo ? 'bg-[#ffffff]' : 'bg-ses-600') : i === rep ? (isGo ? 'bg-[#ffffff]/70' : 'bg-ses-300') : isGo ? 'bg-white/25' : 'bg-sesui-line dark:bg-sesui-dline'}`} />
             ))}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 mt-3">
-          <button className="ses-btn-ghost px-2 whitespace-nowrap" onClick={duraklat}>
-            {paused ? '▶ Devam' : '⏸ Dur'}
+          <button className="ses-btn-ghost px-2 min-h-[46px] text-[14px] whitespace-nowrap" onClick={duraklat}>
+            <Icon name={paused ? 'play' : 'pause'} size={15} />
+            {paused ? 'Devam' : 'Dur'}
           </button>
-          <button className="ses-btn-ghost px-2 whitespace-nowrap" onClick={ilerle}>
-            ⏭ İleri
+          <button className="ses-btn-ghost px-2 min-h-[46px] text-[14px] whitespace-nowrap" onClick={ilerle}>
+            <Icon name="skip" size={15} />
+            İleri
           </button>
-          <button className="ses-btn-ghost px-2 whitespace-nowrap" onClick={atla}>
+          <button className="ses-btn-ghost px-2 min-h-[46px] text-[14px] whitespace-nowrap" onClick={atla}>
             Atla
           </button>
         </div>

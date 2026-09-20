@@ -4,6 +4,7 @@ import SesHeader from '../SesHeader'
 import { DEXERCISES, DGROUP_LABEL, DTEMPO_LABEL, type DExercise, type DGroup, type DTempo } from '../lib/diksiyon'
 import { activeDExercises, dSecFor, estimateDMinutes, readSettings, saveSettings, sessionsToday } from '../lib/store'
 import ClipPlayer from '../components/ClipPlayer'
+import Icon from '../components/Icon'
 
 export default function DiksiyonPage() {
   const navigate = useNavigate()
@@ -24,33 +25,35 @@ export default function DiksiyonPage() {
       <div className="px-4 space-y-5 pb-6">
         <section className="ses-card">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[28px]">🗣️</div>
+            <Icon name="speech" size={20} className="text-sesui-muted dark:text-sesui-dmuted" />
             <div className="flex-1 min-w-0">
-              <h2 className="text-[18px] font-bold text-slate-900 dark:text-[#f5ece4] leading-tight">Diksiyon seansı</h2>
-              <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">
-                {n} egzersiz · yaklaşık {estimateDMinutes(ayar)} dk{bugun > 0 ? ` · bugün ${bugun} seans ✔` : ''}
+              <h2 className="text-[18px] font-bold text-sesui-text dark:text-sesui-dtext leading-tight">Diksiyon seansı</h2>
+              <p className="text-[15px] text-sesui-body dark:text-sesui-dbody">
+                {n} egzersiz · yaklaşık {estimateDMinutes(ayar)} dk{bugun > 0 ? ` · bugün ${bugun} seans` : ''}
               </p>
             </div>
           </div>
           <div className="mt-3">
-            <span className="text-[14px] text-slate-700 dark:text-[#d8c8bf]">Okuma temposu</span>
+            <span className="text-[14px] text-sesui-body dark:text-sesui-dbody">Okuma temposu</span>
             <div className="grid grid-cols-3 gap-2 mt-1">
               {(['yavas', 'orta', 'hizli'] as DTempo[]).map((v) => (
-                <button key={v} onClick={() => setAyar(saveSettings({ dTempo: v }))} className={`min-h-[48px] rounded-2xl text-[16px] font-semibold transition ${ayar.dTempo === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                <button key={v} onClick={() => setAyar(saveSettings({ dTempo: v }))} className={`min-h-[48px] rounded-[10px] text-[16px] font-semibold transition ${ayar.dTempo === v ? 'bg-ses-600 text-white' : 'bg-sesui-soft dark:bg-sesui-dsoft text-sesui-body dark:text-sesui-dtext'}`}>
                   {DTEMPO_LABEL[v]}
                 </button>
               ))}
             </div>
           </div>
           <button className="ses-btn-primary w-full mt-3 text-[18px] min-h-[58px]" onClick={() => navigate('/diksiyon-seans')} disabled={n === 0}>
-            ▶ Seansa başla
+            <Icon name="play" size={16} />
+            Seansa başla
           </button>
         </section>
 
         <button className="ses-btn-soft w-full" onClick={() => navigate('/videolar')}>
-          🎬 Tüm videolar
+          <Icon name="video" size={16} />
+          Tüm videolar
         </button>
-        <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] px-1">
+        <p className="text-[14px] text-sesui-body dark:text-sesui-dbody px-1">
           Egzersize dokun: açıklama ve "yalnızca bunu yap". Onay kutusu seansa dahil olup olmadığını belirler.
         </p>
 
@@ -67,7 +70,7 @@ export default function DiksiyonPage() {
                       <button
                         onClick={() => toggle(e)}
                         aria-label={kapali ? 'Seansa ekle' : 'Seanstan çıkar'}
-                        className={`w-9 h-9 rounded-xl flex-shrink-0 grid place-items-center border-2 transition ${kapali ? 'border-slate-300 dark:border-[#4a3a30]' : 'bg-ses-600 border-ses-600 text-white'}`}
+                        className={`w-9 h-9 rounded-xl flex-shrink-0 grid place-items-center border-2 transition ${kapali ? 'border-slate-300 dark:border-sesui-dline' : 'bg-ses-600 border-ses-600 text-white'}`}
                       >
                         {!kapali && (
                           <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3}>
@@ -76,37 +79,43 @@ export default function DiksiyonPage() {
                         )}
                       </button>
                       <button className="flex-1 min-w-0 text-left" onClick={() => setAcik(acikMi ? null : e.id)}>
-                        <span className="block text-[17px] font-semibold text-slate-900 dark:text-[#f5ece4] leading-tight">
-                          {e.emoji} {e.name}
+                        <span className="block text-[17px] font-semibold text-sesui-text dark:text-sesui-dtext leading-tight">
+                          {e.name}
                         </span>
-                        <span className="block text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-0.5">
+                        <span className="block text-[14px] text-sesui-body dark:text-sesui-dbody mt-0.5">
                           {e.reps} × {dSecFor(e.sec, ayar)} sn · {e.short}
                         </span>
                       </button>
                     </div>
                     {acikMi && (
                       <div className="mt-3 space-y-3 ses-pop">
-                        <p className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">
+                        <p className="text-[15px] text-sesui-body dark:text-sesui-dbody">
                           <b>Neden:</b> {e.why}
                         </p>
                         <ol className="space-y-1.5">
                           {e.steps.map((s, i) => (
-                            <li key={i} className="flex gap-2 text-[15px] text-slate-700 dark:text-[#d8c8bf]">
+                            <li key={i} className="flex gap-2 text-[15px] text-sesui-body dark:text-sesui-dbody">
                               <span className="w-6 h-6 rounded-full bg-ses-600 text-white grid place-items-center text-[13px] font-bold flex-shrink-0">{i + 1}</span>
                               <span>{s}</span>
                             </li>
                           ))}
                         </ol>
-                        <div className="rounded-2xl bg-ses-50 dark:bg-[#352820] p-3 text-[16px] text-slate-800 dark:text-[#f5ece4] space-y-1">
+                        <div className="rounded-[10px] bg-ses-50 dark:bg-sesui-dsoft p-3 text-[16px] text-sesui-text dark:text-sesui-dtext space-y-1">
                           {e.lines.slice(0, 3).map((l, i) => (
                             <div key={i}>{l}</div>
                           ))}
-                          {e.lines.length > 3 && <div className="text-[14px] text-slate-700 dark:text-[#d8c8bf]">… ve {e.lines.length - 3} satır daha</div>}
+                          {e.lines.length > 3 && <div className="text-[14px] text-sesui-body dark:text-sesui-dbody">… ve {e.lines.length - 3} satır daha</div>}
                         </div>
-                        {e.tip && <p className="text-[14px] text-amber-800 dark:text-amber-200">⚠️ {e.tip}</p>}
+                        {e.tip && (
+                          <p className="flex gap-2 text-[13px] leading-relaxed text-amber-800 dark:text-amber-300">
+                            <Icon name="alert" size={14} className="mt-0.5" />
+                            <span>{e.tip}</span>
+                          </p>
+                        )}
                         {e.clip && <ClipPlayer src={e.clip} />}
                         <button className="ses-btn-soft w-full" onClick={() => navigate(`/diksiyon-seans?tek=${e.id}`)}>
-                          ▶ Yalnızca bunu yap
+                          <Icon name="play" size={15} />
+                          Yalnızca bunu yap
                         </button>
                       </div>
                     )}

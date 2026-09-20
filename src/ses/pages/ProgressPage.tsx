@@ -5,6 +5,7 @@ import { findExercise } from '../lib/content'
 import { findDExercise } from '../lib/diksiyon'
 import { bestMpt, deleteMpt, deleteSession, lastDaysActivity, readMpt, readSessions, sessionAccuracy, sessionKind, sessionRating, stats, streakDays } from '../lib/store'
 import { fmtDay, fmtMinutes, fmtShort } from '../lib/date'
+import Icon from '../components/Icon'
 
 export default function ProgressPage() {
   const [, bump] = useState(0)
@@ -29,7 +30,7 @@ export default function ProgressPage() {
       <div className="px-4 space-y-5 pb-6">
         <div className="grid grid-cols-3 gap-2">
           <Kutu deger={String(seri)} etiket="gün seri" />
-          <Kutu deger={String(st.count)} etiket={`seans (${nSes} ses · ${nDik} diksiyon)`} />
+          <Kutu deger={String(st.count)} etiket="seans" alt={`${nSes} ses · ${nDik} diksiyon`} />
           <Kutu deger={String(st.minutes)} etiket="dakika" />
         </div>
 
@@ -38,8 +39,8 @@ export default function ProgressPage() {
           <div className="flex items-end justify-between gap-2 h-24">
             {gunler.map((g) => (
               <div key={g.key} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t-lg bg-ses-500/90 transition-all" style={{ height: `${(g.count / maxG) * 72}px`, minHeight: g.count ? 8 : 2, opacity: g.count ? 1 : 0.25 }} />
-                <span className="text-[13px] text-slate-700 dark:text-[#d8c8bf]">{g.label}</span>
+                <div className="w-full rounded-t-[3px] bg-ses-500 transition-all" style={{ height: `${(g.count / maxG) * 72}px`, minHeight: g.count ? 8 : 2, opacity: g.count ? 1 : 0.25 }} />
+                <span className="text-[11px] text-sesui-muted dark:text-sesui-dmuted">{g.label}</span>
               </div>
             ))}
           </div>
@@ -51,12 +52,12 @@ export default function ProgressPage() {
             {best > 0 && <span className="ses-pill">rekor {best.toFixed(1).replace('.', ',')} sn</span>}
           </div>
           {mptSon.length >= 2 ? (
-            <div className="text-slate-700 dark:text-[#d8c8bf]">
+            <div className="text-sesui-body dark:text-sesui-dbody">
               <LineChart values={mptSon.map((r) => r.sec)} labels={mptSon.map((r) => fmtDay(r.d))} ref={10} />
-              <p className="text-[13px] text-slate-700 dark:text-[#d8c8bf] mt-1">Kesik çizgi: 10 sn (bunun üstü hedef). Süre zamanla uzuyorsa kapanma iyileşiyor demektir.</p>
+              <p className="text-[12px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted mt-2">Kesik çizgi: 10 sn (bunun üstü hedef). Süre zamanla uzuyorsa kapanma iyileşiyor demektir.</p>
             </div>
           ) : (
-            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Grafik için en az 2 ölçüm gerekir. Ana sayfadan "Ölç" ile ölçüm yap.</p>
+            <p className="text-[13px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted">Grafik için en az 2 ölçüm gerekir. Ana sayfadan "Ölç" ile ölçüm yap.</p>
           )}
         </section>
 
@@ -70,12 +71,12 @@ export default function ProgressPage() {
             )}
           </div>
           {acSon.length >= 2 ? (
-            <div className="text-slate-700 dark:text-[#d8c8bf]">
+            <div className="text-sesui-body dark:text-sesui-dbody">
               <LineChart values={acSon.map((r) => r.ac!.hnr)} labels={acSon.map((r) => fmtDay(r.d))} ref={18} />
-              <p className="text-[13px] text-slate-700 dark:text-[#d8c8bf] mt-1">Harmonik/gürültü oranı: yükseldikçe ses daha tok, daha az nefesli. Kesik çizgi: 18 dB. Telefon mikrofonu; kendi geçmişinle karşılaştır.</p>
+              <p className="text-[12px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted mt-2">Harmonik/gürültü oranı: yükseldikçe ses daha tok, daha az nefesli. Kesik çizgi: 18 dB. Telefon mikrofonu; kendi geçmişinle karşılaştır.</p>
             </div>
           ) : (
-            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Grafik için mikrofonla en az 2 "A" ölçümü gerekir.</p>
+            <p className="text-[13px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted">Grafik için mikrofonla en az 2 "A" ölçümü gerekir.</p>
           )}
         </section>
 
@@ -85,12 +86,12 @@ export default function ProgressPage() {
             {accSeries.length > 0 && <span className="ses-pill">son %{accSeries[accSeries.length - 1].v}</span>}
           </div>
           {accSeries.length >= 2 ? (
-            <div className="text-slate-700 dark:text-[#d8c8bf]">
+            <div className="text-sesui-body dark:text-sesui-dbody">
               <LineChart values={accSeries.map((r) => r.v)} labels={accSeries.map((r) => fmtDay(r.d))} ref={85} />
-              <p className="text-[13px] text-slate-700 dark:text-[#d8c8bf] mt-1">Konuşma tanıma ile seans ortalaması. Kesik çizgi: %85 (hedef).</p>
+              <p className="text-[12px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted mt-2">Konuşma tanıma ile seans ortalaması. Kesik çizgi: %85 (hedef).</p>
             </div>
           ) : (
-            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Grafik için puanlamalı en az 2 diksiyon seansı gerekir.</p>
+            <p className="text-[13px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted">Grafik için puanlamalı en az 2 diksiyon seansı gerekir.</p>
           )}
         </section>
 
@@ -100,11 +101,11 @@ export default function ProgressPage() {
             {ratSeries.length > 0 && <span className="ses-pill">son {ratSeries[ratSeries.length - 1].v}</span>}
           </div>
           {ratSeries.length >= 2 ? (
-            <div className="text-slate-700 dark:text-[#d8c8bf]">
+            <div className="text-sesui-body dark:text-sesui-dbody">
               <LineChart values={ratSeries.map((r) => r.v)} labels={ratSeries.map((r) => fmtDay(r.d))} />
             </div>
           ) : (
-            <p className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">Seans sonlarında verdiğin puanlar burada birikir.</p>
+            <p className="text-[15px] text-sesui-body dark:text-sesui-dbody">Seans sonlarında verdiğin puanlar burada birikir.</p>
           )}
         </section>
 
@@ -115,7 +116,7 @@ export default function ProgressPage() {
               ['olcum', 'Ölçümler']
             ] as const
           ).map(([v, l]) => (
-            <button key={v} onClick={() => setSekme(v)} className={`min-h-[50px] rounded-2xl text-[16px] font-semibold transition ${sekme === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+            <button key={v} onClick={() => setSekme(v)} className={`min-h-[50px] rounded-[10px] text-[16px] font-semibold transition ${sekme === v ? 'bg-ses-600 text-white' : 'bg-sesui-soft dark:bg-sesui-dsoft text-sesui-body dark:text-sesui-dtext'}`}>
               {l}
             </button>
           ))}
@@ -123,22 +124,23 @@ export default function ProgressPage() {
 
         {sekme === 'seans' ? (
           sessions.length === 0 ? (
-            <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf] text-center py-6">Henüz seans yok.</p>
+            <p className="text-[16px] text-sesui-body dark:text-sesui-dbody text-center py-6">Henüz seans yok.</p>
           ) : (
             <ul className="space-y-2">
               {[...sessions].reverse().map((s) => (
                 <li key={s.id} className="ses-card">
                   <div className="flex items-center justify-between">
-                    <span className="text-[16px] font-semibold text-slate-800 dark:text-[#f5ece4]">
-                      {sessionKind(s) === 'diksiyon' ? '🗣️ Diksiyon' : '🎤 Ses'} · {fmtShort(s.t)}
+                    <span className="text-[16px] font-semibold text-sesui-text dark:text-sesui-dtext">
+                      <Icon name={sessionKind(s) === 'diksiyon' ? 'speech' : 'mic'} size={14} className="inline-block align-[-2px] mr-1 text-sesui-muted dark:text-sesui-dmuted" />
+                      {sessionKind(s) === 'diksiyon' ? 'Diksiyon' : 'Ses'} · {fmtShort(s.t)}
                     </span>
-                    <span className="text-[15px] text-slate-700 dark:text-[#d8c8bf]">{fmtMinutes(s.ms)}</span>
+                    <span className="text-[15px] text-sesui-body dark:text-sesui-dbody">{fmtMinutes(s.ms)}</span>
                   </div>
-                  <div className="text-[15px] text-slate-700 dark:text-[#e2d5cd] mt-1">
+                  <div className="text-[15px] text-sesui-body dark:text-sesui-dbody mt-1">
                     {s.done
                       .map((d) => {
                         const e = sessionKind(s) === 'diksiyon' ? findDExercise(d.id) : findExercise(d.id)
-                        return `${e?.emoji ?? ''} ${e?.name ?? d.id}${d.mpt ? ` (${d.mpt.toFixed(1).replace('.', ',')} sn)` : ''}`
+                        return `${e?.name ?? d.id}${d.mpt ? ` (${d.mpt.toFixed(1).replace('.', ',')} sn)` : ''}`
                       })
                       .join(' · ')}
                   </div>
@@ -148,8 +150,8 @@ export default function ProgressPage() {
                       {sessionRating(s) != null && <span className="ses-pill">★ {sessionRating(s)}</span>}
                     </div>
                   )}
-                  {s.note && <div className="text-[15px] italic text-slate-700 dark:text-[#d8c8bf] mt-1">“{s.note}”</div>}
-                  {s.feedback && <div className="text-[14px] text-slate-700 dark:text-[#e2d5cd] mt-2 whitespace-pre-wrap rounded-2xl bg-ses-50 dark:bg-[#352820] p-2">🤖 {s.feedback}</div>}
+                  {s.note && <div className="text-[15px] italic text-sesui-body dark:text-sesui-dbody mt-1">“{s.note}”</div>}
+                  {s.feedback && <div className="text-[14px] text-sesui-body dark:text-sesui-dbody mt-2 whitespace-pre-wrap rounded-[10px] bg-ses-50 dark:bg-sesui-dsoft p-2">🤖 {s.feedback}</div>}
                   <button
                     className="text-[14px] text-rose-500 mt-2"
                     onClick={() => {
@@ -166,19 +168,19 @@ export default function ProgressPage() {
             </ul>
           )
         ) : mpt.length === 0 ? (
-          <p className="text-[16px] text-slate-700 dark:text-[#d8c8bf] text-center py-6">Henüz ölçüm yok.</p>
+          <p className="text-[16px] text-sesui-body dark:text-sesui-dbody text-center py-6">Henüz ölçüm yok.</p>
         ) : (
-          <ul className="ses-card divide-y divide-slate-100 dark:divide-[#4a3a30]">
+          <ul className="ses-card divide-y divide-sesui-line dark:divide-sesui-dline">
             {[...mpt].reverse().map((r) => (
               <li key={r.id} className="py-2 flex items-center justify-between text-[16px]">
-                <span className="text-slate-700 dark:text-[#d8c8bf]">
+                <span className="text-sesui-body dark:text-sesui-dbody">
                   {fmtShort(r.t)}
                   {r.manual ? ' · elle' : ''}
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="text-right">
-                    <span className="block font-semibold tabular-nums text-slate-800 dark:text-[#f5ece4]">{r.sec.toFixed(1).replace('.', ',')} sn</span>
-                    {r.ac && <span className="block text-[13px] text-slate-700 dark:text-[#d8c8bf] tabular-nums">{r.ac.f0} Hz · HNR {String(r.ac.hnr).replace('.', ',')} · j %{String(r.ac.jitter).replace('.', ',')} · s %{String(r.ac.shimmer).replace('.', ',')}</span>}
+                    <span className="block font-semibold tabular-nums text-sesui-text dark:text-sesui-dtext">{r.sec.toFixed(1).replace('.', ',')} sn</span>
+                    {r.ac && <span className="block text-[13px] text-sesui-body dark:text-sesui-dbody tabular-nums">{r.ac.f0} Hz · HNR {String(r.ac.hnr).replace('.', ',')} · j %{String(r.ac.jitter).replace('.', ',')} · s %{String(r.ac.shimmer).replace('.', ',')}</span>}
                   </span>
                   <button
                     className="text-[14px] text-rose-500"
@@ -201,11 +203,12 @@ export default function ProgressPage() {
   )
 }
 
-function Kutu({ deger, etiket }: { deger: string; etiket: string }) {
+function Kutu({ deger, etiket, alt }: { deger: string; etiket: string; alt?: string }) {
   return (
-    <div className="ses-card text-center py-3">
-      <div className="text-[24px] font-bold text-slate-900 dark:text-[#f5ece4] tabular-nums leading-none">{deger}</div>
-      <div className="text-[13px] text-slate-700 dark:text-[#d8c8bf] mt-1">{etiket}</div>
+    <div className="ses-card py-3.5 px-3">
+      <div className="text-[26px] font-semibold text-sesui-text dark:text-sesui-dtext tabular-nums leading-none">{deger}</div>
+      <div className="text-[12px] text-sesui-muted dark:text-sesui-dmuted mt-1.5">{etiket}</div>
+      {alt && <div className="text-[11px] text-sesui-muted/80 dark:text-sesui-dmuted mt-0.5 tabular-nums">{alt}</div>}
     </div>
   )
 }

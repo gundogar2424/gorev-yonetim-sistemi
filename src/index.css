@@ -885,10 +885,10 @@ html.eft-big {
    kurallarina dokunulmadi. Buyuk yazi, buyuk dokunma alanli, sakin arayuz.
    ========================================================================= */
 .ses-app {
-  background-color: #fdf7f2;
+  background-color: #faf7f4;
 }
 .dark .ses-app {
-  background-color: #1a1410;
+  background-color: #15120f;
 }
 /* Ayarlar > Buyuk yazi: piksel tabanli boyutlar da buyusun diye zoom
    (WebView/Chrome destekler). Varsayilan ACIK: yakini gormekte zorlanan
@@ -899,24 +899,35 @@ html.ses-big .ses-app {
 /* Okunabilirlik: rahat satir araligi, normal harf araligi, koyu metin */
 .ses-app {
   line-height: 1.45;
-  letter-spacing: 0;
-  color: #0f172a;
+  letter-spacing: -0.005em;
+  color: #1c1917;
   -webkit-text-size-adjust: 100%;
+  font-feature-settings: 'ss01', 'cv01';
 }
 .dark .ses-app {
-  color: #f5ece4;
+  color: #f0eae4;
+}
+/* Sayilar hep ayni genislikte: sayaclar zipla­masin */
+.ses-app .tabular-nums,
+.ses-app time {
+  font-variant-numeric: tabular-nums;
 }
 .ses-app p,
 .ses-app li {
   line-height: 1.5;
 }
 @layer components {
+  /* Kart: golge yok, 1px sicak cizgi. Yaricap olcegi 14 / 10 / 8. */
   .ses-card {
-    @apply bg-white rounded-3xl p-4 shadow-card;
+    @apply bg-white rounded-[14px] p-4 border border-sesui-line;
+  }
+  /* Kart icinde bolum ayirmak icin (ic ice kart yerine) */
+  .ses-row {
+    @apply border-t border-sesui-line pt-3 mt-3 first:border-0 first:pt-0 first:mt-0;
   }
   .ses-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 font-semibold transition select-none;
-    @apply min-h-[56px] text-[17px] active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 font-semibold transition select-none;
+    @apply min-h-[50px] text-[16px] active:scale-[0.985] disabled:opacity-40 disabled:active:scale-100;
   }
   .ses-btn-primary {
     @apply ses-btn bg-ses-600 text-white hover:bg-ses-700;
@@ -925,62 +936,102 @@ html.ses-big .ses-app {
     @apply ses-btn bg-ses-50 text-ses-700 hover:bg-ses-100;
   }
   .ses-btn-ghost {
-    @apply ses-btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+    @apply ses-btn bg-transparent text-sesui-text border border-sesui-line hover:bg-sesui-soft;
   }
   .ses-btn-danger {
-    @apply ses-btn bg-rose-50 text-rose-600 hover:bg-rose-100;
+    @apply ses-btn bg-transparent text-rose-700 border border-rose-200 hover:bg-rose-50;
   }
+  /* Bolum basligi: kartin DISINDA, kucuk ve sakin */
   .ses-label {
-    @apply text-[12px] font-semibold uppercase tracking-[0.07em] text-slate-500;
+    @apply text-[11px] font-semibold uppercase tracking-[0.09em] text-sesui-muted;
   }
   .ses-pill {
-    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[13px] font-semibold bg-ses-50 text-ses-800;
+    @apply inline-flex items-center rounded-md px-2 py-[3px] text-[12px] font-medium bg-sesui-soft text-sesui-muted border border-sesui-line;
   }
   .ses-input {
-    @apply w-full rounded-2xl bg-slate-50 px-4 py-3 text-[16px] outline-none focus:ring-4 focus:ring-ses-100 border border-slate-200;
+    @apply w-full rounded-[10px] bg-white px-3.5 py-3 text-[16px] outline-none border border-sesui-line focus:border-ses-400 focus:ring-2 focus:ring-ses-100;
+  }
+  /* Segment secici (yogunluk, tempo, gorunum...) — tek stil */
+  .ses-seg {
+    @apply grid gap-1 p-1 rounded-[10px] bg-sesui-soft border border-sesui-line;
+  }
+  .ses-seg-btn {
+    @apply min-h-[40px] rounded-[7px] text-[14px] font-semibold transition text-sesui-muted border border-transparent;
+  }
+  .ses-seg-on {
+    @apply bg-white text-ses-700 border-sesui-line;
+  }
+  /* Listede egzersiz sirasi: emoji yerine sayi */
+  .ses-index {
+    @apply w-9 h-9 rounded-lg grid place-items-center text-[13px] font-semibold tabular-nums bg-sesui-soft text-sesui-muted border border-sesui-line flex-shrink-0;
   }
 }
 .dark .ses-card {
-  background-color: #261d16;
+  background-color: #1e1a17;
+  border-color: #2f2823;
   box-shadow: none;
 }
+.dark .ses-row {
+  border-color: #2f2823;
+}
 .dark .ses-btn-soft {
-  background-color: #352820;
-  color: #ffb27a;
+  background-color: #2a2320;
+  color: #d9a582;
 }
 .dark .ses-btn-ghost {
-  background-color: #352820;
-  color: #f5ece4;
+  background-color: transparent;
+  border-color: #2f2823;
+  color: #f0eae4;
 }
 .dark .ses-btn-danger {
-  background-color: #2a1a1d;
+  background-color: transparent;
+  border-color: #4a2b2b;
+  color: #f0a1a1;
 }
 .dark .ses-label {
-  color: #b3a099;
-}
-.dark .ses-pill {
-  background-color: #352820;
-  color: #ffb27a;
+  color: #a1968d;
 }
 .dark .ses-input {
-  background-color: #352820;
-  color: #f5ece4;
-  border-color: #4a3a30;
+  background-color: #1e1a17;
+  border-color: #2f2823;
+  color: #f0eae4;
+}
+.dark .ses-seg {
+  background-color: #211c1a;
+  border-color: #2f2823;
+}
+.dark .ses-seg-btn {
+  color: #a1968d;
+}
+.dark .ses-seg-on {
+  background-color: #1e1a17;
+  border-color: #2f2823;
+  color: #d9a582;
+}
+.dark .ses-index {
+  background-color: #262120;
+  border-color: #2f2823;
+  color: #a1968d;
+}
+.dark .ses-pill {
+  background-color: #262120;
+  border-color: #2f2823;
+  color: #a1968d;
 }
 .dark .bg-ses-50 {
-  background-color: #352820;
+  background-color: #2a2320;
 }
 .dark .text-ses-800,
 .dark .text-ses-700,
 .dark .text-ses-600 {
-  color: #ffb27a;
+  color: #d9a582;
 }
 .dark .border-ses-100,
 .dark .border-ses-200 {
-  border-color: #4a3a30;
+  border-color: #2f2823;
 }
 .ses-app input[type='range'] {
-  accent-color: #c9560c;
+  accent-color: #b0512c;
 }
 .ses-app input[type='time'] {
   min-height: 48px;

@@ -2,13 +2,10 @@
 // YouTube uygulamasinda / tarayicisinda acilir. Hem "Izle" sekmesi hem de
 // egzersiz ekranindaki YouTube sekmesi ayni satirlari kullanir.
 import { searchFor, searchUrl, videosFor, type LibVideo } from '../lib/library'
+import Icon from './Icon'
 
 function Ok() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-5 h-5 text-slate-400 dark:text-[#cdbdb3] flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2}>
-      <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <Icon name="external" size={15} className="text-sesui-muted/70 dark:text-sesui-dmuted" />
 }
 
 export function VideoSatiri({ v }: { v: LibVideo }) {
@@ -17,15 +14,17 @@ export function VideoSatiri({ v }: { v: LibVideo }) {
       href={v.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-3 py-3 border-b border-slate-100 dark:border-[#4a3a30] last:border-0 active:opacity-70"
+      className="flex items-center gap-3 py-3 border-b border-sesui-line dark:border-sesui-dline last:border-0 active:opacity-70"
     >
-      <span className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-[#2a1a1d] grid place-items-center text-[18px] flex-shrink-0">▶</span>
+      <span className="w-8 h-8 rounded-lg border border-sesui-line dark:border-sesui-dline grid place-items-center text-sesui-muted dark:text-sesui-dmuted flex-shrink-0">
+        <Icon name="play" size={12} />
+      </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[16px] font-semibold text-slate-900 dark:text-[#f5ece4] leading-snug">
-          {v.shorts && <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-[#3a1f24] text-rose-700 dark:text-rose-300 text-[11px] font-bold uppercase tracking-wide">Shorts</span>}
+        <span className="block text-[15px] font-medium text-sesui-text dark:text-sesui-dtext leading-snug">
+          {v.shorts && <span className="inline-block align-middle mr-1.5 px-1.5 py-[1px] rounded border border-sesui-line dark:border-sesui-dline text-sesui-muted dark:text-sesui-dmuted text-[10px] font-semibold uppercase tracking-[0.08em]">Shorts</span>}
           {v.title}
         </span>
-        <span className="block text-[13px] text-slate-600 dark:text-[#cdbdb3] mt-0.5">
+        <span className="block text-[13px] text-sesui-muted dark:text-sesui-dmuted mt-0.5">
           {[v.by, v.shorts ? '~1 dk' : v.short ? 'kısa' : null, v.lang === 'en' ? 'İngilizce' : v.lang === 'fr' ? 'Fransızca' : null].filter(Boolean).join(' · ')}
         </span>
       </span>
@@ -41,12 +40,14 @@ export function AramaSatiri({ q }: { q: string }) {
       href={searchUrl(q)}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-3 py-3 border-b border-slate-100 dark:border-[#4a3a30] last:border-0 active:opacity-70"
+      className="flex items-center gap-3 py-3 border-b border-sesui-line dark:border-sesui-dline last:border-0 active:opacity-70"
     >
-      <span className="w-10 h-10 rounded-xl bg-ses-50 dark:bg-[#352820] grid place-items-center text-[17px] flex-shrink-0">🔎</span>
+      <span className="w-8 h-8 rounded-lg border border-sesui-line dark:border-sesui-dline grid place-items-center text-sesui-muted dark:text-sesui-dmuted flex-shrink-0">
+        <Icon name="search" size={14} />
+      </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[16px] font-semibold text-slate-900 dark:text-[#f5ece4] leading-snug">YouTube'da ara</span>
-        <span className="block text-[13px] text-slate-600 dark:text-[#cdbdb3] mt-0.5">"{q}" · güncel sonuçlar</span>
+        <span className="block text-[16px] font-semibold text-sesui-text dark:text-sesui-dtext leading-snug">YouTube'da ara</span>
+        <span className="block text-[12px] text-sesui-muted dark:text-sesui-dmuted mt-0.5">"{q}" · kısa videolar</span>
       </span>
       <Ok />
     </a>
@@ -58,7 +59,7 @@ export default function VideoLinks({ id, yalnizKisa = false }: { id: string; yal
   const tum = videosFor(id)
   const videolar = yalnizKisa ? tum.filter((v) => v.short) : tum
   const q = searchFor(id)
-  if (videolar.length === 0 && !q) return <p className="text-[15px] text-slate-700 dark:text-[#e2d5cd] py-2">Bu egzersiz için derlenmiş video yok.</p>
+  if (videolar.length === 0 && !q) return <p className="text-[15px] text-sesui-body dark:text-sesui-dbody py-2">Bu egzersiz için derlenmiş video yok.</p>
   return (
     <div>
       {videolar.map((v) => (
