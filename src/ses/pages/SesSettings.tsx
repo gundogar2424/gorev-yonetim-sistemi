@@ -4,7 +4,7 @@ import Switch from '../components/Switch'
 import { DISCLAIMER, EXERCISES, PROGRAM_DESC, PROGRAM_LABEL, type Program } from '../lib/content'
 import { SOURCES } from '../lib/sources'
 import { DEXERCISES, DGROUP_LABEL, DTEMPO_LABEL, type DGroup, type DTempo } from '../lib/diksiyon'
-import { applyProgram, downloadBackup, LEVEL_LABEL, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Level, type Reminder } from '../lib/store'
+import { applyProgram, downloadBackup, LEVEL_LABEL, PACE_LABEL, readSessions, readSettings, restoreBackup, saveSettings, wipeAll, type Level, type Pace, type Reminder } from '../lib/store'
 import { getBigText, getThemePref, setBigText, setThemePref, type ThemePref } from '../lib/theme'
 import { sfxSample } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
@@ -87,7 +87,19 @@ export default function SesSettings() {
             </div>
             <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-1">Hafif: %60 · Orta: standart · Yoğun: %140. Sesin yorgunsa Hafif seç.</p>
           </div>
+          <div>
+            <span className="text-[16px] text-slate-700 dark:text-[#e2d5cd]">Tempo (tekrar araları)</span>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {(['normal', 'yavas'] as Pace[]).map((v) => (
+                <button key={v} onClick={() => setAyar(saveSettings({ pace: v }))} className={`min-h-[50px] rounded-2xl text-[16px] font-semibold transition ${ayar.pace === v ? 'bg-ses-600 text-white' : 'bg-slate-100 dark:bg-[#352820] text-slate-700 dark:text-[#f5ece4]'}`}>
+                  {PACE_LABEL[v]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] mt-1">Tekrarlar arasında yetişemiyorsan Yavaş seç: aralar %60 uzar, geri sayım 5 saniye olur.</p>
+          </div>
           <Switch label="Her tekrardan önce 3-2-1 geri sayım" checked={ayar.countdown} onChange={(v) => setAyar(saveSettings({ countdown: v }))} />
+          <p className="text-[14px] text-slate-700 dark:text-[#d8c8bf] -mt-1">Geri sayım her tekrardan önce çalışır; nefes alıp hazırlanman için zaman bırakır.</p>
           <div>
             <span className="text-[16px] text-slate-700 dark:text-[#e2d5cd]">Günlük hedef (seans sayısı)</span>
             <div className="grid grid-cols-3 gap-2 mt-2">

@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import SesHeader from '../SesHeader'
 import MptMeter, { type MptResult } from '../components/MptMeter'
 import { findExercise, GROUP_LABEL, type Exercise } from '../lib/content'
-import { activeExercises, addMpt, addSession, readSettings, repsFor, updateSession, type DoneExercise, type Session as SessionRec } from '../lib/store'
+import { activeExercises, addMpt, addSession, readSettings, readySec, repsFor, restFor, updateSession, type DoneExercise, type Session as SessionRec } from '../lib/store'
 import Rating from '../components/Rating'
 import ClipPlayer from '../components/ClipPlayer'
 import FeedbackCard from '../components/FeedbackCard'
@@ -15,7 +15,6 @@ import { unlockAudio } from '../lib/audioCtx'
 import { fmtMinutes } from '../lib/date'
 
 type Phase = 'intro' | 'ready' | 'go' | 'rest' | 'mpt' | 'done'
-const READY_SEC = 3
 
 export default function Session() {
   const navigate = useNavigate()
@@ -51,6 +50,8 @@ export default function Session() {
 
   const ex = list[idx]
   const n = ex ? repsFor(ex.reps, ayar) : 0
+  const readyLen = readySec(ayar) // her tekrardan onceki 3-2-1
+  const restLen = ex ? restFor(ex.rest, ayar) : 0 // tekrarlar arasi dinlenme
 
   // Ekran uyumasin (destekleyen cihazlarda)
   useEffect(() => {
@@ -104,9 +105,15 @@ export default function Session() {
       setPhase('mpt')
       return
     }
+    sonrakiTekrar()
+  }
+
+  // Bir tekrari baslat: geri sayim aciksa once "hazirlan" (nefes al) evresi
+  function sonrakiTekrar() {
+    if (!ex) return
     if (ayar.countdown) {
       setPhase('ready')
-      zamanla(READY_SEC)
+      zamanla(readyLen)
     } else {
       setPhase('go')
       zamanla(ex.hold)
@@ -126,7 +133,7 @@ export default function Session() {
     if (phase === 'go') {
       if (rep + 1 < n) {
         setPhase('rest')
-        zamanla(ex.rest)
+        zamanla(restLen)
         sfxRest()
       } else {
         egzersizBitti({ id: ex.id, reps: n })
@@ -135,9 +142,7 @@ export default function Session() {
     }
     if (phase === 'rest') {
       setRep((r) => r + 1)
-      setPhase('go')
-      zamanla(ex.hold)
-      sfxGo()
+      sonrakiTekrar()
     }
   }
 
@@ -205,7 +210,7 @@ export default function Session() {
   }
 
   const cue = ex ? (Array.isArray(ex.cue) ? ex.cue[rep % ex.cue.length] : ex.cue) : ''
-  const total = ex ? (phase === 'ready' ? READY_SEC : phase === 'go' ? ex.hold : ex.rest) : 1
+  const total = ex ? (phase === 'ready' ? readyLen : phase === 'go' ? ex.hold : restLen) : 1
   const pct = total > 0 ? Math.max(0, Math.min(100, (left / total) * 100)) : 0
 
   // ---------- BITIS ----------
@@ -309,7 +314,8 @@ export default function Session() {
             {ex.caution && <p className="mt-3 rounded-2xl bg-amber-50 dark:bg-[#2b2418] p-3 text-[15px] text-amber-800 dark:text-amber-200">⚠️ {ex.caution}</p>}
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="ses-pill">{ex.mode === 'mpt' ? `${n} deneme` : ex.mode === 'sure' ? `${n} set × ${ex.hold} sn` : `${n} tekrar × ${ex.hold} sn`}</span>
-              {ex.mode !== 'mpt' && <span className="ses-pill">ara: {ex.rest} sn</span>}
+              {ex.mode !== 'mpt' && <span className="ses-pill">ara: {restLen} sn</span>}
+              {ex.mode !== 'mpt' && ayar.countdown && <span className="ses-pill">her tekrar öncesi {readyLen} sn geri sayım</span>}
             </div>
           </section>
           <div className="mt-auto space-y-2">
@@ -360,9 +366,12 @@ export default function Session() {
           <div className={`text-[15px] font-semibold uppercase tracking-[0.1em] ${isGo ? 'text-white/80' : 'text-ses-700 dark:text-ses-300'}`}>{baslik}</div>
           <div className={`font-bold leading-none tabular-nums my-4 ${isGo ? 'text-[96px] ses-pulse' : 'text-[84px] text-slate-900 dark:text-[#f5ece4]'}`}>{Math.ceil(left)}</div>
           <div className={`text-[28px] font-bold leading-tight ${isGo ? 'text-white' : 'text-slate-800 dark:text-[#f5ece4]'}`}>
-            {isReady ? (ex.mode === 'sure' ? 'Nefes al…' : 'Nefes al…') : isGo ? cue : 'Gevşe, nefes al'}
+            {isReady ? 'Nefes al…' : isGo ? cue : 'Gevşe, nefes al'}
           </div>
-          {phase === 'rest' && <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-2">Sonraki: {Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue}</div>}
+          {isReady && <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-2">Sırada: {cue}</div>}
+          {phase === 'rest' && (
+            <div className="text-[16px] text-slate-700 dark:text-[#d8c8bf] mt-2">Sonraki: {Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue}</div>
+          )}
           <div className={`w-full h-2.5 rounded-full mt-6 overflow-hidden ${isGo ? 'bg-white/25' : 'bg-slate-200 dark:bg-[#4a3a30]'}`}>
             <div className={`h-full rounded-full transition-[width] duration-100 ${isGo ? 'bg-[#ffffff]' : 'bg-ses-500'}`} style={{ width: `${pct}%` }} />
           </div>
