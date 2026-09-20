@@ -44,6 +44,7 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://www.youtube.com/watch?v=LpR7JF6qIaU', title: 'Ses kısıklığı ve tedavisi', by: 'Op. Dr. Hasan Zorlu', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=VjQCjgkA1Ow', title: 'Ses teli nodülü iyileştirme dersi', lang: 'tr' },
       { url: 'https://www.youtube.com/shorts/c_VMwUh4CEM', title: 'Ses teli kanaması nedir?', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/shorts/xDoqL3Y6tvE', title: 'Ses teli felci belirtileri nelerdir?', by: 'KBB ve Baş-Boyun Cerrahisi', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=nZCe1F83E28', title: 'Ses sorunu çözüldü', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=XDDL1ha9gOs', title: 'Ses teli felcinde hangi egzersizler yardımcı olur?', lang: 'en' }
     ]
@@ -67,6 +68,8 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://m.youtube.com/watch?v=gnQmf6_XfPw', title: 'Pipetle basit ve etkili ses geliştirme egzersizi', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=RLUJ2ijHBNY', title: 'Ses çalışmaları: "m" sesi', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/shorts/v3Zq8T8C1Ys', title: 'Günün ses egzersizi: "mam-mam-mam" ısınması', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/shorts/61XZcdXJ75A', title: 'Rezonans nedir? Sesi etkili kullanmanın sırrı', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/watch?v=9pUcoocAO5o', title: 'Lax Vox ses terapi tekniğiyle uygulama', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=gBEL1mj2OFI', title: 'Kısa ses egzersizi (vokal koç)', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=K79OlbRLebc', title: 'Fonasyon nedir? Doğru ses üretiminin temelleri', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=lpYLY3olxcQ', title: 'Sesimi nasıl geliştirebilirim? Ses aralığını artırmak', by: 'Doç. Dr. Necati Enver', lang: 'tr' },
@@ -128,6 +131,7 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://www.youtube.com/watch?v=cm8bjGBkvQ8', title: 'Artikülasyon ve rezonans çalışması', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=QIXa_g9F9Ug', title: 'Vibrasyon egzersizi ("e" vokali)', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/shorts/cA-7uQ0Sl7Q', title: 'Siren (perde kaydırma) ısınması', lang: 'en', short: true, shorts: true },
+      { url: 'https://www.youtube.com/shorts/4xqCwvxLHJ0', title: 'Ses açma: pes (kalın) seslere iniş', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=INuSII9hlMI', title: 'Şarkı söylemek için ses egzersizi', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/playlist?list=PLEdk0VnOqVyOtrBP4tACcreGiQN7-4zCK', title: 'Ses açma egzersizleri (oynatma listesi)', lang: 'tr' }
     ]
@@ -141,6 +145,9 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://www.youtube.com/watch?v=Ie-zR98Nxf4', title: 'Daha net konuşmanızı sağlayan kolay egzersiz', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/shorts/-Bl5XEoVRUQ', title: '"Ş" harfi tekerlemeleri', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/shorts/LTJ52cHL5nA', title: 'Tek tekerlemeyle nefes ve artikülasyon testi', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/shorts/V82Un_4vMCw', title: '"R" sesi hazırlık egzersizleri', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/shorts/R9jtfcTL7FE', title: 'Diksiyonda tekerlemenin önemi', by: 'Erdoğan Arıkan', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/watch?v=WaAsHJe3IK8', title: 'Artikülasyon egzersizi: "manala-monolo"', lang: 'tr', short: true },
       { url: 'https://m.youtube.com/watch?v=o7_TPc1vHKE', title: 'Kalem çalışması ve faydaları', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=xyexxnhrfcg', title: 'Diksiyon kalem çalışması', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=40pRwpAgaFM', title: 'Tekerlemeler 3 — diksiyon egzersizleri', lang: 'tr', short: true },
@@ -183,17 +190,17 @@ export const EX_VIDEOS: ExVideos[] = [
   {
     id: 'mirildanma',
     search: 'mırıldanma m sesi ses egzersizi',
-    urls: ['https://www.youtube.com/shorts/v3Zq8T8C1Ys', 'https://www.youtube.com/watch?v=RLUJ2ijHBNY', 'https://www.youtube.com/watch?v=oVAOV0PtUPk', 'https://m.youtube.com/watch?v=1SePvXrpxQE']
+    urls: ['https://www.youtube.com/shorts/v3Zq8T8C1Ys', 'https://www.youtube.com/shorts/61XZcdXJ75A', 'https://www.youtube.com/watch?v=RLUJ2ijHBNY', 'https://www.youtube.com/watch?v=oVAOV0PtUPk', 'https://m.youtube.com/watch?v=1SePvXrpxQE']
   },
   {
     id: 'itme',
     search: 'ses tellerini güçlendiren itme egzersizi',
-    urls: ['https://m.youtube.com/watch?v=1SePvXrpxQE', 'https://www.youtube.com/watch?v=nZCe1F83E28', 'https://www.youtube.com/watch?v=Pmjsn2nsxZA', 'https://www.youtube.com/watch?v=7qmEwxzpT8E', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
+    urls: ['https://www.youtube.com/shorts/xDoqL3Y6tvE', 'https://m.youtube.com/watch?v=1SePvXrpxQE', 'https://www.youtube.com/watch?v=nZCe1F83E28', 'https://www.youtube.com/watch?v=Pmjsn2nsxZA', 'https://www.youtube.com/watch?v=7qmEwxzpT8E', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
   },
   {
     id: 'cekme',
     search: 'ses teli kapanması güçlendirme egzersizi',
-    urls: ['https://m.youtube.com/watch?v=1SePvXrpxQE', 'https://www.youtube.com/watch?v=Pmjsn2nsxZA', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
+    urls: ['https://www.youtube.com/shorts/xDoqL3Y6tvE', 'https://m.youtube.com/watch?v=1SePvXrpxQE', 'https://www.youtube.com/watch?v=Pmjsn2nsxZA', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
   },
   {
     id: 'sert-baslangic',
@@ -213,7 +220,7 @@ export const EX_VIDEOS: ExVideos[] = [
   {
     id: 'bas-cevirme',
     search: 'ses teli felci ses egzersizi baş çevirme',
-    urls: ['https://www.youtube.com/watch?v=7qmEwxzpT8E', 'https://www.youtube.com/watch?v=Wmluhkuzut0', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
+    urls: ['https://www.youtube.com/shorts/xDoqL3Y6tvE', 'https://www.youtube.com/watch?v=7qmEwxzpT8E', 'https://www.youtube.com/watch?v=Wmluhkuzut0', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
   },
   {
     id: 'uzun-a',
@@ -228,7 +235,7 @@ export const EX_VIDEOS: ExVideos[] = [
   {
     id: 'perde-kaydirma',
     search: 'glissando ses egzersizi perde kaydırma',
-    urls: ['https://www.youtube.com/watch?v=ZuBRs2Nm0YU', 'https://www.youtube.com/shorts/cA-7uQ0Sl7Q', 'https://www.youtube.com/watch?v=rkWlwlKHhpM', 'https://m.youtube.com/watch?v=9XJeQQVdJKg']
+    urls: ['https://www.youtube.com/shorts/4xqCwvxLHJ0', 'https://www.youtube.com/watch?v=ZuBRs2Nm0YU', 'https://www.youtube.com/shorts/cA-7uQ0Sl7Q', 'https://www.youtube.com/watch?v=rkWlwlKHhpM', 'https://m.youtube.com/watch?v=9XJeQQVdJKg']
   },
   {
     id: 'vfe-notalar',
@@ -243,12 +250,12 @@ export const EX_VIDEOS: ExVideos[] = [
   {
     id: 'gur-ifadeler',
     search: 'sesi etkili kullanma egzersizi',
-    urls: ['https://www.youtube.com/watch?v=fhCJNZ22e88', 'https://www.youtube.com/watch?v=O0WBy1Pq66A', 'https://www.youtube.com/watch?v=UXaLEGLjJiA', 'https://www.youtube.com/watch?v=8aaHWfv32zc']
+    urls: ['https://www.youtube.com/shorts/61XZcdXJ75A', 'https://www.youtube.com/watch?v=fhCJNZ22e88', 'https://www.youtube.com/watch?v=O0WBy1Pq66A', 'https://www.youtube.com/watch?v=UXaLEGLjJiA', 'https://www.youtube.com/watch?v=8aaHWfv32zc']
   },
   {
     id: 'su-direnci',
     search: 'lax vox tüp egzersizi',
-    urls: ['https://www.youtube.com/watch?v=I2kgqCa0kuE', 'https://www.youtube.com/playlist?list=PLvsYVnIbuA5NCgsUOx_0FHsMTCpo9SlCl', 'https://www.youtube.com/watch?v=PsjUJjrSE7A']
+    urls: ['https://www.youtube.com/watch?v=I2kgqCa0kuE', 'https://www.youtube.com/watch?v=9pUcoocAO5o', 'https://www.youtube.com/playlist?list=PLvsYVnIbuA5NCgsUOx_0FHsMTCpo9SlCl', 'https://www.youtube.com/watch?v=PsjUJjrSE7A']
   },
   {
     id: 'pipet',
