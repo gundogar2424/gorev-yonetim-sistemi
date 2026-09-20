@@ -21,7 +21,7 @@ function NavIcon({ name, className }: { name: IconName; className?: string }) {
     viewBox: '0 0 24 24',
     fill: 'none',
     stroke: 'currentColor',
-    strokeWidth: 2,
+    strokeWidth: 1.7,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const
   }
@@ -118,15 +118,15 @@ export default function SesApp() {
 
       {!inSession && (
         <nav
-          className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-6 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#1a1410]/85 border-t border-slate-200/60 dark:border-[#4a3a30]"
+          className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-6 z-20 backdrop-blur-xl bg-white/90 dark:bg-[#15120f]/90 border-t border-sesui-line dark:border-sesui-dline"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           {tabs.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-3 pb-2.5 gap-1">
+            <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1">
               {({ isActive }) => (
                 <>
-                  <NavIcon name={t.icon} className={`h-[22px] w-[22px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-slate-600 dark:text-[#cdbdb3]'}`} />
-                  <span className={`text-[11px] leading-none transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-slate-600 dark:text-[#cdbdb3] font-medium'}`}>
+                  <NavIcon name={t.icon} className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300' : 'text-sesui-muted dark:text-sesui-dmuted'}`} />
+                  <span className={`text-[10px] leading-none tracking-[0.01em] transition-colors ${isActive ? 'text-ses-600 dark:text-ses-300 font-semibold' : 'text-sesui-muted dark:text-sesui-dmuted font-medium'}`}>
                     {t.label}
                   </span>
                 </>

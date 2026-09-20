@@ -7,6 +7,7 @@ import { AcousticAccumulator, type AcousticResult } from '../lib/acoustic'
 import AcousticCard from './AcousticCard'
 import { sfxDone, sfxGo } from '../lib/sound'
 import { unlockAudio } from '../lib/audioCtx'
+import Icon from './Icon'
 
 export interface MptResult {
   sec: number
@@ -125,20 +126,20 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
     <div className="space-y-3">
       {attempt != null && attempts != null && <div className="ses-pill">Deneme {attempt} / {attempts}</div>}
 
-      <div className={`rounded-3xl bg-ses-50 dark:bg-[#352820] text-center ${compact ? 'py-4' : 'py-7'}`}>
+      <div className={`rounded-[14px] bg-ses-50 dark:bg-sesui-dsoft text-center ${compact ? 'py-4' : 'py-7'}`}>
         <div className="text-[14px] font-semibold uppercase tracking-[0.08em] text-ses-700 dark:text-ses-300">
           {manual ? (manualT0 ? 'Sürüyor…' : result ? 'Sonuç' : 'Elle kronometre') : armed ? (olcuyor ? 'Sürüyor… sesi tut' : 'Hazır — "aaaa" de') : result ? 'Sonuç' : 'En uzun "A" tutma'}
         </div>
-        <div className={`font-bold tabular-nums text-slate-900 dark:text-[#f5ece4] ${compact ? 'text-[60px]' : 'text-[76px]'} leading-none mt-2`}>
+        <div className={`font-bold tabular-nums text-sesui-text dark:text-sesui-dtext ${compact ? 'text-[60px]' : 'text-[76px]'} leading-none mt-2`}>
           {shownSec.toFixed(1).replace('.', ',')}
-          <span className="text-[20px] font-semibold text-slate-700 dark:text-[#d8c8bf] ml-1">sn</span>
+          <span className="text-[20px] font-semibold text-sesui-body dark:text-sesui-dbody ml-1">sn</span>
         </div>
         {!manual && (
           <div className="mx-8 mt-4 h-3 rounded-full bg-white/70 dark:bg-black/25 overflow-hidden">
             <div className="h-full rounded-full bg-ses-500 transition-[width] duration-75" style={{ width: `${status === 'acik' ? pct : 0}%` }} />
           </div>
         )}
-        {result && <p className="text-[16px] text-slate-700 dark:text-[#e2d5cd] mt-3 px-4">{mptComment(result.sec)}</p>}
+        {result && <p className="text-[16px] text-sesui-body dark:text-sesui-dbody mt-3 px-4">{mptComment(result.sec)}</p>}
       </div>
       {result?.ac && <AcousticCard ac={result.ac} compact={compact} />}
 
@@ -146,7 +147,8 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
         <div className="grid grid-cols-2 gap-2">
           {!armed ? (
             <button className="ses-btn-primary col-span-2 min-h-[58px] text-[18px]" onClick={baslat} disabled={status === 'aciliyor'}>
-              {status === 'aciliyor' ? 'Mikrofon açılıyor…' : result ? '🎤 Yeniden ölç' : '🎤 Ölçümü başlat'}
+              <Icon name="mic" size={16} />
+              {status === 'aciliyor' ? 'Mikrofon açılıyor…' : result ? 'Yeniden ölç' : 'Ölçümü başlat'}
             </button>
           ) : (
             <>
@@ -167,7 +169,7 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
               </button>
             </>
           )}
-          <button className="col-span-2 text-[15px] text-slate-700 dark:text-[#d8c8bf] underline py-1" onClick={() => setManual(true)}>
+          <button className="col-span-2 text-[15px] text-sesui-body dark:text-sesui-dbody underline py-1" onClick={() => setManual(true)}>
             Mikrofon yerine elle kronometre kullan
           </button>
         </div>
@@ -175,7 +177,8 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
         <div className="grid grid-cols-2 gap-2">
           {!manualT0 ? (
             <button className="ses-btn-primary col-span-2 min-h-[58px] text-[18px]" onClick={elleBasla}>
-              ▶ Başla (nefes al, "aaaa" de)
+              <Icon name="play" size={16} />
+              Başla (nefes al, "aaaa" de)
             </button>
           ) : (
             <button className="ses-btn-primary col-span-2 min-h-[58px] text-[18px]" onClick={elleBitir}>
@@ -183,12 +186,12 @@ export default function MptMeter({ onResult, attempt, attempts, compact }: Props
             </button>
           )}
           {status === 'izin-yok' && (
-            <p className="col-span-2 text-[14px] text-slate-700 dark:text-[#d8c8bf]">
+            <p className="col-span-2 text-[14px] text-sesui-body dark:text-sesui-dbody">
               Mikrofon izni verilmedi. Telefon ayarlarından uygulamaya mikrofon izni verirsen süre kendiliğinden ölçülür.
             </p>
           )}
           {status !== 'izin-yok' && status !== 'yok' && (
-            <button className="col-span-2 text-[15px] text-slate-700 dark:text-[#d8c8bf] underline py-1" onClick={() => setManual(false)}>
+            <button className="col-span-2 text-[15px] text-sesui-body dark:text-sesui-dbody underline py-1" onClick={() => setManual(false)}>
               Mikrofonla ölç
             </button>
           )}

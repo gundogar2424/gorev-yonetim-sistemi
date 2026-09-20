@@ -19,7 +19,7 @@ export interface LibVideo {
 export interface LibTopic {
   id: string
   title: string
-  emoji: string
+  icon: 'stethoscope' | 'mic' | 'speaker' | 'wave' | 'lungs' | 'speech'
   note: string
   videos: LibVideo[]
 }
@@ -28,7 +28,7 @@ export const LIBRARY: LibTopic[] = [
   {
     id: 'ses-teli',
     title: 'Ses teli sorunları',
-    emoji: '🩺',
+    icon: 'stethoscope',
     note: 'Hekim anlatımları: ses kısıklığı, nodül, ses teli felci.',
     videos: [
       { url: 'https://www.youtube.com/shorts/_tRlnhOGWsQ', title: 'Ses teli nodülü nedir?', by: 'Op. Dr. Mustafa Uslu', lang: 'tr', short: true, shorts: true },
@@ -52,7 +52,7 @@ export const LIBRARY: LibTopic[] = [
   {
     id: 'ses-terapisi',
     title: 'Ses terapisi egzersizleri',
-    emoji: '🎤',
+    icon: 'mic',
     note: 'Türkçe ses terapisi anlatımları, tüp (Lax Vox) ve pipet egzersizleri.',
     videos: [
       { url: 'https://www.youtube.com/watch?v=Pmjsn2nsxZA', title: 'Ses terapisi ve ses kısıklığı', by: 'Ses terapisti Mehmet Uyar', lang: 'tr' },
@@ -80,7 +80,7 @@ export const LIBRARY: LibTopic[] = [
   {
     id: 'gur-ses',
     title: 'Gür ve tok ses',
-    emoji: '📢',
+    icon: 'speaker',
     note: 'Sesin gür çıkması, konuşurken ses gücü ve ses rengi çalışmaları.',
     videos: [
       { url: 'https://m.youtube.com/watch?v=smHRwppSFQA', title: 'Daha tok bir ses için bu egzersizleri yapın', lang: 'tr', short: true },
@@ -95,7 +95,7 @@ export const LIBRARY: LibTopic[] = [
   {
     id: 'vfe',
     title: 'Vokal Fonksiyon Egzersizleri',
-    emoji: '🎼',
+    icon: 'wave',
     note: 'Uygulamadaki VFE 1-4 ve tekniklerin kaynağından anlatımı (çoğu İngilizce).',
     videos: [
       { url: 'https://www.youtube.com/watch?v=uM2TLN7nQW0', title: 'Vocal Function Exercises — Joseph Stemple (yöntemin sahibi)', lang: 'en' },
@@ -113,7 +113,7 @@ export const LIBRARY: LibTopic[] = [
   {
     id: 'nefes',
     title: 'Nefes ve ısınma',
-    emoji: '🫁',
+    icon: 'lungs',
     note: 'Diyafram nefesi ve kısa ses ısınmaları (hepsi Türkçe).',
     videos: [
       { url: 'https://www.youtube.com/watch?v=74_QDyUcV6I', title: 'Diyafram nefesi egzersizi', lang: 'tr', short: true },
@@ -139,7 +139,7 @@ export const LIBRARY: LibTopic[] = [
   {
     id: 'diksiyon',
     title: 'Diksiyon',
-    emoji: '🗣️',
+    icon: 'speech',
     note: 'Artikülasyon, kalem çalışması, tekerlemeler, vurgu ve tonlama.',
     videos: [
       { url: 'https://www.youtube.com/watch?v=Ie-zR98Nxf4', title: 'Daha net konuşmanızı sağlayan kolay egzersiz', lang: 'tr', short: true },

@@ -69,17 +69,36 @@ export default {
         // SES EGZERSIZI'nin kendi rengi: sicak, enerjik bir turuncu (ses/nefes
         // cagrisimi). Beyaz yaziyla okunakli koyulukta (600). Yalnizca
         // src/ses/** kullanir; diger programlarin renkleri degismez.
+        // Ses Egzersizi: sakin kil-terrakota. Doygunluk dusuruldu; aksan
+        // rengi yalnizca birincil eylem, secili sekme ve ilerleme cubugunda.
         ses: {
-          50: '#fff3e8',
-          100: '#ffe2c9',
-          200: '#ffc493',
-          300: '#ff9f57',
-          400: '#f97f2a',
-          500: '#e5660f',
-          600: '#c9560c', // eylem rengi (butonlar, secili sekme)
-          700: '#a5450a',
-          800: '#83380c',
-          900: '#6b2f0c'
+          50: '#faf4f0',
+          100: '#f1e3d9',
+          200: '#e2c7b5',
+          300: '#cda186',
+          400: '#c07a52',
+          500: '#c25d31',
+          600: '#b0512c', // eylem rengi (butonlar, secili sekme)
+          700: '#93421f',
+          800: '#522e1c',
+          900: '#3f2416'
+        },
+        // Yuzey ve cizgi renkleri (kart kenarligi golgeler yerine)
+        sesui: {
+          bg: '#faf7f4',
+          card: '#ffffff',
+          line: '#ebe4dd',
+          soft: '#f4efea',
+          text: '#1c1917',
+          body: '#4b443f',
+          muted: '#7c736c',
+          dbg: '#15120f',
+          dcard: '#1e1a17',
+          dline: '#2f2823',
+          dsoft: '#262120',
+          dtext: '#f0eae4',
+          dbody: '#cfc5bd',
+          dmuted: '#a1968d'
         },
         // MFP paletinden ORNEKLENEN renkler
         mfp: {

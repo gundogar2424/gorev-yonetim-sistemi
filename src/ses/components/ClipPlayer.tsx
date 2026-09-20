@@ -14,7 +14,7 @@ export default function ClipPlayer({ src, title }: { src: string; title?: string
   }
   return (
     <div className="space-y-2">
-      <div className="relative w-full overflow-hidden rounded-2xl bg-black" style={{ aspectRatio: aspect, maxHeight: '70vh' }}>
+      <div className="relative w-full overflow-hidden rounded-[10px] bg-black" style={{ aspectRatio: aspect, maxHeight: '70vh' }}>
         <video
           ref={ref}
           src={src}
@@ -40,7 +40,7 @@ export default function ClipPlayer({ src, title }: { src: string; title?: string
           </button>
         )}
       </div>
-      {title && <p className="text-[14px] text-slate-700 dark:text-[#e2d5cd]">{title}</p>}
+      {title && <p className="text-[14px] text-sesui-body dark:text-sesui-dbody">{title}</p>}
     </div>
   )
 }
