@@ -101,6 +101,7 @@ export const EXERCISES: Exercise[] = [
       'Boğazını sıkma, ses yumuşak olsun.'
     ],
     cue: 'mmm…',
+    clip: './ses-video/mirildanma.mp4',
     reps: 3,
     hold: 8,
     rest: 4
