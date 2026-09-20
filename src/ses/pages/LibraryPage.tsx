@@ -5,9 +5,10 @@ import { useState } from 'react'
 import SesHeader from '../SesHeader'
 import { EXERCISES } from '../lib/content'
 import VideoLinks, { VideoSatiri } from '../components/VideoLinks'
-import { LIBRARY, libCount, videosFor, type LibTopic } from '../lib/library'
+import { LIBRARY, libCount, shortsCount, videosFor, type LibTopic } from '../lib/library'
 
-function Konu({ t, acik, onTap }: { t: LibTopic; acik: boolean; onTap: () => void }) {
+function Konu({ t, acik, onTap, yalnizKisa }: { t: LibTopic; acik: boolean; onTap: () => void; yalnizKisa: boolean }) {
+  const videolar = yalnizKisa ? t.videos.filter((v) => v.short) : t.videos
   return (
     <section className="ses-card">
       <button className="w-full flex items-center gap-3 text-left" onClick={onTap}>
@@ -15,7 +16,7 @@ function Konu({ t, acik, onTap }: { t: LibTopic; acik: boolean; onTap: () => voi
         <span className="flex-1 min-w-0">
           <span className="block text-[17px] font-semibold text-slate-900 dark:text-[#f5ece4] leading-tight">{t.title}</span>
           <span className="block text-[14px] text-slate-600 dark:text-[#cdbdb3] mt-0.5">
-            {t.videos.length} video · {t.note}
+            {videolar.length} video · {t.note}
           </span>
         </span>
         <svg viewBox="0 0 24 24" className={`w-5 h-5 text-slate-400 dark:text-[#cdbdb3] flex-shrink-0 transition-transform ${acik ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.2}>
@@ -24,17 +25,19 @@ function Konu({ t, acik, onTap }: { t: LibTopic; acik: boolean; onTap: () => voi
       </button>
       {acik && (
         <div className="mt-2">
-          {t.videos.map((v) => (
-            <VideoSatiri key={v.url} v={v} />
-          ))}
+          {videolar.length === 0 ? (
+            <p className="text-[15px] text-slate-700 dark:text-[#e2d5cd] py-2">Bu konuda kısa video yok.</p>
+          ) : (
+            videolar.map((v) => <VideoSatiri key={v.url} v={v} />)
+          )}
         </div>
       )}
     </section>
   )
 }
 
-function EgzersizKarti({ id, emoji, ad, acik, onTap }: { id: string; emoji: string; ad: string; acik: boolean; onTap: () => void }) {
-  const videolar = videosFor(id)
+function EgzersizKarti({ id, emoji, ad, acik, onTap, yalnizKisa }: { id: string; emoji: string; ad: string; acik: boolean; onTap: () => void; yalnizKisa: boolean }) {
+  const videolar = yalnizKisa ? videosFor(id).filter((v) => v.short) : videosFor(id)
   return (
     <section className="ses-card">
       <button className="w-full flex items-center gap-3 text-left" onClick={onTap}>
@@ -49,7 +52,7 @@ function EgzersizKarti({ id, emoji, ad, acik, onTap }: { id: string; emoji: stri
       </button>
       {acik && (
         <div className="mt-2">
-          <VideoLinks id={id} />
+          <VideoLinks id={id} yalnizKisa={yalnizKisa} />
         </div>
       )}
     </section>
@@ -60,9 +63,10 @@ export default function LibraryPage() {
   const [gorunum, setGorunum] = useState<'konu' | 'egzersiz'>('konu')
   const [acik, setAcik] = useState<string | null>(LIBRARY[0]?.id ?? null)
   const [acikEx, setAcikEx] = useState<string | null>(null)
+  const [yalnizKisa, setYalnizKisa] = useState(false)
   return (
     <div>
-      <SesHeader title="İzle" subtitle={`${libCount()} video · ${gorunum === 'konu' ? 'konulara göre' : 'egzersize göre'}`} />
+      <SesHeader title="İzle" subtitle={`${libCount()} video · ${shortsCount()} Shorts`} />
       <div className="px-4 space-y-3 pb-6">
         <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-100 dark:bg-[#352820]">
           {([
@@ -78,16 +82,20 @@ export default function LibraryPage() {
             </button>
           ))}
         </div>
+        <label className="flex items-center gap-3 px-1">
+          <input type="checkbox" className="w-5 h-5 accent-ses-600" checked={yalnizKisa} onChange={(e) => setYalnizKisa(e.target.checked)} />
+          <span className="text-[15px] text-slate-700 dark:text-[#e2d5cd]">Sadece kısa videolar (Shorts ve birkaç dakikalık)</span>
+        </label>
         <p className="text-[15px] text-slate-700 dark:text-[#e2d5cd] px-1">
           {gorunum === 'konu'
             ? "Arada izlemek için derlenmiş videolar. Dokununca YouTube'da açılır, internet gerekir. Egzersiz ekranlarında yalnızca uygulamanın kendi kısa videoları vardır."
             : "Her ses egzersizi için o egzersize ait videolar. En altta da bir arama bağlantısı var: bir video kaldırılmış olsa bile arama her zaman güncel sonuç getirir."}
         </p>
         {gorunum === 'konu' &&
-          LIBRARY.map((t) => <Konu key={t.id} t={t} acik={acik === t.id} onTap={() => setAcik(acik === t.id ? null : t.id)} />)}
+          LIBRARY.map((t) => <Konu key={t.id} t={t} acik={acik === t.id} onTap={() => setAcik(acik === t.id ? null : t.id)} yalnizKisa={yalnizKisa} />)}
         {gorunum === 'egzersiz' &&
           EXERCISES.map((e) => (
-            <EgzersizKarti key={e.id} id={e.id} emoji={e.emoji} ad={e.name} acik={acikEx === e.id} onTap={() => setAcikEx(acikEx === e.id ? null : e.id)} />
+            <EgzersizKarti key={e.id} id={e.id} emoji={e.emoji} ad={e.name} acik={acikEx === e.id} onTap={() => setAcikEx(acikEx === e.id ? null : e.id)} yalnizKisa={yalnizKisa} />
           ))}
         <p className="text-[13px] text-slate-600 dark:text-[#cdbdb3] px-1">
           Bu videolar dış kaynaklıdır; uygulamanın kendi içeriği değildir ve tıbbi tavsiye yerine geçmez.
