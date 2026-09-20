@@ -12,7 +12,8 @@ export interface LibVideo {
   title: string
   by?: string // kanal / kisi
   lang?: 'tr' | 'en' | 'fr'
-  short?: boolean // kisa video (Shorts ya da birkac dakika)
+  short?: boolean // kisa video (birkac dakika)
+  shorts?: boolean // YouTube Shorts (dikey, ~1 dk)
 }
 
 export interface LibTopic {
@@ -30,7 +31,7 @@ export const LIBRARY: LibTopic[] = [
     emoji: '🩺',
     note: 'Hekim anlatımları: ses kısıklığı, nodül, ses teli felci.',
     videos: [
-      { url: 'https://www.youtube.com/shorts/_tRlnhOGWsQ', title: 'Ses teli nodülü nedir?', by: 'Op. Dr. Mustafa Uslu', lang: 'tr', short: true },
+      { url: 'https://www.youtube.com/shorts/_tRlnhOGWsQ', title: 'Ses teli nodülü nedir?', by: 'Op. Dr. Mustafa Uslu', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=OS8FiUe3Ak8', title: 'Sesiniz mi kısıldı? Evde 3 altın kural', by: 'Doç. Dr. Necati Enver', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=_alGOXXGipY', title: 'Ses kısıklığı ve ses teli problemleri', by: 'Doç. Dr. Necati Enver', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=7qmEwxzpT8E', title: 'Ses teli felci', by: 'Doç. Dr. Necati Enver', lang: 'tr' },
@@ -42,6 +43,8 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://www.youtube.com/watch?v=s6mZY0jSoLQ', title: 'Ses kısıklığı tedavisi', by: 'Prof. Dr. Arzu Tatlıpınar', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=LpR7JF6qIaU', title: 'Ses kısıklığı ve tedavisi', by: 'Op. Dr. Hasan Zorlu', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=VjQCjgkA1Ow', title: 'Ses teli nodülü iyileştirme dersi', lang: 'tr' },
+      { url: 'https://www.youtube.com/shorts/c_VMwUh4CEM', title: 'Ses teli kanaması nedir?', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/watch?v=nZCe1F83E28', title: 'Ses sorunu çözüldü', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=XDDL1ha9gOs', title: 'Ses teli felcinde hangi egzersizler yardımcı olur?', lang: 'en' }
     ]
   },
@@ -63,6 +66,8 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://www.youtube.com/watch?v=UbuapADtz9c', title: 'Pipete fonasyon egzersizi', lang: 'tr', short: true },
       { url: 'https://m.youtube.com/watch?v=gnQmf6_XfPw', title: 'Pipetle basit ve etkili ses geliştirme egzersizi', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=RLUJ2ijHBNY', title: 'Ses çalışmaları: "m" sesi', lang: 'tr', short: true },
+      { url: 'https://www.youtube.com/shorts/v3Zq8T8C1Ys', title: 'Günün ses egzersizi: "mam-mam-mam" ısınması', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/watch?v=gBEL1mj2OFI', title: 'Kısa ses egzersizi (vokal koç)', lang: 'tr', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=K79OlbRLebc', title: 'Fonasyon nedir? Doğru ses üretiminin temelleri', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=lpYLY3olxcQ', title: 'Sesimi nasıl geliştirebilirim? Ses aralığını artırmak', by: 'Doç. Dr. Necati Enver', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=Ob-UY9ZoGVo', title: 'Ses terapisi: nasıl yapıyorum?', lang: 'tr' },
@@ -111,7 +116,7 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://www.youtube.com/watch?v=74_QDyUcV6I', title: 'Diyafram nefesi egzersizi', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=6rCbIT_rx0c', title: 'Doğru nefes nasıl alınır? Diyafram nefesi nasıl gelişir?', lang: 'tr' },
       { url: 'https://www.youtube.com/watch?v=4B1vrHCIVg4', title: 'Karın nefesi / diyafram nefesi', lang: 'tr', short: true },
-      { url: 'https://www.youtube.com/shorts/Zy1WYm-aJ58', title: 'Diyafram solunumu (fizyoterapist)', lang: 'tr', short: true },
+      { url: 'https://www.youtube.com/shorts/Zy1WYm-aJ58', title: 'Diyafram solunumu (fizyoterapist)', lang: 'tr', short: true, shorts: true },
       { url: 'https://m.youtube.com/watch?v=BdmFgKn4jjg', title: 'Triflo ile solunum egzersizi', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=xj57IDmkxME', title: 'Hızlı ısınma: 3 farklı egzersiz', lang: 'tr', short: true },
       { url: 'https://m.youtube.com/watch?v=9XJeQQVdJKg', title: '5 dakikalık ses açma egzersizi', lang: 'tr', short: true },
@@ -122,6 +127,7 @@ export const LIBRARY: LibTopic[] = [
       { url: 'https://www.youtube.com/watch?v=oVAOV0PtUPk', title: 'Rezonans çalışması "ye-ye-ye"', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=cm8bjGBkvQ8', title: 'Artikülasyon ve rezonans çalışması', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=QIXa_g9F9Ug', title: 'Vibrasyon egzersizi ("e" vokali)', lang: 'tr', short: true },
+      { url: 'https://www.youtube.com/shorts/cA-7uQ0Sl7Q', title: 'Siren (perde kaydırma) ısınması', lang: 'en', short: true, shorts: true },
       { url: 'https://www.youtube.com/watch?v=INuSII9hlMI', title: 'Şarkı söylemek için ses egzersizi', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/playlist?list=PLEdk0VnOqVyOtrBP4tACcreGiQN7-4zCK', title: 'Ses açma egzersizleri (oynatma listesi)', lang: 'tr' }
     ]
@@ -133,6 +139,8 @@ export const LIBRARY: LibTopic[] = [
     note: 'Artikülasyon, kalem çalışması, tekerlemeler, vurgu ve tonlama.',
     videos: [
       { url: 'https://www.youtube.com/watch?v=Ie-zR98Nxf4', title: 'Daha net konuşmanızı sağlayan kolay egzersiz', lang: 'tr', short: true },
+      { url: 'https://www.youtube.com/shorts/-Bl5XEoVRUQ', title: '"Ş" harfi tekerlemeleri', lang: 'tr', short: true, shorts: true },
+      { url: 'https://www.youtube.com/shorts/LTJ52cHL5nA', title: 'Tek tekerlemeyle nefes ve artikülasyon testi', lang: 'tr', short: true, shorts: true },
       { url: 'https://m.youtube.com/watch?v=o7_TPc1vHKE', title: 'Kalem çalışması ve faydaları', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=xyexxnhrfcg', title: 'Diksiyon kalem çalışması', lang: 'tr', short: true },
       { url: 'https://www.youtube.com/watch?v=40pRwpAgaFM', title: 'Tekerlemeler 3 — diksiyon egzersizleri', lang: 'tr', short: true },
@@ -175,12 +183,12 @@ export const EX_VIDEOS: ExVideos[] = [
   {
     id: 'mirildanma',
     search: 'mırıldanma m sesi ses egzersizi',
-    urls: ['https://www.youtube.com/watch?v=RLUJ2ijHBNY', 'https://www.youtube.com/watch?v=oVAOV0PtUPk', 'https://m.youtube.com/watch?v=1SePvXrpxQE']
+    urls: ['https://www.youtube.com/shorts/v3Zq8T8C1Ys', 'https://www.youtube.com/watch?v=RLUJ2ijHBNY', 'https://www.youtube.com/watch?v=oVAOV0PtUPk', 'https://m.youtube.com/watch?v=1SePvXrpxQE']
   },
   {
     id: 'itme',
     search: 'ses tellerini güçlendiren itme egzersizi',
-    urls: ['https://m.youtube.com/watch?v=1SePvXrpxQE', 'https://www.youtube.com/watch?v=Pmjsn2nsxZA', 'https://www.youtube.com/watch?v=7qmEwxzpT8E', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
+    urls: ['https://m.youtube.com/watch?v=1SePvXrpxQE', 'https://www.youtube.com/watch?v=nZCe1F83E28', 'https://www.youtube.com/watch?v=Pmjsn2nsxZA', 'https://www.youtube.com/watch?v=7qmEwxzpT8E', 'https://www.youtube.com/watch?v=XDDL1ha9gOs']
   },
   {
     id: 'cekme',
@@ -215,12 +223,12 @@ export const EX_VIDEOS: ExVideos[] = [
   {
     id: 'vfe-i',
     search: 'vokal fonksiyon egzersizleri ısınma',
-    urls: ['https://www.youtube.com/watch?v=ZCS2FRLym1g', 'https://www.youtube.com/watch?v=TRIKSmAN5nU', 'https://www.youtube.com/watch?v=uM2TLN7nQW0', 'https://www.youtube.com/watch?v=IeuY84lq3Iw']
+    urls: ['https://www.youtube.com/shorts/v3Zq8T8C1Ys', 'https://www.youtube.com/watch?v=ZCS2FRLym1g', 'https://www.youtube.com/watch?v=TRIKSmAN5nU', 'https://www.youtube.com/watch?v=uM2TLN7nQW0', 'https://www.youtube.com/watch?v=IeuY84lq3Iw']
   },
   {
     id: 'perde-kaydirma',
     search: 'glissando ses egzersizi perde kaydırma',
-    urls: ['https://www.youtube.com/watch?v=ZuBRs2Nm0YU', 'https://www.youtube.com/watch?v=rkWlwlKHhpM', 'https://m.youtube.com/watch?v=9XJeQQVdJKg']
+    urls: ['https://www.youtube.com/watch?v=ZuBRs2Nm0YU', 'https://www.youtube.com/shorts/cA-7uQ0Sl7Q', 'https://www.youtube.com/watch?v=rkWlwlKHhpM', 'https://m.youtube.com/watch?v=9XJeQQVdJKg']
   },
   {
     id: 'vfe-notalar',
@@ -230,7 +238,7 @@ export const EX_VIDEOS: ExVideos[] = [
   {
     id: 'gur-a',
     search: 'gür ve tok ses egzersizi',
-    urls: ['https://m.youtube.com/watch?v=smHRwppSFQA', 'https://www.youtube.com/watch?v=3cOsXwmKeSY', 'https://www.youtube.com/watch?v=zNUGeFDSWlc']
+    urls: ['https://www.youtube.com/watch?v=gBEL1mj2OFI', 'https://m.youtube.com/watch?v=smHRwppSFQA', 'https://www.youtube.com/watch?v=3cOsXwmKeSY', 'https://www.youtube.com/watch?v=zNUGeFDSWlc']
   },
   {
     id: 'gur-ifadeler',
@@ -262,7 +270,15 @@ export function searchFor(id: string): string {
   return EX_VIDEOS.find((x) => x.id === id)?.search ?? ''
 }
 
-// Arama baglantisi: video kaldirilsa bile bu her zaman calisir
-export function searchUrl(q: string): string {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`
+// Arama baglantisi: video kaldirilsa bile bu her zaman calisir.
+// sp=EgIYAQ%3D%3D -> YouTube'un "kisa (4 dk'dan az)" sure suzgeci; YouTube
+// suzgeci taniyamazsa normal sonuc listesi acilir, baglanti yine calisir.
+export function searchUrl(q: string, kisa = true): string {
+  const temel = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`
+  return kisa ? `${temel}&sp=EgIYAQ%3D%3D` : temel
+}
+
+// Listedeki YouTube Shorts sayisi
+export function shortsCount(): number {
+  return LIBRARY.reduce((n, t) => n + t.videos.filter((v) => v.shorts).length, 0)
 }
