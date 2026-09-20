@@ -101,6 +101,7 @@ export const EXERCISES: Exercise[] = [
       'Boğazını sıkma, ses yumuşak olsun.'
     ],
     cue: 'mmm…',
+    clip: './ses-video/mirildanma.mp4',
     reps: 3,
     hold: 8,
     rest: 4
@@ -181,6 +182,7 @@ export const EXERCISES: Exercise[] = [
       'Dinlen, sonra tekrar.'
     ],
     cue: 'öhö-aaa',
+    clip: './ses-video/oksuruk.mp4',
     reps: 6,
     hold: 3,
     rest: 4,
@@ -220,6 +222,7 @@ export const EXERCISES: Exercise[] = [
       'Hangi tarafta ses daha net çıkıyorsa not al; terapistin bunu bilmek ister.'
     ],
     cue: ['SAĞA çevir: iii', 'SOLA çevir: iii'],
+    clip: './ses-video/bas-cevirme.mp4',
     reps: 8,
     hold: 3,
     rest: 3
