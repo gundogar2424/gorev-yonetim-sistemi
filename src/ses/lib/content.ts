@@ -37,7 +37,7 @@ export interface Exercise {
   cue: string | string[] // ekranda buyuk yazilan "simdi soyle" ifadesi (dizi ise tekrarda sirayla)
   reps: number // tekrar sayisi (mode=sure icin set sayisi)
   hold: number // saniye: tutma suresi (mpt'de kullanilmaz)
-  rest: number // saniye: tekrarlar arasi dinlenme
+  rest: number // saniye: tekrarlar arasi ara (son 3 sn geri sayimdir)
   caution?: string // bu egzersize ozel dikkat
   clip?: string // uygulamaya gomulu kisa gosterim videosu (public/ses-video/<id>.mp4); internetsiz
 }
@@ -65,7 +65,7 @@ export const EXERCISES: Exercise[] = [
     clip: './ses-video/karin-nefesi.mp4',
     reps: 3,
     hold: 12,
-    rest: 4
+    rest: 7
   },
   {
     id: 'dudak-tril',
@@ -85,7 +85,7 @@ export const EXERCISES: Exercise[] = [
     clip: './ses-video/dudak-tril.mp4',
     reps: 3,
     hold: 10,
-    rest: 5
+    rest: 8
   },
   {
     id: 'mirildanma',
@@ -104,7 +104,7 @@ export const EXERCISES: Exercise[] = [
     clip: './ses-video/mirildanma.mp4',
     reps: 3,
     hold: 8,
-    rest: 4
+    rest: 7
   },
 
   // ---------------- ANA (ADDUKSIYON) ----------------
@@ -125,7 +125,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'A!',
     reps: 8,
     hold: 2,
-    rest: 4,
+    rest: 7,
     caution: 'Klasik ama ZORLAYICI bir teknik; bu yüzden varsayılan olarak kapalıdır, terapistin önerdiyse Ayarlar\'dan aç. Sesi bulmaya çalışırken boğazın üst kısmını sıkma, ince/falsetto sese kaçma; ses kaba ve boğuk çıkıyorsa daha az güçle yap. Itme sırasında kan basıncı geçici yükselir: tansiyon, kalp, glokom ya da fıtık varsa önce hekimine sor. Baş dönmesi olursa dur.'
   },
   {
@@ -144,7 +144,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'A!',
     reps: 8,
     hold: 2,
-    rest: 4,
+    rest: 7,
     caution: 'İtme egzersizindeki uyarılar bunun için de geçerlidir: varsayılan kapalıdır, terapist önerdiyse aç; boğazın üstünü sıkmadan, az güçle.'
   },
   {
@@ -164,7 +164,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['A!', 'E!', 'İ!', 'O!', 'U!'],
     reps: 10,
     hold: 2,
-    rest: 4,
+    rest: 7,
     caution: 'Boğazda yanma ya da ağrı olursa hemen dur; bu teknik abartılırsa ses tellerini yorabilir.'
   },
   {
@@ -185,7 +185,7 @@ export const EXERCISES: Exercise[] = [
     clip: './ses-video/oksuruk.mp4',
     reps: 6,
     hold: 3,
-    rest: 4,
+    rest: 7,
     caution: 'Öksürük sert değil hafif olsun; boğazı tahriş etme.'
   },
   {
@@ -205,7 +205,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'BUM!',
     reps: 8,
     hold: 2,
-    rest: 4
+    rest: 7
   },
   {
     id: 'bas-cevirme',
@@ -225,7 +225,7 @@ export const EXERCISES: Exercise[] = [
     clip: './ses-video/bas-cevirme.mp4',
     reps: 8,
     hold: 3,
-    rest: 4
+    rest: 7
   },
   {
     id: 'uzun-a',
@@ -263,7 +263,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'iiii… (yumuşak, net)',
     reps: 2,
     hold: 12,
-    rest: 5
+    rest: 8
   },
   {
     id: 'perde-kaydirma',
@@ -282,7 +282,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['kalından İNCEYE: nooool', 'inceden KALINA: nooool'],
     reps: 4,
     hold: 6,
-    rest: 4
+    rest: 7
   },
   {
     id: 'vfe-notalar',
@@ -301,7 +301,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['1. nota: ooool', '2. nota: ooool', '3. nota: ooool', '4. nota: ooool', '5. nota: ooool'],
     reps: 5,
     hold: 10,
-    rest: 4
+    rest: 7
   },
   {
     id: 'gur-a',
@@ -320,7 +320,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['GÜR: aaaa…', 'GÜR kalından inceye: aaaa', 'GÜR inceden kalına: aaaa'],
     reps: 3,
     hold: 8,
-    rest: 5,
+    rest: 8,
     caution: 'Gür ses = bağırmak değil. Ses kısılıyor ya da acıyorsa daha az güçle yap.'
   },
   {
@@ -340,7 +340,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['YÜKSEK: "Günaydın, nasılsın?"', 'ALÇAK: "Günaydın, nasılsın?"', 'YÜKSEK: "Kapıyı kapatır mısın?"', 'ALÇAK: "Kapıyı kapatır mısın?"', 'YÜKSEK: "Bugün hava çok güzel."', 'ALÇAK: "Bugün hava çok güzel."'],
     reps: 6,
     hold: 4,
-    rest: 4,
+    rest: 7,
     caution: 'Gür ses = bağırmak değil. Ses kısılıyor ya da acıyorsa daha az güçle yap.'
   },
 
@@ -361,7 +361,7 @@ export const EXERCISES: Exercise[] = [
     cue: ['uuu… (kabarcıklar düzenli)', 'uuu… kalından inceye ve geri', 'tüpten "merhaba, nasılsın" mırıldan'],
     reps: 3,
     hold: 20,
-    rest: 8,
+    rest: 11,
     caution: 'Su yutma riskine karşı oturarak yap. Baş dönmesi olursa dur. Tüpü her kullanımdan sonra yıka.'
   },
 
@@ -382,7 +382,7 @@ export const EXERCISES: Exercise[] = [
     cue: 'uuu… (pipetten)',
     reps: 2,
     hold: 15,
-    rest: 5
+    rest: 8
   }
 ]
 

@@ -69,15 +69,17 @@ export default function Session() {
     }
   }, [])
 
-  // Sayac: ready / go / rest evrelerinde calisir
+  // Sayac: ready / go / rest evrelerinde calisir.
+  // Tik sesi hem ilk "hazirlan" evresinde hem de ARANIN son saniyelerinde
+  // calar: ara ile geri sayim ayri evreler degil, tek bir ara icindedir.
   useEffect(() => {
     if (!(phase === 'ready' || phase === 'go' || phase === 'rest') || paused) return
     const id = setInterval(() => {
       const kalan = (endAt.current - Date.now()) / 1000
       setLeft(Math.max(0, kalan))
-      if (phase === 'ready') {
+      if (ayar.countdown && (phase === 'ready' || phase === 'rest')) {
         const s = Math.ceil(kalan)
-        if (s !== lastTick.current && s > 0) {
+        if (s !== lastTick.current && s > 0 && s <= readyLen) {
           lastTick.current = s
           sfxTick()
         }
@@ -106,11 +108,12 @@ export default function Session() {
       setPhase('mpt')
       return
     }
-    sonrakiTekrar()
+    ilkTekrar()
   }
 
-  // Bir tekrari baslat: geri sayim aciksa once "hazirlan" (nefes al) evresi
-  function sonrakiTekrar() {
+  // Seansin ilk tekrari: kisa bir hazirlanma. Sonraki tekrarlarda ayri bir
+  // hazirlanma evresi YOK; geri sayim aranin son saniyelerinde yapilir.
+  function ilkTekrar() {
     if (!ex) return
     if (ayar.countdown) {
       setPhase('ready')
@@ -122,13 +125,18 @@ export default function Session() {
     }
   }
 
+  function tekrariBaslat() {
+    if (!ex) return
+    setPhase('go')
+    zamanla(ex.hold)
+    sfxGo()
+  }
+
   // Sayac bitince bir sonraki evre
   function ilerle() {
     if (!ex) return
     if (phase === 'ready') {
-      setPhase('go')
-      zamanla(ex.hold)
-      sfxGo()
+      tekrariBaslat()
       return
     }
     if (phase === 'go') {
@@ -143,7 +151,7 @@ export default function Session() {
     }
     if (phase === 'rest') {
       setRep((r) => r + 1)
-      sonrakiTekrar()
+      tekrariBaslat()
     }
   }
 
@@ -312,8 +320,7 @@ export default function Session() {
             )}
             <div className="ses-row flex flex-wrap gap-1.5">
               <span className="ses-pill">{ex.mode === 'mpt' ? `${n} deneme` : ex.mode === 'sure' ? `${n} set × ${ex.hold} sn` : `${n} tekrar × ${ex.hold} sn`}</span>
-              {ex.mode !== 'mpt' && <span className="ses-pill">ara: {restLen} sn</span>}
-              {ex.mode !== 'mpt' && ayar.countdown && <span className="ses-pill">her tekrar öncesi {readyLen} sn geri sayım</span>}
+              {ex.mode !== 'mpt' && <span className="ses-pill">ara: {restLen} sn{ayar.countdown ? ` (son ${readyLen} sn geri sayım)` : ''}</span>}
             </div>
           </section>
           <div className="mt-auto space-y-2 pt-2">
@@ -355,8 +362,10 @@ export default function Session() {
 
   // ---------- TEKRAR / SURE ----------
   const isGo = phase === 'go'
-  const isReady = phase === 'ready'
-  const baslik = isReady ? 'Hazırlan' : isGo ? (ex.mode === 'sure' ? 'Sürdür' : 'ŞİMDİ') : 'Dinlen'
+  // Aranin son saniyeleri de "hazirlan" sayilir: ayri evre degil, ayni ara
+  const geriSayim = ayar.countdown && Math.ceil(left) <= readyLen
+  const isReady = phase === 'ready' || (phase === 'rest' && geriSayim)
+  const baslik = isGo ? (ex.mode === 'sure' ? 'Sürdür' : 'ŞİMDİ') : isReady ? 'Hazırlan' : 'Ara'
   return (
     <div className="flex-1 flex flex-col">
       <SesHeader title={ex.name} subtitle={`${idx + 1} / ${list.length} · ${ex.mode === 'sure' ? 'set' : 'tekrar'} ${rep + 1} / ${n}`} compact back={() => bitir(done)} />
@@ -365,12 +374,11 @@ export default function Session() {
           <div className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${isGo ? 'text-white/70' : 'text-sesui-muted dark:text-sesui-dmuted'}`}>{baslik}</div>
           <div className={`font-semibold leading-none tabular-nums my-5 ${isGo ? 'text-[88px] ses-pulse' : 'text-[76px] text-sesui-text dark:text-sesui-dtext'}`}>{Math.ceil(left)}</div>
           <div className={`text-[24px] font-semibold leading-tight ${isGo ? 'text-white' : 'text-sesui-text dark:text-sesui-dtext'}`}>
-            {isReady ? 'Nefes al…' : isGo ? cue : 'Gevşe, nefes al'}
+            {isGo ? cue : isReady ? 'Hazır ol' : 'Gevşe, nefes al'}
           </div>
-          {isReady && <div className="text-[14px] text-sesui-muted dark:text-sesui-dmuted mt-2">Sırada: {cue}</div>}
-          {phase === 'rest' && (
-            <div className="text-[14px] text-sesui-muted dark:text-sesui-dmuted mt-2">Sonraki: {Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue}</div>
-          )}
+          <div className="text-[14px] text-sesui-muted dark:text-sesui-dmuted mt-2">
+            {isGo ? '' : `Sırada: ${phase === 'rest' ? (Array.isArray(ex.cue) ? ex.cue[(rep + 1) % ex.cue.length] : ex.cue) : cue}`}
+          </div>
           <div className={`w-full h-1.5 rounded-full mt-7 overflow-hidden ${isGo ? 'bg-white/25' : 'bg-sesui-line dark:bg-sesui-dline'}`}>
             <div className={`h-full rounded-full transition-[width] duration-100 ${isGo ? 'bg-[#ffffff]' : 'bg-ses-500'}`} style={{ width: `${pct}%` }} />
           </div>
