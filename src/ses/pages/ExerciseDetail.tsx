@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import SesHeader from '../SesHeader'
 import { findExercise, GROUP_LABEL } from '../lib/content'
-import { readSettings, repsFor, saveSettings } from '../lib/store'
+import { readSettings, readySec, repsFor, restFor, saveSettings } from '../lib/store'
 import { useState } from 'react'
 import VideoTabs from '../components/VideoTabs'
 import Icon from '../components/Icon'
@@ -21,17 +21,16 @@ export default function ExerciseDetail() {
   }
   const kapali = ayar.disabled.includes(e.id)
   const n = repsFor(e.reps, ayar)
+  const ara = restFor(e.rest, ayar)
   return (
     <div>
       <SesHeader title={e.name} subtitle={GROUP_LABEL[e.group]} back compact />
       <div className="px-4 space-y-5 pb-6">
         <section className="ses-card">
-          <div className="flex items-center gap-3">
-            <p className="text-[16px] text-sesui-body dark:text-sesui-dbody">{e.short}</p>
-          </div>
+          <p className="text-[15px] leading-relaxed text-sesui-body dark:text-sesui-dbody">{e.short}</p>
           <div className="flex flex-wrap gap-2 mt-3">
             <span className="ses-pill">{e.mode === 'mpt' ? `${n} deneme` : e.mode === 'sure' ? `${n} set × ${e.hold} sn` : `${n} tekrar × ${e.hold} sn`}</span>
-            <span className="ses-pill">ara: {e.rest} sn</span>
+            {e.mode !== 'mpt' && <span className="ses-pill">ara: {ara} sn{ayar.countdown ? ` (son ${readySec(ayar)} sn geri sayım)` : ''}</span>}
           </div>
         </section>
 

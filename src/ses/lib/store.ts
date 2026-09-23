@@ -209,9 +209,10 @@ export function repsFor(base: number, s = readSettings()): number {
   return Math.max(1, Math.round(base * LEVEL_MULT[s.level]))
 }
 
-// Tekrarlar arasi dinlenme (tempoya gore uzar)
+// Tekrarlar arasi ara (tempoya gore uzar). Aranin SON saniyeleri geri
+// sayimdir; ayri bir "hazirlan" evresi yoktur, ekranda tek sayi akar.
 export function restFor(base: number, s = readSettings()): number {
-  return Math.max(2, Math.round(base * PACE_MULT[s.pace]))
+  return Math.max(readySec(s) + 1, Math.round(base * PACE_MULT[s.pace]))
 }
 
 // Her tekrardan onceki 3-2-1 geri sayimin uzunlugu (yavas temposunda 5 sn)
@@ -225,8 +226,9 @@ export function estimateMinutes(s = readSettings()): number {
   const ready = s.countdown ? readySec(s) : 0
   for (const e of activeExercises(s)) {
     const n = repsFor(e.reps, s)
+    // Ara zaten geri sayimi kapsar; hazirlanma yalnizca ilk tekrarda eklenir
     if (e.mode === 'mpt') sec += n * (15 + restFor(e.rest, s)) + 10
-    else sec += n * (e.hold + restFor(e.rest, s) + ready) + 8
+    else sec += n * e.hold + (n - 1) * restFor(e.rest, s) + ready + 8
   }
   return Math.max(1, Math.round(sec / 60))
 }

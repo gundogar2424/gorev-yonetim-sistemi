@@ -96,10 +96,10 @@ export default function SesSettings() {
                 </button>
               ))}
             </div>
-            <p className="text-[12px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted mt-1.5">Tekrarlar arasında yetişemiyorsan Yavaş seç: aralar %60 uzar, geri sayım 5 saniye olur.</p>
+            <p className="text-[12px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted mt-1.5">Tekrarlar arasında yetişemiyorsan Yavaş seç: aralar %60 uzar, geri sayım 5 saniyeye çıkar.</p>
           </div>
-          <Switch label="Her tekrardan önce 3-2-1 geri sayım" checked={ayar.countdown} onChange={(v) => setAyar(saveSettings({ countdown: v }))} />
-          <p className="text-[12px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted -mt-1">Geri sayım her tekrardan önce çalışır; nefes alıp hazırlanman için zaman bırakır.</p>
+          <Switch label="Aranın sonunda 3-2-1 geri sayım" checked={ayar.countdown} onChange={(v) => setAyar(saveSettings({ countdown: v }))} />
+          <p className="text-[12px] leading-relaxed text-sesui-muted dark:text-sesui-dmuted -mt-1">Ara tek parçadır: ekranda tek sayı akar, son 3 saniyede tık sesiyle geri sayar. Kapatırsan ara sessiz geçer.</p>
           <div>
             <span className="text-[14px] font-medium text-sesui-text dark:text-sesui-dtext">Günlük hedef (seans sayısı)</span>
             <div className="ses-seg grid-cols-3 mt-2">
