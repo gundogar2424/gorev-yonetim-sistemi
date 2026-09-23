@@ -264,7 +264,8 @@ export const EXERCISES: Exercise[] = [
     cue: 'iiii… (yumuşak, net)',
     reps: 2,
     hold: 12,
-    rest: 8
+    rest: 8,
+    clip: './ses-video/vfe-i.mp4'
   },
   {
     id: 'perde-kaydirma',
