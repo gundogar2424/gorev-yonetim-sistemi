@@ -165,7 +165,8 @@ export const EXERCISES: Exercise[] = [
     reps: 10,
     hold: 2,
     rest: 7,
-    caution: 'Boğazda yanma ya da ağrı olursa hemen dur; bu teknik abartılırsa ses tellerini yorabilir.'
+    caution: 'Boğazda yanma ya da ağrı olursa hemen dur; bu teknik abartılırsa ses tellerini yorabilir.',
+    clip: './ses-video/sert-baslangic.mp4'
   },
   {
     id: 'oksuruk',
