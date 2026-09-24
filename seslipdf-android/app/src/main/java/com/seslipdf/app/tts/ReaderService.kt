@@ -33,6 +33,7 @@ import com.seslipdf.app.data.DocText
 import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.data.TextStore
 import com.seslipdf.app.data.VoiceEngine
+import com.seslipdf.app.pdf.SpokenText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -417,8 +418,10 @@ class ReaderService : Service() {
             val params = Bundle().apply {
                 putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
             }
+            // Ekranda yazi aynen kalir; sese okunus bicimi gider
+            // ("1923" -> "bin dokuz yüz yirmi üç", "BÖLÜM" -> "bölüm").
             val result = engine.speak(
-                sentences[index],
+                SpokenText.prepare(sentences[index]),
                 TextToSpeech.QUEUE_ADD,
                 params,
                 index.toString()
@@ -444,7 +447,9 @@ class ReaderService : Service() {
     private fun startNeural() {
         neuralJob?.cancel()
         val startAt = current
-        val speed = Prefs(this).rate
+        val prefs = Prefs(this)
+        val speed = prefs.rate
+        val voice = prefs.neuralVoice
 
         neuralJob = scope.launch {
             val service = this@ReaderService
@@ -454,7 +459,9 @@ class ReaderService : Service() {
             val producer = launch(Dispatchers.Default) {
                 var index = startAt
                 while (isActive && index < sentences.size) {
-                    val samples = NeuralVoice.generate(service, sentences[index], speed)
+                    val samples = NeuralVoice.generate(
+                        service, SpokenText.prepare(sentences[index]), speed, voice
+                    )
                     if (samples == null) {
                         queue.close()
                         main.post { fallbackToSystemVoice() }

@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilterChip
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.seslipdf.app.BuildConfig
 import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.data.VoiceEngine
+import com.seslipdf.app.tts.NeuralVoice
 import com.seslipdf.app.tts.VoiceInfo
 
 /**
@@ -95,8 +98,8 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     Text(
                         if (vm.voiceEngine == VoiceEngine.NEURAL)
                             "Doğal ses uygulamanın içinde çalışır (internet gerekmez). " +
-                                "Daha insan gibi okur; telefonu biraz daha yorar ve " +
-                                "ses tonu / ses seçimi ayarları bu modda kullanılmaz."
+                                "Daha insan gibi okur; telefonu biraz daha yorar. " +
+                                "Ses tonu ayarı bu modda kullanılmaz."
                         else
                             "Telefonun kendi seslendirme motoru. Hafif ve hızlıdır; " +
                                 "aşağıdan sesini seçebilirsiniz.",
@@ -104,6 +107,19 @@ fun SettingsScreen(vm: LibraryViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(14.dp))
+
+                    if (vm.voiceEngine == VoiceEngine.NEURAL) {
+                        NeuralVoicePicker(
+                            selected = vm.neuralVoice,
+                            previewing = vm.previewVoice,
+                            onPick = {
+                                vm.updateNeuralVoice(it)
+                                vm.previewNeuralVoice(it)
+                            },
+                            onListen = { vm.previewNeuralVoice(vm.neuralVoice) }
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
                 }
 
                 if (vm.voiceEngine == VoiceEngine.SYSTEM) {
@@ -324,6 +340,60 @@ private fun VoicePicker(
                 DropdownMenuItem(
                     text = { Text("Ses bulunamadı") },
                     onClick = { open = false }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Doğal ses seçimi: 10 ses, ekranda 1..10 olarak. Numaralar kullanıcıya
+ * dinletilen tanıtım kaydındaki "Bir numaralı ses..." sırasıyla aynıdır.
+ */
+@Composable
+private fun NeuralVoicePicker(
+    selected: Int,
+    previewing: Int?,
+    onPick: (Int) -> Unit,
+    onListen: () -> Unit
+) {
+    var open by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth()) {
+        Text("Doğal ses", style = MaterialTheme.typography.titleSmall)
+        Text(
+            "Listeden bir ses seçince o ses kısa bir cümle okur.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(6.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(onClick = { open = true }, modifier = Modifier.weight(1f)) {
+                Text("${selected + 1} numaralı ses")
+            }
+            OutlinedButton(onClick = onListen, enabled = previewing == null) {
+                if (previewing != null) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.height(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Dinle")
+                }
+            }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            (0 until NeuralVoice.VOICE_COUNT).forEach { voice ->
+                DropdownMenuItem(
+                    text = { Text("${voice + 1} numaralı ses") },
+                    trailingIcon = {
+                        if (voice == selected) Icon(Icons.Filled.Check, contentDescription = null)
+                    },
+                    onClick = { open = false; onPick(voice) }
                 )
             }
         }
