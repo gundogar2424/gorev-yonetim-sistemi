@@ -7,3 +7,8 @@ build/
 /captures
 .externalNativeBuild
 .cxx
+
+# Nöral ses paketi — tools/fetch-tts.sh ile indirilir, depoda tutulmaz
+/app/libs/*.aar
+/app/src/main/assets/tts/
+/app/src/main/assets/espeak-ng-data/

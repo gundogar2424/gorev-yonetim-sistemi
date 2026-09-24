@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.seslipdf.app.BuildConfig
 import com.seslipdf.app.data.Prefs
+import com.seslipdf.app.data.VoiceEngine
 import com.seslipdf.app.tts.VoiceInfo
 
 /**
@@ -70,6 +72,41 @@ fun SettingsScreen(vm: LibraryViewModel) {
         item {
             Panel("Ses") {
                 Spacer(Modifier.height(10.dp))
+
+                if (vm.neuralAvailable) {
+                    Text(
+                        "Okuma sesi",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = vm.voiceEngine == VoiceEngine.SYSTEM,
+                            onClick = { vm.updateVoiceEngine(VoiceEngine.SYSTEM) },
+                            label = { Text("Telefonun sesi") }
+                        )
+                        FilterChip(
+                            selected = vm.voiceEngine == VoiceEngine.NEURAL,
+                            onClick = { vm.updateVoiceEngine(VoiceEngine.NEURAL) },
+                            label = { Text("Doğal ses") }
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        if (vm.voiceEngine == VoiceEngine.NEURAL)
+                            "Doğal ses uygulamanın içinde çalışır (internet gerekmez). " +
+                                "Daha insan gibi okur; telefonu biraz daha yorar ve " +
+                                "ses tonu / ses seçimi ayarları bu modda kullanılmaz."
+                        else
+                            "Telefonun kendi seslendirme motoru. Hafif ve hızlıdır; " +
+                                "aşağıdan sesini seçebilirsiniz.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(14.dp))
+                }
+
+                if (vm.voiceEngine == VoiceEngine.SYSTEM) {
                 VoicePicker(
                     voices = vm.voices,
                     loading = vm.voicesLoading,
@@ -96,6 +133,7 @@ fun SettingsScreen(vm: LibraryViewModel) {
                         }
                     }
                 ) { Text("Telefonun metin okuma ayarları") }
+                }
             }
         }
 

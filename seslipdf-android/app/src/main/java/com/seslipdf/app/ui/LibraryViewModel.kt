@@ -15,6 +15,7 @@ import com.seslipdf.app.data.DocStatus
 import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.data.TextStore
 import com.seslipdf.app.pdf.ExtractQueue
+import com.seslipdf.app.tts.NeuralVoice
 import com.seslipdf.app.tts.ReaderService
 import com.seslipdf.app.tts.VoiceCatalog
 import com.seslipdf.app.tts.VoiceInfo
@@ -42,6 +43,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     var pitch by mutableStateOf(prefs.pitch)
         private set
     var voice by mutableStateOf(prefs.voice)
+        private set
+    var voiceEngine by mutableStateOf(prefs.voiceEngine)
         private set
     var language by mutableStateOf(prefs.language)
         private set
@@ -178,6 +181,17 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         prefs.pitch = value
         ReaderService.refreshVoice(getApplication())
     }
+
+    /** Sistem sesi <-> cihaz ici nöral ses. */
+    fun updateVoiceEngine(value: String) {
+        voiceEngine = value
+        prefs.voiceEngine = value
+        ReaderService.refreshVoice(getApplication())
+    }
+
+    /** Nöral ses bu yapida/cihazda kullanilabiliyor mu. */
+    val neuralAvailable: Boolean
+        get() = NeuralVoice.isAvailable(getApplication())
 
     fun updateVoice(info: VoiceInfo?) {
         voice = info?.name.orEmpty()

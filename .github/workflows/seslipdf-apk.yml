@@ -41,6 +41,9 @@ jobs:
           mkdir -p ~/.android
           cp debug.keystore ~/.android/debug.keystore
 
+      - name: Nöral ses paketi (kütüphane + Türkçe model)
+        run: seslipdf-android/tools/fetch-tts.sh
+
       - name: APK derle (debug, sabit imza)
         working-directory: seslipdf-android
         env:

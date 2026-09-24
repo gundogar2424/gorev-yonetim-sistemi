@@ -9,7 +9,9 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
+import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.AudioTrack
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -30,12 +32,16 @@ import com.seslipdf.app.data.AppDatabase
 import com.seslipdf.app.data.DocText
 import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.data.TextStore
+import com.seslipdf.app.data.VoiceEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -86,6 +92,10 @@ class ReaderService : Service() {
     /** Baska bir uygulama sesi aldigi icin duraklatildi mi. */
     private var pausedByFocus = false
 
+    /** Nöral ses kullanilirken: uretim+calma dongusu ve ses cikisi. */
+    private var neuralJob: Job? = null
+    private var audioTrack: AudioTrack? = null
+
     private var wakeLock: PowerManager.WakeLock? = null
     private var focusRequest: AudioFocusRequest? = null
     private var sleepJob: Job? = null
@@ -127,6 +137,9 @@ class ReaderService : Service() {
 
     override fun onDestroy() {
         sleepJob?.cancel()
+        stopNeural()
+        audioTrack?.let { releaseTrack(it) }
+        NeuralVoice.release()
         releaseFocus()
         releaseWakeLock()
         tts?.let {
@@ -223,6 +236,27 @@ class ReaderService : Service() {
 
     /** Hiz, ton ve dil ayarlarini motora uygular. */
     private fun applyVoiceSettings() {
+        // Nöral ses secilmisse ayarlar (hiz) yeni cumlede gecerli olur:
+        // sistem motoru susturulur, dongu bastan kurulur.
+        if (neuralSelected()) {
+            try { tts?.stop() } catch (e: Exception) { }
+            pending = 0
+            nextToQueue = current
+            if (wantPlay) startNeural()
+            return
+        }
+        // Sistem sesine donuldu: nöral dongu varsa kapansin.
+        if (neuralJob != null) {
+            stopNeural()
+            if (wantPlay) {
+                ensureEngine {
+                    nextToQueue = current
+                    pending = 0
+                    pump()
+                }
+            }
+        }
+
         val engine = tts ?: return
         if (!engineReady) return
         val prefs = Prefs(this)
@@ -317,8 +351,27 @@ class ReaderService : Service() {
 
     // ------------------------------------------------------------ oynat/durdur
 
+    /** Kullanici nöral sesi secti mi ve bu cihazda kullanilabilir mi. */
+    private fun neuralSelected(): Boolean =
+        Prefs(this).voiceEngine == VoiceEngine.NEURAL && NeuralVoice.isAvailable(this)
+
     private fun doPlay() {
         if (sentences.isEmpty()) return
+
+        if (neuralSelected()) {
+            if (!requestFocus()) {
+                ReaderState.update { it.copy(error = "Ses başka bir uygulamada kullanılıyor.") }
+                return
+            }
+            wantPlay = true
+            pausedByFocus = false
+            acquireWakeLock()
+            if (current >= sentences.size) current = 0
+            startNeural()
+            publish()
+            return
+        }
+
         if (!engineReady) {
             ensureEngine { doPlay() }
             return
@@ -352,6 +405,7 @@ class ReaderService : Service() {
         try { tts?.stop() } catch (e: Exception) { }
         pending = 0
         nextToQueue = current
+        stopNeural()
     }
 
     /** Kuyrukta her zaman bir sonraki cumle de hazir bekler; boylece ara verilmez. */
@@ -378,6 +432,154 @@ class ReaderService : Service() {
         }
     }
 
+    // ------------------------------------------------------------- nöral ses
+
+    /**
+     * Nöral ses dongusu: bir yandan sonraki cumle hesaplanir, bir yandan
+     * hesaplanmis olan calinir. Boylece cumleler arasinda bekleme olmaz.
+     *
+     * Model her cumleyi bastan urettigi icin (sistem motorunun aksine) kuyruk
+     * bizde: uretici bir cumle onden hazirlar, tuketici de sesi cikarir.
+     */
+    private fun startNeural() {
+        neuralJob?.cancel()
+        val startAt = current
+        val speed = Prefs(this).rate
+
+        neuralJob = scope.launch {
+            val service = this@ReaderService
+            val sampleRate = NeuralVoice.sampleRate(service)
+            val queue = Channel<Pair<Int, FloatArray>>(capacity = 1)
+
+            val producer = launch(Dispatchers.Default) {
+                var index = startAt
+                while (isActive && index < sentences.size) {
+                    val samples = NeuralVoice.generate(service, sentences[index], speed)
+                    if (samples == null) {
+                        queue.close()
+                        main.post { fallbackToSystemVoice() }
+                        return@launch
+                    }
+                    queue.send(index to samples)
+                    index++
+                }
+                queue.close()
+            }
+
+            val track = openTrack(sampleRate)
+            if (track == null) {
+                producer.cancel()
+                main.post { fallbackToSystemVoice() }
+                return@launch
+            }
+            audioTrack = track
+
+            try {
+                var finished = true
+                for ((index, samples) in queue) {
+                    main.post {
+                        current = index
+                        publish()
+                        saveProgress()
+                    }
+                    if (!writeSamples(track, samples)) { finished = false; break }
+                    if (!writeSilence(track, sampleRate, pauseAfter(index))) {
+                        finished = false
+                        break
+                    }
+                }
+                if (finished) main.post { if (wantPlay) finishDoc() }
+            } catch (e: Exception) {
+                main.post { fallbackToSystemVoice() }
+            } finally {
+                producer.cancel()
+                releaseTrack(track)
+            }
+        }
+    }
+
+    private fun stopNeural() {
+        neuralJob?.cancel()
+        neuralJob = null
+        audioTrack?.let { track ->
+            // Tamponda bekleyen sesi de at, yoksa durdurduktan sonra bir sure
+            // konusmaya devam eder.
+            try { track.pause() } catch (e: Exception) { }
+            try { track.flush() } catch (e: Exception) { }
+        }
+    }
+
+    /** Ses ornegini parca parca cikisa yazar; duraklatilirsa false doner. */
+    private suspend fun writeSamples(track: AudioTrack, samples: FloatArray): Boolean {
+        var offset = 0
+        while (offset < samples.size) {
+            if (!currentCoroutineContext().isActive || !wantPlay) return false
+            val count = minOf(WRITE_CHUNK, samples.size - offset)
+            val written = try {
+                track.write(samples, offset, count, AudioTrack.WRITE_BLOCKING)
+            } catch (e: Exception) {
+                return false
+            }
+            if (written <= 0) return false
+            offset += written
+        }
+        return true
+    }
+
+    /** Cumleler arasindaki nefes payi. */
+    private suspend fun writeSilence(track: AudioTrack, sampleRate: Int, millis: Long): Boolean {
+        val total = (sampleRate * millis / 1000L).toInt()
+        if (total <= 0) return true
+        return writeSamples(track, FloatArray(total))
+    }
+
+    private fun openTrack(sampleRate: Int): AudioTrack? = try {
+        val minBuffer = AudioTrack.getMinBufferSize(
+            sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT
+        )
+        // En az yarim saniyelik tampon: telefon yavas anlarda ses kesilmesin.
+        val bufferBytes = maxOf(minBuffer, sampleRate * 2)
+        AudioTrack.Builder()
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+                    .setSampleRate(sampleRate)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build()
+            )
+            .setBufferSizeInBytes(bufferBytes)
+            .setTransferMode(AudioTrack.MODE_STREAM)
+            .build()
+            .also { it.play() }
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun releaseTrack(track: AudioTrack) {
+        try { track.pause() } catch (e: Exception) { }
+        try { track.flush() } catch (e: Exception) { }
+        try { track.release() } catch (e: Exception) { }
+        if (audioTrack === track) audioTrack = null
+    }
+
+    /** Nöral ses acilamadi: sessizce sistem sesine donulur, kullaniciya soylenir. */
+    private fun fallbackToSystemVoice() {
+        Prefs(this).voiceEngine = VoiceEngine.SYSTEM
+        ReaderState.update {
+            it.copy(
+                error = NeuralVoice.failure
+                    ?: "Doğal ses bu cihazda çalışmadı, sistem sesine dönüldü."
+            )
+        }
+        if (wantPlay) doPlay()
+    }
+
     /** Cumleden sonra verilecek sessizlik (milisaniye). */
     private fun pauseAfter(index: Int): Long {
         val sentence = sentences.getOrNull(index) ?: return SHORT_PAUSE
@@ -400,7 +602,9 @@ class ReaderService : Service() {
         current = target
         nextToQueue = target
         saveProgress()
-        if (wasPlaying && keepPlaying) pump()
+        if (wasPlaying && keepPlaying) {
+            if (neuralSelected()) startNeural() else pump()
+        }
         publish()
     }
 
@@ -631,6 +835,9 @@ class ReaderService : Service() {
         private const val NOTIF_ID = 41
         /** Motor kuyrugunda kac cumle bekletilsin (akici gecis icin). */
         private const val QUEUE_AHEAD = 2
+
+        /** Nöral seste ses cikisina tek seferde yazilan ornek sayisi. */
+        private const val WRITE_CHUNK = 4096
 
         /** Cumleler arasi dogal nefes paylari (milisaniye). */
         private const val SHORT_PAUSE = 130L
