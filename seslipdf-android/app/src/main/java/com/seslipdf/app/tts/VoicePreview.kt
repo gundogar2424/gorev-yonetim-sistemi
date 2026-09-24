@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import com.seslipdf.app.pdf.SpokenText
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -23,7 +24,9 @@ object VoicePreview {
      * ekrandan cikildi) hemen susar. Basarisizsa false doner.
      */
     suspend fun play(context: Context, voice: Int, speed: Float): Boolean {
-        val samples = NeuralVoice.generate(context, sampleText(voice), speed, voice)
+        val samples = NeuralVoice.generate(
+            context, SpokenText.prepare(sampleText(voice)), speed, voice
+        )
             ?: return false
         val sampleRate = NeuralVoice.sampleRate(context)
 

@@ -16,6 +16,7 @@ seslendirme motoruyla sana okuyor — ekran kapalıyken de.
 | 🔡 **Metin çıkarma** | PDF'in kendi metin katmanı okunur (PDFBox), cihazda; internet gerekmez |
 | 👁️ **OCR** | Taranmış/fotoğraflanmış sayfalarda metin yoksa sayfa görüntüden okunur (ML Kit, yine cihaz içinde) |
 | 🧠 **Doğal ses (nöral)** | İsteğe bağlı: uygulamanın içinde çalışan Supertonic 3 ses modeli, 10 farklı ses. Telefonun kendi sesinden belirgin şekilde daha insan gibi okur, yine internetsiz |
+| 🔢 **Sayı ve kısaltma okuma** | `1923'te` → "bin dokuz yüz yirmi üçte", `%20` → "yüzde yirmi", `19. yüzyıl` → "on dokuzuncu yüzyıl", `II. Abdülhamit` → "ikinci Abdülhamit", `12.03.2024` → "on iki mart iki bin yirmi dört"; `BİRİNCİ BÖLÜM` gibi büyük harfli yazılar kelime olarak, `TBMM` gibi kısaltmalar harf harf okunur. Ekrandaki yazı değişmez |
 | 🔊 **Sesli okuma** | Cümle cümle okur; okunan cümle ekranda vurgulanır |
 | 👆 **Cümleye dokun** | Herhangi bir cümleye dokununca okuma oradan devam eder |
 | ⏩ **İleri / geri** | Cümle cümle atlama, "Sayfaya git" ile istediğin sayfaya |
