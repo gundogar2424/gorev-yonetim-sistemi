@@ -39,6 +39,11 @@ class Prefs(context: Context) {
         get() = sp.getString("engine", VoiceEngine.SYSTEM) ?: VoiceEngine.SYSTEM
         set(v) = sp.edit().putString("engine", v).apply()
 
+    /** Doğal seste secili ses (0..9; ekranda 1..10). Varsayilan: 3 numarali ses. */
+    var neuralVoice: Int
+        get() = sp.getInt("neuralVoice", 2)
+        set(v) = sp.edit().putInt("neuralVoice", v.coerceIn(0, 9)).apply()
+
     /** Dil kodu (ornegin tr-TR). */
     var language: String
         get() = sp.getString("lang", "tr-TR") ?: "tr-TR"

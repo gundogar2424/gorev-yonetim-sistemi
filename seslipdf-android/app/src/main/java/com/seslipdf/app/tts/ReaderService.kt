@@ -444,7 +444,9 @@ class ReaderService : Service() {
     private fun startNeural() {
         neuralJob?.cancel()
         val startAt = current
-        val speed = Prefs(this).rate
+        val prefs = Prefs(this)
+        val speed = prefs.rate
+        val voice = prefs.neuralVoice
 
         neuralJob = scope.launch {
             val service = this@ReaderService
@@ -454,7 +456,7 @@ class ReaderService : Service() {
             val producer = launch(Dispatchers.Default) {
                 var index = startAt
                 while (isActive && index < sentences.size) {
-                    val samples = NeuralVoice.generate(service, sentences[index], speed)
+                    val samples = NeuralVoice.generate(service, sentences[index], speed, voice)
                     if (samples == null) {
                         queue.close()
                         main.post { fallbackToSystemVoice() }

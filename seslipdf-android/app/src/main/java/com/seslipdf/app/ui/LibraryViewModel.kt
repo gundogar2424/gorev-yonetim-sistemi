@@ -46,6 +46,8 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var voiceEngine by mutableStateOf(prefs.voiceEngine)
         private set
+    var neuralVoice by mutableStateOf(prefs.neuralVoice)
+        private set
     var language by mutableStateOf(prefs.language)
         private set
     var ocrFallback by mutableStateOf(prefs.ocrFallback)
@@ -186,6 +188,13 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     fun updateVoiceEngine(value: String) {
         voiceEngine = value
         prefs.voiceEngine = value
+        ReaderService.refreshVoice(getApplication())
+    }
+
+    /** Doğal seste hangi ses (0..9). Okuma suruyorsa yeni sesle devam eder. */
+    fun updateNeuralVoice(value: Int) {
+        neuralVoice = value
+        prefs.neuralVoice = value
         ReaderService.refreshVoice(getApplication())
     }
 

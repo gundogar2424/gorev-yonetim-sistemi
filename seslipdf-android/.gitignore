@@ -12,3 +12,4 @@ build/
 /app/libs/*.aar
 /app/src/main/assets/tts/
 /app/src/main/assets/espeak-ng-data/
+/app/src/main/assets/supertonic/

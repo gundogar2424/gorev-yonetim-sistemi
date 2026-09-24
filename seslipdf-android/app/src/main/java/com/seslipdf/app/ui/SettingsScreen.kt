@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.seslipdf.app.BuildConfig
 import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.data.VoiceEngine
+import com.seslipdf.app.tts.NeuralVoice
 import com.seslipdf.app.tts.VoiceInfo
 
 /**
@@ -95,8 +96,8 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     Text(
                         if (vm.voiceEngine == VoiceEngine.NEURAL)
                             "Doğal ses uygulamanın içinde çalışır (internet gerekmez). " +
-                                "Daha insan gibi okur; telefonu biraz daha yorar ve " +
-                                "ses tonu / ses seçimi ayarları bu modda kullanılmaz."
+                                "Daha insan gibi okur; telefonu biraz daha yorar. " +
+                                "Ses tonu ayarı bu modda kullanılmaz."
                         else
                             "Telefonun kendi seslendirme motoru. Hafif ve hızlıdır; " +
                                 "aşağıdan sesini seçebilirsiniz.",
@@ -104,6 +105,14 @@ fun SettingsScreen(vm: LibraryViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(14.dp))
+
+                    if (vm.voiceEngine == VoiceEngine.NEURAL) {
+                        NeuralVoicePicker(
+                            selected = vm.neuralVoice,
+                            onPick = { vm.updateNeuralVoice(it) }
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
                 }
 
                 if (vm.voiceEngine == VoiceEngine.SYSTEM) {
@@ -324,6 +333,33 @@ private fun VoicePicker(
                 DropdownMenuItem(
                     text = { Text("Ses bulunamadı") },
                     onClick = { open = false }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Doğal ses seçimi: 10 ses, ekranda 1..10 olarak. Numaralar kullanıcıya
+ * dinletilen tanıtım kaydındaki "Bir numaralı ses..." sırasıyla aynıdır.
+ */
+@Composable
+private fun NeuralVoicePicker(selected: Int, onPick: (Int) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth()) {
+        Text("Doğal ses", style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(6.dp))
+        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("${selected + 1} numaralı ses")
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            (0 until NeuralVoice.VOICE_COUNT).forEach { voice ->
+                DropdownMenuItem(
+                    text = { Text("${voice + 1} numaralı ses") },
+                    trailingIcon = {
+                        if (voice == selected) Icon(Icons.Filled.Check, contentDescription = null)
+                    },
+                    onClick = { open = false; onPick(voice) }
                 )
             }
         }
