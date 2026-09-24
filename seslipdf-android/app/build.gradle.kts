@@ -20,6 +20,11 @@ android {
         versionCode = appBuild
         versionName = "1.0.$appBuild"
         vectorDrawables { useSupportLibrary = true }
+
+        // Nöral ses motorunun (onnxruntime) yerel kutuphaneleri her mimari icin
+        // ~34 MB. Gunumuz telefonlari arm64; APK'yi sismemek icin yalnizca o
+        // alinir. Baska mimaride nöral ses acilamaz, uygulama sistem sesine duser.
+        ndk { abiFilters += listOf("arm64-v8a") }
     }
 
     // Sabit imza: her derlemede AYNI anahtar kullanilir; boylece guncellemeler
@@ -52,6 +57,12 @@ android {
         compose = true
         // Ayarlar ekraninda surum numarasi gosterilebilsin.
         buildConfig = true
+    }
+
+    androidResources {
+        // Ses modeli zaten sikistirilmis; tekrar sikistirmak hem APK'yi
+        // buyutuyor hem de acilisi yavaslatiyor.
+        noCompress += listOf("onnx")
     }
     packaging {
         resources {
@@ -90,6 +101,10 @@ dependencies {
 
     // Taranmis (resim) PDF'ler icin cihaz ici OCR — internet gerektirmez.
     implementation("com.google.mlkit:text-recognition:16.0.1")
+
+    // Cihaz ici nöral ses (sherpa-onnx + Piper/VITS). AAR ve ses modeli depoda
+    // tutulmaz; derlemeden once tools/fetch-tts.sh ile indirilir.
+    implementation(files("libs/sherpa-onnx.aar"))
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

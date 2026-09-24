@@ -31,6 +31,14 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("voiceAuto", false)
         set(v) = sp.edit().putBoolean("voiceAuto", v).apply()
 
+    /**
+     * Okuma sesi: sistemin kendi motoru mu, cihaz ici nöral ses mi.
+     * [VoiceEngine] degerleri.
+     */
+    var voiceEngine: String
+        get() = sp.getString("engine", VoiceEngine.SYSTEM) ?: VoiceEngine.SYSTEM
+        set(v) = sp.edit().putString("engine", v).apply()
+
     /** Dil kodu (ornegin tr-TR). */
     var language: String
         get() = sp.getString("lang", "tr-TR") ?: "tr-TR"
@@ -94,4 +102,13 @@ class Prefs(context: Context) {
         const val MIN_PITCH = 0.5f
         const val MAX_PITCH = 2.0f
     }
+}
+
+/** Okuma sesini ureten motor. */
+object VoiceEngine {
+    /** Android'in kendi seslendirme motoru (hizli, hafif). */
+    const val SYSTEM = "system"
+
+    /** Uygulamanin icindeki nöral Türkçe ses (daha dogal, daha agir). */
+    const val NEURAL = "neural"
 }

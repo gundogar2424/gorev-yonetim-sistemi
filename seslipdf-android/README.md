@@ -15,6 +15,7 @@ seslendirme motoruyla sana okuyor — ekran kapalıyken de.
 | 📥 **PDF ekleme** | Dosya seçiciden seç ya da başka bir uygulamada PDF'i "Sesli PDF ile aç / paylaş" |
 | 🔡 **Metin çıkarma** | PDF'in kendi metin katmanı okunur (PDFBox), cihazda; internet gerekmez |
 | 👁️ **OCR** | Taranmış/fotoğraflanmış sayfalarda metin yoksa sayfa görüntüden okunur (ML Kit, yine cihaz içinde) |
+| 🧠 **Doğal ses (nöral)** | İsteğe bağlı: uygulamanın içinde çalışan Piper/VITS Türkçe ses modeli. Telefonun kendi sesinden belirgin şekilde daha insan gibi okur, yine internetsiz |
 | 🔊 **Sesli okuma** | Cümle cümle okur; okunan cümle ekranda vurgulanır |
 | 👆 **Cümleye dokun** | Herhangi bir cümleye dokununca okuma oradan devam eder |
 | ⏩ **İleri / geri** | Cümle cümle atlama, "Sayfaya git" ile istediğin sayfaya |
@@ -90,6 +91,24 @@ dışarı göndermez, her şey telefonda kalır (Room/SQLite + uygulama klasör�
   "Sırada" kalır ve kitaplıktan tek dokunuşla yeniden başlatılır.
 - Okuma kalitesi tamamen cihazdaki TTS motoruna bağlıdır.
 - Android 8.0 (API 26) ve üstü gerekir.
+
+## Doğal ses (cihaz içi nöral)
+
+Telefonun kendi seslendirme motoru hızlıdır ama tonlaması düz olabilir. Uygulama
+isteğe bağlı olarak **kendi içinde bir nöral ses modeli** çalıştırır
+(Piper `tr_TR-dfki-medium`, sherpa-onnx ile) — bulut yok, internet yok, ücret yok.
+
+**Ayarlar → Ses → "Doğal ses"** ile açılır. Telefonun sesine göre daha insan
+gibi okur; buna karşılık:
+
+- her cümle için kısa bir hesaplama gerekir (modern telefonlarda takılmadan
+  yetişir; uygulama bir cümle önden hazırlar),
+- ses tonu ve ses seçimi ayarları bu modda kullanılmaz,
+- yalnızca **arm64** telefonlarda çalışır; açılamazsa uygulama kendiliğinden
+  telefonun sesine döner ve bunu söyler.
+
+Model APK'nın içinde gelir (~60 MB), bu yüzden APK büyüktür. Derlemeden önce
+`tools/fetch-tts.sh` kütüphaneyi ve modeli indirir; bunlar depoda tutulmaz.
 
 ## Teknik
 
