@@ -106,6 +106,9 @@ object NeuralVoice {
      * Bir cumleyi seslendirir ve ham ses ornegini dondurur.
      * [speed] 1.0 = normal, [voice] 0..9. Hata olursa null doner.
      */
+    // Okuma ve Ayarlar'daki ornek ayni motoru kullanir; yerel motor ayni anda
+    // iki is parcacigindan cagrilmasin diye cagrilar siraya konur.
+    @Synchronized
     fun generate(context: Context, text: String, speed: Float, voice: Int): FloatArray? {
         val tts = engine(context) ?: return null
         return try {

@@ -16,10 +16,13 @@ import com.seslipdf.app.data.Prefs
 import com.seslipdf.app.data.TextStore
 import com.seslipdf.app.pdf.ExtractQueue
 import com.seslipdf.app.tts.NeuralVoice
+import com.seslipdf.app.tts.ReaderState
+import com.seslipdf.app.tts.VoicePreview
 import com.seslipdf.app.tts.ReaderService
 import com.seslipdf.app.tts.VoiceCatalog
 import com.seslipdf.app.tts.VoiceInfo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -196,6 +199,32 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         neuralVoice = value
         prefs.neuralVoice = value
         ReaderService.refreshVoice(getApplication())
+    }
+
+    /** Su an ornegi calinan ses (hazirlanirken de dolu); null = calmiyor. */
+    var previewVoice by mutableStateOf<Int?>(null)
+        private set
+
+    private var previewJob: Job? = null
+
+    /**
+     * Secilen sesle kisa bir ornek cumle okur. Ilk seferde model yuklendigi
+     * icin birkac saniye surebilir. Okuma suruyorsa once duraklatilir.
+     */
+    fun previewNeuralVoice(voice: Int) {
+        val app = getApplication<Application>()
+        if (ReaderState.status.value.playing) ReaderService.pause(app)
+        previewJob?.cancel()
+        previewVoice = voice
+        previewJob = viewModelScope.launch {
+            try {
+                withContext(Dispatchers.Default) {
+                    VoicePreview.play(app, voice, prefs.rate)
+                }
+            } finally {
+                if (previewVoice == voice) previewVoice = null
+            }
+        }
     }
 
     /** Nöral ses bu yapida/cihazda kullanilabiliyor mu. */

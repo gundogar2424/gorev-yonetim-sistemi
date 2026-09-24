@@ -100,7 +100,8 @@ isteğe bağlı olarak **kendi içinde bir nöral ses modeli** çalıştırır:
 internet yok, ücret yok.
 
 **Ayarlar → Ses → "Doğal ses"** ile açılır, hemen altından **1–10 numaralı
-seslerden** biri seçilir (varsayılan: 3). Telefonun sesine göre çok daha insan
+seslerden** biri seçilir (varsayılan: 3). Bir ses seçildiği an kısa bir örnek
+cümle okur; **Dinle** düğmesi aynı örneği tekrar çalar. Telefonun sesine göre çok daha insan
 gibi okur; buna karşılık:
 
 - her cümle için kısa bir hesaplama gerekir (uygulama bir cümle önden hazırlar;

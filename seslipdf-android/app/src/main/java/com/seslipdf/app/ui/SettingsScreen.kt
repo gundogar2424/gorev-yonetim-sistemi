@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilterChip
@@ -109,7 +111,12 @@ fun SettingsScreen(vm: LibraryViewModel) {
                     if (vm.voiceEngine == VoiceEngine.NEURAL) {
                         NeuralVoicePicker(
                             selected = vm.neuralVoice,
-                            onPick = { vm.updateNeuralVoice(it) }
+                            previewing = vm.previewVoice,
+                            onPick = {
+                                vm.updateNeuralVoice(it)
+                                vm.previewNeuralVoice(it)
+                            },
+                            onListen = { vm.previewNeuralVoice(vm.neuralVoice) }
                         )
                         Spacer(Modifier.height(6.dp))
                     }
@@ -344,13 +351,40 @@ private fun VoicePicker(
  * dinletilen tanıtım kaydındaki "Bir numaralı ses..." sırasıyla aynıdır.
  */
 @Composable
-private fun NeuralVoicePicker(selected: Int, onPick: (Int) -> Unit) {
+private fun NeuralVoicePicker(
+    selected: Int,
+    previewing: Int?,
+    onPick: (Int) -> Unit,
+    onListen: () -> Unit
+) {
     var open by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
         Text("Doğal ses", style = MaterialTheme.typography.titleSmall)
+        Text(
+            "Listeden bir ses seçince o ses kısa bir cümle okur.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(Modifier.height(6.dp))
-        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("${selected + 1} numaralı ses")
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(onClick = { open = true }, modifier = Modifier.weight(1f)) {
+                Text("${selected + 1} numaralı ses")
+            }
+            OutlinedButton(onClick = onListen, enabled = previewing == null) {
+                if (previewing != null) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.height(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Dinle")
+                }
+            }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             (0 until NeuralVoice.VOICE_COUNT).forEach { voice ->
