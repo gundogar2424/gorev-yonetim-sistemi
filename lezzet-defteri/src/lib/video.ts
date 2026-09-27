@@ -145,6 +145,15 @@ function bekle(el: HTMLVideoElement, olay: string, ms = 8000): Promise<void> {
       },
       { once: true }
     )
+    // Dosya bozuk / bicim desteklenmiyorsa zaman asimini beklemeden vazgec
+    el.addEventListener(
+      'error',
+      () => {
+        window.clearTimeout(t)
+        rej(new Error('Video açılamadı.'))
+      },
+      { once: true }
+    )
   })
 }
 

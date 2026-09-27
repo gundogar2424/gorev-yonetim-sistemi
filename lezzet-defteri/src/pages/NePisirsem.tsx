@@ -64,7 +64,7 @@ export default function NePisirsem() {
             <Link to="/ayarlar" className="font-semibold underline">
               Ayarlar
             </Link>
-            ’dan Claude API anahtarını gir.
+            ’dan ücretsiz Gemini (ya da Claude) anahtarını gir.
           </div>
         )}
 

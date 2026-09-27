@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { linkAyikla, linktenTarif, metinIndir, platformBul, type LinkSonucu } from '../lib/importer'
 import { metniAyristir } from '../lib/parse'
-import { aiFotograftan, aiIleAyikla, aiVideodan, apiAnahtari, type VideoParcalari } from '../lib/ai'
+import { aiAdi, aiFotograftan, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from '../lib/ai'
 import { kareler, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from '../lib/video'
 import { fotoOku, uzaktanFotoIndir } from '../lib/image'
 import type { LzDraft } from '../types'
@@ -84,7 +84,9 @@ export default function AddRecipe() {
       const yt = await youtubeBilgi(s.html, (u) => metinIndir(u, ua)).catch(() => ({ aciklama: '', altyazi: '' }))
       if (yt.aciklama.length > parca.aciklama.length) parca.aciklama = yt.aciklama
       parca.altyazi = yt.altyazi
-      if (!yt.altyazi) notlar.push('videonun altyazısı yok ya da alınamadı')
+      // Gemini YouTube videosunu dogrudan izleyebilir (altyazi olmasa da)
+      if (saglayici() === 'gemini') parca.youtube = url
+      else if (!yt.altyazi) notlar.push('videonun altyazısı yok ya da alınamadı')
       return { parca, kapak, notlar }
     }
 
@@ -114,6 +116,25 @@ export default function AddRecipe() {
       video = await videoIndir(videoUrl, url)
     } catch (e) {
       notlar.push((e as Error).message.toLocaleLowerCase('tr'))
+      return { parca, kapak, notlar }
+    }
+
+    // Gemini videoyu (ses + goruntu) kendisi anlar: kare/ses isine gerek yok.
+    // Dogrudan gonderme siniri ~20 MB; daha buyuk videolarda asagidaki yol kullanilir.
+    if (saglayici() === 'gemini' && video.size <= 18 * 1024 * 1024) {
+      setYukleniyor('Video hazırlanıyor…')
+      const b64 = await new Promise<string>((res, rej) => {
+        const fr = new FileReader()
+        fr.onload = () => res(String(fr.result).split(',')[1] ?? '')
+        fr.onerror = () => rej(new Error('okunamadı'))
+        fr.readAsDataURL(video)
+      })
+      parca.video = { mime: video.type && video.type.startsWith('video/') ? video.type : 'video/mp4', data: b64 }
+      try {
+        kapak = (await kareler(video, 2)).kareler[1] ?? ''
+      } catch {
+        /* kapak olmadan da olur */
+      }
       return { parca, kapak, notlar }
     }
 
@@ -159,14 +180,15 @@ export default function AddRecipe() {
 
       if (aiVar && videoPlatformu && !aciklamaYeterli && (s.html || s.hamMetin)) {
         const { parca, kapak, notlar } = await videoTopla(url, s)
-        if (parca.altyazi || parca.konusma || parca.kareler.length || parca.aciklama) {
-          setYukleniyor('Yapay zeka tarifi hazırlıyor…')
+        if (parca.altyazi || parca.konusma || parca.kareler.length || parca.aciklama || parca.video || parca.youtube) {
+          setYukleniyor(`${aiAdi()} tarifi hazırlıyor…`)
           try {
             const ai = await aiVideodan(parca)
             const kaynak = [
               parca.aciklama && 'açıklama',
               parca.altyazi && 'altyazı',
               parca.konusma && 'videodaki konuşma',
+              (parca.video || parca.youtube) && 'videonun kendisi (Gemini izledi)',
               parca.kareler.length && 'ekrandaki yazılar'
             ].filter(Boolean)
             const d: LzDraft = { ...s.draft, ...ai, title: ai.title || s.draft.title }
@@ -383,7 +405,7 @@ export default function AddRecipe() {
             <span>✨ Yapay zeka açık: dağınık açıklamalar düzenli tarife çevrilir.</span>
           ) : (
             <span>
-              İpucu: <Link to="/ayarlar" className="text-lz-600 font-semibold">Ayarlar</Link>’dan Claude API anahtarı girersen dağınık açıklamalar da
+              İpucu: <Link to="/ayarlar" className="text-lz-600 font-semibold">Ayarlar</Link>’dan ücretsiz Gemini ya da Claude anahtarı girersen videolar ve dağınık açıklamalar da
               yapay zekayla düzenli tarife çevrilir. Anahtarsız da çalışır.
             </span>
           )}
