@@ -463,7 +463,7 @@ export async function aiThermomix(r: {
   steps: string[]
   notes: string
 }): Promise<import('./tm7').TmSurum> {
-  const { HIZLAR, MODLAR, SICAKLIKLAR, TM_KATEGORILER, adimTemizle } = await import('./tm7')
+  const { HIZLAR, MODLAR, SICAKLIKLAR, TM_KATEGORILER, adimTemizle, tmKuralDenetle } = await import('./tm7')
   const schema = {
     type: 'object',
     additionalProperties: false,
@@ -494,21 +494,30 @@ export async function aiThermomix(r: {
   }
   const v = await jsonCagri<{ category: string; ingredients: string[]; steps: Partial<import('./tm7').TmAdim>[]; warnings: string[] }>(
     'Sen Thermomix TM7 konusunda uzman bir aşçısın. Normal (ocak/fırın) tarifini TM7’de yapılacak adımlara uyarlarsın. ' +
-      'Kurallar: Tüm malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı 200 g su, yemek kaşığı yağ ~12 g, ' +
-      'un 1 su bardağı ~110 g, şeker 1 su bardağı ~180 g); adet/tutam gibi ölçüler kalabilir. Her adımda süre (saniye), devir, ' +
-      'sıcaklık ve gerekiyorsa ters bıçak (et, pişen parça ve karıştırılıp dağılmaması gereken malzemede ters bıçak + düşük devir) belirt. ' +
-      'Doğrama: 3-5 sn devir 5; soğan-sarımsak kavurma: sote modu ya da 120 °C devir 1; hamur yoğurma: hamur modu 2-3 dk; ' +
-      'buharda pişirme: Varoma sıcaklığı ve buhar modu; sıcak sıvıyı devir 6 üstünde çalıştırma, yavaşça artır uyarısı ver. ' +
-      'Hazne kapasitesi yaklaşık 2,2 L: kapasiteyi aşan tarifi bölmek ya da miktarı azaltmak için uyarı yaz. ' +
-      'Fırın gerektiren adım (ör. börek pişirme) TM7 dışında elle yapılır: seconds 0, speed boş. Porsiyonu koru. ' +
-      'Adımlar kısa ve net olsun.',
+      'TM7 KURALLARI (Vorwerk): Hazne en fazla 2,2 L; ısıtılan tariflerde toplam 2 L’yi geçme, geçiyorsa miktarı böl ya da azalt ve uyar. ' +
+      'Sıcaklık 37–160 °C; 120 °C üstü YALNIZCA sote (Kavurma/Browning) modunda kullanılır (et mühürleme, soğan karamelize, kavurma: mode "sote", 140–160 °C, ters bıçak, yumuşak/düşük devir). ' +
+      '60 °C üstündeki sıcak yemekte en fazla devir 6; sıcak çorbayı ezerken tek adımda "devir 10" yaz ama tip alanına "hızı kademeli artır, ölçü kabı takılı olsun" ekle. ' +
+      'Turbo YALNIZCA soğuk/kuru malzemede, 0,5–2 sn (turbo 60 °C üstünde çalışmaz). ' +
+      'Isıtarak pişirirken devir 1–2; doğranmış sebze, et parçası, bakliyat, pilav gibi dağılmaması gerekenlerde ters bıçak + "yumuşak" devir. ' +
+      'Süt/krema 90 °C (taşmasın); çorba ve yahni 90–100 °C; kapak açık pişirmede en fazla 120 °C ve devir 2. ' +
+      'Tipik ayarlar: soğan/sarımsak doğrama 5 sn devir 5; havuç/sebze iri doğrama 3–5 sn devir 4–5; maydanoz/dereotu 3–5 sn devir 7 (kuru hazneye); ' +
+      'ceviz/fındık çekme 5–10 sn devir 7–10; pudra şekeri 10–15 sn devir 10; soteleme (yağla soğan) 3–5 dk 120 °C devir 1; ' +
+      'çorba pişirme 20–25 dk 100 °C devir 1; ezme 30–60 sn devir 5→10 kademeli; beşamel/muhallebi 7–10 dk 90 °C devir 4; ' +
+      'kıyma kavurma 8–10 dk 120 °C ters bıçak devir 1 (öncesinde soğanı kavur); hamur yoğurma mode "hamur" 2–3 dk (seconds 120–180, speed boş); ' +
+      'pilav/pirinç mode "pirinc" ya da sepette 100 °C; buharda pişirme mode "buhar", temp "varoma", haznede en az 500 g su (30 dk’ya kadar), daha uzunsa daha fazla su; ' +
+      'yoğurt/mayalama mode "ferment" 37 °C; uzun ağır pişirme mode "yavas" (12 saate kadar); vakumlu poşette mode "sousvide". ' +
+      'Malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı su 200 g, yemek kaşığı yağ ~12 g, 1 su bardağı un ~110 g, şeker ~180 g); adet/tutam kalabilir; ' +
+      'malzemeler TM7 tartısıyla doğrudan kaba tartılarak eklenir, her adımda o adımda eklenecek malzemeleri gramla yaz. ' +
+      'Fırın/tava gerektiren adım (ör. börek pişirme, kızartma) TM7 dışında elle yapılır: seconds 0, speed boş, temp boş, metinde nerede yapılacağını yaz. ' +
+      'Kazıma gerekiyorsa ("spatula ile kenarları sıyır") ayrı adım ya da tip olarak yaz. Porsiyonu koru. Adımlar kısa, net ve emir kipinde olsun. ' +
+      'warnings alanına kapasite, sıcak sıvı, taşma ve elle yapılacak adımlarla ilgili gerçekten önemli uyarıları yaz.',
     `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}\n\nYapılışı:\n${r.steps
       .map((s, i) => `${i + 1}. ${s}`)
       .join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}`,
     schema,
     6000
   )
-  const steps = (v.steps ?? []).map(adimTemizle).filter((a) => a.text)
+  const steps = (v.steps ?? []).map(adimTemizle).map(tmKuralDenetle).filter((a) => a.text)
   if (!steps.length) throw new Error('Thermomix adımları çıkarılamadı.')
   return {
     category: TM_KATEGORILER.includes(v.category) ? v.category : 'Diğer',

@@ -125,3 +125,24 @@ export function termomiksKodu(r: LzRecipe): string {
     1
   )
 }
+
+// TM7 GUVENLIK KONTROLU: yapay zeka kurala aykiri ayar uretirse duzeltir.
+//  - 120 °C ustu yalnizca Kavurma (sote) modunda olur
+//  - Turbo sicak yemekte (60 °C ustu) calismaz -> devir 10 + uyari
+//  - Sicakta devir 7+ -> "kademeli artir, olcu kabi takili" ipucu
+export function tmKuralDenetle(a: TmAdim): TmAdim {
+  const x = { ...a }
+  const derece = /^\d+$/.test(x.temp) ? Number(x.temp) : x.temp === 'varoma' ? 100 : 0
+  const ekle = (t: string) => {
+    if (!x.tip.toLocaleLowerCase('tr').includes(t.slice(0, 12).toLocaleLowerCase('tr'))) x.tip = x.tip ? `${x.tip} ${t}` : t
+  }
+  if (derece > 120 && x.mode !== 'sote') x.mode = 'sote'
+  if (x.speed === 'turbo' && derece >= 60) {
+    x.speed = '10'
+    ekle('Turbo sıcakta çalışmaz; hızı kademeli 10’a çıkar.')
+  }
+  const hiz = Number(x.speed)
+  if (derece >= 60 && hiz >= 7) ekle('Sıcak: hızı kademeli artır, ölçü kabı takılı olsun.')
+  if (x.mode === 'sote' && x.speed && !['yumusak', '0.5', '1', '2'].includes(x.speed)) x.speed = '1'
+  return x
+}
