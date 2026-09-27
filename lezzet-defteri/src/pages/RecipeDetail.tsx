@@ -124,6 +124,22 @@ export default function RecipeDetail() {
           )}
         </div>
 
+        <Link
+          to={`/thermomix/${r.id}`}
+          className="lz-card p-3 flex items-center gap-3 active:scale-[0.99] transition"
+        >
+          <span className="w-10 h-10 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
+            <Icon name="pot" />
+          </span>
+          <span className="flex-1">
+            <span className={`block font-semibold text-[15px] ${T_BASLIK}`}>{r.tm ? 'Thermomix sürümü' : 'Thermomix’e uyarla'}</span>
+            <span className={`block text-[12px] ${T_SOLUK}`}>
+              {r.tm ? `${r.tm.steps.length} TM7 adımı · devir, sıcaklık, süre` : 'TM7 adımlarına çevir (yapay zeka)'}
+            </span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
+
         <div className="grid grid-cols-2 gap-2.5">
           <Link to={`/pisir/${r.id}`} className="lz-btn-primary">
             <Icon name="play" className="w-4 h-4" /> Pişir

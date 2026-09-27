@@ -10,9 +10,13 @@ import Week from './pages/Week'
 import Shopping from './pages/Shopping'
 import LzSettings from './pages/LzSettings'
 import NePisirsem from './pages/NePisirsem'
+import Thermomix from './pages/Thermomix'
+import TmDetail from './pages/TmDetail'
+import TmCook from './pages/TmCook'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Tariflerim', icon: 'book', end: true },
+  { to: '/thermomix', label: 'Thermomix', icon: 'pot', end: false },
   { to: '/hafta', label: 'Bu Hafta', icon: 'calendar', end: false },
   { to: '/alisveris', label: 'Alışveriş', icon: 'cart', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: 'settings', end: false }
@@ -20,7 +24,8 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
 
 export default function LzApp() {
   // Pisirme modu tam ekran: alt menu gizlenir (buyuk Geri/Sonraki dugmeleri ortulmesin)
-  const pisirme = useLocation().pathname.startsWith('/pisir')
+  const yol = useLocation().pathname
+  const pisirme = yol.startsWith('/pisir') || /^\/thermomix\/\d+\/pisir/.test(yol)
   const navigate = useNavigate()
 
   // Android "Paylaş" menusu: baska uygulamadan (Instagram, TikTok...) paylasilan
@@ -43,6 +48,9 @@ export default function LzApp() {
           <Route path="/tarif/:id" element={<RecipeDetail />} />
           <Route path="/pisir/:id" element={<Cook />} />
           <Route path="/ne-pisirsem" element={<NePisirsem />} />
+          <Route path="/thermomix" element={<Thermomix />} />
+          <Route path="/thermomix/:id" element={<TmDetail />} />
+          <Route path="/thermomix/:id/pisir" element={<TmCook />} />
           <Route path="/hafta" element={<Week />} />
           <Route path="/alisveris" element={<Shopping />} />
           <Route path="/ayarlar" element={<LzSettings />} />
@@ -51,7 +59,7 @@ export default function LzApp() {
 
       {!pisirme && (
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-4 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#171412]/90 border-t border-[#efe6dc] dark:border-[#2a2420]"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-5 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#171412]/90 border-t border-[#efe6dc] dark:border-[#2a2420]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
@@ -63,7 +71,7 @@ export default function LzApp() {
                   className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#b3a69b] dark:text-[#7d716a]'}`}
                 />
                 <span
-                  className={`text-[11px] leading-none transition-colors ${
+                  className={`text-[10.5px] leading-none transition-colors whitespace-nowrap ${
                     isActive ? 'text-lz-600 dark:text-lz-400 font-semibold' : 'text-[#b3a69b] dark:text-[#7d716a] font-medium'
                   }`}
                 >

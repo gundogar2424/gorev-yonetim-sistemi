@@ -27,6 +27,7 @@ export type IconName =
   | 'check'
   | 'x'
   | 'users'
+  | 'pot'
 
 export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; className?: string }) {
   const c = {
@@ -152,6 +153,13 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
       return (
         <svg {...c}>
           <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      )
+    case 'pot':
+      return (
+        <svg {...c}>
+          <path d="M5 10h14l-1.2 8.2A2.5 2.5 0 0 1 15.3 20.5H8.7a2.5 2.5 0 0 1-2.5-2.3z" />
+          <path d="M4 10h16M9 10V7.5a3 3 0 0 1 6 0V10M19 12.5h2" />
         </svg>
       )
     case 'users':

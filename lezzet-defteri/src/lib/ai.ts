@@ -455,6 +455,70 @@ export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
   return tarifeCevir(v)
 }
 
+// THERMOMIX (TM7) UYARLAMASI: normal tarifi TM7 adimlarina cevirir.
+export async function aiThermomix(r: {
+  title: string
+  servings: number
+  ingredients: string[]
+  steps: string[]
+  notes: string
+}): Promise<import('./tm7').TmSurum> {
+  const { HIZLAR, MODLAR, SICAKLIKLAR, TM_KATEGORILER, adimTemizle } = await import('./tm7')
+  const schema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['category', 'ingredients', 'steps', 'warnings'],
+    properties: {
+      category: { type: 'string', enum: TM_KATEGORILER },
+      ingredients: { type: 'array', items: { type: 'string' }, description: 'Gramla malzemeler: "250 g un", "200 g su"' },
+      steps: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['text', 'ingredients', 'seconds', 'speed', 'reverse', 'temp', 'mode', 'tip'],
+          properties: {
+            text: { type: 'string', description: 'Kısa, emir kipinde adım' },
+            ingredients: { type: 'string', description: 'Bu adımda kaba giren malzemeler gramla; yoksa boş' },
+            seconds: { type: 'integer', description: 'Süre saniye; elle yapılan adımda 0' },
+            speed: { type: 'string', enum: HIZLAR },
+            reverse: { type: 'boolean' },
+            temp: { type: 'string', enum: SICAKLIKLAR },
+            mode: { type: 'string', enum: MODLAR },
+            tip: { type: 'string', description: 'Kısa ipucu/dikkat; yoksa boş' }
+          }
+        }
+      },
+      warnings: { type: 'array', items: { type: 'string' } }
+    }
+  }
+  const v = await jsonCagri<{ category: string; ingredients: string[]; steps: Partial<import('./tm7').TmAdim>[]; warnings: string[] }>(
+    'Sen Thermomix TM7 konusunda uzman bir aşçısın. Normal (ocak/fırın) tarifini TM7’de yapılacak adımlara uyarlarsın. ' +
+      'Kurallar: Tüm malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı 200 g su, yemek kaşığı yağ ~12 g, ' +
+      'un 1 su bardağı ~110 g, şeker 1 su bardağı ~180 g); adet/tutam gibi ölçüler kalabilir. Her adımda süre (saniye), devir, ' +
+      'sıcaklık ve gerekiyorsa ters bıçak (et, pişen parça ve karıştırılıp dağılmaması gereken malzemede ters bıçak + düşük devir) belirt. ' +
+      'Doğrama: 3-5 sn devir 5; soğan-sarımsak kavurma: sote modu ya da 120 °C devir 1; hamur yoğurma: hamur modu 2-3 dk; ' +
+      'buharda pişirme: Varoma sıcaklığı ve buhar modu; sıcak sıvıyı devir 6 üstünde çalıştırma, yavaşça artır uyarısı ver. ' +
+      'Hazne kapasitesi yaklaşık 2,2 L: kapasiteyi aşan tarifi bölmek ya da miktarı azaltmak için uyarı yaz. ' +
+      'Fırın gerektiren adım (ör. börek pişirme) TM7 dışında elle yapılır: seconds 0, speed boş. Porsiyonu koru. ' +
+      'Adımlar kısa ve net olsun.',
+    `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}\n\nYapılışı:\n${r.steps
+      .map((s, i) => `${i + 1}. ${s}`)
+      .join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}`,
+    schema,
+    6000
+  )
+  const steps = (v.steps ?? []).map(adimTemizle).filter((a) => a.text)
+  if (!steps.length) throw new Error('Thermomix adımları çıkarılamadı.')
+  return {
+    category: TM_KATEGORILER.includes(v.category) ? v.category : 'Diğer',
+    ingredients: (v.ingredients ?? []).map((x) => String(x).trim()).filter(Boolean),
+    steps,
+    warnings: (v.warnings ?? []).map((x) => String(x).trim()).filter(Boolean),
+    createdAt: Date.now()
+  }
+}
+
 // NE PISIRSEM: istege / dolaptaki malzemelere gore aileye uygun yeni tarif uretir.
 export async function aiTarifUret(istekMetni: string, profil: string): Promise<Partial<LzDraft>> {
   const v = await jsonCagri<TarifJson>(

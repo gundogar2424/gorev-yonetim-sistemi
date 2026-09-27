@@ -1,4 +1,5 @@
 // Lezzet Defteri veri tipleri.
+import type { TmSurum } from './lib/tm7'
 // Diger programlarla (CRM, Diyet Kocu, Termomiks...) HICBIR tip/tablo paylasmaz.
 
 // Tarifin geldigi yer. Listede kucuk rozet olarak gosterilir.
@@ -18,6 +19,7 @@ export interface LzRecipe {
   notes: string
   tags: string[] // Akşam Yemeği, Tatlı, Pratik...
   tableIds: number[] // Hangi sofralara ait (Kocam, Çocuklar...)
+  tm?: TmSurum // Thermomix TM7 uyarlamasi (varsa)
   favorite: 0 | 1 // Dexie boolean indeksleyemez
   cookCount: number
   lastCookedAt: number
