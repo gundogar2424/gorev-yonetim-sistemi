@@ -99,6 +99,14 @@ export default function EditRecipe() {
             }`}
           >
             {not}
+            {not.startsWith('⚠️ Yapay zeka') && d.sourceUrl && !duzenle && (
+              <button
+                className="lz-btn-primary w-full mt-3 text-sm"
+                onClick={() => navigate('/ekle', { replace: true, state: { paylasim: d.sourceUrl, zaman: Date.now() } })}
+              >
+                ↻ Yapay zekayla tekrar dene
+              </button>
+            )}
           </div>
         )}
 

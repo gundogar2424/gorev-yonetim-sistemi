@@ -272,12 +272,29 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
     r = await cagir(true)
   }
   if (yogun(r)) {
-    const denenen = [model]
-    for (let i = 0; i < 2 && yogun(r); i++) {
-      const baska = await geminiModelBul(denenen, true)
-      if (!baska) break
-      denenen.push(baska)
-      model = baska
+    // Yogunluk genelde tek modelde olur: once anahtarin listesindeki diger
+    // flash modelleri, sonra bilinen yedekler (lite modeller daha az yogundur).
+    const liste = new Set<string>()
+    for (let i = 0; i < 3; i++) {
+      const b = await geminiModelBul([model, ...liste], true)
+      if (!b) break
+      liste.add(b)
+    }
+    for (const y of ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']) liste.add(y)
+    liste.delete(model)
+    const asil = model
+    for (const aday of liste) {
+      model = aday
+      const r2 = await cagir(true)
+      if (r2.status === 404) continue // bu anahtarla yok, siradakine gec
+      r = r2
+      if (!yogun(r)) break
+      await new Promise((res) => setTimeout(res, 1500))
+    }
+    if (!r.ok) model = asil
+    if (yogun(r)) {
+      // Hepsi yogunsa son bir kez uzun bekleyip asil modeli dene
+      await new Promise((res) => setTimeout(res, 8000))
       r = await cagir(true)
     }
   }
