@@ -116,6 +116,7 @@ export type Parca =
   | { type: 'text'; text: string }
   | { type: 'image'; mime: string; data: string } // base64
   | { type: 'video'; mime: string; data: string } // yalnizca Gemini
+  | { type: 'audio'; mime: string; data: string } // yalnizca Gemini
   | { type: 'youtube'; url: string } // yalnizca Gemini
 
 function hataMetni(status: number, govde: string): string {
@@ -134,11 +135,23 @@ function hataMetni(status: number, govde: string): string {
 }
 
 async function gonder(url: string, headers: Record<string, string>, body: unknown): Promise<{ status: number; ok: boolean; govde: string }> {
-  let r: Response
-  try {
-    r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) })
-  } catch {
-    throw new Error('Yapay zekaya bağlanılamadı. İnternet bağlantını kontrol et.')
+  let r: Response | null = null
+  const govdeMetni = JSON.stringify(body)
+  // Baglanti koparsa (mobil veri, uzun yukleme) bir kez daha dene
+  for (let i = 0; i < 2 && !r; i++) {
+    try {
+      r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: govdeMetni })
+    } catch {
+      if (i === 0) await new Promise((res) => setTimeout(res, 1500))
+    }
+  }
+  if (!r) {
+    const mb = govdeMetni.length / 1024 / 1024
+    throw new Error(
+      mb > 15
+        ? `Gönderilen veri çok büyük (${mb.toFixed(0)} MB) olduğu için bağlantı koptu.`
+        : 'Yapay zekaya bağlanılamadı. İnternet bağlantını kontrol et.'
+    )
   }
   return { status: r.status, ok: r.ok, govde: await r.text() }
 }
@@ -382,6 +395,7 @@ export interface VideoParcalari {
   konusma: string // Videodaki konusmanin yaziya dokumu (cihazda)
   kareler: string[] // data:image/jpeg;base64,...
   video?: { mime: string; data: string } // Videonun kendisi (yalnizca Gemini; sesi ve goruntuyu birlikte anlar)
+  ses?: { mime: string; data: string } // Buyuk videolarda yalnizca ses (yalnizca Gemini dinler)
   youtube?: string // YouTube adresi (yalnizca Gemini videoyu dogrudan izleyebilir)
 }
 export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
@@ -389,6 +403,7 @@ export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
   const gemini = saglayici() === 'gemini'
   if (gemini && p.video) icerik.push({ type: 'video', mime: p.video.mime, data: p.video.data })
   if (gemini && p.youtube) icerik.push({ type: 'youtube', url: p.youtube })
+  if (gemini && p.ses) icerik.push({ type: 'audio', mime: p.ses.mime, data: p.ses.data })
   for (const k of p.kareler.slice(0, 10)) {
     const m = k.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
     if (m) icerik.push({ type: 'image', mime: m[1], data: m[2] })
@@ -399,6 +414,7 @@ export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
     p.altyazi && `Videonun altyazısı:\n"""\n${p.altyazi.slice(0, 15000)}\n"""`,
     p.konusma && `Videoda söylenenler (otomatik yazıya çevrildi, hatalı kelimeler olabilir):\n"""\n${p.konusma.slice(0, 15000)}\n"""`,
     gemini && (p.video || p.youtube) && 'Ekteki video tarif videosunun kendisidir: söylenenleri dinle, ekrandaki yazıları ve malzemeleri izle.',
+    gemini && p.ses && 'Ekteki ses kaydı tarif videosunun sesidir: söylenen malzeme ve ölçüleri dikkatle dinle.',
     p.kareler.length && `Yukarıdaki ${Math.min(10, p.kareler.length)} görsel videodan eşit aralıklarla alınmış karelerdir; ekrandaki yazılar (malzeme listesi, ölçüler) ve görünen malzemeler için bunlara bak.`
   ].filter(Boolean)
   icerik.push({

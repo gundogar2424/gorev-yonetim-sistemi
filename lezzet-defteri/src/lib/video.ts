@@ -246,6 +246,10 @@ export async function kareler(video: Blob, adet = 8): Promise<{ kareler: string[
 
 const EN_UZUN_SN = 10 * 60
 
+// Gemini'ye dogrudan (tek istekte) gonderilebilecek en buyuk video. Istek
+// siniri 20 MB ve base64 dosyayi ~%33 buyuttugu icin ham 13 MB'ta tutulur.
+export const GEMINI_DOGRUDAN_MAX = 13 * 1024 * 1024
+
 // Videodaki sesi 16 kHz tek kanala cevirir (Whisper'in bekledigi bicim).
 async function sesCoz(video: Blob): Promise<Float32Array> {
   const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
@@ -308,4 +312,39 @@ export async function konusmayiYaziyaCevir(
   } catch {
     throw new Error('konuşma çözümlenemedi')
   }
+}
+
+// Videonun sesini 16 kHz tek kanal WAV (base64) olarak verir. Buyuk videolarda
+// Gemini'ye videonun yerine kareler + bu ses gonderilir (5 dk ~ 9,6 MB).
+export async function sesWavBase64(video: Blob, enUzunSn = 5 * 60): Promise<string> {
+  const tam = await sesCoz(video)
+  const ses = tam.subarray(0, Math.min(tam.length, enUzunSn * 16000))
+  const veri = new DataView(new ArrayBuffer(44 + ses.length * 2))
+  const yazS = (o: number, t: string) => {
+    for (let i = 0; i < t.length; i++) veri.setUint8(o + i, t.charCodeAt(i))
+  }
+  yazS(0, 'RIFF')
+  veri.setUint32(4, 36 + ses.length * 2, true)
+  yazS(8, 'WAVE')
+  yazS(12, 'fmt ')
+  veri.setUint32(16, 16, true)
+  veri.setUint16(20, 1, true) // PCM
+  veri.setUint16(22, 1, true) // tek kanal
+  veri.setUint32(24, 16000, true)
+  veri.setUint32(28, 32000, true)
+  veri.setUint16(32, 2, true)
+  veri.setUint16(34, 16, true)
+  yazS(36, 'data')
+  veri.setUint32(40, ses.length * 2, true)
+  for (let i = 0; i < ses.length; i++) {
+    const v = Math.max(-1, Math.min(1, ses[i]))
+    veri.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true)
+  }
+  const blob = new Blob([veri.buffer], { type: 'audio/wav' })
+  return new Promise<string>((res, rej) => {
+    const fr = new FileReader()
+    fr.onload = () => res(String(fr.result).split(',')[1] ?? '')
+    fr.onerror = () => rej(new Error('Ses hazırlanamadı.'))
+    fr.readAsDataURL(blob)
+  })
 }

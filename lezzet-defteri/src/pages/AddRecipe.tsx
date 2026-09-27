@@ -4,7 +4,7 @@ import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { linkAyikla, linktenTarif, metinIndir, platformBul, type LinkSonucu } from '../lib/importer'
 import { metniAyristir } from '../lib/parse'
 import { aiAdi, aiFotograftan, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from '../lib/ai'
-import { instagramVeri, kareler, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from '../lib/video'
+import { GEMINI_DOGRUDAN_MAX, instagramVeri, kareler, sesWavBase64, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from '../lib/video'
 import { fotoOku, uzaktanFotoIndir } from '../lib/image'
 import type { LzDraft } from '../types'
 
@@ -74,6 +74,31 @@ export default function AddRecipe() {
     }
   }
 
+  // Gemini icin videoyu hazirlar: kucukse videonun kendisi, buyukse 10 kare +
+  // ayri ses dosyasi (tek istek siniri asilmasin diye). Kapak karesini dondurur.
+  const geminiyeHazirla = async (video: Blob, parca: VideoParcalari): Promise<string> => {
+    if (video.size <= GEMINI_DOGRUDAN_MAX) {
+      setYukleniyor('Video hazırlanıyor…')
+      const b64 = await new Promise<string>((res, rej) => {
+        const fr = new FileReader()
+        fr.onload = () => res(String(fr.result).split(',')[1] ?? '')
+        fr.onerror = () => rej(new Error('Video okunamadı.'))
+        fr.readAsDataURL(video)
+      })
+      parca.video = { mime: video.type && video.type.startsWith('video/') ? video.type : 'video/mp4', data: b64 }
+      return (await kareler(video, 2).catch(() => ({ kareler: [] as string[] }))).kareler[1] ?? ''
+    }
+    setYukleniyor('Video büyük; kareler ve ses ayrılıyor…')
+    const k = await kareler(video, 10).catch(() => ({ kareler: [] as string[] }))
+    parca.kareler = k.kareler
+    try {
+      parca.ses = { mime: 'audio/wav', data: await sesWavBase64(video) }
+    } catch {
+      /* ses ayrilamazsa yalnizca karelerle devam */
+    }
+    return k.kareler[1] ?? ''
+  }
+
   // Videonun kendisinden bilgi toplar: YouTube'da altyazi + tam aciklama;
   // Instagram/TikTok/Facebook'ta video indirilir, kareleri alinir ve konusma
   // cihazda yaziya cevrilir. Her adim ayri denenir; biri olmazsa digerleriyle devam.
@@ -132,20 +157,8 @@ export default function AddRecipe() {
 
     // Gemini videoyu (ses + goruntu) kendisi anlar: kare/ses isine gerek yok.
     // Dogrudan gonderme siniri ~20 MB; daha buyuk videolarda asagidaki yol kullanilir.
-    if (saglayici() === 'gemini' && video.size <= 18 * 1024 * 1024) {
-      setYukleniyor('Video hazırlanıyor…')
-      const b64 = await new Promise<string>((res, rej) => {
-        const fr = new FileReader()
-        fr.onload = () => res(String(fr.result).split(',')[1] ?? '')
-        fr.onerror = () => rej(new Error('okunamadı'))
-        fr.readAsDataURL(video)
-      })
-      parca.video = { mime: video.type && video.type.startsWith('video/') ? video.type : 'video/mp4', data: b64 }
-      try {
-        kapak = (await kareler(video, 2)).kareler[1] ?? ''
-      } catch {
-        /* kapak olmadan da olur */
-      }
+    if (saglayici() === 'gemini') {
+      kapak = (await geminiyeHazirla(video, parca)) || kapak
       return { parca, kapak, notlar }
     }
 
@@ -199,10 +212,11 @@ export default function AddRecipe() {
               parca.altyazi && 'altyazı',
               parca.konusma && 'videodaki konuşma',
               (parca.video || parca.youtube) && 'videonun kendisi (Gemini izledi)',
+              parca.ses && 'videonun sesi (Gemini dinledi)',
               parca.kareler.length && 'ekrandaki yazılar'
             ].filter(Boolean)
             const d: LzDraft = { ...s.draft, ...ai, title: ai.title || s.draft.title }
-            const izlendi = !!(parca.video || parca.youtube || parca.konusma || parca.altyazi || parca.kareler.length)
+            const izlendi = !!(parca.video || parca.youtube || parca.ses || parca.konusma || parca.altyazi || parca.kareler.length)
             if (!izlendi) {
               await taslakAc(
                 d,
@@ -310,16 +324,8 @@ export default function AddRecipe() {
     const parca: VideoParcalari = { baslik: '', aciklama: '', altyazi: '', konusma: '', kareler: [] }
     let kapak = ''
     try {
-      if (saglayici() === 'gemini' && f.size <= 18 * 1024 * 1024) {
-        setYukleniyor('Video hazırlanıyor…')
-        const b64 = await new Promise<string>((res, rej) => {
-          const fr = new FileReader()
-          fr.onload = () => res(String(fr.result).split(',')[1] ?? '')
-          fr.onerror = () => rej(new Error('Video okunamadı.'))
-          fr.readAsDataURL(f)
-        })
-        parca.video = { mime: f.type && f.type.startsWith('video/') ? f.type : 'video/mp4', data: b64 }
-        kapak = (await kareler(f, 2).catch(() => ({ kareler: [] as string[] }))).kareler[1] ?? ''
+      if (saglayici() === 'gemini') {
+        kapak = await geminiyeHazirla(f, parca)
       } else {
         setYukleniyor('Videodan kareler alınıyor…')
         const k = await kareler(f, 8)
