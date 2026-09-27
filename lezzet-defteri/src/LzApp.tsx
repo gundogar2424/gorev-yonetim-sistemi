@@ -16,6 +16,7 @@ import TmCook from './pages/TmCook'
 import Diyetim from './pages/Diyetim'
 import DiyetOgun from './pages/DiyetOgun'
 import Sira from './pages/Sira'
+import TarifDegistir from './pages/TarifDegistir'
 import { siraBaslat, siraEkle, siraIsle } from './lib/sira'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
@@ -68,6 +69,7 @@ export default function LzApp() {
           <Route path="/thermomix/:id" element={<TmDetail />} />
           <Route path="/thermomix/:id/pisir" element={<TmCook />} />
           <Route path="/sira" element={<Sira />} />
+          <Route path="/tarif/:id/degistir" element={<TarifDegistir />} />
           <Route path="/diyet" element={<Diyetim />} />
           <Route path="/diyet/:i" element={<DiyetOgun />} />
           <Route path="/hafta" element={<Week />} />

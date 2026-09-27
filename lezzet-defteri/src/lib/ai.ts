@@ -675,6 +675,49 @@ export async function aiOgunEslestir(
     }))
 }
 
+// TARIFI DEGISTIR: kullanicinin istegine gore (ikame, diyet, porsiyon…) tarifi
+// yeniden yazar; neyin neden degistigini aciklar.
+export interface TarifDegisikligi {
+  tarif: Partial<LzDraft>
+  degisiklikler: string[]
+  aciklama: string
+}
+export async function aiTarifDegistir(
+  r: { title: string; servings: number; minutes: number; ingredients: string[]; steps: string[]; notes: string; tags: string[] },
+  istek: string,
+  profil: string
+): Promise<TarifDegisikligi> {
+  const sema = {
+    ...SEMA,
+    required: [...SEMA.required, 'degisiklikler', 'aciklama'],
+    properties: {
+      ...SEMA.properties,
+      degisiklikler: { type: 'array', items: { type: 'string' }, description: 'Yapılan her değişiklik tek satır: "1 su bardağı şeker → 1 tatlı kaşığı toz stevia"' },
+      aciklama: { type: 'string', description: 'Kullanıcının sorusunun kısa, net cevabı ve dikkat edilecekler (2-4 cümle)' }
+    }
+  }
+  const v = await jsonCagri<TarifJson & { degisiklikler: string[]; aciklama: string }>(
+    'Sen deneyimli bir pasta/yemek şefi ve diyetisyensin. Kullanıcı mevcut bir tarifte değişiklik istiyor (malzeme ikamesi, ' +
+      'tatlandırıcı, glutensiz/laktozsuz/vegan, daha az kalori/yağ, porsiyon…). Tarifi bu isteğe göre YENİDEN yaz: yalnızca gereken ' +
+      'yerleri değiştir, geri kalanını aynen koru. Miktarları Türk mutfağı ölçüleriyle ve gerekirse gramla net ver. ' +
+      'TATLANDIRICI kuralları: stevianın türü tatlılığı çok değiştirir — saf stevia özü (toz) şekerden ~200-300 kat tatlıdır ' +
+      '(1 su bardağı şeker ≈ 1 tatlı kaşığı/ ~1 g saf özü), sıvı stevia damla (1 su bardağı şeker ≈ 1 tatlı kaşığı damla / ürününe göre), ' +
+      'şekerle ya da eritritolle karışık "1:1" ya da "granül" stevia ürünleri şekerle birebir ya da ürün oranında kullanılır; ' +
+      'kullanıcı marka/tür yazdıysa ona göre hesapla ve "ambalajdaki orana bak" diye hatırlat, yazmadıysa varsayımını açıkça söyle. ' +
+      'Şeker kekte/kurabiyede hacim, nem, kızarma ve yapı da sağlar: şeker azaldıysa gerekirse yoğurt, elma püresi, yumurta beyazı gibi ' +
+      'telafi ekle ve pişirme süresi/ısısı değişecekse adımlarda belirt. Glutensiz/laktozsuz vb. değişimlerde uygun ikame ve oranı ver. ' +
+      'Başlığı gerekirse değişikliği yansıtacak şekilde güncelle (ör. "Stevialı Brownie"). degisiklikler listesine her değişikliği, ' +
+      'aciklama alanına kullanıcının sorusunun doğrudan cevabını yaz. Aile tercihleri verildiyse alerjen/sevilmeyenleri kullanma. is_recipe true olsun.',
+    `Mevcut tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}${r.minutes ? `, ${r.minutes} dk` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}` +
+      `\n\nYapılışı:\n${r.steps.map((x, i) => `${i + 1}. ${x}`).join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}` +
+      `${profil ? `\n\nAile tercihleri:\n${profil}` : ''}\n\nKULLANICININ İSTEĞİ: ${istek}`,
+    sema,
+    6000
+  )
+  const t = tarifeCevir({ ...v, is_recipe: true })
+  return { tarif: { ...t, tags: t.tags?.length ? t.tags : r.tags }, degisiklikler: v.degisiklikler ?? [], aciklama: v.aciklama ?? '' }
+}
+
 // NE PISIRSEM: istege / dolaptaki malzemelere gore aileye uygun yeni tarif uretir.
 export async function aiTarifUret(
   istekMetni: string,

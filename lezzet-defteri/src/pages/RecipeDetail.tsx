@@ -151,6 +151,15 @@ export default function RecipeDetail() {
           )}
         </div>
 
+        <Link to={`/tarif/${r.id}/degistir`} className="lz-card p-3 flex items-center gap-3 active:scale-[0.99] transition">
+          <span className="w-10 h-10 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] flex items-center justify-center text-lg">✨</span>
+          <span className="flex-1">
+            <span className={`block font-semibold text-[15px] ${T_BASLIK}`}>Yapay zekayla değiştir</span>
+            <span className={`block text-[12px] ${T_SOLUK}`}>Stevia, glutensiz, daha az kalori, airfryer…</span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
+
         <Link
           to={`/thermomix/${r.id}`}
           className="lz-card p-3 flex items-center gap-3 active:scale-[0.99] transition"
