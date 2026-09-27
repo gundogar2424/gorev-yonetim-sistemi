@@ -90,7 +90,17 @@ export default function EditRecipe() {
     <div>
       <Header title={duzenle ? 'Tarifi düzenle' : 'Yeni tarif'} back />
       <div className="px-4 space-y-4 pb-8">
-        {not && <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-800 dark:text-amber-200 text-[13px] p-3.5">{not}</div>}
+        {not && (
+          <div
+            className={`rounded-2xl text-[13px] p-3.5 ${
+              not.startsWith('⚠️')
+                ? 'bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 font-medium'
+                : 'bg-amber-50 dark:bg-[#2a2113] text-amber-800 dark:text-amber-200'
+            }`}
+          >
+            {not}
+          </div>
+        )}
 
         <div className="lz-card p-4 space-y-3">
           <div className="flex gap-3 items-center">

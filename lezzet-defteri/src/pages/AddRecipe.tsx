@@ -4,11 +4,11 @@ import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { linkAyikla, linktenTarif, metinIndir, platformBul, type LinkSonucu } from '../lib/importer'
 import { metniAyristir } from '../lib/parse'
 import { aiAdi, aiFotograftan, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from '../lib/ai'
-import { kareler, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from '../lib/video'
+import { instagramVeri, kareler, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from '../lib/video'
 import { fotoOku, uzaktanFotoIndir } from '../lib/image'
 import type { LzDraft } from '../types'
 
-type Mod = 'link' | 'metin' | 'foto'
+type Mod = 'link' | 'metin' | 'foto' | 'video'
 
 export default function AddRecipe() {
   const navigate = useNavigate()
@@ -19,6 +19,7 @@ export default function AddRecipe() {
   const [hata, setHata] = useState('')
   const aiVar = !!apiAnahtari()
   const fotoGiris = useRef<HTMLInputElement>(null)
+  const videoGiris = useRef<HTMLInputElement>(null)
 
   const panodan = async () => {
     try {
@@ -105,8 +106,15 @@ export default function AddRecipe() {
         /* gomme sayfasi da kapali */
       }
     }
+    if (!videoUrl && kod) {
+      setYukleniyor('Instagram’dan video bilgisi isteniyor…')
+      const v = await instagramVeri(kod)
+      videoUrl = v.videoUrl
+      if (v.aciklama.length > parca.aciklama.length) parca.aciklama = v.aciklama
+      if (v.kapak) kapak = v.kapak
+    }
     if (!videoUrl) {
-      notlar.push('video dosyasına ulaşılamadı (paylaşım gizli olabilir ya da platform izin vermedi)')
+      notlar.push('video dosyasına ulaşılamadı (Instagram izin vermedi ya da paylaşım gizli)')
       return { parca, kapak, notlar }
     }
 
@@ -192,6 +200,17 @@ export default function AddRecipe() {
               parca.kareler.length && 'ekrandaki yazılar'
             ].filter(Boolean)
             const d: LzDraft = { ...s.draft, ...ai, title: ai.title || s.draft.title }
+            const izlendi = !!(parca.video || parca.youtube || parca.konusma || parca.altyazi || parca.kareler.length)
+            if (!izlendi) {
+              await taslakAc(
+                d,
+                '⚠️ VİDEO İZLENEMEDİ: tarif yalnızca paylaşımın yazılı açıklamasından çıkarıldı, videodaki malzemeler eksik ya da farklı olabilir. ' +
+                  'En doğru sonuç için reel’i telefonun ekran kaydıyla (sesli) kaydedip “Tarif ekle → Videodan” ile seç.' +
+                  (notlar.length ? ` (${notlar.join('; ')})` : ''),
+                kapak
+              )
+              return
+            }
             await taslakAc(
               d,
               `Tarif şunlardan çıkarıldı: ${kaynak.join(', ')}.` + (notlar.length ? ` Not: ${notlar.join('; ')}.` : '') + ' Kontrol edip kaydet.',
@@ -270,6 +289,57 @@ export default function AddRecipe() {
 
   // Yemek kitabi sayfasi / el yazisi / ekran goruntusu -> tarif (yapay zeka).
   // Anahtar yoksa fotograf tarifin kapagi olur, gerisi elle yazilir.
+  // GALERIDEN VIDEO: Instagram videoyu vermezse en kesin yol. Reel telefonun
+  // ekran kaydiyla (sesli) kaydedilir, buradan secilir; yapay zeka izler.
+  const videodan = async (f: File) => {
+    setHata('')
+    if (!aiVar) {
+      setHata('Videodan tarif çıkarmak için Ayarlar’dan Gemini (ücretsiz) ya da Claude anahtarı gir.')
+      return
+    }
+    const parca: VideoParcalari = { baslik: '', aciklama: '', altyazi: '', konusma: '', kareler: [] }
+    let kapak = ''
+    try {
+      if (saglayici() === 'gemini' && f.size <= 18 * 1024 * 1024) {
+        setYukleniyor('Video hazırlanıyor…')
+        const b64 = await new Promise<string>((res, rej) => {
+          const fr = new FileReader()
+          fr.onload = () => res(String(fr.result).split(',')[1] ?? '')
+          fr.onerror = () => rej(new Error('Video okunamadı.'))
+          fr.readAsDataURL(f)
+        })
+        parca.video = { mime: f.type && f.type.startsWith('video/') ? f.type : 'video/mp4', data: b64 }
+        kapak = (await kareler(f, 2).catch(() => ({ kareler: [] as string[] }))).kareler[1] ?? ''
+      } else {
+        setYukleniyor('Videodan kareler alınıyor…')
+        const k = await kareler(f, 8)
+        parca.kareler = k.kareler
+        kapak = k.kareler[1] ?? ''
+        const model = sesModeli()
+        if (model !== 'kapali') parca.konusma = await konusmayiYaziyaCevir(f, model, setYukleniyor).catch(() => '')
+      }
+      setYukleniyor(`${aiAdi()} videoyu izliyor…`)
+      const ai = await aiVideodan(parca)
+      const d: LzDraft = {
+        title: ai.title ?? '',
+        photo: kapak,
+        sourceUrl: '',
+        platform: 'manual',
+        author: '',
+        servings: ai.servings ?? 0,
+        minutes: ai.minutes ?? 0,
+        ingredients: ai.ingredients ?? [],
+        steps: ai.steps ?? [],
+        notes: ai.notes ?? '',
+        tags: ai.tags ?? []
+      }
+      await taslakAc(d, 'Videodan çıkarıldı; kontrol edip kaydet. İstersen “Kaynak link”e Instagram linkini yapıştır.')
+    } catch (e) {
+      setHata((e as Error).message || 'Video işlenemedi.')
+      setYukleniyor('')
+    }
+  }
+
   const fotograftan = async (f: File) => {
     setHata('')
     setYukleniyor('Fotoğraf hazırlanıyor…')
@@ -307,8 +377,8 @@ export default function AddRecipe() {
     <div>
       <Header title="Tarif ekle" back />
       <div className="px-4 space-y-4 pb-6">
-        <div className="grid grid-cols-3 bg-[#f3ebe2] dark:bg-[#221d1a] rounded-full p-1">
-          {(['link', 'metin', 'foto'] as const).map((m) => (
+        <div className="grid grid-cols-4 bg-[#f3ebe2] dark:bg-[#221d1a] rounded-full p-1">
+          {(['link', 'video', 'metin', 'foto'] as const).map((m) => (
             <button
               key={m}
               onClick={() => {
@@ -317,7 +387,7 @@ export default function AddRecipe() {
               }}
               className={`py-2 rounded-full text-sm font-semibold transition ${mod === m ? 'bg-lz-600 text-white' : 'text-[#8c7d72] dark:text-[#a3968b]'}`}
             >
-              {m === 'link' ? 'Linkten' : m === 'metin' ? 'Metinden' : 'Fotoğraftan'}
+              {m === 'link' ? 'Link' : m === 'video' ? 'Video' : m === 'metin' ? 'Metin' : 'Fotoğraf'}
             </button>
           ))}
         </div>
@@ -351,6 +421,29 @@ export default function AddRecipe() {
             <button className="lz-btn-primary w-full" disabled={!!yukleniyor || !link.trim()} onClick={() => void linktenGetir()}>
               {yukleniyor || 'Tarifi getir'}
             </button>
+          </div>
+        ) : mod === 'video' ? (
+          <div className="lz-card p-4 space-y-3">
+            <div className={`font-semibold ${T_BASLIK}`}>Videodan tarif ekle</div>
+            <p className={`text-[13px] ${T_SOLUK}`}>
+              Link videoyu vermezse en kesin yol bu. Reel’i telefonun <b>ekran kaydı</b>yla sesli kaydet (bildirim panelinden “Ekran kaydedici”, “Medya
+              sesleri” seçili olsun), sonra buradan seç. Yapay zeka videoyu izleyip dinler.
+            </p>
+            <input
+              ref={videoGiris}
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (f) void videodan(f)
+              }}
+            />
+            <button className="lz-btn-primary w-full" disabled={!!yukleniyor} onClick={() => videoGiris.current?.click()}>
+              {yukleniyor || '🎬 Galeriden video seç'}
+            </button>
+            {!aiVar && <p className={`text-[12px] ${T_SOLUK}`}>Bunun için Ayarlar’dan Gemini (ücretsiz) ya da Claude anahtarı gir.</p>}
           </div>
         ) : mod === 'foto' ? (
           <div className="lz-card p-4 space-y-3">

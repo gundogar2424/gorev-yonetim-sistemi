@@ -300,7 +300,10 @@ export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
     text:
       bolumler.join('\n\n') +
       '\n\nBu kaynakları birleştirerek videodaki tarifi çıkar. Kaynaklar çelişirse videoda söylenen/yazan miktarı esas al. ' +
-      'Otomatik yazıya çevirideki bozuk kelimeleri yemek bağlamına göre düzelt (ör. "su bar dağı" → "su bardağı").'
+      'Otomatik yazıya çevirideki bozuk kelimeleri yemek bağlamına göre düzelt (ör. "su bar dağı" → "su bardağı"). ' +
+      'ÇOK ÖNEMLİ: Malzemeleri YALNIZCA bu kaynaklarda gördüğün, duyduğun ya da okuduğun bilgilerden yaz. Yemeğin adından ' +
+      'yola çıkarak malzeme TAHMİN ETME, benzer bir tarif UYDURMA (ör. başlık "köfte" diye kıyma ekleme). Kaynaklarda malzeme ' +
+      'yoksa ingredients listesini boş bırak ve notes alanına "Videoda malzemeler anlaşılamadı." yaz.'
   })
   const v = await jsonCagri<TarifJson>(AYIKLA_SISTEM, icerik, SEMA, 5000)
   return tarifeCevir(v)

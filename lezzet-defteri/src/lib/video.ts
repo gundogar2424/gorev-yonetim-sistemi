@@ -65,7 +65,56 @@ export function videoAdresiBul(html: string, platform: LzPlatform): string {
     const m = html.match(d)
     if (m) adaylar.push(jsonKacisCoz(m[1]))
   }
+  // Instagram gomme sayfasi veriyi bir JSON dizesinin ICINDE, iki kez kacisli
+  // tutar: \"video_url\":\"https:\\/\\/...\". Once bir kat kacis cozulur.
+  if (!adaylar.some((a) => /^https:\/\//.test(a)) && /\\"video_url\\"/.test(html)) {
+    const m = html.match(/\\"video_url\\":\\"(.*?)\\"/)
+    if (m) adaylar.push(jsonKacisCoz(jsonKacisCoz(m[1])))
+  }
   return adaylar.find((a) => /^https:\/\//.test(a)) ?? ''
+}
+
+// --- Instagram herkese acik veri servisi ----------------------------------------
+// Sayfa ve gomme sayfasi video adresini vermezse Instagram'in web sitesinin
+// kendi kullandigi GraphQL sorgusu denenir (girissiz, herkese acik gonderiler).
+export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string }> {
+  const bos = { videoUrl: '', aciklama: '', kapak: '' }
+  const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+  if (!Capacitor.isNativePlatform()) return bos
+  const lsd = 'AVqbxe3J_YA'
+  const form = new URLSearchParams({
+    av: '0',
+    lsd,
+    doc_id: '8845758582119845',
+    variables: JSON.stringify({ shortcode: kod, fetch_tagged_user_count: null, hoisted_comment_id: null, hoisted_reply_id: null })
+  }).toString()
+  try {
+    const r = await CapacitorHttp.post({
+      url: 'https://www.instagram.com/graphql/query',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36',
+        'X-IG-App-ID': '936619743392459',
+        'X-FB-LSD': lsd,
+        'X-ASBD-ID': '129477',
+        'Sec-Fetch-Site': 'same-origin',
+        Referer: `https://www.instagram.com/reel/${kod}/`
+      },
+      data: form
+    })
+    const j = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as {
+      data?: { xdt_shortcode_media?: { video_url?: string; display_url?: string; edge_media_to_caption?: { edges?: { node?: { text?: string } }[] } } }
+    }
+    const m = j?.data?.xdt_shortcode_media
+    if (!m) return bos
+    return {
+      videoUrl: m.video_url ?? '',
+      aciklama: m.edge_media_to_caption?.edges?.[0]?.node?.text ?? '',
+      kapak: m.display_url ?? ''
+    }
+  } catch {
+    return bos
+  }
 }
 
 // --- YouTube ----------------------------------------------------------------
