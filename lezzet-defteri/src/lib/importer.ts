@@ -46,6 +46,7 @@ export interface LinkSonucu {
   hamMetin: string
   yapilandirilmis: boolean // JSON-LD'den geldi (dogrudan kullanilabilir)
   not: string // Kullaniciya gosterilecek kisa bilgi (neden eksik kaldi vb.)
+  html: string // Indirilen sayfa (video adresi / YouTube altyazisi icin)
 }
 
 function bosTaslak(url: string): LzDraft {
@@ -64,7 +65,7 @@ function bosTaslak(url: string): LzDraft {
   }
 }
 
-async function metinIndir(url: string, ua: string): Promise<string> {
+export async function metinIndir(url: string, ua: string): Promise<string> {
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
   if (Capacitor.isNativePlatform()) {
     const r = await CapacitorHttp.get({
@@ -129,6 +130,7 @@ export async function linktenTarif(url: string): Promise<LinkSonucu> {
       draft,
       hamMetin: '',
       yapilandirilmis: false,
+      html: '',
       not: await webMi()
         ? 'Tarayıcı bu sayfayı okumaya izin vermedi. Uygulamanın telefon (APK) sürümünde linkler okunur; şimdilik paylaşımın açıklamasını kopyalayıp “Metinden ekle”yi kullan.'
         : 'Sayfa açılamadı. İnternet bağlantını kontrol et ya da paylaşımın açıklamasını kopyalayıp “Metinden ekle”yi kullan.'
@@ -141,7 +143,7 @@ export async function linktenTarif(url: string): Promise<LinkSonucu> {
     const d = { ...draft, ...ld, sourceUrl: url, platform }
     if (!d.photo) d.photo = draft.photo || meta(html, 'og:image')
     if (!d.author) d.author = draft.author || meta(html, 'og:site_name')
-    return { draft: d, hamMetin: '', yapilandirilmis: true, not: '' }
+    return { draft: d, hamMetin: '', yapilandirilmis: true, not: '', html }
   }
 
   // 2) Sosyal medya aciklamasi
@@ -159,6 +161,7 @@ export async function linktenTarif(url: string): Promise<LinkSonucu> {
     draft,
     hamMetin: ham,
     yapilandirilmis: false,
+    html,
     not: ham.length < 40 ? 'Paylaşımın açıklaması okunamadı; malzemeleri kendin ekleyebilir ya da açıklamayı kopyalayıp “Metinden ekle”yi kullanabilirsin.' : ''
   }
 }

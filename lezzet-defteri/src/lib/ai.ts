@@ -187,6 +187,38 @@ export async function aiFotograftan(dataUri: string): Promise<Partial<LzDraft>> 
   return tarifeCevir(v)
 }
 
+// VIDEODAN TARIF: aciklama + altyazi + konusma dokumu + ekrandan kareler birlikte.
+export interface VideoParcalari {
+  baslik: string
+  aciklama: string
+  altyazi: string // YouTube altyazisi
+  konusma: string // Videodaki konusmanin yaziya dokumu (cihazda)
+  kareler: string[] // data:image/jpeg;base64,...
+}
+export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
+  const icerik: unknown[] = []
+  for (const k of p.kareler.slice(0, 10)) {
+    const m = k.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
+    if (m) icerik.push({ type: 'image', source: { type: 'base64', media_type: m[1], data: m[2] } })
+  }
+  const bolumler = [
+    p.baslik && `Paylaşım başlığı: ${p.baslik}`,
+    p.aciklama && `Paylaşımın açıklaması:\n"""\n${p.aciklama.slice(0, 8000)}\n"""`,
+    p.altyazi && `Videonun altyazısı:\n"""\n${p.altyazi.slice(0, 15000)}\n"""`,
+    p.konusma && `Videoda söylenenler (otomatik yazıya çevrildi, hatalı kelimeler olabilir):\n"""\n${p.konusma.slice(0, 15000)}\n"""`,
+    p.kareler.length && `Yukarıdaki ${Math.min(10, p.kareler.length)} görsel videodan eşit aralıklarla alınmış karelerdir; ekrandaki yazılar (malzeme listesi, ölçüler) ve görünen malzemeler için bunlara bak.`
+  ].filter(Boolean)
+  icerik.push({
+    type: 'text',
+    text:
+      bolumler.join('\n\n') +
+      '\n\nBu kaynakları birleştirerek videodaki tarifi çıkar. Kaynaklar çelişirse videoda söylenen/yazan miktarı esas al. ' +
+      'Otomatik yazıya çevirideki bozuk kelimeleri yemek bağlamına göre düzelt (ör. "su bar dağı" → "su bardağı").'
+  })
+  const v = await jsonCagri<TarifJson>(AYIKLA_SISTEM, icerik, SEMA, 5000)
+  return tarifeCevir(v)
+}
+
 // NE PISIRSEM: istege / dolaptaki malzemelere gore aileye uygun yeni tarif uretir.
 export async function aiTarifUret(istekMetni: string, profil: string): Promise<Partial<LzDraft>> {
   const v = await jsonCagri<TarifJson>(

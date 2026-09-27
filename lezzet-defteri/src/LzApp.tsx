@@ -1,4 +1,5 @@
-import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Icon, type IconName } from './components/ui'
 import Recipes from './pages/Recipes'
 import AddRecipe from './pages/AddRecipe'
@@ -20,6 +21,17 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
 export default function LzApp() {
   // Pisirme modu tam ekran: alt menu gizlenir (buyuk Geri/Sonraki dugmeleri ortulmesin)
   const pisirme = useLocation().pathname.startsWith('/pisir')
+  const navigate = useNavigate()
+
+  // Android "Paylaş" menusu: baska uygulamadan (Instagram, TikTok...) paylasilan
+  // link/metin yerel katmandan bu isleve verilir; Tarif ekle ekrani acilip islenir.
+  useEffect(() => {
+    const w = window as unknown as { __lzPaylasim?: (t: string) => void }
+    w.__lzPaylasim = (t: string) => navigate('/ekle', { state: { paylasim: t, zaman: Date.now() } })
+    return () => {
+      delete w.__lzPaylasim
+    }
+  }, [navigate])
   return (
     <div className="lz-app min-h-full flex flex-col max-w-xl mx-auto">
       <main className="flex-1" style={{ paddingBottom: pisirme ? 0 : 'calc(5rem + env(safe-area-inset-bottom))' }}>

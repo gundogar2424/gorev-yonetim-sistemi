@@ -4,6 +4,7 @@ import { VARSAYILAN_MODEL, anahtarTest, apiAnahtari, apiAnahtariKaydet, genelPro
 import { downloadBackup, restoreBackup } from '../lib/backup'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
+import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
 
 export default function LzSettings() {
   const [anahtar, setAnahtar] = useState(apiAnahtari())
@@ -13,6 +14,7 @@ export default function LzSettings() {
   const [mesaj, setMesaj] = useState('')
   const [profil, setProfil] = useState(genelProfil())
   const [profilKayit, setProfilKayit] = useState(false)
+  const [ses, setSes] = useState<SesModeli>(sesModeli())
   const dosya = useRef<HTMLInputElement>(null)
 
   return (
@@ -60,6 +62,31 @@ export default function LzSettings() {
             </button>
           </div>
           {test && <p className={`text-[13px] ${T_GOVDE}`}>{test}</p>}
+        </section>
+
+        <section className="lz-card p-4 space-y-3">
+          <div className={`font-semibold ${T_BASLIK}`}>🎬 Videodaki konuşma</div>
+          <p className={`text-[13px] ${T_SOLUK}`}>
+            Tarif açıklamada yazmıyorsa videoda söylenenler telefonun içinde yazıya çevrilir (ses hiçbir yere gönderilmez). Model ilk kullanımda bir
+            kez indirilir, sonra internetsiz çalışır.
+          </p>
+          <div className="space-y-2">
+            {SES_MODELLERI.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  setSes(m.id)
+                  sesModeliKaydet(m.id)
+                }}
+                className={`w-full text-left rounded-2xl p-3 border transition ${
+                  ses === m.id ? 'border-lz-500 bg-lz-50 dark:bg-[#3a1d16]' : 'border-[#efe6dc] dark:border-[#2f2824]'
+                }`}
+              >
+                <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>{m.ad}</span>
+                <span className={`block text-[12px] ${T_SOLUK}`}>{m.aciklama}</span>
+              </button>
+            ))}
+          </div>
         </section>
 
         <section className="lz-card p-4 space-y-3">

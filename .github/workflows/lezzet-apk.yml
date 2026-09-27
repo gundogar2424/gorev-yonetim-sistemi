@@ -31,7 +31,8 @@ jobs:
           cache-dependency-path: lezzet-defteri/package-lock.json
 
       - name: Bağımlılıklar
-        run: npm ci
+        # onnxruntime-node (sunucu parcasi) uygulamada kullanilmaz; kurulum betigi atlanir
+        run: npm ci --ignore-scripts
 
       - name: Web derlemesi
         run: npm run build
@@ -54,6 +55,60 @@ jobs:
 
       - name: Web varlıklarını senkronla
         run: npx cap sync android
+
+      - name: Android "Paylaş" menüsü (Instagram/TikTok'tan tek dokunuşla kaydet)
+        run: |
+          # 1) Uygulama, baska uygulamalarin "Paylas" listesinde gorunsun (duz metin/link)
+          f=android/app/src/main/AndroidManifest.xml
+          grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter>\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
+          grep -n -A4 "action.SEND" "$f"
+          # 2) Paylasilan metni web katmanina ver (sayfa hazir olana kadar tekrar dener)
+          d=android/app/src/main/java/com/lezzet/defteri
+          mkdir -p "$d"
+          cat > "$d/MainActivity.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.content.Intent;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import com.getcapacitor.BridgeActivity;
+          import org.json.JSONObject;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  paylasimiIsle(getIntent());
+              }
+
+              @Override
+              protected void onNewIntent(Intent intent) {
+                  super.onNewIntent(intent);
+                  setIntent(intent);
+                  paylasimiIsle(intent);
+              }
+
+              private void paylasimiIsle(Intent intent) {
+                  if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
+                  String metin = intent.getStringExtra(Intent.EXTRA_TEXT);
+                  if (metin == null || metin.trim().isEmpty()) return;
+                  intent.setAction(Intent.ACTION_MAIN); // ayni paylasim iki kez islenmesin
+                  final String js = "(function(){if(typeof window.__lzPaylasim==='function'){window.__lzPaylasim("
+                      + JSONObject.quote(metin) + ");return 'ok'}return 'bekle'})()";
+                  dene(js, 0);
+              }
+
+              private void dene(final String js, final int sayac) {
+                  if (getBridge() == null || getBridge().getWebView() == null) return;
+                  final WebView wv = getBridge().getWebView();
+                  wv.postDelayed(() -> wv.evaluateJavascript(js, sonuc -> {
+                      if (sonuc != null && sonuc.contains("bekle") && sayac < 40) dene(js, sayac + 1);
+                  }), sayac == 0 ? 300 : 500);
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/MainActivity.java"
+          head -5 "$d/MainActivity.java"
 
       - name: Uygulama simgesi
         run: npx @capacitor/assets generate --assetPath assets --android --iconBackgroundColor '#fbf7f2' --iconBackgroundColorDark '#fbf7f2'

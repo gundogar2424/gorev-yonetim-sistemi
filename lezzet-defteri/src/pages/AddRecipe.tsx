@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
-import { linkAyikla, linktenTarif, platformBul } from '../lib/importer'
+import { linkAyikla, linktenTarif, metinIndir, platformBul, type LinkSonucu } from '../lib/importer'
 import { metniAyristir } from '../lib/parse'
-import { aiFotograftan, aiIleAyikla, apiAnahtari } from '../lib/ai'
+import { aiFotograftan, aiIleAyikla, aiVideodan, apiAnahtari, type VideoParcalari } from '../lib/ai'
+import { kareler, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from '../lib/video'
 import { fotoOku, uzaktanFotoIndir } from '../lib/image'
 import type { LzDraft } from '../types'
 
@@ -32,15 +33,16 @@ export default function AddRecipe() {
   // Taslagi hazirlayip duzenleme ekranina gecer. Fotograf bir https adresiyse
   // (paylasim kapak gorseli) bir kez indirilir: sosyal medya gorsel adresleri
   // bir sure sonra gecersiz oluyor, cihazda saklanmasi gerekir.
-  const taslakAc = async (d: LzDraft, not = '') => {
+  const taslakAc = async (d: LzDraft, not = '', yedekKapak = '') => {
     if (/^https:\/\//i.test(d.photo)) {
       setYukleniyor('Fotoğraf alınıyor…')
       try {
         d.photo = await uzaktanFotoIndir(d.photo)
       } catch {
-        d.photo = ''
+        d.photo = yedekKapak // kapak inmezse videodan alinan kare
       }
     }
+    if (!d.photo && yedekKapak) d.photo = yedekKapak
     navigate('/yeni', { state: { draft: d, not } })
   }
 
@@ -68,9 +70,76 @@ export default function AddRecipe() {
     }
   }
 
-  const linktenGetir = async () => {
+  // Videonun kendisinden bilgi toplar: YouTube'da altyazi + tam aciklama;
+  // Instagram/TikTok/Facebook'ta video indirilir, kareleri alinir ve konusma
+  // cihazda yaziya cevrilir. Her adim ayri denenir; biri olmazsa digerleriyle devam.
+  const videoTopla = async (url: string, s: LinkSonucu): Promise<{ parca: VideoParcalari; kapak: string; notlar: string[] }> => {
+    const parca: VideoParcalari = { baslik: s.draft.title, aciklama: s.hamMetin, altyazi: '', konusma: '', kareler: [] }
+    const notlar: string[] = []
+    let kapak = ''
+    const ua = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
+
+    if (s.draft.platform === 'youtube') {
+      setYukleniyor('YouTube altyazısı okunuyor…')
+      const yt = await youtubeBilgi(s.html, (u) => metinIndir(u, ua)).catch(() => ({ aciklama: '', altyazi: '' }))
+      if (yt.aciklama.length > parca.aciklama.length) parca.aciklama = yt.aciklama
+      parca.altyazi = yt.altyazi
+      if (!yt.altyazi) notlar.push('videonun altyazısı yok ya da alınamadı')
+      return { parca, kapak, notlar }
+    }
+
+    let videoUrl = videoAdresiBul(s.html, s.draft.platform)
+    const kod = url.match(/instagram\.com\/(?:[^/]+\/)?(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/)?.[1]
+    if (!videoUrl && kod) {
+      // Instagram'in gomme sayfasi girissiz de video adresini ve aciklamayi verir
+      try {
+        const gomme = await metinIndir(`https://www.instagram.com/p/${kod}/embed/captioned/`, ua)
+        videoUrl = videoAdresiBul(gomme, 'instagram')
+        if (!parca.aciklama) {
+          const c = gomme.match(/class="Caption"[^>]*>([\s\S]*?)<div class="CaptionComments"/)
+          if (c) parca.aciklama = c[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').trim()
+        }
+      } catch {
+        /* gomme sayfasi da kapali */
+      }
+    }
+    if (!videoUrl) {
+      notlar.push('video dosyasına ulaşılamadı (paylaşım gizli olabilir ya da platform izin vermedi)')
+      return { parca, kapak, notlar }
+    }
+
+    let video: Blob
+    try {
+      setYukleniyor('Video indiriliyor…')
+      video = await videoIndir(videoUrl, url)
+    } catch (e) {
+      notlar.push((e as Error).message.toLocaleLowerCase('tr'))
+      return { parca, kapak, notlar }
+    }
+
+    try {
+      setYukleniyor('Videodan kareler alınıyor…')
+      const k = await kareler(video, 8)
+      parca.kareler = k.kareler
+      kapak = k.kareler[Math.min(1, k.kareler.length - 1)] ?? ''
+    } catch {
+      notlar.push('videodan kare alınamadı')
+    }
+
+    const model = sesModeli()
+    if (model !== 'kapali') {
+      try {
+        parca.konusma = await konusmayiYaziyaCevir(video, model, setYukleniyor)
+      } catch (e) {
+        notlar.push(`konuşma yazıya çevrilemedi (${(e as Error).message})`)
+      }
+    }
+    return { parca, kapak, notlar }
+  }
+
+  const linktenGetir = async (girdi = link) => {
     setHata('')
-    const url = linkAyikla(link)
+    const url = linkAyikla(girdi)
     if (!url) {
       setHata('Geçerli bir link yapıştır (https://…).')
       return
@@ -82,6 +151,37 @@ export default function AddRecipe() {
         await taslakAc(s.draft)
         return
       }
+
+      // Aciklamada tarif zaten tam yaziyorsa videoyu islemeye gerek yok (hizli yol)
+      const kural = s.hamMetin ? metniAyristir(s.hamMetin) : {}
+      const aciklamaYeterli = (kural.ingredients?.length ?? 0) >= 3 && (kural.steps?.length ?? 0) >= 1
+      const videoPlatformu = s.draft.platform !== 'web'
+
+      if (aiVar && videoPlatformu && !aciklamaYeterli && (s.html || s.hamMetin)) {
+        const { parca, kapak, notlar } = await videoTopla(url, s)
+        if (parca.altyazi || parca.konusma || parca.kareler.length || parca.aciklama) {
+          setYukleniyor('Yapay zeka tarifi hazırlıyor…')
+          try {
+            const ai = await aiVideodan(parca)
+            const kaynak = [
+              parca.aciklama && 'açıklama',
+              parca.altyazi && 'altyazı',
+              parca.konusma && 'videodaki konuşma',
+              parca.kareler.length && 'ekrandaki yazılar'
+            ].filter(Boolean)
+            const d: LzDraft = { ...s.draft, ...ai, title: ai.title || s.draft.title }
+            await taslakAc(
+              d,
+              `Tarif şunlardan çıkarıldı: ${kaynak.join(', ')}.` + (notlar.length ? ` Not: ${notlar.join('; ')}.` : '') + ' Kontrol edip kaydet.',
+              kapak
+            )
+            return
+          } catch (e) {
+            if (!s.hamMetin) throw e
+          }
+        }
+      }
+
       if (!s.hamMetin || s.hamMetin.length < 20) {
         if (!s.draft.title && !s.draft.photo) {
           setHata(s.not)
@@ -98,6 +198,24 @@ export default function AddRecipe() {
       setYukleniyor('')
     }
   }
+
+  // Instagram/TikTok'taki "Paylaş" menusunden gelindiyse link kendiliginden islenir
+  const paylasim = (useLocation().state as { paylasim?: string } | null)?.paylasim
+  const islenen = useRef('')
+  useEffect(() => {
+    if (!paylasim || islenen.current === paylasim) return
+    islenen.current = paylasim
+    const u = linkAyikla(paylasim)
+    if (u) {
+      setMod('link')
+      setLink(u)
+      void linktenGetir(u)
+    } else {
+      setMod('metin')
+      setMetin(paylasim)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paylasim])
 
   const metindenGetir = async () => {
     setHata('')
@@ -186,7 +304,8 @@ export default function AddRecipe() {
           <div className="lz-card p-4 space-y-3">
             <div className={`font-semibold ${T_BASLIK}`}>Sosyal medyadan tarif ekle</div>
             <p className={`text-[13px] ${T_SOLUK}`}>
-              Instagram, TikTok, YouTube, Pinterest paylaşımında “Paylaş → Bağlantıyı kopyala” de, buraya yapıştır. Tarif sitelerinin linkleri de olur.
+              Instagram, TikTok, YouTube, Pinterest paylaşımında “Paylaş → Lezzet Defteri”ni seç ya da bağlantıyı kopyalayıp buraya yapıştır.
+              Açıklamada tarif yazmıyorsa video da incelenir: söylenenler ve ekrandaki yazılar okunur.
             </p>
             <div className="flex gap-2">
               <input
