@@ -31,8 +31,11 @@ jobs:
           cache-dependency-path: lezzet-defteri/package-lock.json
 
       - name: Bağımlılıklar
-        # onnxruntime-node (sunucu parcasi) uygulamada kullanilmaz; kurulum betigi atlanir
-        run: npm ci --ignore-scripts
+        # onnxruntime-node (sunucu parcasi) uygulamada kullanilmaz; kurulum betikleri
+        # atlanir. Simge ureten sharp'in betigi ise gerekli: yalnizca o calistirilir.
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild sharp
 
       - name: Web derlemesi
         run: npm run build
