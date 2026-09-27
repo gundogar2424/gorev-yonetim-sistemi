@@ -378,7 +378,14 @@ const AYIKLA_SISTEM =
   'tavuğu "kıyma", kıymayı "tavuk" yapma, emin değilsen türü tahmin etme. ' +
   'Miktar yazmıyorsa yalnızca malzeme adını yaz. Emoji, hashtag, "kaydet/beğen/takip et" gibi ' +
   'ifadeleri at. Adımlar yoksa ama malzemeler varsa, malzemelerden anlaşılan yapılışı kısa ' +
-  've makul biçimde yaz. İçerik başka dildeyse Türkçeye çevir.'
+  've makul biçimde yaz. İçerik başka dildeyse Türkçeye çevir. ' +
+  'ÖLÇÜLER: Yabancı ölçüleri Türk mutfağında kullanılan ölçülere çevir ve orijinalini parantezde bırak. ' +
+  'Çeviri tablosu: 1 cup (240 ml) = 1 su bardağı + 2 yemek kaşığı (Türk su bardağı 200 ml; 1/2 cup ≈ yarım su bardağından biraz fazla); ' +
+  '1 tablespoon/tbsp (15 ml) = 1 yemek kaşığı; 1 teaspoon/tsp (5 ml) = 1 TATLI kaşığı (Türk çay kaşığı ~2,5 ml, tsp ile karıştırma: 1/2 tsp = 1 çay kaşığı); ' +
+  '1 oz = 28 gr; 1 lb = 450 gr; 1 fl oz = 30 ml; 1 stick tereyağı = 113 gr; 1 quart ≈ 950 ml; 1 inch = 2,5 cm; ' +
+  'fırın °F → °C (325°F=160°C, 350°F=180°C, 375°F=190°C, 400°F=200°C, 425°F=220°C, 450°F=230°C). ' +
+  'Unda, şekerde gibi kuru malzemelerde gram da verilmişse gramı kullan. Örnek: "1 su bardağı + 2 yemek kaşığı un (1 cup)", ' +
+  '"1 tatlı kaşığı kabartma tozu (1 tsp)", "Fırını 180°C’ye ısıt (350°F)". Zaten Türk ölçüsüyse olduğu gibi bırak.'
 
 export async function aiIleAyikla(metin: string, ipucuBaslik = ''): Promise<Partial<LzDraft>> {
   const v = await jsonCagri<TarifJson>(
