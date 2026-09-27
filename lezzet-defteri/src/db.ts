@@ -1,13 +1,14 @@
 // Lezzet Defteri icin AYRI bir Dexie (IndexedDB) veritabani: 'lezzet-defteri'.
 // Diger programlarin veritabanlarina dokunmaz.
 import Dexie, { type Table } from 'dexie'
-import type { LzDraft, LzMeal, LzPlan, LzRecipe, LzShopItem, LzTable } from './types'
+import type { LzDiyet, LzDraft, LzMeal, LzPlan, LzRecipe, LzShopItem, LzTable } from './types'
 
 export class LezzetDB extends Dexie {
   recipes!: Table<LzRecipe, number>
   sofralar!: Table<LzTable, number>
   plans!: Table<LzPlan, number>
   shopping!: Table<LzShopItem, number>
+  diyet!: Table<LzDiyet, number>
 
   constructor() {
     super('lezzet-defteri')
@@ -17,6 +18,8 @@ export class LezzetDB extends Dexie {
       plans: '++id, date, recipeId',
       shopping: '++id, done, recipeId, createdAt'
     })
+    // v2: diyetisyen plani (tek kayit, id = 1)
+    this.version(2).stores({ diyet: 'id' })
   }
 }
 

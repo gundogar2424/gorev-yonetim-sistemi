@@ -44,9 +44,14 @@ export default function Recipes() {
           </span>
         }
         right={
-          <Link to="/ne-pisirsem" className="lz-btn-soft px-3 py-2 text-[12.5px] whitespace-nowrap">
-            ✨ Ne pişirsem?
-          </Link>
+          <>
+            <Link to="/diyet" className="lz-btn-soft px-2.5 py-2 text-[15px]" aria-label="Diyetim">
+              🥗
+            </Link>
+            <Link to="/ne-pisirsem" className="lz-btn-soft px-3 py-2 text-[12.5px] whitespace-nowrap">
+              ✨ Ne pişirsem?
+            </Link>
+          </>
         }
       />
 

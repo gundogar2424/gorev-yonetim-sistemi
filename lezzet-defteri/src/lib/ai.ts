@@ -528,6 +528,153 @@ export async function aiThermomix(r: {
   }
 }
 
+// --- DIYET PLANI ---------------------------------------------------------------
+
+const BESIN_SEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['kalori', 'protein', 'karb', 'yag'],
+  properties: {
+    kalori: { type: 'integer', description: 'kcal' },
+    protein: { type: 'integer', description: 'gram' },
+    karb: { type: 'integer', description: 'gram' },
+    yag: { type: 'integer', description: 'gram' }
+  }
+}
+
+// Diyetisyenin planini (yazi ya da fotograf) ogunlere ayirir; her ogunun
+// kalori/makro hedefini plandan alir, yazmiyorsa icerikten tahmin eder.
+export async function aiDiyetOku(girdi: { metin?: string; foto?: string }): Promise<{
+  ogunler: import('../types').LzDiyetOgun[]
+  notlar: string
+  gunlukKalori: number
+}> {
+  const schema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['ogunler', 'notlar', 'gunluk_kalori'],
+    properties: {
+      ogunler: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['ad', 'icerik', 'hedef', 'plandan'],
+          properties: {
+            ad: { type: 'string', description: 'Kahvaltı, Ara öğün 1, Öğle, Ara öğün 2, Akşam, Gece…' },
+            icerik: { type: 'string', description: 'Plandaki içerik aynen (değişimler/porsiyonlar dahil)' },
+            hedef: BESIN_SEMA,
+            plandan: { type: 'boolean', description: 'Kalori/makro planda yazıyorsa true, tahmin ettiysen false' }
+          }
+        }
+      },
+      notlar: { type: 'string', description: 'Genel kurallar: su, yasak/serbest besinler, değişim listesi özeti' },
+      gunluk_kalori: { type: 'integer' }
+    }
+  }
+  const parcalar: Parca[] = []
+  const m = girdi.foto?.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
+  if (m) parcalar.push({ type: 'image', mime: m[1], data: m[2] })
+  parcalar.push({
+    type: 'text',
+    text: (girdi.metin ? `Diyet planı:\n"""\n${girdi.metin.slice(0, 12000)}\n"""\n\n` : '') + 'Bu diyet planını öğünlere ayır.'
+  })
+  const v = await jsonCagri<{
+    ogunler: { ad: string; icerik: string; hedef: import('../types').LzBesin; plandan: boolean }[]
+    notlar: string
+    gunluk_kalori: number
+  }>(
+    'Sen bir diyetisyen asistanısın. Diyetisyenin verdiği beslenme planını (yazı ya da fotoğraf) öğünlere ayırırsın. ' +
+      'Her öğünün içeriğini plandaki gibi, eksiksiz yaz. Planda öğünün kalorisi/makroları yazıyorsa onları kullan (plandan=true); ' +
+      'yazmıyorsa içerikteki besinler ve porsiyonlardan (Türkiye besin değerleri, değişim sistemi) gerçekçi tahmin et (plandan=false). ' +
+      'Planda birden fazla gün/seçenek varsa her öğün için tipik bir günü esas al ve seçenekleri içerikte "ya da" ile yaz. ' +
+      'Plan dışında bilgi uydurma.',
+    parcalar,
+    schema,
+    6000
+  )
+  const ogunler = (v.ogunler ?? [])
+    .filter((o) => o.ad && o.icerik)
+    .map((o) => ({ ad: o.ad.trim(), icerik: o.icerik.trim(), hedef: o.hedef, tahmini: !o.plandan }))
+  if (!ogunler.length) throw new Error('Planda öğün bulunamadı. Daha net bir fotoğraf ya da yazı dene.')
+  return {
+    ogunler,
+    notlar: v.notlar ?? '',
+    gunlukKalori: v.gunluk_kalori || ogunler.reduce((t, o) => t + (o.hedef?.kalori ?? 0), 0)
+  }
+}
+
+export interface OgunUyum {
+  tarifId: number
+  porsiyonBesin: import('../types').LzBesin // 1 porsiyon
+  carpan: number // Onerilen porsiyon (1 = tam, 0.5 = yarim)
+  durum: 'uygun' | 'ayarla' | 'uygun_degil'
+  aciklama: string
+}
+
+// Defterdeki tarifleri bir ogunun hedefiyle karsilastirir.
+export async function aiOgunEslestir(
+  ogun: import('../types').LzDiyetOgun,
+  genelNot: string,
+  tarifler: { id: number; baslik: string; porsiyon: number; malzemeler: string[]; bilinen?: import('../types').LzBesin }[]
+): Promise<OgunUyum[]> {
+  const schema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['sonuclar'],
+    properties: {
+      sonuclar: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['tarif_id', 'porsiyon_besin', 'carpan', 'durum', 'aciklama'],
+          properties: {
+            tarif_id: { type: 'integer' },
+            porsiyon_besin: BESIN_SEMA,
+            carpan: { type: 'number', description: 'Önerilen porsiyon katsayısı: 1, 0.75, 0.5, 0.33, 1.5…' },
+            durum: { type: 'string', enum: ['uygun', 'ayarla', 'uygun_degil'] },
+            aciklama: { type: 'string', description: 'Tek kısa cümle: neden uygun/uygun değil, ne değiştirilmeli' }
+          }
+        }
+      }
+    }
+  }
+  const liste = tarifler
+    .map(
+      (t) =>
+        `#${t.id} ${t.baslik} (${t.porsiyon || '?'} kişilik)${
+          t.bilinen ? ` [1 porsiyon ≈ ${t.bilinen.kalori} kcal, P${t.bilinen.protein} K${t.bilinen.karb} Y${t.bilinen.yag}]` : ''
+        }: ${t.malzemeler.join(', ').slice(0, 350)}`
+    )
+    .join('\n')
+  const v = await jsonCagri<{
+    sonuclar: { tarif_id: number; porsiyon_besin: import('../types').LzBesin; carpan: number; durum: OgunUyum['durum']; aciklama: string }[]
+  }>(
+    'Sen bir diyetisyen asistanısın. Kullanıcının diyetisyeninin verdiği öğün hedefine, tarif defterindeki hangi tariflerin uyduğunu ' +
+      'değerlendirirsin. Her tarif için 1 porsiyonun (tarifteki kişi sayısına bölünmüş) kalori ve makrolarını gerçekçi tahmin et ' +
+      '(köşeli parantezde bilinen değer verildiyse onu kullan). Sonra öğün hedefine göre önerilen porsiyon katsayısını (carpan) belirle: ' +
+      'hedefe ±%15 içinde kalıyorsa durum "uygun"; porsiyonu değiştirerek (0.5–1.5) hedefe yaklaşıyor ve öğünün türüne uyuyorsa "ayarla"; ' +
+      'öğünün türüne uymuyorsa (ör. kahvaltıya ağır tatlı), makro dengesi çok farklıysa ya da planın kurallarına aykırıysa "uygun_degil". ' +
+      'Öğün türünü dikkate al (kahvaltıya kahvaltılık, ara öğüne hafif). Açıklama Türkçe, tek kısa cümle. Listede verilen her tarifi değerlendir.',
+    `Öğün: ${ogun.ad}\nPlandaki içerik: ${ogun.icerik}\nHedef: ${ogun.hedef.kalori} kcal, protein ${ogun.hedef.protein} g, karbonhidrat ${
+      ogun.hedef.karb
+    } g, yağ ${ogun.hedef.yag} g${genelNot ? `\nPlanın genel kuralları: ${genelNot.slice(0, 1500)}` : ''}\n\nTarifler:\n${liste}`,
+    schema,
+    8000
+  )
+  const gecerli = new Set(tarifler.map((t) => t.id))
+  return (v.sonuclar ?? [])
+    .filter((x) => gecerli.has(x.tarif_id) && x.porsiyon_besin)
+    .map((x) => ({
+      tarifId: x.tarif_id,
+      porsiyonBesin: { ...x.porsiyon_besin, hesap: Date.now() },
+      carpan: Math.min(3, Math.max(0.25, Number(x.carpan) || 1)),
+      durum: x.durum,
+      aciklama: x.aciklama
+    }))
+}
+
 // NE PISIRSEM: istege / dolaptaki malzemelere gore aileye uygun yeni tarif uretir.
 export async function aiTarifUret(istekMetni: string, profil: string): Promise<Partial<LzDraft>> {
   const v = await jsonCagri<TarifJson>(

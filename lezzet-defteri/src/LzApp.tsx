@@ -13,6 +13,8 @@ import NePisirsem from './pages/NePisirsem'
 import Thermomix from './pages/Thermomix'
 import TmDetail from './pages/TmDetail'
 import TmCook from './pages/TmCook'
+import Diyetim from './pages/Diyetim'
+import DiyetOgun from './pages/DiyetOgun'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Tariflerim', icon: 'book', end: true },
@@ -51,6 +53,8 @@ export default function LzApp() {
           <Route path="/thermomix" element={<Thermomix />} />
           <Route path="/thermomix/:id" element={<TmDetail />} />
           <Route path="/thermomix/:id/pisir" element={<TmCook />} />
+          <Route path="/diyet" element={<Diyetim />} />
+          <Route path="/diyet/:i" element={<DiyetOgun />} />
           <Route path="/hafta" element={<Week />} />
           <Route path="/alisveris" element={<Shopping />} />
           <Route path="/ayarlar" element={<LzSettings />} />

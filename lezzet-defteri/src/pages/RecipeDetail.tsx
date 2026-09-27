@@ -7,6 +7,7 @@ import { Icon, PlatformLabel, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, s
 import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
+import { BesinSatiri } from './Diyetim'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -103,6 +104,12 @@ export default function RecipeDetail() {
             )}
             {r.cookCount > 0 && <span className="text-[12px] text-lz-600">{r.cookCount} kez pişirildi</span>}
           </div>
+          {r.besin && (
+            <div className="mt-3">
+              <div className={`text-[11.5px] mb-1 ${T_SOLUK}`}>1 porsiyon (tahmini)</div>
+              <BesinSatiri b={r.besin} kucuk />
+            </div>
+          )}
           {r.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {r.tags.map((t) => (

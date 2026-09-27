@@ -20,6 +20,7 @@ export interface LzRecipe {
   tags: string[] // Akşam Yemeği, Tatlı, Pratik...
   tableIds: number[] // Hangi sofralara ait (Kocam, Çocuklar...)
   tm?: TmSurum // Thermomix TM7 uyarlamasi (varsa)
+  besin?: LzBesin // 1 porsiyonun tahmini besin degeri (yapay zeka, onbellek)
   favorite: 0 | 1 // Dexie boolean indeksleyemez
   cookCount: number
   lastCookedAt: number
@@ -70,4 +71,29 @@ export interface LzDraft {
   steps: string[]
   notes: string
   tags: string[]
+}
+
+// Besin degeri (1 porsiyon ya da bir ogun hedefi). Yapay zeka tahminidir.
+export interface LzBesin {
+  kalori: number // kcal
+  protein: number // g
+  karb: number // g
+  yag: number // g
+  hesap?: number // Ne zaman hesaplandi
+}
+
+// Diyetisyenin verdigi plandaki bir ogun
+export interface LzDiyetOgun {
+  ad: string // Kahvaltı, Ara öğün 1, Öğle, Akşam...
+  icerik: string // Diyetisyenin yazdigi hali ("1 yumurta, 2 dilim tam buğday ekmeği...")
+  hedef: LzBesin // Ogun hedefi (plan yazmiyorsa tahmin)
+  tahmini: boolean // Hedef plandan mi alindi, tahmin mi edildi
+}
+
+export interface LzDiyet {
+  id?: number // Her zaman 1
+  ogunler: LzDiyetOgun[]
+  notlar: string // Genel kurallar (su, yasaklar...)
+  gunlukKalori: number
+  guncelleme: number
 }

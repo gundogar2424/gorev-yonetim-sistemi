@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzDraft, LzTable } from '../types'
@@ -20,7 +20,8 @@ const ORNEKLER = [
 export default function NePisirsem() {
   const navigate = useNavigate()
   const sofralar = useLiveQuery(() => lzDb.sofralar.orderBy('name').toArray(), [], [] as LzTable[]) ?? []
-  const [istek, setIstek] = useState('')
+  const gelen = (useLocation().state as { istek?: string } | null)?.istek
+  const [istek, setIstek] = useState(gelen ?? '')
   const [kimler, setKimler] = useState<number[] | null>(null) // null = hepsi
   const [yukleniyor, setYukleniyor] = useState(false)
   const [hata, setHata] = useState('')

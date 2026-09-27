@@ -53,6 +53,14 @@ export default function Week() {
       />
 
       <div className="px-4 space-y-2.5 pb-6">
+        <Link to="/diyet" className="lz-card p-3.5 flex items-center gap-3">
+          <span className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-[#10261e] flex items-center justify-center text-xl">🥗</span>
+          <span className="flex-1">
+            <span className={`block font-semibold ${T_BASLIK}`}>Diyetim</span>
+            <span className={`block text-[12px] ${T_SOLUK}`}>Diyetisyen planın · öğüne uygun tarif bul</span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
         <div className={`grid gap-2 ${planlar.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <button className="lz-btn-primary text-sm px-3" onClick={() => setSihirAc(true)}>
             ✨ Sihirli menü

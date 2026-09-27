@@ -241,7 +241,7 @@ export default function LzSettings() {
             className="lz-btn-danger w-full text-sm"
             onClick={async () => {
               if (!confirm('Tüm tarifler, sofralar, plan ve alışveriş listesi silinsin mi? Geri alınamaz.')) return
-              await Promise.all([lzDb.recipes.clear(), lzDb.sofralar.clear(), lzDb.plans.clear(), lzDb.shopping.clear()])
+              await Promise.all([lzDb.recipes.clear(), lzDb.sofralar.clear(), lzDb.plans.clear(), lzDb.shopping.clear(), lzDb.diyet.clear()])
               setMesaj('Tüm veriler silindi.')
             }}
           >
