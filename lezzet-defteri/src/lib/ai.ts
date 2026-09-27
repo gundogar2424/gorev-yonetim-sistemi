@@ -206,7 +206,7 @@ async function geminiGonder(yol: string, body: unknown): Promise<{ status: numbe
 
 // Secilen model bu anahtarla yoksa (404) anahtarin erisebildigi modeller
 // listelenir ve en yeni "flash" modeli kendiliginden secilir.
-async function geminiModelBul(): Promise<string> {
+async function geminiModelBul(haric: string[] = [], liteDahil = false): Promise<string> {
   const anahtar = apiAnahtari()
   const dene = async (h: Record<string, string>, q: string) => {
     try {
@@ -220,7 +220,8 @@ async function geminiModelBul(): Promise<string> {
   const adlar = (j?.models ?? [])
     .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
     .map((m) => m.name.replace(/^models\//, ''))
-    .filter((n) => /flash/.test(n) && !/lite|image|tts|audio|live|embedding|thinking-exp/.test(n))
+    .filter((n) => /flash/.test(n) && !/image|tts|audio|live|embedding|thinking-exp/.test(n))
+    .filter((n) => (liteDahil ? true : !/lite/.test(n)) && !haric.includes(n))
   const surum = (n: string) => Number(n.match(/(\d+(?:\.\d+)?)/)?.[1] ?? 0)
   adlar.sort((x, y) => surum(y) - surum(x) || Number(/preview|exp/.test(x)) - Number(/preview|exp/.test(y)))
   return adlar[0] ?? ''
@@ -249,6 +250,24 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   let model = oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelAdi()
   const cagir = (semaIle: boolean) => geminiGonder(`models/${encodeURIComponent(model)}:generateContent`, govde(semaIle))
   let r = await cagir(true)
+  // "Su an yogun" (503/500/429-kaynak tukendi): biraz bekleyip tekrar dene,
+  // olmazsa baska bir flash modeline gec (yogunluk genelde tek modelde olur).
+  const yogun = (x: { status: number; govde: string }) =>
+    x.status === 503 || x.status === 500 || x.status === 529 || (x.status === 429 && /overload|high demand|RESOURCE_EXHAUSTED.*model/i.test(x.govde))
+  for (let i = 0; i < 2 && yogun(r); i++) {
+    await new Promise((res) => setTimeout(res, 2000 * (i + 1)))
+    r = await cagir(true)
+  }
+  if (yogun(r)) {
+    const denenen = [model]
+    for (let i = 0; i < 2 && yogun(r); i++) {
+      const baska = await geminiModelBul(denenen, true)
+      if (!baska) break
+      denenen.push(baska)
+      model = baska
+      r = await cagir(true)
+    }
+  }
   if (r.status === 404) {
     const bulunan = await geminiModelBul()
     if (bulunan && bulunan !== model) {
@@ -261,6 +280,7 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   if (r.status === 400 && /responseJsonSchema|response_json_schema|schema/i.test(r.govde) && !anahtarHatasi(r)) {
     r = await cagir(false)
   }
+  if (r.ok) sonGeminiModeli = model
   if (!r.ok) {
     let ayrinti = ''
     try {
@@ -282,8 +302,10 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   return jsonCoz<T>(text, aday.finishReason === 'MAX_TOKENS')
 }
 
+let sonGeminiModeli = ''
 // Hangi Gemini modelinin kullanildigi (Ayarlar'da gosterilir)
 export function geminiEtkinModel(): string {
+  if (sonGeminiModeli) return sonGeminiModeli
   return oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelOku('gemini')
 }
 
