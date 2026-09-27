@@ -165,3 +165,20 @@ jobs:
             lezzet-defteri/lezzet-defteri.apk
             lezzet-defteri/lezzet-defteri-apk.zip
           make_latest: false
+
+      - name: Deneme sürümü olarak yayınla (dal derlemeleri — doğrudan indirme linki)
+        if: github.ref != 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: lezzet-deneme
+          target_commitish: ${{ github.sha }}
+          name: Lezzet Defteri APK (deneme)
+          prerelease: true
+          body: |
+            Geliştirme dalından derlenen deneme sürümü (derleme ${{ github.run_number }}).
+            İndir, telefonda aç, "bilinmeyen kaynaklara izin ver" deyip kur.
+            Chrome APK indirmede takılırsa lezzet-defteri-apk.zip'i indirip içindeki .apk'yı kur.
+          files: |
+            lezzet-defteri/lezzet-defteri.apk
+            lezzet-defteri/lezzet-defteri-apk.zip
+          make_latest: false
