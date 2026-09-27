@@ -15,6 +15,8 @@ import TmDetail from './pages/TmDetail'
 import TmCook from './pages/TmCook'
 import Diyetim from './pages/Diyetim'
 import DiyetOgun from './pages/DiyetOgun'
+import Sira from './pages/Sira'
+import { siraBaslat, siraEkle, siraIsle } from './lib/sira'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Tariflerim', icon: 'book', end: true },
@@ -34,11 +36,23 @@ export default function LzApp() {
   // link/metin yerel katmandan bu isleve verilir; Tarif ekle ekrani acilip islenir.
   useEffect(() => {
     const w = window as unknown as { __lzPaylasim?: (t: string) => void }
-    w.__lzPaylasim = (t: string) => navigate('/ekle', { state: { paylasim: t, zaman: Date.now() } })
+    // Paylasimlar siraya girer: art arda gelenler tek tek islenir
+    w.__lzPaylasim = (t: string) => {
+      void siraEkle(t)
+      navigate('/sira')
+    }
     return () => {
       delete w.__lzPaylasim
     }
   }, [navigate])
+
+  // Acilista yarim kalan sirayi surdur; uygulama one gelince de kontrol et
+  useEffect(() => {
+    void siraBaslat()
+    const gorunur = () => document.visibilityState === 'visible' && void siraIsle()
+    document.addEventListener('visibilitychange', gorunur)
+    return () => document.removeEventListener('visibilitychange', gorunur)
+  }, [])
   return (
     <div className="lz-app min-h-full flex flex-col max-w-xl mx-auto">
       <main className="flex-1" style={{ paddingBottom: pisirme ? 0 : 'calc(5rem + env(safe-area-inset-bottom))' }}>
@@ -53,6 +67,7 @@ export default function LzApp() {
           <Route path="/thermomix" element={<Thermomix />} />
           <Route path="/thermomix/:id" element={<TmDetail />} />
           <Route path="/thermomix/:id/pisir" element={<TmCook />} />
+          <Route path="/sira" element={<Sira />} />
           <Route path="/diyet" element={<Diyetim />} />
           <Route path="/diyet/:i" element={<DiyetOgun />} />
           <Route path="/hafta" element={<Week />} />

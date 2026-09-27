@@ -21,6 +21,7 @@ export interface LzRecipe {
   tableIds: number[] // Hangi sofralara ait (Kocam, Çocuklar...)
   tm?: TmSurum // Thermomix TM7 uyarlamasi (varsa)
   besin?: LzBesin // 1 porsiyonun tahmini besin degeri (yapay zeka, onbellek)
+  kontrol?: string // Siradan otomatik eklendiyse: kullaniciya gosterilecek "kontrol et" notu
   favorite: 0 | 1 // Dexie boolean indeksleyemez
   cookCount: number
   lastCookedAt: number
@@ -97,4 +98,16 @@ export interface LzDiyet {
   notlar: string // Genel kurallar (su, yasaklar...)
   gunlukKalori: number
   guncelleme: number
+}
+
+// Arka arkaya paylasilan linklerin islenme sirasi
+export interface LzSira {
+  id?: number
+  girdi: string // Paylasilan link ya da metin
+  durum: 'bekliyor' | 'isleniyor' | 'bitti' | 'hata'
+  mesaj: string // Ilerleme / hata / sonuc notu
+  recipeId: number // Bittiyse eklenen tarif (0 = yok)
+  baslik: string
+  createdAt: number
+  updatedAt: number
 }

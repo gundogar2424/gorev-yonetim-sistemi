@@ -93,6 +93,26 @@ export default function RecipeDetail() {
       </div>
 
       <div className="px-4 -mt-6 relative space-y-3 pb-8">
+        {r.kontrol && (
+          <div
+            className={`rounded-2xl text-[13px] p-3.5 relative z-10 ${
+              r.kontrol.startsWith('⚠️')
+                ? 'bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300'
+                : 'bg-amber-50 dark:bg-[#2a2113] text-amber-800 dark:text-amber-200'
+            }`}
+          >
+            <div className="font-semibold mb-0.5">Sıradan otomatik eklendi</div>
+            {r.kontrol}
+            <div className="flex gap-2 mt-2.5">
+              <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void updateRecipe(r.id!, { kontrol: undefined })}>
+                ✓ Kontrol ettim
+              </button>
+              <Link to={`/duzenle/${r.id}`} className="lz-btn-soft px-3 py-1.5 text-[12.5px]">
+                Düzenle
+              </Link>
+            </div>
+          </div>
+        )}
         <div className="lz-card p-4">
           <h1 className={`text-[23px] font-bold leading-tight ${T_BASLIK}`}>{r.title}</h1>
           <div className="mt-2 flex items-center gap-3 flex-wrap">

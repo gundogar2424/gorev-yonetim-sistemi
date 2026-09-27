@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
+import { SiraSeridi } from './Sira'
 import type { LzRecipe, LzTable } from '../types'
 import { Header, Icon, Logo, PlatformLabel, Sheet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
 
@@ -56,6 +57,7 @@ export default function Recipes() {
       />
 
       <div className="px-4 space-y-3">
+        <SiraSeridi />
         <label className="relative block">
           <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${T_SOLUK}`}>
             <Icon name="search" className="w-[18px] h-[18px]" />
