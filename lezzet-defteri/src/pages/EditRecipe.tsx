@@ -65,6 +65,7 @@ export default function EditRecipe() {
       minutes: d.minutes,
       notes: d.notes,
       tags: d.tags,
+      besin: d.besin,
       platform: d.sourceUrl ? (d.platform === 'manual' ? platformBul(d.sourceUrl) : d.platform) : 'manual',
       ingredients: malz.split('\n'),
       // Adimlar bos satirla ya da satir satir ayrilabilir

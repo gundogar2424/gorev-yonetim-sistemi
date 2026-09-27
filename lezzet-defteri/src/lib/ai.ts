@@ -676,17 +676,45 @@ export async function aiOgunEslestir(
 }
 
 // NE PISIRSEM: istege / dolaptaki malzemelere gore aileye uygun yeni tarif uretir.
-export async function aiTarifUret(istekMetni: string, profil: string): Promise<Partial<LzDraft>> {
-  const v = await jsonCagri<TarifJson>(
-    'Sen deneyimli, pratik bir Türk ev aşçısısın. Kullanıcının isteğine ya da elindeki malzemelere göre ' +
-      'evde kolayca yapılabilecek, lezzetli TEK bir tarif yazarsın. Türkiye marketlerinde bulunan malzemeler ' +
-      've Türk mutfağı ölçüleri (su bardağı, yemek kaşığı, gr) kullan. Aile tercihleri verildiyse KESİNLİKLE uy: ' +
-      'alerjen ve sevilmeyen malzemeyi kullanma. Notlar kısmına varsa hangi tercihe göre uyarladığını ve püf noktasını yaz. ' +
-      'is_recipe her zaman true olsun.',
-    `${profil ? `Aile tercihleri:\n${profil}\n\n` : ''}İstek: ${istekMetni}`,
-    SEMA
+export async function aiTarifUret(
+  istekMetni: string,
+  profil: string,
+  diyet?: { ogun: import('../types').LzDiyetOgun; kurallar: string }
+): Promise<Partial<LzDraft>> {
+  if (!diyet) {
+    const v = await jsonCagri<TarifJson>(
+      'Sen deneyimli, pratik bir Türk ev aşçısısın. Kullanıcının isteğine ya da elindeki malzemelere göre ' +
+        'evde kolayca yapılabilecek, lezzetli TEK bir tarif yazarsın. Türkiye marketlerinde bulunan malzemeler ' +
+        've Türk mutfağı ölçüleri (su bardağı, yemek kaşığı, gr) kullan. Aile tercihleri verildiyse KESİNLİKLE uy: ' +
+        'alerjen ve sevilmeyen malzemeyi kullanma. Notlar kısmına varsa hangi tercihe göre uyarladığını ve püf noktasını yaz. ' +
+        'is_recipe her zaman true olsun.',
+      `${profil ? `Aile tercihleri:\n${profil}\n\n` : ''}İstek: ${istekMetni}`,
+      SEMA
+    )
+    return tarifeCevir({ ...v, is_recipe: true })
+  }
+  // DIYETE GORE: ogun hedefine (kalori/makro) uyan, TEK porsiyonluk tarif + tahmini besin degeri
+  const { ogun, kurallar } = diyet
+  const sema = {
+    ...SEMA,
+    required: [...SEMA.required, 'besin'],
+    properties: { ...SEMA.properties, besin: BESIN_SEMA }
+  }
+  const v = await jsonCagri<TarifJson & { besin: import('../types').LzBesin }>(
+    'Sen hem diyetisyen hem pratik bir Türk ev aşçısısın. Kullanıcının diyetisyeninin verdiği öğün hedefine uyan, ' +
+      'TEK PORSİYONLUK (servings = 1) bir tarif yazarsın. Kullanıcının elindeki malzemeleri esas al; tuz, baharat, su gibi ' +
+      'temel mutfak malzemeleri dışında malzeme eklemen gerekiyorsa en fazla 1-2 tane ekle ve notlarda belirt. ' +
+      'Ölçüleri gram ve Türk mutfağı ölçüleriyle (yemek kaşığı, çay kaşığı) net ver ki kalori tutsun. Kalori ve makrolar öğün ' +
+      'hedefine ±%10 yakın olsun; planın kurallarına (yasak/serbest besinler, pişirme şekli) kesinlikle uy; kızartma yerine fırın/haşlama/ızgara tercih et. ' +
+      'besin alanına bu 1 porsiyonun gerçekçi tahmini kalori ve makrolarını yaz. Notlarda hedefle karşılaştırmayı ve varsa ' +
+      'diyetisyenin planındaki hangi değişime karşılık geldiğini kısaca yaz. Aile tercihleri verildiyse alerjen ve sevilmeyenleri kullanma. is_recipe true olsun.',
+    `Öğün: ${ogun.ad}\nDiyetisyenin plandaki içeriği: ${ogun.icerik}\nHedef: ${ogun.hedef.kalori} kcal, protein ${ogun.hedef.protein} g, ` +
+      `karbonhidrat ${ogun.hedef.karb} g, yağ ${ogun.hedef.yag} g${kurallar ? `\nPlanın genel kuralları: ${kurallar.slice(0, 1500)}` : ''}` +
+      `${profil ? `\n\nAile tercihleri:\n${profil}` : ''}\n\nElimdekiler / isteğim: ${istekMetni}`,
+    sema,
+    5000
   )
-  return tarifeCevir({ ...v, is_recipe: true })
+  return { ...tarifeCevir({ ...v, is_recipe: true }), servings: 1, besin: v.besin ? { ...v.besin, hesap: Date.now() } : undefined }
 }
 
 // SIHIRLI HAFTALIK MENU: kayitli tarifler arasindan aileye uygun, cesitli bir hafta secer.

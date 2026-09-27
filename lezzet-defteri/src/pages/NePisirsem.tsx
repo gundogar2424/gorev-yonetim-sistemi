@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzDraft, LzTable } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { BesinSatiri } from './Diyetim'
 import { aiTarifUret, apiAnahtari, profilMetni } from '../lib/ai'
 
 const ORNEKLER = [
@@ -20,8 +21,12 @@ const ORNEKLER = [
 export default function NePisirsem() {
   const navigate = useNavigate()
   const sofralar = useLiveQuery(() => lzDb.sofralar.orderBy('name').toArray(), [], [] as LzTable[]) ?? []
-  const gelen = (useLocation().state as { istek?: string } | null)?.istek
-  const [istek, setIstek] = useState(gelen ?? '')
+  const durum = useLocation().state as { istek?: string; ogun?: number } | null
+  const [istek, setIstek] = useState(durum?.istek ?? '')
+  const plan = useLiveQuery(() => lzDb.diyet.get(1), [])
+  // -1 = serbest (diyetsiz); 0.. = diyet planindaki ogun
+  const [ogunSec, setOgunSec] = useState<number>(durum?.ogun ?? -1)
+  const ogun = ogunSec >= 0 ? plan?.ogunler[ogunSec] : undefined
   const [kimler, setKimler] = useState<number[] | null>(null) // null = hepsi
   const [yukleniyor, setYukleniyor] = useState(false)
   const [hata, setHata] = useState('')
@@ -34,7 +39,7 @@ export default function NePisirsem() {
     setHata('')
     setYukleniyor(true)
     try {
-      const t = await aiTarifUret(istek.trim(), profil)
+      const t = await aiTarifUret(istek.trim(), profil, ogun ? { ogun, kurallar: plan?.notlar ?? '' } : undefined)
       const d: LzDraft = {
         title: t.title ?? '',
         photo: '',
@@ -46,9 +51,15 @@ export default function NePisirsem() {
         ingredients: t.ingredients ?? [],
         steps: t.steps ?? [],
         notes: t.notes ?? '',
-        tags: t.tags ?? []
+        tags: t.tags ?? [],
+        besin: t.besin
       }
-      navigate('/yeni', { state: { draft: d, not: 'Yapay zekanın önerisi. Beğendiysen düzenleyip deftere kaydet; istersen fotoğraf ekle.' } })
+      const b = t.besin
+      const not = ogun && b
+        ? `🥗 ${ogun.ad} öğününe göre, 1 porsiyon: ~${Math.round(b.kalori)} kcal · P ${Math.round(b.protein)} · K ${Math.round(b.karb)} · Y ${Math.round(b.yag)} g ` +
+          `(hedef ${ogun.hedef.kalori} kcal). Değerler tahminidir. Beğendiysen kaydet.`
+        : 'Yapay zekanın önerisi. Beğendiysen düzenleyip deftere kaydet; istersen fotoğraf ekle.'
+      navigate('/yeni', { state: { draft: d, not } })
     } catch (e) {
       setHata((e as Error).message)
       setYukleniyor(false)
@@ -73,7 +84,7 @@ export default function NePisirsem() {
           <div className={`font-semibold ${T_BASLIK}`}>Aklındakini ya da dolabında olanları yaz</div>
           <textarea
             className="lz-input min-h-[110px] text-[15px]"
-            placeholder="Örn. Akşama tavuklu, pratik bir şey"
+            placeholder={ogun ? "Elimde ne var? Örn. 2 yumurta, kabak, lor peyniri, domates" : "Örn. Akşama tavuklu, pratik bir şey"}
             value={istek}
             onChange={(e) => setIstek(e.target.value)}
           />
@@ -85,6 +96,32 @@ export default function NePisirsem() {
             ))}
           </div>
         </div>
+
+        {plan && plan.ogunler.length > 0 && (
+          <div className="lz-card p-4 space-y-2">
+            <div className={`font-semibold ${T_BASLIK}`}>🥗 Diyetime göre</div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setOgunSec(-1)} className={`lz-chip ${ogunSec === -1 ? 'lz-chip-on' : ''}`}>
+                Serbest
+              </button>
+              {plan.ogunler.map((o, i) => (
+                <button key={i} onClick={() => setOgunSec(i)} className={`lz-chip ${ogunSec === i ? 'lz-chip-on' : ''}`}>
+                  {o.ad}
+                </button>
+              ))}
+            </div>
+            {ogun ? (
+              <>
+                <p className={`text-[12.5px] ${T_GOVDE}`}>
+                  Elindeki malzemelerle, bu öğünün hedefine uyan <b>tek porsiyonluk</b> tarif hazırlanır.
+                </p>
+                <BesinSatiri b={ogun.hedef} kucuk />
+              </>
+            ) : (
+              <p className={`text-[12.5px] ${T_SOLUK}`}>Bir öğün seçersen tarif diyetisyeninin o öğün için verdiği kalori ve makrolara göre hazırlanır.</p>
+            )}
+          </div>
+        )}
 
         {sofralar.length > 0 && (
           <div className="lz-card p-4 space-y-2">

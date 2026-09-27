@@ -71,6 +71,7 @@ export interface LzDraft {
   steps: string[]
   notes: string
   tags: string[]
+  besin?: LzBesin // 1 porsiyon tahmini (diyete gore uretilen tariflerde)
 }
 
 // Besin degeri (1 porsiyon ya da bir ogun hedefi). Yapay zeka tahminidir.

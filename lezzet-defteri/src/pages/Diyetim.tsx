@@ -42,9 +42,14 @@ export default function Diyetim() {
                 </div>
                 <p className={`text-[14px] leading-relaxed whitespace-pre-line ${T_GOVDE}`}>{o.icerik}</p>
                 <BesinSatiri b={o.hedef} />
-                <Link to={`/diyet/${i}`} className="lz-btn-primary w-full text-sm mt-1">
-                  🔎 Bu öğüne uygun tarifleri bul
-                </Link>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <Link to={`/diyet/${i}`} className="lz-btn-primary text-[13px] px-2">
+                    🔎 Defterimde ara
+                  </Link>
+                  <Link to="/ne-pisirsem" state={{ ogun: i }} className="lz-btn-soft text-[13px] px-2">
+                    🥕 Elimdekilerle tarif
+                  </Link>
+                </div>
               </div>
             ))}
             {plan!.notlar && (

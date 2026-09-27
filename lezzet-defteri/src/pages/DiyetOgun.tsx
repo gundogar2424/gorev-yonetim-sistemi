@@ -65,12 +65,7 @@ export default function DiyetOgun() {
   const tarifMap = new Map(tarifler.map((r) => [r.id!, r]))
   const grup = (d: OgunUyum['durum']) => (sonuc ?? []).filter((x) => x.durum === d && tarifMap.has(x.tarifId))
 
-  const yeniTarif = () =>
-    navigate('/ne-pisirsem', {
-      state: {
-        istek: `${ogun.ad} öğünüm için tarif. Diyetisyenimin planı: ${ogun.icerik}. Hedef yaklaşık ${ogun.hedef.kalori} kcal, protein ${ogun.hedef.protein} g, karbonhidrat ${ogun.hedef.karb} g, yağ ${ogun.hedef.yag} g. Tek porsiyonluk yaz.`
-      }
-    })
+  const yeniTarif = () => navigate('/ne-pisirsem', { state: { ogun: i } })
 
   return (
     <div>
@@ -109,7 +104,7 @@ export default function DiyetOgun() {
         )}
 
         <button className="lz-btn-soft w-full" onClick={yeniTarif}>
-          ✨ Bu öğüne göre yeni tarif öner
+          🥕 Elimdeki malzemelerle bu öğüne tarif
         </button>
         {sonuc && (
           <button className={`text-[13px] w-full ${T_SOLUK}`} disabled={calisiyor} onClick={() => void tara()}>

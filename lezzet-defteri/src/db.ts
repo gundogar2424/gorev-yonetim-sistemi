@@ -48,6 +48,7 @@ export async function addRecipe(d: LzDraft, tableIds: number[] = []): Promise<nu
     steps: clean(d.steps),
     notes: d.notes ?? '',
     tags: d.tags ?? [],
+    ...(d.besin ? { besin: d.besin } : {}),
     tableIds,
     favorite: 0,
     cookCount: 0,
