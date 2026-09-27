@@ -170,6 +170,48 @@ async function claudeCagri<T>(system: string, parcalar: Parca[], schema: object,
   return jsonCoz<T>(json.content?.find((c) => c.type === 'text')?.text ?? '', json.stop_reason === 'max_tokens')
 }
 
+const GEMINI_KOK = 'https://generativelanguage.googleapis.com/v1beta'
+const KEY_GEMINI_OTO = 'lz-gemini-model-oto'
+
+function anahtarHatasi(r: { status: number; govde: string }): boolean {
+  return (r.status === 400 || r.status === 401 || r.status === 403) && /API key|API_KEY|UNAUTHENTICATED|PERMISSION_DENIED|credential/i.test(r.govde)
+}
+
+// Anahtar once basliktan (x-goog-api-key) gonderilir; reddedilirse adresin
+// sonunda (?key=) denenir. Google'in yeni "AQ." bicimli anahtarlari ile eski
+// "AIza" anahtarlari ikisinden birinde mutlaka kabul edilir.
+async function geminiGonder(yol: string, body: unknown): Promise<{ status: number; ok: boolean; govde: string }> {
+  const anahtar = apiAnahtari()
+  let r = await gonder(`${GEMINI_KOK}/${yol}`, { 'x-goog-api-key': anahtar }, body)
+  if (anahtarHatasi(r)) {
+    const r2 = await gonder(`${GEMINI_KOK}/${yol}${yol.includes('?') ? '&' : '?'}key=${encodeURIComponent(anahtar)}`, {}, body)
+    if (!anahtarHatasi(r2)) r = r2
+  }
+  return r
+}
+
+// Secilen model bu anahtarla yoksa (404) anahtarin erisebildigi modeller
+// listelenir ve en yeni "flash" modeli kendiliginden secilir.
+async function geminiModelBul(): Promise<string> {
+  const anahtar = apiAnahtari()
+  const dene = async (h: Record<string, string>, q: string) => {
+    try {
+      const r = await fetch(`${GEMINI_KOK}/models?pageSize=200${q}`, { headers: h })
+      return r.ok ? ((await r.json()) as { models?: { name: string; supportedGenerationMethods?: string[] }[] }) : null
+    } catch {
+      return null
+    }
+  }
+  const j = (await dene({ 'x-goog-api-key': anahtar }, '')) ?? (await dene({}, `&key=${encodeURIComponent(anahtar)}`))
+  const adlar = (j?.models ?? [])
+    .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+    .map((m) => m.name.replace(/^models\//, ''))
+    .filter((n) => /flash/.test(n) && !/lite|image|tts|audio|live|embedding|thinking-exp/.test(n))
+  const surum = (n: string) => Number(n.match(/(\d+(?:\.\d+)?)/)?.[1] ?? 0)
+  adlar.sort((x, y) => surum(y) - surum(x) || Number(/preview|exp/.test(x)) - Number(/preview|exp/.test(y)))
+  return adlar[0] ?? ''
+}
+
 async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object, maxTokens: number): Promise<T> {
   const parts = parcalar.map((p) =>
     p.type === 'text'
@@ -178,23 +220,43 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
         ? { file_data: { file_uri: p.url, mime_type: 'video/*' } }
         : { inline_data: { mime_type: p.mime, data: p.data } }
   )
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelAdi())}:generateContent`
   const govde = (semaIle: boolean) => ({
     system_instruction: { parts: [{ text: semaIle ? system : `${system}\n\nYanıtı YALNIZCA şu JSON şemasına uyan tek bir JSON nesnesi olarak ver:\n${JSON.stringify(schema)}` }] },
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      maxOutputTokens: maxTokens,
+      // Yeni Gemini modelleri cevaptan once "dusunur" ve bu da bu tavandan yer;
+      // dar tavan cevabi yarida keser. Bu yuzden genis tutulur.
+      maxOutputTokens: Math.max(maxTokens * 4, 8192),
       responseMimeType: 'application/json',
       ...(semaIle ? { responseJsonSchema: schema } : {})
     }
   })
-  let r = await gonder(url, { 'x-goog-api-key': apiAnahtari() }, govde(true))
-  // Sema alanini desteklemeyen bir model secildiyse semayi metinle tarif edip tekrar dene
-  if (r.status === 400 && /responseJsonSchema|response_json_schema|schema/i.test(r.govde) && !/API key/i.test(r.govde)) {
-    r = await gonder(url, { 'x-goog-api-key': apiAnahtari() }, govde(false))
+
+  let model = oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelAdi()
+  const cagir = (semaIle: boolean) => geminiGonder(`models/${encodeURIComponent(model)}:generateContent`, govde(semaIle))
+  let r = await cagir(true)
+  if (r.status === 404) {
+    const bulunan = await geminiModelBul()
+    if (bulunan && bulunan !== model) {
+      model = bulunan
+      yaz(KEY_GEMINI_OTO, bulunan)
+      r = await cagir(true)
+    }
   }
-  if (!r.ok) throw new Error(hataMetni(r.status, r.govde))
-  let json: { candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[]; promptFeedback?: { blockReason?: string } }
+  // Sema alanini desteklemeyen bir model secildiyse semayi metinle tarif edip tekrar dene
+  if (r.status === 400 && /responseJsonSchema|response_json_schema|schema/i.test(r.govde) && !anahtarHatasi(r)) {
+    r = await cagir(false)
+  }
+  if (!r.ok) {
+    let ayrinti = ''
+    try {
+      ayrinti = (JSON.parse(r.govde) as { error?: { message?: string } }).error?.message ?? ''
+    } catch {
+      /* yok */
+    }
+    throw new Error(`${hataMetni(r.status, r.govde)}${ayrinti && r.status !== 429 ? ` [Google: ${ayrinti.slice(0, 140)}]` : ''}`)
+  }
+  let json: { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] }; finishReason?: string }[]; promptFeedback?: { blockReason?: string } }
   try {
     json = JSON.parse(r.govde)
   } catch {
@@ -202,8 +264,13 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   }
   const aday = json.candidates?.[0]
   if (!aday) throw new Error(json.promptFeedback?.blockReason ? 'Gemini bu içeriği işlemeyi reddetti.' : 'Gemini boş yanıt verdi.')
-  const text = (aday.content?.parts ?? []).map((p) => p.text ?? '').join('')
+  const text = (aday.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? '').join('')
   return jsonCoz<T>(text, aday.finishReason === 'MAX_TOKENS')
+}
+
+// Hangi Gemini modelinin kullanildigi (Ayarlar'da gosterilir)
+export function geminiEtkinModel(): string {
+  return oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelOku('gemini')
 }
 
 // Yapilandirilmis cagri: secili saglayiciya gider, yanit JSON olarak cozulur.
@@ -382,7 +449,9 @@ export async function anahtarTest(): Promise<string> {
       { type: 'object', additionalProperties: false, required: ['ok'], properties: { ok: { type: 'boolean' } } },
       50
     )
-    return v.ok !== undefined ? `✓ ${aiAdi()} anahtarı çalışıyor (${modelAdi()}).` : '✗ Beklenmeyen yanıt.'
+    return v.ok !== undefined
+      ? `✓ ${aiAdi()} anahtarı çalışıyor (${saglayici() === 'gemini' ? geminiEtkinModel() : modelAdi()}).`
+      : '✗ Beklenmeyen yanıt.'
   } catch (e) {
     return '✗ ' + ((e as Error).message || 'Bağlanılamadı.')
   }

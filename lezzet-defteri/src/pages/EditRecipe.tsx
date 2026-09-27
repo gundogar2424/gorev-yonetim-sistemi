@@ -131,7 +131,7 @@ export default function EditRecipe() {
           </div>
 
           <Alan ad="Tarif adı">
-            <input className="lz-input" value={d.title} onChange={(e) => set('title', e.target.value)} placeholder="Örn. Soğanlı Et Yahnisi" />
+            <input className="lz-input" value={d.title} onChange={(e) => set('title', e.target.value)} placeholder="Tarifin adı" />
           </Alan>
           <div className="grid grid-cols-2 gap-3">
             <Alan ad="Kaç kişilik">
@@ -140,7 +140,7 @@ export default function EditRecipe() {
                 inputMode="numeric"
                 value={d.servings || ''}
                 onChange={(e) => set('servings', Number(e.target.value.replace(/\D/g, '')) || 0)}
-                placeholder="4"
+                placeholder="–"
               />
             </Alan>
             <Alan ad="Süre (dk)">
@@ -149,7 +149,7 @@ export default function EditRecipe() {
                 inputMode="numeric"
                 value={d.minutes || ''}
                 onChange={(e) => set('minutes', Number(e.target.value.replace(/\D/g, '')) || 0)}
-                placeholder="45"
+                placeholder="–"
               />
             </Alan>
           </div>
@@ -161,13 +161,13 @@ export default function EditRecipe() {
         <div className="lz-card p-4 space-y-2">
           <div className={`font-semibold ${T_BASLIK}`}>Malzemeler</div>
           <p className={`text-[12px] ${T_SOLUK}`}>Her satıra bir malzeme; miktarı başa yaz (porsiyon değişince otomatik hesaplanır).</p>
-          <textarea className="lz-input min-h-[160px] text-[15px] leading-relaxed" value={malz} onChange={(e) => setMalz(e.target.value)} placeholder={'500 gr kıyma\n1 adet soğan\n2 yemek kaşığı salça'} />
+          <textarea className="lz-input min-h-[160px] text-[15px] leading-relaxed" value={malz} onChange={(e) => setMalz(e.target.value)} placeholder="Buraya malzemeleri yaz (her satıra bir tane)" />
         </div>
 
         <div className="lz-card p-4 space-y-2">
           <div className={`font-semibold ${T_BASLIK}`}>Yapılışı</div>
           <p className={`text-[12px] ${T_SOLUK}`}>Adımları boş satırla ya da satır satır ayır.</p>
-          <textarea className="lz-input min-h-[200px] text-[15px] leading-relaxed" value={adim} onChange={(e) => setAdim(e.target.value)} placeholder={'Soğanı yemeklik doğrayın.\n\nKıymayı ekleyip kavurun.'} />
+          <textarea className="lz-input min-h-[200px] text-[15px] leading-relaxed" value={adim} onChange={(e) => setAdim(e.target.value)} placeholder="Buraya yapılışı yaz" />
         </div>
 
         <div className="lz-card p-4 space-y-2">

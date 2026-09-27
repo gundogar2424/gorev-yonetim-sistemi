@@ -44,6 +44,9 @@ export default function AddRecipe() {
       }
     }
     if (!d.photo && yedekKapak) d.photo = yedekKapak
+    if (!d.ingredients.filter((x) => x.trim()).length) {
+      not = `⚠️ Malzemeler bulunamadı, listeyi kendin yaz. ${not}`.trim()
+    }
     navigate('/yeni', { state: { draft: d, not } })
   }
 
@@ -57,7 +60,7 @@ export default function AddRecipe() {
         const kural = metniAyristir(ham)
         return {
           d: { ...d, ...kural, title: kural.title || d.title, notes: ham },
-          not: `${(e as Error).message} Basit ayrıştırma kullanıldı; kontrol et.`
+          not: `⚠️ Yapay zeka çalışmadı: ${(e as Error).message} Tarif yalnızca basit kurallarla ayrıldı; kontrol et.`
         }
       }
     }
@@ -217,7 +220,15 @@ export default function AddRecipe() {
             )
             return
           } catch (e) {
+            // Sessizce gecme: sebep kullaniciya kirmizi uyariyla gosterilir
             if (!s.hamMetin) throw e
+            const { d, not } = await yapilandir(s.hamMetin, s.draft)
+            await taslakAc(
+              d,
+              `⚠️ Yapay zeka videoyu işleyemedi: ${(e as Error).message}` + (not.startsWith('⚠️') ? '' : ' Tarif yalnızca paylaşımın yazısından çıkarıldı.'),
+              kapak
+            )
+            return
           }
         }
       }
