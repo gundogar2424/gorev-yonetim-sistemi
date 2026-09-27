@@ -42,8 +42,21 @@ export function saglayiciKaydet(v: Saglayici): void {
 export function anahtarOku(s: Saglayici): string {
   return oku(KEY_ANAHTAR[s])
 }
+// Kopyalarken gelen gorunmez karakterleri, bosluklari ve tirnaklari temizler
+export function anahtarTemizle(v: string): string {
+  return v.replace(/[\s\u200B-\u200D\uFEFF"'`]/g, '')
+}
+// Anahtar yarim kopyalanmis mi? (Google ekraninda anahtar "…" ile kisaltilarak gosterilir)
+export function anahtarSorunu(s: Saglayici, v: string): string {
+  const k = anahtarTemizle(v)
+  if (!k) return ''
+  if (/…|\.\.\./.test(k)) return 'Anahtar yarım kopyalanmış (sonunda “…” var). Google sayfasında anahtarın yanındaki KOPYALA simgesine basıp tekrar yapıştır.'
+  if (s === 'gemini' && k.length < 35) return `Anahtar çok kısa (${k.length} karakter); eksik kopyalanmış olabilir. Google sayfasındaki kopyala simgesiyle tekrar kopyala.`
+  if (s === 'claude' && !k.startsWith('sk-ant-')) return 'Claude anahtarı “sk-ant-” ile başlar; yanlış anahtar yapıştırılmış olabilir.'
+  return ''
+}
 export function anahtarKaydet(s: Saglayici, v: string): void {
-  yaz(KEY_ANAHTAR[s], v.trim())
+  yaz(KEY_ANAHTAR[s], anahtarTemizle(v))
 }
 export function modelOku(s: Saglayici): string {
   return oku(KEY_MODEL[s]) || VARSAYILAN_MODEL[s]
@@ -108,7 +121,8 @@ export type Parca =
 function hataMetni(status: number, govde: string): string {
   const ad = aiAdi()
   if (status === 400 && /API key|API_KEY/i.test(govde)) return `${ad} API anahtarı geçersiz. Ayarlar’dan kontrol et.`
-  if (status === 401) return `${ad} API anahtarı reddedildi. Ayarlar’dan kontrol et.`
+  if (status === 401)
+    return `${ad} anahtarı geçersiz bulundu. Anahtar eksik kopyalanmış olabilir: Google sayfasında anahtarın yanındaki KOPYALA simgesine basıp yeniden yapıştır; olmazsa yeni anahtar oluştur.`
   if (status === 403) return `${ad} anahtarının bu modele erişimi yok ya da bakiye yetersiz.`
   if (status === 404) return `Model bulunamadı (${modelAdi()}). Ayarlar’dan modeli değiştir.`
   if (status === 429)
@@ -442,6 +456,10 @@ export async function aiHaftalikMenu(
 }
 
 export async function anahtarTest(): Promise<string> {
+  const k = apiAnahtari()
+  const sorun = anahtarSorunu(saglayici(), k)
+  if (sorun) return '✗ ' + sorun
+  const bilgi = ` (anahtar ${k.length} karakter, “${k.slice(0, 4)}…${k.slice(-4)}”)`
   try {
     const v = await jsonCagri<{ ok: boolean }>(
       'Test isteği.',
@@ -453,7 +471,7 @@ export async function anahtarTest(): Promise<string> {
       ? `✓ ${aiAdi()} anahtarı çalışıyor (${saglayici() === 'gemini' ? geminiEtkinModel() : modelAdi()}).`
       : '✗ Beklenmeyen yanıt.'
   } catch (e) {
-    return '✗ ' + ((e as Error).message || 'Bağlanılamadı.')
+    return '✗ ' + ((e as Error).message || 'Bağlanılamadı.') + bilgi
   }
 }
 

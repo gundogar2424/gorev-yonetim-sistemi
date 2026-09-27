@@ -3,6 +3,7 @@ import { Header, Logo, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import {
   VARSAYILAN_MODEL,
   anahtarKaydet,
+  anahtarSorunu,
   anahtarOku,
   anahtarTest,
   genelProfil,
@@ -23,6 +24,7 @@ export default function LzSettings() {
   const [anahtar, setAnahtar] = useState(anahtarOku(saglayici()))
   const [model, setModel] = useState(modelOku(saglayici()))
   const [test, setTest] = useState('')
+  const [goster, setGoster] = useState(false)
   const [tema, setTema] = useState<ThemePref>(getThemePref())
   const [mesaj, setMesaj] = useState('')
   const [profil, setProfil] = useState(genelProfil())
@@ -82,14 +84,22 @@ export default function LzSettings() {
               (bakiye yüklenir, kullandıkça düşer).
             </p>
           )}
-          <input
-            className="lz-input font-mono text-sm"
-            type="password"
-            placeholder={sag === 'gemini' ? 'AIza…' : 'sk-ant-…'}
-            value={anahtar}
-            onChange={(e) => setAnahtar(e.target.value)}
-            autoComplete="off"
-          />
+          <div className="flex gap-2">
+            <input
+              className="lz-input font-mono text-sm"
+              type={goster ? 'text' : 'password'}
+              placeholder={sag === 'gemini' ? 'Anahtarı buraya yapıştır' : 'sk-ant-…'}
+              value={anahtar}
+              onChange={(e) => setAnahtar(e.target.value)}
+              autoComplete="off"
+            />
+            <button className="lz-btn-soft px-3 flex-shrink-0 text-sm" onClick={() => setGoster(!goster)}>
+              {goster ? 'Gizle' : 'Göster'}
+            </button>
+          </div>
+          {anahtar.trim() && anahtarSorunu(sag, anahtar) && (
+            <p className="text-[12.5px] text-rose-600 dark:text-rose-300 font-medium">⚠️ {anahtarSorunu(sag, anahtar)}</p>
+          )}
           <input className="lz-input font-mono text-sm" placeholder={VARSAYILAN_MODEL[sag]} value={model} onChange={(e) => setModel(e.target.value)} />
           <div className="flex gap-2">
             <button
