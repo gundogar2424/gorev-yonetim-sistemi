@@ -410,13 +410,7 @@ export default function AddRecipe() {
                 Yapıştır
               </button>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {['Instagram', 'TikTok', 'YouTube', 'Pinterest', 'Tarif siteleri'].map((p) => (
-                <span key={p} className="lz-pill">
-                  {p}
-                </span>
-              ))}
-            </div>
+            <p className={`text-[12px] ${T_SOLUK}`}>Instagram, TikTok, YouTube, Pinterest, Facebook ve tarif sitelerinin linkleri olur.</p>
             <button className="lz-btn-primary w-full" disabled={!!yukleniyor || !link.trim()} onClick={() => void linktenGetir()}>
               {yukleniyor || 'Tarifi getir'}
             </button>
