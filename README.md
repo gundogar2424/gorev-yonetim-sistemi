@@ -167,32 +167,6 @@ Bu depodaki **altıncı bağımsız program**: **Ses Egzersizi**. Kendi giriş s
 
 > Ses Egzersizi verisini yalnızca `ses-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet ve hesap gerektirmez; yalnızca mikrofon (ölçüm ve konuşma tanıma için) ve bildirim (hatırlatma için) izni ister, ikisi de isteğe bağlıdır. Konuşma tanıma telefonun kendi servisini kullanır; çevrimdışı Türkçe paketi yüklüyse internetsiz de çalışır. Yapay zeka geri bildirimi isteğe bağlıdır ve internet + API anahtarı gerektirir.
 
-## 🍅 Lezzet Defteri (ayrı program)
-
-Bu depodaki **yedinci bağımsız program**: **Lezzet Defteri**. Kendi giriş sayfası (`lezzet.html`), kendi rengi (domates kırmızısı) ve kendi veritabanı (`lezzet-defteri`) vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
-
-- **Lezzet Defteri** → `lezzet.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/lezzet.html`)
-- APK: `.github/workflows/lezzet-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **lezzet-latest** sürümüne `lezzet-defteri.apk` yüklenir.
-
-**Ne yapar?** Sosyal medyada görülen tarifleri düzenli bir tarif defterine dönüştürür, haftalık menüyü planlar ve alışveriş listesini çıkarır.
-
-| Özellik | Açıklama |
-|---|---|
-| 🔗 **Linkten tarif** | Instagram, TikTok, YouTube, Pinterest, Facebook ya da tarif sitesi linkini yapıştır. Tarif sitelerinde (schema.org Recipe) malzeme ve adımlar doğrudan okunur; sosyal medyada paylaşımın açıklaması ve kapak fotoğrafı alınır, malzeme/adımlara ayrılır |
-| 📝 **Metinden tarif** | Açıklamayı ya da mesajı yapıştır; "Malzemeler / Yapılışı" başlıkları ve ölçü birimleriyle ayrılır (yapay zeka açıksa o düzenler) |
-| 📷 **Fotoğraftan tarif** | Yemek kitabı sayfası, el yazısı defter ya da ekran görüntüsü; yapay zeka yazıyı okuyup tarife çevirir |
-| ✨ **Ne pişirsem?** | "Akşama tavuklu, pratik bir şey" ya da dolaptaki malzemeleri yaz; aile tercihlerine uygun tarif hazırlanır |
-| 👨‍👩‍👧 **Sofralar** | Tarifleri kişilere göre topla (Kocam, Canım Kızım…); her sofraya sevmediklerini/alerjilerini yaz, yapay zeka önerileri buna uyar |
-| 📅 **Bu Hafta** | Kahvaltı/öğle/akşam planı; **sihirli menü** boş öğünleri defterdeki tariflerden çeşitli biçimde doldurur |
-| 🛒 **Alışveriş** | Tariften ya da haftalık plandan tek dokunuşla; reyona (manav, kasap, süt ürünleri…) ya da tarife göre gruplanır, paylaşılabilir. Evde olan malzemeler işaretlenip dışarıda bırakılabilir |
-| ⚖️ **Porsiyon** | Kişi sayısını değiştir, miktarlar otomatik ölçeklensin (1/2, 1,5, 2-3 desteklenir) |
-| ▶︎ **Pişirme modu** | Adım adım büyük yazı, ekran kapanmaz, adımdaki süre için tek dokunuşla sayaç |
-| 💾 **Yedekleme** | Tarifler, fotoğraflar, sofralar, plan ve liste tek dosyaya; yeni telefonda geri yükle |
-
-**Yapay zeka (isteğe bağlı):** Ayarlar'a Claude API anahtarı girilirse dağınık açıklamalar düzenlenir, fotoğraflar okunur, "Ne pişirsem?" ve sihirli menü aile tercihlerini dikkate alır. Anahtar yalnızca cihazda saklanır, yedeğe yazılmaz. Anahtarsız da link/metin ekleme (kural tabanlı ayrıştırma), plan, liste ve rastgele menü çalışır.
-
-> Sosyal medya linklerini okumak APK sürümünde çalışır (tarayıcılar başka sitelerin sayfalarını okumaya izin vermez). Tomati'deki bulut senkronizasyonu yoktur: sunucu kullanılmaz, veriler telefonda kalır; telefon değişiminde yedekleme kullanılır.
-
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz

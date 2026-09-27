@@ -100,20 +100,6 @@ export default {
           dbody: '#cfc5bd',
           dmuted: '#a1968d'
         },
-        // LEZZET DEFTERI'nin kendi rengi: sicak domates kirmizisi. Beyaz yaziyla
-        // okunakli koyulukta (600). Yalnizca src/lezzet/** kullanir.
-        lz: {
-          50: '#fff2ee',
-          100: '#ffe0d8',
-          200: '#ffc0b0',
-          300: '#ff957d',
-          400: '#f86a4d',
-          500: '#ee4c2e',
-          600: '#d93d20', // eylem rengi (butonlar, secili sekme)
-          700: '#b52f17',
-          800: '#8f2716',
-          900: '#6f2214'
-        },
         // MFP paletinden ORNEKLENEN renkler
         mfp: {
           bg: '#151724', // sayfa zemini

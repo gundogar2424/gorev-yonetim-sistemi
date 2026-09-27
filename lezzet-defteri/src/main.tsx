@@ -3,14 +3,11 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import LzApp from './LzApp'
 import { initTheme } from './lib/theme'
-// Tailwind/temel stiller diger programlarla AYNI dosyadan gelir; Lezzet
-// Defteri yalnizca kendi lz-* siniflarini kullanir.
-import '../index.css'
+import './index.css'
 
 initTheme()
 
-// Lezzet Defteri: diger programlardan TAMAMEN AYRI, kendi giris noktasi olan
-// bagimsiz program. Beyaz ekrana karsi: render hata verirse mesaj goster.
+// Lezzet Defteri giris noktasi. Beyaz ekrana karsi: render hata verirse mesaj goster.
 const rootEl = document.getElementById('root')!
 try {
   ReactDOM.createRoot(rootEl).render(
