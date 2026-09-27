@@ -181,12 +181,11 @@ export default function AddRecipe() {
         return
       }
 
-      // Aciklamada tarif zaten tam yaziyorsa videoyu islemeye gerek yok (hizli yol)
-      const kural = s.hamMetin ? metniAyristir(s.hamMetin) : {}
-      const aciklamaYeterli = (kural.ingredients?.length ?? 0) >= 3 && (kural.steps?.length ?? 0) >= 1
+      // Yapay zeka aciksa video HER ZAMAN izlenir ve aciklamayla birlestirilir:
+      // aciklama cogu zaman tarifin yalnizca bir kismini yazar, gerisi videodadir.
       const videoPlatformu = s.draft.platform !== 'web'
 
-      if (aiVar && videoPlatformu && !aciklamaYeterli && (s.html || s.hamMetin)) {
+      if (aiVar && videoPlatformu && (s.html || s.hamMetin)) {
         const { parca, kapak, notlar } = await videoTopla(url, s)
         if (parca.altyazi || parca.konusma || parca.kareler.length || parca.aciklama || parca.video || parca.youtube) {
           setYukleniyor(`${aiAdi()} tarifi hazırlıyor…`)

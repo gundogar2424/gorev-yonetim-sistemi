@@ -239,8 +239,11 @@ function tarifeCevir(v: TarifJson): Partial<LzDraft> {
 
 const AYIKLA_SISTEM =
   'Sen bir tarif editörüsün. Sosyal medya paylaşımı, web sayfası ya da fotoğraftan gelen dağınık içerikten ' +
-  'yemek tarifini çıkarıp düzenli Türkçe tarif olarak döndürürsün. İçerikte olmayan malzeme UYDURMA; ' +
-  'miktar yazmıyorsa yalnızca malzeme adını yaz. Emoji, hashtag, "kaydet/beğen/takip et" gibi ' +
+  'yemek tarifini çıkarıp düzenli Türkçe tarif olarak döndürürsün. İçerikte olmayan malzeme UYDURMA ve ' +
+  'yemeğin adından yola çıkarak "genelde konur" diye malzeme EKLEME; yalnızca içerikte geçenleri yaz. ' +
+  'Etin türünü içerikte söylendiği/göründüğü gibi yaz (tavuk göğsü, tavuk kıyması, dana kıyma, kuzu…); ' +
+  'tavuğu "kıyma", kıymayı "tavuk" yapma, emin değilsen türü tahmin etme. ' +
+  'Miktar yazmıyorsa yalnızca malzeme adını yaz. Emoji, hashtag, "kaydet/beğen/takip et" gibi ' +
   'ifadeleri at. Adımlar yoksa ama malzemeler varsa, malzemelerden anlaşılan yapılışı kısa ' +
   've makul biçimde yaz. İçerik başka dildeyse Türkçeye çevir.'
 
