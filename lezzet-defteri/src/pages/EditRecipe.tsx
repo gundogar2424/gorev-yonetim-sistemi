@@ -82,7 +82,11 @@ export default function EditRecipe() {
   }
 
   const etiketDegis = (e: string) => set('tags', d.tags.includes(e) ? d.tags.filter((x) => x !== e) : [...d.tags, e])
-  const tumEtiketler = Array.from(new Set([...ETIKETLER, ...d.tags]))
+  // Hazir etiketler + kullanicinin daha once ekledigi etiketler (hem kayitli
+  // listeden hem de diger tariflerde kullanilanlardan) — bir kez eklenen etiket
+  // sonraki tariflerde de secilebilsin.
+  const kullanilan = useLiveQuery(async () => (await lzDb.recipes.toArray()).flatMap((r) => r.tags ?? []), [], [] as string[]) ?? []
+  const tumEtiketler = Array.from(new Set([...ETIKETLER, ...kendiEtiketlerim(), ...kullanilan, ...d.tags]))
 
   if (!hazir) return <Header title="Tarifi düzenle" back />
 
@@ -219,6 +223,7 @@ export default function EditRecipe() {
               onClick={() => {
                 const e = yeniEtiket.trim()
                 if (e && !d.tags.includes(e)) set('tags', [...d.tags, e])
+                if (e) kendiEtiketiKaydet(e)
                 setYeniEtiket('')
               }}
             >
@@ -235,6 +240,23 @@ export default function EditRecipe() {
       <YeniSofra open={yeniSofra} onClose={() => setYeniSofra(false)} onCreated={(yid) => setSecili((s) => [...s, yid])} />
     </div>
   )
+}
+
+const KEY_ETIKET = 'lz-kendi-etiketler'
+function kendiEtiketlerim(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_ETIKET) ?? '[]') as string[]
+  } catch {
+    return []
+  }
+}
+function kendiEtiketiKaydet(e: string): void {
+  try {
+    const l = kendiEtiketlerim()
+    if (!l.includes(e)) localStorage.setItem(KEY_ETIKET, JSON.stringify([...l, e]))
+  } catch {
+    /* yok say */
+  }
 }
 
 function Alan({ ad, children }: { ad: string; children: ReactNode }) {
