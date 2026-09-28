@@ -6,6 +6,8 @@ import { geminiyeHazirla, linktenTaslak, taslakHazirla, yapilandir } from '../li
 import { aiAdi, aiFotograftan, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from '../lib/ai'
 import { kareler, konusmayiYaziyaCevir, sesModeli } from '../lib/video'
 import { fotoOku } from '../lib/image'
+import { paylasilanTarifOku } from '../lib/paylas'
+import { addRecipe, updateRecipe } from '../db'
 import type { LzDraft } from '../types'
 
 type Mod = 'link' | 'metin' | 'foto' | 'video'
@@ -20,6 +22,7 @@ export default function AddRecipe() {
   const aiVar = !!apiAnahtari()
   const fotoGiris = useRef<HTMLInputElement>(null)
   const videoGiris = useRef<HTMLInputElement>(null)
+  const dosyaGiris = useRef<HTMLInputElement>(null)
 
   const panodan = async () => {
     try {
@@ -298,6 +301,48 @@ export default function AddRecipe() {
             </span>
           )}
         </div>
+
+        <button onClick={() => dosyaGiris.current?.click()} className="lz-card p-4 flex items-center gap-3 w-full text-left">
+          <span className="w-11 h-11 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-xl flex items-center justify-center">📄</span>
+          <span className="flex-1">
+            <span className={`block font-semibold ${T_BASLIK}`}>Dosyadan</span>
+            <span className={`block text-[13px] ${T_SOLUK}`}>Sana paylaşılan tarif dosyasını deftere al</span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </button>
+        <input
+          ref={dosyaGiris}
+          type="file"
+          accept=".html,.htm,.json,text/html,application/json"
+          className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0]
+            e.target.value = ''
+            if (!f) return
+            setHata('')
+            try {
+              const t = paylasilanTarifOku(await f.text())
+              const id = await addRecipe({
+                title: t.title ?? 'Tarif',
+                photo: t.photo ?? '',
+                sourceUrl: t.sourceUrl ?? '',
+                platform: t.platform ?? 'manual',
+                author: t.author ?? '',
+                servings: t.servings ?? 0,
+                minutes: t.minutes ?? 0,
+                ingredients: t.ingredients ?? [],
+                steps: t.steps ?? [],
+                notes: t.notes ?? '',
+                tags: t.tags ?? [],
+                besin: t.besin
+              })
+              if (t.tm) await updateRecipe(id, { tm: t.tm })
+              navigate(`/tarif/${id}`)
+            } catch (err) {
+              setHata((err as Error).message)
+            }
+          }}
+        />
 
         <Link to="/ne-pisirsem" className="lz-card p-4 flex items-center gap-3">
           <span className="w-11 h-11 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-xl flex items-center justify-center">✨</span>

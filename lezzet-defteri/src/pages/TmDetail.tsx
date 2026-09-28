@@ -5,6 +5,7 @@ import { lzDb, updateRecipe } from '../db'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { adimOzeti, termomiksKodu } from '../lib/tm7'
 import { thermomixeUyarla } from './Thermomix'
+import { dosyaPaylas, tmHtml } from '../lib/paylas'
 
 // Tarifin TM7 surumu: gramlı malzemeler, cihaz ayarli adimlar, uyarilar.
 export default function TmDetail() {
@@ -46,6 +47,15 @@ export default function TmDetail() {
   }
 
   const tm = r.tm
+  const tmPaylas = async () => {
+    try {
+      goster('Pişirme modu hazırlanıyor…')
+      await dosyaPaylas(r.title, await tmHtml(r), '-thermomix')
+    } catch (e) {
+      const m = (e as Error).message || ''
+      if (!/cancel|abort|iptal/i.test(m)) goster('Paylaşılamadı: ' + m.slice(0, 60))
+    }
+  }
   const aktar = async () => {
     const kod = termomiksKodu(r)
     try {
@@ -64,11 +74,14 @@ export default function TmDetail() {
     <div>
       <Header title={r.title} subtitle={`Thermomix TM7 · ${tm.category}`} back />
       <div className="px-4 space-y-3 pb-8">
+        <Link to={`/thermomix/${r.id}/pisir`} className="lz-btn-primary w-full">
+          <Icon name="play" className="w-4 h-4" /> TM7’de pişir
+        </Link>
         <div className="grid grid-cols-2 gap-2.5">
-          <Link to={`/thermomix/${r.id}/pisir`} className="lz-btn-primary">
-            <Icon name="play" className="w-4 h-4" /> TM7’de pişir
-          </Link>
-          <button className="lz-btn-soft" onClick={() => void aktar()}>
+          <button className="lz-btn-soft text-sm px-3" onClick={() => void tmPaylas()}>
+            <Icon name="share" className="w-4 h-4" /> Pişirme modunu paylaş
+          </button>
+          <button className="lz-btn-soft text-sm px-3" onClick={() => void aktar()}>
             Termomiks’e aktar
           </button>
         </div>

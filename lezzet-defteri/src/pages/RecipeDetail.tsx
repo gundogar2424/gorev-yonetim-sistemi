@@ -8,6 +8,7 @@ import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
+import { dosyaPaylas, metinPaylas, tarifHtml, tarifMetni, tmHtml } from '../lib/paylas'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -17,6 +18,7 @@ export default function RecipeDetail() {
   const [kisi, setKisi] = useState(0) // 0 = tarifteki porsiyon
   const [isaretli, setIsaretli] = useState<Set<number>>(new Set())
   const [planAc, setPlanAc] = useState(false)
+  const [paylasAc, setPaylasAc] = useState(false)
   const [toast, goster] = useToast()
 
   if (r === undefined) return null
@@ -42,25 +44,22 @@ export default function RecipeDetail() {
     goster(n ? `${n} malzeme alışveriş listesine eklendi` : 'Hepsi zaten listede')
   }
 
-  const paylas = async () => {
-    const metin = [
-      r.title,
-      '',
-      'Malzemeler:',
-      ...malzemeler.map((m) => `• ${m}`),
-      '',
-      'Yapılışı:',
-      ...r.steps.map((s, i) => `${i + 1}. ${s}`),
-      r.sourceUrl ? `\nKaynak: ${r.sourceUrl}` : ''
-    ].join('\n')
+  const paylasYap = async (tur: 'metin' | 'html' | 'tm') => {
+    setPaylasAc(false)
     try {
-      if (navigator.share) await navigator.share({ title: r.title, text: metin })
-      else {
-        await navigator.clipboard.writeText(metin)
-        goster('Tarif panoya kopyalandı')
+      if (tur === 'metin') {
+        const n = await metinPaylas(r.title, tarifMetni(r))
+        if (n === 'kopyalandi') goster('Tarif panoya kopyalandı')
+      } else if (tur === 'html') {
+        goster('Tarif sayfası hazırlanıyor…')
+        await dosyaPaylas(r.title, await tarifHtml(r))
+      } else {
+        goster('Pişirme modu hazırlanıyor…')
+        await dosyaPaylas(r.title, await tmHtml(r), '-thermomix')
       }
-    } catch {
-      /* kullanici vazgecti */
+    } catch (e) {
+      const m = (e as Error).message || ''
+      if (!/cancel|abort|iptal/i.test(m)) goster('Paylaşılamadı: ' + m.slice(0, 60))
     }
   }
 
@@ -77,7 +76,7 @@ export default function RecipeDetail() {
             <Icon name="back" />
           </RoundBtn>
           <div className="flex gap-2">
-            <RoundBtn onClick={() => void paylas()} label="Paylaş">
+            <RoundBtn onClick={() => setPaylasAc(true)} label="Paylaş">
               <Icon name="share" />
             </RoundBtn>
             <RoundBtn onClick={() => void toggleFavorite(r.id!)} label="Favori">
@@ -287,6 +286,29 @@ export default function RecipeDetail() {
         </button>
       </div>
 
+      <Sheet open={paylasAc} onClose={() => setPaylasAc(false)} title="Tarifi paylaş">
+        <div className="space-y-2">
+          <PaylasSecenek baslik="Yazı olarak" alt="WhatsApp mesajı gibi: malzemeler ve yapılışı" onClick={() => void paylasYap('metin')} ikon="💬" />
+          <PaylasSecenek
+            baslik="Tarif sayfası (dosya)"
+            alt="Fotoğraflı sayfa; karşı taraf telefonunda açar, uygulama gerekmez"
+            onClick={() => void paylasYap('html')}
+            ikon="📄"
+          />
+          {r.tm && (
+            <PaylasSecenek
+              baslik="Thermomix pişirme modu (dosya)"
+              alt="Adım adım, sayaçlı TM7 pişirme ekranı"
+              onClick={() => void paylasYap('tm')}
+              ikon="🍲"
+            />
+          )}
+          <p className={`text-[11.5px] px-1 pt-1 ${T_SOLUK}`}>
+            Karşı tarafta Lezzet Defteri varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
+          </p>
+        </div>
+      </Sheet>
+
       <PlanSec
         open={planAc}
         onClose={() => setPlanAc(false)}
@@ -298,6 +320,18 @@ export default function RecipeDetail() {
       />
       <Toast text={toast} />
     </div>
+  )
+}
+
+function PaylasSecenek({ baslik, alt, ikon, onClick }: { baslik: string; alt: string; ikon: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="lz-card p-3.5 w-full flex items-center gap-3 text-left active:scale-[0.99] transition">
+      <span className="text-2xl">{ikon}</span>
+      <span className="flex-1">
+        <span className={`block font-semibold ${T_BASLIK}`}>{baslik}</span>
+        <span className={`block text-[12.5px] ${T_SOLUK}`}>{alt}</span>
+      </span>
+    </button>
   )
 }
 
