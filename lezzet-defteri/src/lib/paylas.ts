@@ -1,5 +1,4 @@
 // TARIF PAYLASMA.
-//  - Yazi olarak (WhatsApp mesaji gibi)
 //  - Tarif sayfasi: tek dosyalik, fotografli HTML (karsi tarafta uygulama
 //    gerekmez, tarayicida internetsiz acilir)
 //  - Thermomix pisirme modu: adim adim, sayacli, etkilesimli HTML
@@ -68,7 +67,10 @@ const STIL = `
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#fbf7f2;color:#2b211b;line-height:1.5}
 .w{max-width:640px;margin:0 auto;padding:16px}h1{font-size:26px;line-height:1.2;margin:12px 0 6px}h2{font-size:18px;margin:0 0 10px}
 .kart{background:#fff;border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.05),0 10px 24px -18px rgba(0,0,0,.3)}
-.foto{width:100%;max-height:340px;object-fit:cover;border-radius:22px;display:block}.meta{color:#9a8b80;font-size:14px}
+.foto{width:100%;max-height:340px;object-fit:cover;border-radius:22px;display:block}
+.vid{position:relative;display:block;text-decoration:none}.foto.bos{height:200px;background:linear-gradient(135deg,#d93d20,#7a1e0e)}
+.oynat{position:absolute;left:50%;top:50%;transform:translate(-50%,-60%);width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;padding-left:5px}
+.vyazi{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600}.meta{color:#9a8b80;font-size:14px}
 .pill{display:inline-block;background:#fff2ee;color:#b52f17;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;margin:2px 4px 2px 0}
 ul.m{list-style:none;padding:0;margin:0}ul.m li{padding:8px 0;border-bottom:1px solid #f3ebe2;display:flex;gap:10px;align-items:flex-start}
 ul.m li:last-child{border:0}ul.m input{width:20px;height:20px;accent-color:#d93d20;margin-top:2px;flex-shrink:0}ul.m label{flex:1}
@@ -81,9 +83,30 @@ ol.a li{counter-increment:a;display:flex;gap:12px;margin:0 0 14px}ol.a li:before
 .pill{background:#3a1d16;color:#ff9f88}.btn.y{background:#2a2420;color:#d9cec5}.uyari{background:#2a2113;color:#f1c56b}ol.a li:before{background:#3a1d16}}
 `
 
+function youtubeId(url: string): string {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/)
+  return m ? m[1] : ''
+}
+
+const PLATFORM_ADI: Record<string, string> = { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok', pinterest: 'Pinterest', facebook: 'Facebook' }
+
+// Kaynak video varsa kapak fotografi tiklanir: YouTube / Instagram / TikTok
+// uygulamasinda (ya da tarayicida) video acilir.
+function videoKapak(r: LzRecipe, foto: string): string {
+  const url = r.sourceUrl || ''
+  const yt = youtubeId(url)
+  const ad = yt ? 'YouTube' : PLATFORM_ADI[r.platform] || ''
+  if (!url || !/^https?:\/\//.test(url) || !ad) return foto ? `<img class="foto" src="${foto}" alt="">` : ''
+  const resim = foto || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : '')
+  const hedef = yt ? `https://www.youtube.com/watch?v=${yt}` : url
+  return `<a class="vid" href="${k(hedef)}" target="_blank" rel="noopener">${
+    resim ? `<img class="foto" src="${k(resim)}" alt="">` : '<div class="foto bos"></div>'
+  }<span class="oynat">▶</span><span class="vyazi">${k(ad)}’da videoyu izle</span></a>`
+}
+
 function kapak(r: LzRecipe, foto: string, altBaslik: string): string {
   const meta = [r.servings ? `${r.servings} kişilik` : '', r.minutes ? `~${r.minutes} dk` : '', r.author].filter(Boolean).join(' · ')
-  return `${foto ? `<img class="foto" src="${foto}" alt="">` : ''}
+  return `${videoKapak(r, foto)}
 <h1>${k(r.title)}</h1><div class="meta">${k(altBaslik)}${meta ? ` · ${k(meta)}` : ''}</div>
 ${r.tags.length ? `<div style="margin-top:8px">${r.tags.map((t) => `<span class="pill">${k(t)}</span>`).join('')}</div>` : ''}`
 }
@@ -166,33 +189,6 @@ function uyar(){try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}
   return sayfa(`${r.title} (Thermomix)`, govde, gomuluVeri(r, foto), betik)
 }
 
-export function tarifMetni(r: LzRecipe, tm = false): string {
-  if (tm && r.tm) {
-    return [
-      `${r.title} (Thermomix TM7)`,
-      '',
-      'Malzemeler:',
-      ...r.tm.ingredients.map((m) => `• ${m}`),
-      '',
-      'TM7 adımları:',
-      ...r.tm.steps.map((a, i) => `${i + 1}. ${a.text}${a.ingredients ? ` (${a.ingredients})` : ''}${adimOzeti(a) ? ` [${adimOzeti(a)}]` : ''}`),
-      ...(r.tm.warnings.length ? ['', ...r.tm.warnings.map((w) => `⚠️ ${w}`)] : []),
-      r.sourceUrl ? `\nKaynak: ${r.sourceUrl}` : ''
-    ].join('\n')
-  }
-  return [
-    r.title,
-    '',
-    'Malzemeler:',
-    ...r.ingredients.map((m) => `• ${m}`),
-    '',
-    'Yapılışı:',
-    ...r.steps.map((s, i) => `${i + 1}. ${s}`),
-    r.notes ? `\nNotlar: ${r.notes}` : '',
-    r.sourceUrl ? `\nKaynak: ${r.sourceUrl}` : ''
-  ].join('\n')
-}
-
 function dosyaAdi(baslik: string, ek: string): string {
   const temiz = baslik
     .toLocaleLowerCase('tr')
@@ -229,21 +225,6 @@ export async function dosyaPaylas(baslik: string, html: string, ek = ''): Promis
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1500)
-}
-
-export async function metinPaylas(baslik: string, metin: string): Promise<'paylasildi' | 'kopyalandi'> {
-  const { Capacitor } = await import('@capacitor/core')
-  if (Capacitor.isNativePlatform()) {
-    const { Share } = await import('@capacitor/share')
-    await Share.share({ title: baslik, text: metin, dialogTitle: 'Tarifi paylaş' })
-    return 'paylasildi'
-  }
-  if (navigator.share) {
-    await navigator.share({ title: baslik, text: metin })
-    return 'paylasildi'
-  }
-  await navigator.clipboard.writeText(metin)
-  return 'kopyalandi'
 }
 
 // Paylasilan HTML (ya da JSON) dosyasindaki tarifi okur

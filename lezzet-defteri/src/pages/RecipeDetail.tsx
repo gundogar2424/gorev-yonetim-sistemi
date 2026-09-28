@@ -8,7 +8,7 @@ import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
-import { dosyaPaylas, metinPaylas, tarifHtml, tarifMetni, tmHtml } from '../lib/paylas'
+import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -44,13 +44,15 @@ export default function RecipeDetail() {
     goster(n ? `${n} malzeme alışveriş listesine eklendi` : 'Hepsi zaten listede')
   }
 
-  const paylasYap = async (tur: 'metin' | 'html' | 'tm') => {
+  const paylasYap = async (tur: 'html' | 'tm') => {
     setPaylasAc(false)
+    if (tur === 'tm' && !r.tm) {
+      // Once Thermomix onizlemesi (uyarlama) yapilir, oradan paylasilir
+      navigate(`/thermomix/${r.id}`)
+      return
+    }
     try {
-      if (tur === 'metin') {
-        const n = await metinPaylas(r.title, tarifMetni(r))
-        if (n === 'kopyalandi') goster('Tarif panoya kopyalandı')
-      } else if (tur === 'html') {
+      if (tur === 'html') {
         goster('Tarif sayfası hazırlanıyor…')
         await dosyaPaylas(r.title, await tarifHtml(r))
       } else {
@@ -288,21 +290,22 @@ export default function RecipeDetail() {
 
       <Sheet open={paylasAc} onClose={() => setPaylasAc(false)} title="Tarifi paylaş">
         <div className="space-y-2">
-          <PaylasSecenek baslik="Yazı olarak" alt="WhatsApp mesajı gibi: malzemeler ve yapılışı" onClick={() => void paylasYap('metin')} ikon="💬" />
           <PaylasSecenek
             baslik="Tarif sayfası (dosya)"
-            alt="Fotoğraflı sayfa; karşı taraf telefonunda açar, uygulama gerekmez"
+            alt="Fotoğraflı sayfa; videoya tıklayınca kaynak video açılır. Uygulama gerekmez"
             onClick={() => void paylasYap('html')}
             ikon="📄"
           />
-          {r.tm && (
-            <PaylasSecenek
-              baslik="Thermomix pişirme modu (dosya)"
-              alt="Adım adım, sayaçlı TM7 pişirme ekranı"
-              onClick={() => void paylasYap('tm')}
-              ikon="🍲"
-            />
-          )}
+          <PaylasSecenek
+            baslik="Thermomix pişirme modu (dosya)"
+            alt={
+              r.tm
+                ? 'Önizleme + adım adım, sayaçlı TM7 pişirme ekranı'
+                : 'Önce Thermomix önizlemesi hazırlanır, oradan paylaşırsın'
+            }
+            onClick={() => void paylasYap('tm')}
+            ikon="🍲"
+          />
           <p className={`text-[11.5px] px-1 pt-1 ${T_SOLUK}`}>
             Karşı tarafta Lezzet Defteri varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
           </p>
