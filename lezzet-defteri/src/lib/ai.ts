@@ -718,6 +718,33 @@ export async function aiTarifDegistir(
   return { tarif: { ...t, tags: t.tags?.length ? t.tags : r.tags }, degisiklikler: v.degisiklikler ?? [], aciklama: v.aciklama ?? '' }
 }
 
+// TARIF UZERINE SOHBET: tarifi degistirmeden soru-cevap. Karar verilince
+// konusma aiTarifDegistir'e istek olarak verilir.
+export type SohbetMesaji = { rol: 'sen' | 'ai'; metin: string }
+
+export async function aiTarifSohbet(
+  r: { title: string; servings: number; minutes: number; ingredients: string[]; steps: string[]; notes: string },
+  gecmis: SohbetMesaji[],
+  profil: string
+): Promise<string> {
+  const v = await jsonCagri<{ cevap: string }>(
+    'Sen deneyimli bir pasta/yemek şefi ve diyetisyensin. Kullanıcıyla aşağıdaki tarif ÜZERİNE sohbet ediyorsun: sorularını ' +
+      'Türkiye’de yaşayan biri için net, pratik ve kısa (2-6 cümle) cevapla. Malzemenin Türkiye’deki karşılığını (ör. Grek yoğurdu ≈ ' +
+      'süzme yoğurt), markette nasıl bulunacağını, ikame seçeneklerini, miktarları ve sonuca etkisini söyle. Birden fazla yol varsa ' +
+      'artı/eksileriyle seçenek sun ve hangisini önerdiğini belirt. Tarifi burada YENİDEN YAZMA; kullanıcı karar verince uygulama ' +
+      '"Tarifi değiştir" ile uygulayacak. Uygun olduğunda cevabın sonunda "İstersen tarife şöyle uygulayayım: …" diye kısa öneri ver. ' +
+      'Aile tercihleri verildiyse onlara dikkat et.',
+    `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}${r.minutes ? `, ${r.minutes} dk` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}` +
+      `\n\nYapılışı:\n${r.steps.map((x, i) => `${i + 1}. ${x}`).join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}` +
+      `${profil ? `\n\nAile tercihleri:\n${profil}` : ''}\n\nKONUŞMA:\n${gecmis
+        .map((m) => `${m.rol === 'sen' ? 'KULLANICI' : 'ŞEF'}: ${m.metin}`)
+        .join('\n\n')}\n\nŞimdi ŞEF olarak kullanıcının son mesajını cevapla.`,
+    { type: 'object', additionalProperties: false, properties: { cevap: { type: 'string' } }, required: ['cevap'] },
+    3000
+  )
+  return (v.cevap || '').trim()
+}
+
 // NE PISIRSEM: istege / dolaptaki malzemelere gore aileye uygun yeni tarif uretir.
 export async function aiTarifUret(
   istekMetni: string,

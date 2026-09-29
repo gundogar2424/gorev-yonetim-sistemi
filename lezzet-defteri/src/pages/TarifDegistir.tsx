@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft, LzTable } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
-import { aiTarifDegistir, apiAnahtari, profilMetni, type TarifDegisikligi } from '../lib/ai'
+import { aiTarifDegistir, aiTarifSohbet, apiAnahtari, profilMetni, type SohbetMesaji, type TarifDegisikligi } from '../lib/ai'
+
+const SORULAR = ['Bu malzemenin Türkiye’deki karşılığı ne?', 'Neyle değiştirebilirim?', 'Kaç kalori, nasıl hafifletirim?', 'Tutmazsa neden olur?']
 
 const ONERILER = [
   'Şeker yerine toz stevia kullanacağım, ne kadar koymalıyım?',
@@ -19,27 +21,61 @@ const ONERILER = [
   'Airfryer’a uyarla'
 ]
 
-// TARIFI YAPAY ZEKAYLA DEGISTIR: ikame / diyet / pisirme yontemi degisikligi.
+// TARIFI YAPAY ZEKAYLA DEGISTIR: once tarif uzerine sohbet (soru-cevap),
+// karar verilince konusmaya gore tarif yeniden yazilir.
 export default function TarifDegistir() {
   const id = Number(useParams().id)
   const navigate = useNavigate()
   const r = useLiveQuery(() => lzDb.recipes.get(id), [id])
   const sofralar = useLiveQuery(() => lzDb.sofralar.toArray(), [], [] as LzTable[]) ?? []
   const [istek, setIstek] = useState('')
+  const [sohbet, setSohbet] = useState<SohbetMesaji[]>([])
+  const [soruyor, setSoruyor] = useState(false)
+  const alt = useRef<HTMLDivElement>(null)
   const [sonuc, setSonuc] = useState<TarifDegisikligi | null>(null)
   const [calisiyor, setCalisiyor] = useState(false)
   const [hata, setHata] = useState('')
   const aiVar = !!apiAnahtari()
 
+  useEffect(() => {
+    if (sohbet.length) alt.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [sohbet.length, soruyor])
+
   if (r === undefined) return null
   if (!r) return <Header title="Tarif bulunamadı" back />
 
+  const sohbetSor = async () => {
+    const soru = istek.trim()
+    if (!soru) return
+    setHata('')
+    const yeni: SohbetMesaji[] = [...sohbet, { rol: 'sen', metin: soru }]
+    setSohbet(yeni)
+    setIstek('')
+    setSoruyor(true)
+    try {
+      const cevap = await aiTarifSohbet(r, yeni, profilMetni(sofralar))
+      setSohbet([...yeni, { rol: 'ai', metin: cevap || 'Cevap alınamadı, tekrar sorar mısın?' }])
+    } catch (e) {
+      setHata((e as Error).message)
+      setSohbet(sohbet)
+      setIstek(soru)
+    }
+    setSoruyor(false)
+  }
+
+  // Sohbette kararlastirilanlar (+ kutuda yazan son istek) tarife uygulanir
   const sor = async () => {
     setHata('')
     setSonuc(null)
     setCalisiyor(true)
+    const son = istek.trim()
+    const talep = sohbet.length
+      ? `Aşağıdaki konuşmada kararlaştırılanları tarife uygula.\n\n${sohbet
+          .map((m) => `${m.rol === 'sen' ? 'KULLANICI' : 'ŞEF'}: ${m.metin}`)
+          .join('\n\n')}${son ? `\n\nKULLANICININ SON İSTEĞİ: ${son}` : ''}`
+      : son
     try {
-      setSonuc(await aiTarifDegistir(r, istek.trim(), profilMetni(sofralar)))
+      setSonuc(await aiTarifDegistir(r, talep, profilMetni(sofralar)))
     } catch (e) {
       setHata((e as Error).message)
     }
@@ -96,26 +132,60 @@ export default function TarifDegistir() {
             ’dan Gemini anahtarını gir.
           </div>
         )}
+        {sohbet.length > 0 && (
+          <div className="space-y-2">
+            {sohbet.map((m, i) => (
+              <div
+                key={i}
+                className={`rounded-2xl px-3.5 py-2.5 text-[14.5px] leading-relaxed whitespace-pre-line max-w-[88%] ${
+                  m.rol === 'sen'
+                    ? 'ml-auto bg-lz-600 text-white rounded-br-md'
+                    : `lz-card rounded-bl-md ${T_GOVDE}`
+                }`}
+              >
+                {m.metin}
+              </div>
+            ))}
+            {soruyor && <div className={`lz-card rounded-2xl rounded-bl-md px-3.5 py-2.5 text-[14px] w-fit ${T_SOLUK}`}>Şef düşünüyor…</div>}
+          </div>
+        )}
         <div className="lz-card p-4 space-y-3">
-          <div className={`font-semibold ${T_BASLIK}`}>Ne değişsin?</div>
+          <div className={`font-semibold ${T_BASLIK}`}>{sohbet.length ? 'Devam et' : 'Tarif hakkında sor ya da ne değişsin yaz'}</div>
           <textarea
-            className="lz-input min-h-[100px] text-[15px]"
-            placeholder="Örn. Şeker yerine Stevia (toz, saf) kullanacağım; ne kadar koymalıyım?"
+            className="lz-input min-h-[90px] text-[15px]"
+            placeholder="Örn. Grek yoğurdu bizdeki süzme yoğurt mu? · Şeker yerine stevia (toz) kullanacağım"
             value={istek}
             onChange={(e) => setIstek(e.target.value)}
           />
-          <p className={`text-[12px] ${T_SOLUK}`}>İpucu: tatlandırıcının türünü ya da markasını yaz (toz, damla, “1:1” granül…) — miktar buna göre çok değişir.</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button className="lz-btn-soft text-sm px-2" disabled={!aiVar || !istek.trim() || soruyor || calisiyor} onClick={() => void sohbetSor()}>
+              {soruyor ? 'Soruluyor…' : '💬 Sor'}
+            </button>
+            <button
+              className="lz-btn-primary text-sm px-2"
+              disabled={!aiVar || (!istek.trim() && !sohbet.length) || calisiyor || soruyor}
+              onClick={() => void sor()}
+            >
+              {calisiyor ? 'Değiştiriliyor…' : '✨ Tarifi değiştir'}
+            </button>
+          </div>
+          <p className={`text-[12px] ${T_SOLUK}`}>
+            “Sor” tarifi değiştirmez, sadece konuşursunuz. Karar verince “Tarifi değiştir”e bas; konuşmada anlaştıklarınız tarife uygulanır.
+          </p>
           <div className="flex flex-wrap gap-1.5">
-            {ONERILER.map((o) => (
+            {(sohbet.length ? [] : SORULAR).concat(ONERILER).map((o) => (
               <button key={o} onClick={() => setIstek(o)} className="lz-chip text-[12.5px] !whitespace-normal text-left">
                 {o}
               </button>
             ))}
           </div>
-          <button className="lz-btn-primary w-full" disabled={!aiVar || !istek.trim() || calisiyor} onClick={() => void sor()}>
-            {calisiyor ? 'Tarif değiştiriliyor…' : '✨ Değiştir'}
-          </button>
+          {sohbet.length > 0 && (
+            <button className={`text-[12.5px] w-full ${T_SOLUK}`} onClick={() => setSohbet([])}>
+              Konuşmayı temizle
+            </button>
+          )}
         </div>
+        <div ref={alt} />
 
         {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">⚠️ {hata}</div>}
 
