@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
-import { SiraSeridi } from './Sira'
+import { SiraRozeti, SiraSeridi } from './Sira'
 import type { LzRecipe, LzTable } from '../types'
 import { Header, Icon, Logo, PlatformLabel, Sheet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
 
@@ -46,6 +46,10 @@ export default function Recipes() {
         }
         right={
           <>
+            <Link to="/sira" className="lz-btn-soft px-2.5 py-2 text-[15px] relative" aria-label="Tarif sırası">
+              📥
+              <SiraRozeti />
+            </Link>
             <Link to="/diyet" className="lz-btn-soft px-2.5 py-2 text-[15px]" aria-label="Diyetim">
               🥗
             </Link>

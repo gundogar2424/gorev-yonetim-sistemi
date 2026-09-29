@@ -64,20 +64,34 @@ export default function Sira() {
   )
 }
 
-// Tariflerim ekraninin ustundeki kucuk durum seridi
+// Tariflerim basligindaki 📥 dugmesinde bekleyen sayisi
+export function SiraRozeti() {
+  const n = useLiveQuery(() => lzDb.sira.where('durum').anyOf('bekliyor', 'isleniyor', 'hata').count(), [], 0) ?? 0
+  if (!n) return null
+  return (
+    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-lz-600 text-white text-[11px] font-bold flex items-center justify-center">
+      {n}
+    </span>
+  )
+}
+
+// Tariflerim ekraninin ustundeki kucuk durum seridi: sirada ya da yeni
+// eklenmis (henuz temizlenmemis) tarif varsa gorunur.
 export function SiraSeridi() {
   const liste = useLiveQuery(() => lzDb.sira.toArray(), [], [] as LzSira[]) ?? []
   const bekleyen = liste.filter((x) => x.durum === 'bekliyor' || x.durum === 'isleniyor').length
   const hata = liste.filter((x) => x.durum === 'hata').length
-  if (!bekleyen && !hata) return null
+  const biten = liste.filter((x) => x.durum === 'bitti').length
+  if (!bekleyen && !hata && !biten) return null
+  const parca = [
+    bekleyen ? `${bekleyen} tarif sırada işleniyor` : '',
+    biten ? `${biten} tarif sıradan eklendi` : '',
+    hata ? `${hata} tarif işlenemedi` : ''
+  ].filter(Boolean)
   return (
     <Link to="/sira" className="lz-card p-3 flex items-center gap-3">
-      <span className={`text-lg ${bekleyen ? 'animate-pulse' : ''}`}>{bekleyen ? '⚙️' : '⚠️'}</span>
-      <span className={`flex-1 text-[13.5px] font-medium ${T_BASLIK}`}>
-        {bekleyen ? `${bekleyen} tarif sırada işleniyor` : ''}
-        {bekleyen && hata ? ' · ' : ''}
-        {hata ? `${hata} tarif işlenemedi` : ''}
-      </span>
+      <span className={`text-lg ${bekleyen ? 'animate-pulse' : ''}`}>{bekleyen ? '⚙️' : hata ? '⚠️' : '📥'}</span>
+      <span className={`flex-1 text-[13.5px] font-medium ${T_BASLIK}`}>{parca.join(' · ')}</span>
       <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
     </Link>
   )

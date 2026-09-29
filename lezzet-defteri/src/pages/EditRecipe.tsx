@@ -3,8 +3,9 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft, LzTable } from '../types'
-import { Header, T_BASLIK, T_SOLUK, Thumb } from '../components/ui'
-import { ETIKETLER } from '../lib/ai'
+import { Header, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
+import { DuzenlemeSohbeti } from '../components/TarifSohbet'
+import { ETIKETLER, profilMetni, type TarifDegisikligi } from '../lib/ai'
 import { fotoOku } from '../lib/image'
 import { platformBul } from '../lib/importer'
 import { YeniSofra } from './Recipes'
@@ -37,6 +38,8 @@ export default function EditRecipe() {
   const [yeniEtiket, setYeniEtiket] = useState('')
   const [yeniSofra, setYeniSofra] = useState(false)
   const [hazir, setHazir] = useState(!duzenle)
+  const [sohbetAc, setSohbetAc] = useState(false)
+  const [uygulanan, setUygulanan] = useState<TarifDegisikligi | null>(null)
   const dosya = useRef<HTMLInputElement>(null)
   const not = loc.state?.not ?? ''
 
@@ -55,6 +58,30 @@ export default function EditRecipe() {
 
   const set = <K extends keyof LzDraft>(k: K, v: LzDraft[K]) => setD((x) => ({ ...x, [k]: v }))
 
+  const adimlar = (metin: string) =>
+    (metin.includes('\n\n') ? metin.split(/\n\s*\n/) : metin.split('\n')).map((s) => s.replace(/^\s*\d+[.)-]\s*/, '').replace(/\s*\n\s*/g, ' '))
+
+  // Sohbette kararlastirilan degisiklik forma yazilir (kaydetmek kullaniciya kalir)
+  const sohbettenUygula = (s: TarifDegisikligi) => {
+    const t = s.tarif
+    setD((x) => ({
+      ...x,
+      title: t.title || x.title,
+      servings: t.servings || x.servings,
+      minutes: t.minutes || x.minutes,
+      notes: [t.notes, s.aciklama ? `Değişiklik: ${s.aciklama}` : ''].filter(Boolean).join('\n\n') || x.notes,
+      tags: t.tags?.length ? t.tags : x.tags,
+      // malzeme degisti: eski besin degeri ve Thermomix uyarlamasi gecersiz
+      besin: undefined,
+      tm: undefined
+    }))
+    if (t.ingredients?.length) setMalz(t.ingredients.join('\n'))
+    if (t.steps?.length) setAdim(t.steps.join('\n\n'))
+    setUygulanan(s)
+    setSohbetAc(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const kaydet = async () => {
     const veri: LzDraft = {
       title: d.title,
@@ -69,12 +96,10 @@ export default function EditRecipe() {
       platform: d.sourceUrl ? (d.platform === 'manual' ? platformBul(d.sourceUrl) : d.platform) : 'manual',
       ingredients: malz.split('\n'),
       // Adimlar bos satirla ya da satir satir ayrilabilir
-      steps: (adim.includes('\n\n') ? adim.split(/\n\s*\n/) : adim.split('\n')).map((s) =>
-        s.replace(/^\s*\d+[.)-]\s*/, '').replace(/\s*\n\s*/g, ' ')
-      )
+      steps: adimlar(adim)
     }
     if (duzenle) {
-      await updateRecipe(duzenle, { ...veri, tableIds: secili })
+      await updateRecipe(duzenle, { ...veri, tableIds: secili, ...(uygulanan ? { tm: undefined } : {}) })
       navigate(-1)
     } else {
       const yeni = await addRecipe(veri, secili)
@@ -112,6 +137,18 @@ export default function EditRecipe() {
                 ↻ Yapay zekayla tekrar dene
               </button>
             )}
+          </div>
+        )}
+
+        <button className="lz-btn-soft w-full text-[14.5px]" onClick={() => setSohbetAc(true)}>
+          💬 Bu tarif üzerine yapay zekayla sohbet et
+        </button>
+        {uygulanan && (
+          <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3.5 space-y-1">
+            <div className="font-semibold">✓ Değişiklikler forma yazıldı — kontrol edip kaydet</div>
+            {uygulanan.degisiklikler.map((x, i) => (
+              <div key={i}>• {x}</div>
+            ))}
           </div>
         )}
 
@@ -236,6 +273,15 @@ export default function EditRecipe() {
         <button className="lz-btn-primary w-full text-[16px]" onClick={() => void kaydet()}>
           {duzenle ? 'Değişiklikleri kaydet' : 'Deftere kaydet'}
         </button>
+        <Sheet open={sohbetAc} onClose={() => setSohbetAc(false)} title={d.title ? `Sohbet: ${d.title}` : 'Tarif üzerine sohbet'}>
+          <div className={T_GOVDE}>
+            <DuzenlemeSohbeti
+              tarif={{ ...d, ingredients: malz.split('\n').filter((x) => x.trim()), steps: adimlar(adim).filter((x) => x.trim()) }}
+              profil={profilMetni(sofralar)}
+              onUygula={sohbettenUygula}
+            />
+          </div>
+        </Sheet>
       </div>
 
       <YeniSofra open={yeniSofra} onClose={() => setYeniSofra(false)} onCreated={(yid) => setSecili((s) => [...s, yid])} />

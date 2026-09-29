@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft, LzTable } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { SohbetBalonlari, konusmaIstegi } from '../components/TarifSohbet'
 import { aiTarifDegistir, aiTarifSohbet, apiAnahtari, profilMetni, type SohbetMesaji, type TarifDegisikligi } from '../lib/ai'
 
 const SORULAR = ['Bu malzemenin Türkiye’deki karşılığı ne?', 'Neyle değiştirebilirim?', 'Kaç kalori, nasıl hafifletirim?', 'Tutmazsa neden olur?']
@@ -69,11 +70,7 @@ export default function TarifDegistir() {
     setSonuc(null)
     setCalisiyor(true)
     const son = istek.trim()
-    const talep = sohbet.length
-      ? `Aşağıdaki konuşmada kararlaştırılanları tarife uygula.\n\n${sohbet
-          .map((m) => `${m.rol === 'sen' ? 'KULLANICI' : 'ŞEF'}: ${m.metin}`)
-          .join('\n\n')}${son ? `\n\nKULLANICININ SON İSTEĞİ: ${son}` : ''}`
-      : son
+    const talep = konusmaIstegi(sohbet, son)
     try {
       setSonuc(await aiTarifDegistir(r, talep, profilMetni(sofralar)))
     } catch (e) {
@@ -132,23 +129,7 @@ export default function TarifDegistir() {
             ’dan Gemini anahtarını gir.
           </div>
         )}
-        {sohbet.length > 0 && (
-          <div className="space-y-2">
-            {sohbet.map((m, i) => (
-              <div
-                key={i}
-                className={`rounded-2xl px-3.5 py-2.5 text-[14.5px] leading-relaxed whitespace-pre-line max-w-[88%] ${
-                  m.rol === 'sen'
-                    ? 'ml-auto bg-lz-600 text-white rounded-br-md'
-                    : `lz-card rounded-bl-md ${T_GOVDE}`
-                }`}
-              >
-                {m.metin}
-              </div>
-            ))}
-            {soruyor && <div className={`lz-card rounded-2xl rounded-bl-md px-3.5 py-2.5 text-[14px] w-fit ${T_SOLUK}`}>Şef düşünüyor…</div>}
-          </div>
-        )}
+        <SohbetBalonlari sohbet={sohbet} soruyor={soruyor} />
         <div className="lz-card p-4 space-y-3">
           <div className={`font-semibold ${T_BASLIK}`}>{sohbet.length ? 'Devam et' : 'Tarif hakkında sor ya da ne değişsin yaz'}</div>
           <textarea
