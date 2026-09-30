@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listRecipes, lzDb } from '../db'
-import type { LzBesin, LzDiyet, LzRecipe } from '../types'
+import type { LzBesin, LzDiyet, LzDiyetOgun, LzOgunEslesme, LzRecipe } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { aiDiyetOku, apiAnahtari, type OgunUyum } from '../lib/ai'
 import { ogunTara, tumOgunleriTara, useTaramaDurumu, yeniTarifSayisi } from '../lib/diyetTara'
@@ -97,9 +97,18 @@ export default function Diyetim() {
                 <p className={`text-[13.5px] whitespace-pre-line ${T_GOVDE}`}>{plan!.notlar}</p>
               </div>
             )}
+            <OgunEkle
+              onEklendi={(i) => {
+                sec(i)
+                void ogunTara(i)
+              }}
+            />
             <button className="lz-btn-soft w-full text-sm" onClick={() => setDuzenle(true)}>
               Planı değiştir / yeniden yükle
             </button>
+            <p className={`text-[11.5px] text-center px-2 ${T_SOLUK}`}>
+              Planı yeniden yüklesen de içeriği aynı kalan öğünlerin tarif karşılaştırması korunur; sadece yeni ya da değişen öğünler taranır.
+            </p>
           </>
         ) : (
           <OgunSekmesi i={sekme} plan={plan!} tarifler={tarifler} />
@@ -185,9 +194,18 @@ function OgunSekmesi({ i, plan, tarifler }: { i: number; plan: LzDiyet; tarifler
         🥕 Elimdeki malzemelerle bu öğüne tarif
       </Link>
       {e && aiVar && (
-        <button className={`text-[13px] w-full ${T_SOLUK}`} disabled={d.calisiyor} onClick={() => void ogunTara(i, true)}>
-          ↻ Tüm tarifleri yeniden karşılaştır
-        </button>
+        <>
+          <button className="lz-btn-soft w-full text-sm" disabled={d.calisiyor || yeni === 0} onClick={() => void ogunTara(i)}>
+            {yeni ? `↻ Yenile — sadece ${yeni} yeni tarifi ekle` : '✓ Tüm tarifler karşılaştırıldı'}
+          </button>
+          <button
+            className={`text-[12.5px] w-full ${T_SOLUK}`}
+            disabled={d.calisiyor}
+            onClick={() => confirm('Bu öğün için tüm tarifler baştan karşılaştırılsın mı? (Daha çok yapay zeka kullanır)') && void ogunTara(i, true)}
+          >
+            Hepsini baştan karşılaştır
+          </button>
+        </>
       )}
     </>
   )
@@ -224,6 +242,76 @@ function Bolum({ baslik, liste, tarifMap, soluk }: { baslik: string; liste: Ogun
   )
 }
 
+function ogunAnahtari(o: LzDiyetOgun): string {
+  // Hedef degerleri tahminse her okumada biraz degisebilir; ogunun adi ve icerigi yeterli
+  return [o.ad, o.icerik]
+    .join('|')
+    .toLocaleLowerCase('tr')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// Plana tek bir ogun ekler; yalnizca bu ogun icin tarifler taranir.
+function OgunEkle({ onEklendi }: { onEklendi: (i: number) => void }) {
+  const [acik, setAcik] = useState(false)
+  const [ad, setAd] = useState('')
+  const [icerik, setIcerik] = useState('')
+  const [calisiyor, setCalisiyor] = useState(false)
+  const [hata, setHata] = useState('')
+  const aiVar = !!apiAnahtari()
+
+  if (!acik)
+    return (
+      <button className="lz-btn-primary w-full text-sm" onClick={() => setAcik(true)}>
+        ➕ Öğün ekle
+      </button>
+    )
+
+  const ekle = async () => {
+    setHata('')
+    setCalisiyor(true)
+    try {
+      const v = await aiDiyetOku({ metin: `${ad.trim()}: ${icerik.trim()}\n(Bu tek bir öğündür, tek öğün olarak döndür.)` })
+      const o = v.ogunler[0]
+      const plan = await lzDb.diyet.get(1)
+      if (!plan) return
+      const yeni: LzDiyetOgun = { ...o, ad: ad.trim() || o.ad, icerik: icerik.trim() }
+      const ogunler = [...plan.ogunler, yeni]
+      // guncelleme degismez: diger ogunlerin sonuclari ve suren taramalar gecerli kalir
+      await lzDb.diyet.update(1, { ogunler, gunlukKalori: Math.round(plan.gunlukKalori + (o.hedef?.kalori ?? 0)) })
+      setAcik(false)
+      setAd('')
+      setIcerik('')
+      onEklendi(ogunler.length - 1)
+    } catch (e) {
+      setHata((e as Error).message)
+    }
+    setCalisiyor(false)
+  }
+
+  return (
+    <div className="lz-card p-4 space-y-2.5">
+      <div className={`font-semibold ${T_BASLIK}`}>Yeni öğün</div>
+      <input className="lz-input" placeholder="Öğün adı (ör. Gece ara öğün)" value={ad} onChange={(e) => setAd(e.target.value)} />
+      <textarea
+        className="lz-input min-h-[80px] text-[14px]"
+        placeholder="Diyetisyenin yazdığı içerik (ör. 1 kase yoğurt, 2 ceviz)"
+        value={icerik}
+        onChange={(e) => setIcerik(e.target.value)}
+      />
+      {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+      <div className="grid grid-cols-2 gap-2.5">
+        <button className="lz-btn-soft text-sm" onClick={() => setAcik(false)}>
+          Vazgeç
+        </button>
+        <button className="lz-btn-primary text-sm" disabled={!aiVar || !ad.trim() || !icerik.trim() || calisiyor} onClick={() => void ekle()}>
+          {calisiyor ? 'Ekleniyor…' : 'Ekle'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function PlanYukle({ onBitti, iptal }: { onBitti: () => void; iptal?: () => void }) {
   const [metin, setMetin] = useState('')
   const [yukleniyor, setYukleniyor] = useState('')
@@ -236,7 +324,15 @@ function PlanYukle({ onBitti, iptal }: { onBitti: () => void; iptal?: () => void
     setYukleniyor('Plan okunuyor…')
     try {
       const v = await aiDiyetOku(girdi)
-      const kayit: LzDiyet = { id: 1, ogunler: v.ogunler, notlar: v.notlar, gunlukKalori: v.gunlukKalori, guncelleme: Date.now() }
+      // Degismeyen ogunlerin tarif karsilastirmasi korunur; sadece yeni/degisen ogunler taranir (daha az yapay zeka kullanimi)
+      const eski = await lzDb.diyet.get(1)
+      const eslesme: Record<number, LzOgunEslesme> = {}
+      v.ogunler.forEach((o, i) => {
+        const j = eski?.ogunler.findIndex((x) => ogunAnahtari(x) === ogunAnahtari(o)) ?? -1
+        const e = j >= 0 ? eski?.eslesme?.[j] : undefined
+        if (e) eslesme[i] = e
+      })
+      const kayit: LzDiyet = { id: 1, ogunler: v.ogunler, notlar: v.notlar, gunlukKalori: v.gunlukKalori, guncelleme: Date.now(), eslesme }
       await lzDb.diyet.put(kayit)
       onBitti()
     } catch (e) {
