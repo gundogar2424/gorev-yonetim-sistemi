@@ -118,4 +118,5 @@ export interface LzSira {
   baslik: string
   createdAt: number
   updatedAt: number
+  zorla?: boolean // defterde olsa da yeniden cikar
 }

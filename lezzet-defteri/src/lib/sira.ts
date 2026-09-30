@@ -5,7 +5,7 @@
 // kapansa da kaybolmaz; acilinca kaldigi yerden devam eder.
 import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft } from '../types'
-import { linkAyikla, platformBul } from './importer'
+import { linkAyikla, platformBul, youtubeId } from './importer'
 import { linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
 
 let calisiyor = false
@@ -27,9 +27,12 @@ function kisaLink(url: string): string {
   return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\?.*$/, '').slice(0, 60)
 }
 
-// Temel link: sorgu kismi (?igsh=..., ?stkn=...) atilir; ayni reel farkli paylasim kodlariyla gelebilir
+// Temel link: ayni video farkli paylasim kodlariyla (?igsh=, ?si=) gelebilir.
+// YouTube'da video kimligi kullanilir (watch?v= kimligi sorgu kisminda oldugu icin).
 function temelLink(url: string): string {
-  return url.replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase()
+  const yt = youtubeId(url)
+  if (yt) return `youtube:${yt}`
+  return url.replace(/[?#].*$/, '').replace(/\/+$/, '').replace(/^https?:\/\/(www\.|m\.)?/i, '')
 }
 
 // Sira isleyici: ayni anda yalnizca bir tane calisir.
@@ -45,7 +48,7 @@ export async function siraIsle(): Promise<void> {
       try {
         const url = linkAyikla(is.girdi)
         // Bu link zaten defterdeyse tekrar ekleme
-        if (url) {
+        if (url && !is.zorla) {
           const var_ = (await lzDb.recipes.toArray()).find((r) => r.sourceUrl && temelLink(r.sourceUrl) === temelLink(url))
           if (var_) {
             await g({ durum: 'bitti', mesaj: 'Bu tarif zaten defterde.', recipeId: var_.id!, baslik: var_.title })
@@ -84,7 +87,8 @@ export async function siraBaslat(): Promise<void> {
   void siraIsle()
 }
 
-export async function siraTekrar(id: number): Promise<void> {
-  await lzDb.sira.update(id, { durum: 'bekliyor', mesaj: 'Sırada', updatedAt: Date.now() })
+// zorla: "zaten defterde" denen linki yine de bastan cikar (yeni tarif olarak)
+export async function siraTekrar(id: number, zorla = false): Promise<void> {
+  await lzDb.sira.update(id, { durum: 'bekliyor', mesaj: 'Sırada', zorla, updatedAt: Date.now() })
   void siraIsle()
 }

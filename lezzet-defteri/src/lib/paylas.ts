@@ -5,6 +5,7 @@
 // Her HTML dosyasinin icine tarifin verisi (JSON) gomulur; karsi tarafta
 // Lezzet Defteri varsa "Tarif ekle → Dosyadan" ile deftere tek dokunusla alinir.
 import type { LzRecipe } from '../types'
+import { youtubeId } from './importer'
 import { adimOzeti, hizAdi, modAdi, sicaklikAdi, sureAdi, type TmSurum } from './tm7'
 
 const GOMULU_ID = 'lezzet-defteri-tarif'
@@ -82,11 +83,6 @@ ol.a li{counter-increment:a;display:flex;gap:12px;margin:0 0 14px}ol.a li:before
 @media (prefers-color-scheme:dark){body{background:#171412;color:#f2ebe5}.kart{background:#221d1a;box-shadow:none}ul.m li{border-color:#2f2824}
 .pill{background:#3a1d16;color:#ff9f88}.btn.y{background:#2a2420;color:#d9cec5}.uyari{background:#2a2113;color:#f1c56b}ol.a li:before{background:#3a1d16}}
 `
-
-function youtubeId(url: string): string {
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/)
-  return m ? m[1] : ''
-}
 
 const PLATFORM_ADI: Record<string, string> = { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok', pinterest: 'Pinterest', facebook: 'Facebook' }
 

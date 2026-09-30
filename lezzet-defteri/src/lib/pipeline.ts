@@ -2,7 +2,7 @@
 // Hem "Tarif ekle" ekrani hem de arka arkaya paylasimlari isleyen sira
 // (lib/sira.ts) ayni kodu kullanir. Ekrana bagli degildir; ilerleme mesajlari
 // geri cagirimla bildirilir.
-import { linkAyikla, linktenTarif, metinIndir, type LinkSonucu } from './importer'
+import { linkAyikla, linktenTarif, metinIndir, type LinkSonucu, youtubeId } from './importer'
 import { metniAyristir } from './parse'
 import { aiAdi, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from './ai'
 import { GEMINI_DOGRUDAN_MAX, instagramVeri, kareler, sesWavBase64, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from './video'
@@ -100,7 +100,9 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
     if (yt.aciklama.length > parca.aciklama.length) parca.aciklama = yt.aciklama
     parca.altyazi = yt.altyazi
     // Gemini YouTube videosunu dogrudan izleyebilir (altyazi olmasa da)
-    if (saglayici() === 'gemini') parca.youtube = url
+    // Gemini YouTube'u yalnizca tam "watch?v=" adresiyle izler (youtu.be/…?si= kisa linki taninmayabilir)
+    const ytId = youtubeId(url)
+    if (saglayici() === 'gemini') parca.youtube = ytId ? `https://www.youtube.com/watch?v=${ytId}` : url
     else if (!yt.altyazi) notlar.push('videonun altyazısı yok ya da alınamadı')
     return { parca, kapak, notlar }
   }

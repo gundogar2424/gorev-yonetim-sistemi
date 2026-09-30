@@ -31,6 +31,12 @@ export const PLATFORM_AD: Record<LzPlatform, string> = {
 }
 
 // Paylasilan metnin icinden ilk adresi ayiklar ("Şu tarife bak https://...").
+// YouTube video kimligi (youtu.be, watch?v=, shorts, embed, live)
+export function youtubeId(url: string): string {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/))([\w-]{11})/)
+  return m ? m[1] : ''
+}
+
 export function linkAyikla(metin: string): string {
   const m = metin.match(/https?:\/\/[^\s<>"']+/i)
   if (m) return m[0].replace(/[),.;!?]+$/, '')

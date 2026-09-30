@@ -34,11 +34,16 @@ export default function Sira() {
               >
                 {x.mesaj}
               </div>
-              <div className="flex gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 {x.durum === 'bitti' && x.recipeId > 0 && (
                   <Link to={`/tarif/${x.recipeId}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
                     Tarifi aç
                   </Link>
+                )}
+                {x.durum === 'bitti' && x.mesaj.startsWith('Bu tarif zaten') && (
+                  <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void siraTekrar(x.id!, true)}>
+                    ↻ Yeniden çıkar
+                  </button>
                 )}
                 {x.durum === 'hata' && (
                   <button className="lz-btn-primary px-3 py-1.5 text-[12.5px]" onClick={() => void siraTekrar(x.id!)}>
