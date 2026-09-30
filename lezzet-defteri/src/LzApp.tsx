@@ -14,7 +14,6 @@ import Thermomix from './pages/Thermomix'
 import TmDetail from './pages/TmDetail'
 import TmCook from './pages/TmCook'
 import Diyetim from './pages/Diyetim'
-import DiyetOgun from './pages/DiyetOgun'
 import Sira from './pages/Sira'
 import TarifDegistir from './pages/TarifDegistir'
 import { siraBaslat, siraEkle, siraIsle } from './lib/sira'
@@ -71,7 +70,7 @@ export default function LzApp() {
           <Route path="/sira" element={<Sira />} />
           <Route path="/tarif/:id/degistir" element={<TarifDegistir />} />
           <Route path="/diyet" element={<Diyetim />} />
-          <Route path="/diyet/:i" element={<DiyetOgun />} />
+          <Route path="/diyet/:i" element={<Diyetim />} />
           <Route path="/hafta" element={<Week />} />
           <Route path="/alisveris" element={<Shopping />} />
           <Route path="/ayarlar" element={<LzSettings />} />

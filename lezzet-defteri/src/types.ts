@@ -98,6 +98,14 @@ export interface LzDiyet {
   notlar: string // Genel kurallar (su, yasaklar...)
   gunlukKalori: number
   guncelleme: number
+  // Her ogun icin defterdeki tariflerin uyum sonucu (ogun sirasi -> sonuc)
+  eslesme?: Record<number, LzOgunEslesme>
+}
+
+export interface LzOgunEslesme {
+  sonuc: import('./lib/ai').OgunUyum[]
+  bakilan: number[] // degerlendirilmis tarif id'leri (yeni eklenenler sonradan taranir)
+  zaman: number
 }
 
 // Arka arkaya paylasilan linklerin islenme sirasi
