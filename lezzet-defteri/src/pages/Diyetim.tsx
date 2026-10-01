@@ -73,6 +73,7 @@ export default function Diyetim() {
         </div>
       )}
       <div className="px-4 space-y-3 pb-8">
+        {planVar && !duzenle && <KontrolSeridi plan={plan!} tarifler={tarifler} />}
         {!planVar || duzenle ? (
           <PlanYukle
             onBitti={() => {
@@ -117,6 +118,35 @@ export default function Diyetim() {
           Kalori ve makrolar yapay zekanın tahminidir; tartılmış değerler değildir. Son karar her zaman diyetisyenine aittir.
         </p>
       </div>
+    </div>
+  )
+}
+
+// Tum ogunlerde yeni (henuz karsilastirilmamis) tarifleri tek dokunusla kontrol eder
+function KontrolSeridi({ plan, tarifler }: { plan: LzDiyet; tarifler: LzRecipe[] }) {
+  const durum = useTaramaDurumu()
+  const aiVar = !!apiAnahtari()
+  const adaylar = tarifler.filter((r) => r.ingredients.length > 0).map((r) => r.id!)
+  const eksik = plan.ogunler.map((_, i) => yeniTarifSayisi(plan.eslesme?.[i], adaylar))
+  const enCok = Math.max(0, ...eksik)
+  const calisan = plan.ogunler.some((_, i) => durum[i]?.calisiyor)
+  if (!aiVar || !adaylar.length) return null
+  const kontrol = async () => {
+    for (let i = 0; i < plan.ogunler.length; i++) if (eksik[i] > 0) await ogunTara(i)
+  }
+  return (
+    <div className="lz-card p-3 flex items-center gap-3">
+      <span className={`text-lg ${calisan ? 'animate-pulse' : ''}`}>{calisan ? '🔎' : enCok ? '🆕' : '✅'}</span>
+      <span className={`flex-1 text-[13px] ${T_GOVDE}`}>
+        {calisan
+          ? 'Tarifler öğünlerle karşılaştırılıyor…'
+          : enCok
+            ? `${enCok} yeni tarif henüz öğünlerle karşılaştırılmadı`
+            : 'Tüm tarifler öğünlerle karşılaştırıldı'}
+      </span>
+      <button className={`${enCok ? 'lz-btn-primary' : 'lz-btn-soft'} px-3 py-2 text-[12.5px] whitespace-nowrap`} disabled={calisan || !enCok} onClick={() => void kontrol()}>
+        {enCok ? 'Kontrol et' : 'Güncel'}
+      </button>
     </div>
   )
 }
