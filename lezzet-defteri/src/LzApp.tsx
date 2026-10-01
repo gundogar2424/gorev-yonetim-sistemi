@@ -17,6 +17,9 @@ import Diyetim from './pages/Diyetim'
 import Sira from './pages/Sira'
 import TarifDegistir from './pages/TarifDegistir'
 import { siraBaslat, siraEkle, siraIsle } from './lib/sira'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { lzDb } from './db'
+import { tumOgunleriTara } from './lib/diyetTara'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Tariflerim', icon: 'book', end: true },
@@ -47,6 +50,15 @@ export default function LzApp() {
   }, [navigate])
 
   // Acilista yarim kalan sirayi surdur; uygulama one gelince de kontrol et
+  // Diyet plani varsa: yeni eklenen tarifler arka planda kendiliginden ogunlerle
+  // karsilastirilir (yalnizca yeniler; once bakilanlar icin tekrar harcanmaz)
+  const tarifSayisi = useLiveQuery(() => lzDb.recipes.count(), [])
+  useEffect(() => {
+    if (tarifSayisi === undefined) return
+    const t = setTimeout(() => void tumOgunleriTara(), 8000)
+    return () => clearTimeout(t)
+  }, [tarifSayisi])
+
   useEffect(() => {
     void siraBaslat()
     const gorunur = () => document.visibilityState === 'visible' && void siraIsle()

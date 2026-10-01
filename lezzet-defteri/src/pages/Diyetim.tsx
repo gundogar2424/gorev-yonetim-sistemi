@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listRecipes, lzDb } from '../db'
-import type { LzBesin, LzDiyet, LzDiyetOgun, LzOgunEslesme, LzRecipe } from '../types'
+import type { LzBesin, LzDiyet, LzDiyetOgun, LzRecipe } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { aiDiyetOku, apiAnahtari, type OgunUyum } from '../lib/ai'
 import { ogunTara, tumOgunleriTara, useTaramaDurumu, yeniTarifSayisi } from '../lib/diyetTara'
@@ -108,7 +108,7 @@ export default function Diyetim() {
               Planı değiştir / yeniden yükle
             </button>
             <p className={`text-[11.5px] text-center px-2 ${T_SOLUK}`}>
-              Planı yeniden yüklesen de içeriği aynı kalan öğünlerin tarif karşılaştırması korunur; sadece yeni ya da değişen öğünler taranır.
+              Yeni liste yükleyince tüm öğünler hemen baştan karşılaştırılır. Sonra eklediğin tarifler arka planda kendiliğinden eklenir.
             </p>
           </>
         ) : (
@@ -272,15 +272,6 @@ function Bolum({ baslik, liste, tarifMap, soluk }: { baslik: string; liste: Ogun
   )
 }
 
-function ogunAnahtari(o: LzDiyetOgun): string {
-  // Hedef degerleri tahminse her okumada biraz degisebilir; ogunun adi ve icerigi yeterli
-  return [o.ad, o.icerik]
-    .join('|')
-    .toLocaleLowerCase('tr')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 // Plana tek bir ogun ekler; yalnizca bu ogun icin tarifler taranir.
 function OgunEkle({ onEklendi }: { onEklendi: (i: number) => void }) {
   const [acik, setAcik] = useState(false)
@@ -354,15 +345,8 @@ function PlanYukle({ onBitti, iptal }: { onBitti: () => void; iptal?: () => void
     setYukleniyor('Plan okunuyor…')
     try {
       const v = await aiDiyetOku(girdi)
-      // Degismeyen ogunlerin tarif karsilastirmasi korunur; sadece yeni/degisen ogunler taranir (daha az yapay zeka kullanimi)
-      const eski = await lzDb.diyet.get(1)
-      const eslesme: Record<number, LzOgunEslesme> = {}
-      v.ogunler.forEach((o, i) => {
-        const j = eski?.ogunler.findIndex((x) => ogunAnahtari(x) === ogunAnahtari(o)) ?? -1
-        const e = j >= 0 ? eski?.eslesme?.[j] : undefined
-        if (e) eslesme[i] = e
-      })
-      const kayit: LzDiyet = { id: 1, ogunler: v.ogunler, notlar: v.notlar, gunlukKalori: v.gunlukKalori, guncelleme: Date.now(), eslesme }
+      // Yeni liste: tum ogunler bastan karsilastirilir (onceki sonuclar silinir)
+      const kayit: LzDiyet = { id: 1, ogunler: v.ogunler, notlar: v.notlar, gunlukKalori: v.gunlukKalori, guncelleme: Date.now() }
       await lzDb.diyet.put(kayit)
       onBitti()
     } catch (e) {
