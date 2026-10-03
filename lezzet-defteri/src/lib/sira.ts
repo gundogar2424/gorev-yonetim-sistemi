@@ -78,7 +78,7 @@ export async function siraIsle(): Promise<void> {
         // Tarif degil de bir yeme-icme mekani paylasildiysa Mekanlarim'a kaydedilir
         if (e instanceof TarifYokHatasi) {
           try {
-            const sonuc = await mekanLinktenEkle(is.girdi, (m) => void g({ mesaj: m }))
+            const sonuc = await mekanLinktenEkle(is.girdi, (m) => void g({ mesaj: m }), { parca: e.parca, kapak: e.kapak })
             const mk = await lzDb.mekanlar.get(sonuc.id)
             await g({
               durum: 'bitti',

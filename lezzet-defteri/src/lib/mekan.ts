@@ -3,7 +3,8 @@
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { aiMekanAyikla, apiAnahtari } from './ai'
+import { aiMekanAyikla, apiAnahtari, type VideoParcalari } from './ai'
+import { mekanIcinTopla } from './pipeline'
 import { linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
 import { uzaktanFotoIndir } from './image'
 import { temelLink } from './kopya'
@@ -134,7 +135,11 @@ export async function ayniMekan(m: { ad: string; sehir: string; sourceUrl?: stri
 
 // Paylasilan linkten (Instagram, TikTok, YouTube, Google Maps…) mekan kaydi olusturur.
 // Mekan degilse hata atar. Ayni mekan varsa var olanin kimligi doner.
-export async function mekanLinktenEkle(girdi: string, ilerleme: (m: string) => void = () => {}): Promise<{ id: number; yeni: boolean }> {
+export async function mekanLinktenEkle(
+  girdi: string,
+  ilerleme: (m: string) => void = () => {},
+  hazir?: { parca?: VideoParcalari; kapak?: string }
+): Promise<{ id: number; yeni: boolean }> {
   if (!apiAnahtari()) throw new Error('Mekanı tanımak için Ayarlar’dan Gemini anahtarı gir.')
   const url = linkAyikla(girdi)
   if (url) {
@@ -146,13 +151,18 @@ export async function mekanLinktenEkle(girdi: string, ilerleme: (m: string) => v
   let foto = ''
   let baslik = ''
   let koord = url ? haritaKoordinati(url) : undefined
+  let video: VideoParcalari | undefined
   if (url) {
     try {
-      const s = await linktenTarif(url)
+      // Tarif denemesinde toplanan video parcalari varsa yeniden indirilmez
+      const t = hazir?.parca ? { s: await linktenTarif(url), parca: hazir.parca, kapak: hazir.kapak ?? '' } : await mekanIcinTopla(url, ilerleme)
+      const s = t.s
+      video = t.parca
+      if (t.kapak) foto = t.kapak
       baslik = s.draft.title
       metin = [s.draft.title, s.draft.author && `Paylaşan: ${s.draft.author}`, s.hamMetin, girdi].filter(Boolean).join('\n\n')
       if (!koord) koord = haritaKoordinati(s.html)
-      if (/^https:\/\//i.test(s.draft.photo)) foto = await uzaktanFotoIndir(s.draft.photo).catch(() => '')
+      if (/^https:\/\//i.test(s.draft.photo)) foto = (await uzaktanFotoIndir(s.draft.photo).catch(() => '')) || foto
     } catch {
       // Harita kisa linki gibi okunamayan sayfa: yonlendirilen adresi dene
       if (haritaLinkiMi(url)) {
@@ -163,7 +173,7 @@ export async function mekanLinktenEkle(girdi: string, ilerleme: (m: string) => v
     }
   }
   ilerleme('Yapay zeka mekanı araştırıyor…')
-  const b = await aiMekanAyikla(metin, foto)
+  const b = await aiMekanAyikla(metin, foto, video)
   if (!b.mekan_mi || !b.ad) throw new Error('Bu paylaşımda tarif de mekan da bulunamadı.')
   const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir })
   if (ayni) return { id: ayni.id!, yeni: false }

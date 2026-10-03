@@ -384,6 +384,9 @@ interface TarifJson {
 
 // Paylasimda tarif yoksa (ör. bir mekan tanitimi) bu hata atilir; cagiran mekan olarak dener.
 export class TarifYokHatasi extends Error {
+  // Toplanan video parcalari: mekan aranirken video yeniden indirilmesin
+  parca?: VideoParcalari
+  kapak?: string
   constructor() {
     super('Burada bir tarif bulunamadı.')
     this.name = 'TarifYokHatasi'
@@ -391,7 +394,8 @@ export class TarifYokHatasi extends Error {
 }
 
 function tarifeCevir(v: TarifJson): Partial<LzDraft> {
-  if (!v.is_recipe && !v.ingredients?.length) throw new TarifYokHatasi()
+  // Tarif degil (ör. mekan tanitimi): yapilis adimi yoksa ya da malzeme yok denecek kadar azsa
+  if (!v.is_recipe && (!v.ingredients?.length || !v.steps?.length)) throw new TarifYokHatasi()
   return {
     title: v.title,
     servings: v.servings || 0,
@@ -974,7 +978,7 @@ export interface MekanBilgisi {
 
 // Paylasimdaki yeme-icme mekanini cikarir; Gemini'de Google aramasiyla
 // mekanin acik adresini de arastirir (paylasimda konum olmasa bile).
-export async function aiMekanAyikla(metin: string, foto = ''): Promise<MekanBilgisi> {
+export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParcalari): Promise<MekanBilgisi> {
   const schema = {
     type: 'object',
     additionalProperties: false,
@@ -995,15 +999,29 @@ export async function aiMekanAyikla(metin: string, foto = ''): Promise<MekanBilg
     }
   }
   const parcalar: Parca[] = []
-  const m = foto.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
-  if (m) parcalar.push({ type: 'image', mime: m[1], data: m[2] })
-  parcalar.push({ type: 'text', text: `Paylaşım:\n"""\n${metin.slice(0, 8000)}\n"""` })
+  const gemini = saglayici() === 'gemini'
+  // Videodaki tabela, ekrandaki yazi, soylenen ad ve konum etiketi icin video da verilir
+  if (gemini && video?.video) parcalar.push({ type: 'video', mime: video.video.mime, data: video.video.data })
+  if (gemini && video?.youtube) parcalar.push({ type: 'youtube', url: video.youtube })
+  if (gemini && video?.ses) parcalar.push({ type: 'audio', mime: video.ses.mime, data: video.ses.data })
+  for (const k of [foto, ...(video?.kareler ?? []).slice(0, 8)]) {
+    const m = k.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
+    if (m) parcalar.push({ type: 'image', mime: m[1], data: m[2] })
+  }
+  const ek = [
+    video?.konusma && `Videoda söylenenler:\n"""\n${video.konusma.slice(0, 8000)}\n"""`,
+    video?.altyazi && `Videonun altyazısı:\n"""\n${video.altyazi.slice(0, 8000)}\n"""`,
+    gemini && (video?.video || video?.youtube || video?.ses) &&
+      'Ekteki video/ses paylaşımın kendisidir: tabelaya, ekrandaki yazılara, konum etiketine ve söylenen mekan adına dikkat et.'
+  ].filter(Boolean)
+  parcalar.push({ type: 'text', text: `Paylaşım:\n"""\n${metin.slice(0, 8000)}\n"""${ek.length ? `\n\n${ek.join('\n\n')}` : ''}` })
   const v = await jsonCagri<MekanBilgisi>(
     'Sen bir yeme-içme mekanı rehberisin. Sosyal medya paylaşımında tanıtılan restoran/kafe/pastane gibi MEKANI belirlersin. ' +
       'Paylaşımda mekanın adı, kullanıcı adı (@…), semti ya da ipucu geçer; gerekirse Google’da ARAŞTIRARAK mekanın tam adını, ' +
       'ilçesini, şehrini ve açık adresini bul. Birden çok şubesi varsa paylaşımda geçen semte uyanı seç; belirsizse ana şubeyi yaz ve ' +
       'notlara "birden çok şubesi var" ekle. Adresi ya da koordinatı bulamazsan boş/0 bırak, UYDURMA. Önerilen yemekleri paylaşımdan yaz. ' +
-      'Paylaşım bir mekan değilse (ör. evde yapılan tarif) mekan_mi false. Türkçe yaz.',
+      'Mekanın adı açıklamada yoksa videodaki tabeladan, menüden, ekrandaki yazıdan, söylenenden ya da etiketlenen hesaptan (@…) bul. ' +
+      'Paylaşımda bir yeme-içme yeri gösteriliyor ya da öneriliyorsa mekan_mi true; yalnızca evde yapılan tarifse ya da hiç mekan yoksa false. Türkçe yaz.',
     parcalar,
     schema,
     2500,

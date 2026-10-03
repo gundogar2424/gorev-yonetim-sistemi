@@ -219,8 +219,12 @@ export async function linktenTaslak(girdi: string, ilerleme: Ilerleme = () => {}
             ilerleme
           )
         } catch (e) {
-          // Tarif yoksa (ör. mekan tanitimi) cagiran mekan olarak dener
-          if (e instanceof TarifYokHatasi) throw e
+          // Tarif yoksa (ör. mekan tanitimi) cagiran mekan olarak dener; video yeniden indirilmesin diye parcalar eklenir
+          if (e instanceof TarifYokHatasi) {
+            e.parca = parca
+            e.kapak = kapak
+            throw e
+          }
           // Sessizce gecme: sebep kullaniciya kirmizi uyariyla gosterilir
           if (!s.hamMetin) throw e
           const { d, not } = await yapilandir(s.hamMetin, s.draft, ilerleme)
@@ -243,3 +247,17 @@ export async function linktenTaslak(girdi: string, ilerleme: Ilerleme = () => {}
   }
 }
 
+
+// Mekan icin: paylasimi okuyup (video platformuysa) videodan parcalari toplar
+export async function mekanIcinTopla(url: string, ilerleme: Ilerleme = () => {}): Promise<{ s: LinkSonucu; parca?: VideoParcalari; kapak: string }> {
+  const s = await linktenTarif(url)
+  if (apiAnahtari() && s.draft.platform !== 'web' && (s.html || s.hamMetin)) {
+    try {
+      const v = await videoTopla(url, s, ilerleme)
+      return { s, parca: v.parca, kapak: v.kapak }
+    } catch {
+      /* video alinamazsa yalnizca yaziyla */
+    }
+  }
+  return { s, kapak: '' }
+}
