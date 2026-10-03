@@ -142,6 +142,7 @@ export interface LzMekan {
   sourceUrl: string
   platform: LzPlatform
   gidildi: boolean
+  favori?: boolean
   createdAt: number
   puan?: number // Google puani (1-5), arastirmadan
   yorumSayisi?: number

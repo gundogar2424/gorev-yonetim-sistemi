@@ -40,7 +40,10 @@ export default function MekanDetay() {
       adres: form.adres.trim(),
       ilce: form.ilce.trim(),
       sehir: form.sehir.trim(),
-      oneriler: form.oneriler.split('\n').map((x) => x.trim()).filter(Boolean),
+      oneriler: form.oneriler
+        .split('\n')
+        .map((x) => x.trim())
+        .filter(Boolean),
       notlar: form.notlar.trim(),
       etiketler: form.etiketler
     })
@@ -172,7 +175,11 @@ export default function MekanDetay() {
             ))}
             <label className="block">
               <span className="lz-label">Ne yenir? (her satıra bir tane)</span>
-              <textarea className="lz-input mt-1 min-h-[70px]" value={form.oneriler} onChange={(e) => setForm({ ...form, oneriler: e.target.value })} />
+              <textarea
+                className="lz-input mt-1 min-h-[70px]"
+                value={form.oneriler}
+                onChange={(e) => setForm({ ...form, oneriler: e.target.value })}
+              />
             </label>
             <label className="block">
               <span className="lz-label">Notlar</span>
@@ -206,8 +213,20 @@ export default function MekanDetay() {
           </div>
         )}
 
+        <button
+          className={`w-full text-[15px] ${m.favori ? 'lz-btn-primary' : 'lz-btn-soft'}`}
+          onClick={async () => {
+            await lzDb.mekanlar.update(m.id!, { favori: !m.favori })
+            goster(m.favori ? 'Favorilerden çıkarıldı' : '❤️ Favorilere eklendi')
+          }}
+        >
+          {m.favori ? '❤️ Favori mekanım' : '🤍 Favorilere ekle'}
+        </button>
         <div className="grid grid-cols-2 gap-2.5">
-          <button className={`text-sm ${m.gidildi ? 'lz-btn-primary' : 'lz-btn-soft'}`} onClick={() => void lzDb.mekanlar.update(m.id!, { gidildi: !m.gidildi })}>
+          <button
+            className={`text-sm ${m.gidildi ? 'lz-btn-primary' : 'lz-btn-soft'}`}
+            onClick={() => void lzDb.mekanlar.update(m.id!, { gidildi: !m.gidildi })}
+          >
             {m.gidildi ? '✅ Gittim' : 'Gittim olarak işaretle'}
           </button>
           {!duzenle && (
