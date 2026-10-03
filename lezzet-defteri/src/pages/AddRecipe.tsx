@@ -8,7 +8,8 @@ import { kareler, konusmayiYaziyaCevir, sesModeli } from '../lib/video'
 import { fotoOku } from '../lib/image'
 import { paylasilanTarifOku } from '../lib/paylas'
 import { addRecipe, updateRecipe } from '../db'
-import type { LzDraft } from '../types'
+import type { LzDraft, LzRecipe } from '../types'
+import { ayniLinkliTarif, benzerTarif } from '../lib/kopya'
 
 type Mod = 'link' | 'metin' | 'foto' | 'video'
 
@@ -19,6 +20,7 @@ export default function AddRecipe() {
   const [metin, setMetin] = useState('')
   const [yukleniyor, setYukleniyor] = useState('')
   const [hata, setHata] = useState('')
+  const [kopya, setKopya] = useState<{ tarif: LzRecipe; neden: string; devam: () => void } | null>(null)
   const aiVar = !!apiAnahtari()
   const fotoGiris = useRef<HTMLInputElement>(null)
   const videoGiris = useRef<HTMLInputElement>(null)
@@ -40,8 +42,15 @@ export default function AddRecipe() {
     navigate('/yeni', { state: t })
   }
 
-  const linktenGetir = async (girdi = link) => {
+  const linktenGetir = async (girdi = link, zorla = false) => {
     setHata('')
+    setKopya(null)
+    // Ayni link defterde varsa yapay zekaya hic gitmeden haber ver
+    const var_ = zorla ? undefined : await ayniLinkliTarif(linkAyikla(girdi))
+    if (var_) {
+      setKopya({ tarif: var_, neden: 'bu link daha önce eklenmiş', devam: () => void linktenGetir(girdi, true) })
+      return
+    }
     setYukleniyor('Paylaşım okunuyor…')
     try {
       const t = await linktenTaslak(girdi, setYukleniyor)
@@ -290,6 +299,7 @@ export default function AddRecipe() {
         )}
 
         {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
+        {kopya && <KopyaUyarisi {...kopya} kapat={() => setKopya(null)} />}
 
         <div className={`text-[13px] px-1 ${T_GOVDE}`}>
           {aiVar ? (
@@ -322,6 +332,11 @@ export default function AddRecipe() {
             setHata('')
             try {
               const t = paylasilanTarifOku(await f.text())
+              const b = await benzerTarif({ title: t.title ?? '', ingredients: t.ingredients ?? [], sourceUrl: t.sourceUrl })
+              if (b && !confirm(`“${b.tarif.title}” zaten defterinde (${b.neden}). Yine de eklensin mi?`)) {
+                navigate(`/tarif/${b.tarif.id}`)
+                return
+              }
               const id = await addRecipe({
                 title: t.title ?? 'Tarif',
                 photo: t.photo ?? '',
@@ -363,6 +378,30 @@ export default function AddRecipe() {
           </span>
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
         </Link>
+      </div>
+    </div>
+  )
+}
+
+export function KopyaUyarisi({ tarif, neden, devam, kapat, devamYazi = 'Yine de ekle' }: { tarif: LzRecipe; neden: string; devam: () => void; kapat: () => void; devamYazi?: string }) {
+  return (
+    <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-900 dark:text-amber-200 text-[13.5px] p-3.5 space-y-2.5">
+      <div>
+        <b>Bu tarif zaten defterinde:</b> “{tarif.title}” <span className="opacity-80">({neden})</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Link to={`/tarif/${tarif.id}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
+          Var olanı aç
+        </Link>
+        <button
+          className="lz-btn-soft px-3 py-1.5 text-[12.5px]"
+          onClick={() => {
+            kapat()
+            devam()
+          }}
+        >
+          {devamYazi}
+        </button>
       </div>
     </div>
   )

@@ -9,6 +9,8 @@ import { ETIKETLER, aiTarifDegistir, profilMetni, type TarifDegisikligi } from '
 import { fotoOku } from '../lib/image'
 import { platformBul } from '../lib/importer'
 import { YeniSofra } from './Recipes'
+import { KopyaUyarisi } from './AddRecipe'
+import { benzerTarif, type Benzerlik } from '../lib/kopya'
 
 const BOS: LzDraft = {
   title: '',
@@ -39,6 +41,7 @@ export default function EditRecipe() {
   const [yeniSofra, setYeniSofra] = useState(false)
   const [hazir, setHazir] = useState(!duzenle)
   const [sohbetAc, setSohbetAc] = useState(false)
+  const [kopya, setKopya] = useState<Benzerlik | null>(null)
   const [uygulanan, setUygulanan] = useState<TarifDegisikligi | null>(null)
   const dosya = useRef<HTMLInputElement>(null)
   const not = loc.state?.not ?? ''
@@ -82,7 +85,7 @@ export default function EditRecipe() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const kaydet = async () => {
+  const kaydet = async (zorla = false) => {
     const veri: LzDraft = {
       title: d.title,
       photo: d.photo,
@@ -102,6 +105,12 @@ export default function EditRecipe() {
       await updateRecipe(duzenle, { ...veri, tableIds: secili, ...(uygulanan ? { tm: undefined } : {}) })
       navigate(-1)
     } else {
+      // Ayni tarif (ayni link ya da baska platformdan ayni icerik) defterde varsa once sor
+      const b = zorla ? undefined : await benzerTarif(veri)
+      if (b) {
+        setKopya(b)
+        return
+      }
       const yeni = await addRecipe(veri, secili)
       navigate(`/tarif/${yeni}`, { replace: true })
     }
@@ -270,6 +279,7 @@ export default function EditRecipe() {
           </div>
         </div>
 
+        {kopya && <KopyaUyarisi {...kopya} devam={() => void kaydet(true)} kapat={() => setKopya(null)} devamYazi="Yine de kaydet" />}
         <button className="lz-btn-primary w-full text-[16px]" onClick={() => void kaydet()}>
           {duzenle ? 'Değişiklikleri kaydet' : 'Deftere kaydet'}
         </button>

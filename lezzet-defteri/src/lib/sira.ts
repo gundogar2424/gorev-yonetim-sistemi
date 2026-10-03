@@ -5,7 +5,8 @@
 // kapansa da kaybolmaz; acilinca kaldigi yerden devam eder.
 import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft } from '../types'
-import { linkAyikla, platformBul, youtubeId } from './importer'
+import { linkAyikla, platformBul } from './importer'
+import { ayniLinkliTarif, benzerTarif } from './kopya'
 import { linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
 
 let calisiyor = false
@@ -27,14 +28,6 @@ function kisaLink(url: string): string {
   return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\?.*$/, '').slice(0, 60)
 }
 
-// Temel link: ayni video farkli paylasim kodlariyla (?igsh=, ?si=) gelebilir.
-// YouTube'da video kimligi kullanilir (watch?v= kimligi sorgu kisminda oldugu icin).
-function temelLink(url: string): string {
-  const yt = youtubeId(url)
-  if (yt) return `youtube:${yt}`
-  return url.replace(/[?#].*$/, '').replace(/\/+$/, '').replace(/^https?:\/\/(www\.|m\.)?/i, '')
-}
-
 // Sira isleyici: ayni anda yalnizca bir tane calisir.
 export async function siraIsle(): Promise<void> {
   if (calisiyor) return
@@ -49,7 +42,7 @@ export async function siraIsle(): Promise<void> {
         const url = linkAyikla(is.girdi)
         // Bu link zaten defterdeyse tekrar ekleme
         if (url && !is.zorla) {
-          const var_ = (await lzDb.recipes.toArray()).find((r) => r.sourceUrl && temelLink(r.sourceUrl) === temelLink(url))
+          const var_ = await ayniLinkliTarif(url)
           if (var_) {
             await g({ durum: 'bitti', mesaj: 'Bu tarif zaten defterde.', recipeId: var_.id!, baslik: var_.title })
             continue
@@ -67,6 +60,14 @@ export async function siraIsle(): Promise<void> {
         }
         if (!t.draft.sourceUrl && url) t.draft.sourceUrl = url
         if (url && t.draft.platform === 'manual') t.draft.platform = platformBul(url)
+        // Ayni tarif baska platformdan daha once eklenmisse ikinci kez ekleme
+        if (!is.zorla) {
+          const b = await benzerTarif({ title: t.draft.title, ingredients: t.draft.ingredients })
+          if (b) {
+            await g({ durum: 'bitti', mesaj: `Bu tarif zaten defterde (${b.neden}).`, recipeId: b.tarif.id!, baslik: b.tarif.title })
+            continue
+          }
+        }
         const id = await addRecipe(t.draft)
         await updateRecipe(id, { kontrol: t.not || 'Otomatik eklendi; kontrol et.' })
         const uyari = t.not.startsWith('⚠️')
