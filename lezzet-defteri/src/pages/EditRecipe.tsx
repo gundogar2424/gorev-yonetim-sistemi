@@ -5,7 +5,7 @@ import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft, LzTable } from '../types'
 import { Header, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { DuzenlemeSohbeti } from '../components/TarifSohbet'
-import { ETIKETLER, profilMetni, type TarifDegisikligi } from '../lib/ai'
+import { ETIKETLER, aiTarifDegistir, profilMetni, type TarifDegisikligi } from '../lib/ai'
 import { fotoOku } from '../lib/image'
 import { platformBul } from '../lib/importer'
 import { YeniSofra } from './Recipes'
@@ -278,7 +278,10 @@ export default function EditRecipe() {
             <DuzenlemeSohbeti
               tarif={{ ...d, ingredients: malz.split('\n').filter((x) => x.trim()), steps: adimlar(adim).filter((x) => x.trim()) }}
               profil={profilMetni(sofralar)}
-              onUygula={sohbettenUygula}
+              uygula={async (istek) => {
+                const t = { ...d, ingredients: malz.split('\n').filter((x) => x.trim()), steps: adimlar(adim).filter((x) => x.trim()) }
+                sohbettenUygula(await aiTarifDegistir(t, istek, profilMetni(sofralar)))
+              }}
             />
           </div>
         </Sheet>

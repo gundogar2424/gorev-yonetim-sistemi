@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { aiTarifDegistir, aiTarifSohbet, apiAnahtari, type SohbetMesaji, type TarifDegisikligi } from '../lib/ai'
+import { aiTarifSohbet, apiAnahtari, type SohbetMesaji } from '../lib/ai'
 import { T_GOVDE, T_SOLUK } from './ui'
 
 type TarifOz = { title: string; servings: number; minutes: number; ingredients: string[]; steps: string[]; notes: string; tags: string[] }
@@ -31,15 +31,22 @@ export function SohbetBalonlari({ sohbet, soruyor }: { sohbet: SohbetMesaji[]; s
   )
 }
 
-// Duzenleme ekraninda: tarif uzerine sohbet; karar verilince sonuc forma yazilir.
+// Tarif uzerine sohbet; karar verilince "uygula" konusmayi istek olarak alir
+// (duzenleme formuna ya da Thermomix surumune uygulanir).
 export function DuzenlemeSohbeti({
   tarif,
   profil,
-  onUygula
+  uygula: uygulayici,
+  baglam = '',
+  aciklama = 'Formdaki tarifin şu anki hali üzerine konuşursunuz. Karar verince “Tarife uygula” de; değişiklikler forma yazılır, sonra kaydedersin.',
+  ornek = 'Örn. Grek yoğurdu bizdeki süzme yoğurt mu?'
 }: {
-  tarif: TarifOz
+  tarif: Omit<TarifOz, 'tags'>
   profil: string
-  onUygula: (s: TarifDegisikligi) => void
+  uygula: (istek: string) => Promise<void>
+  baglam?: string
+  aciklama?: string
+  ornek?: string
 }) {
   const [sohbet, setSohbet] = useState<SohbetMesaji[]>([])
   const [istek, setIstek] = useState('')
@@ -62,7 +69,7 @@ export function DuzenlemeSohbeti({
     setIstek('')
     setSoruyor(true)
     try {
-      const cevap = await aiTarifSohbet(tarif, yeni, profil)
+      const cevap = await aiTarifSohbet(tarif, yeni, profil, baglam)
       setSohbet([...yeni, { rol: 'ai', metin: cevap || 'Cevap alınamadı, tekrar sorar mısın?' }])
     } catch (e) {
       setHata((e as Error).message)
@@ -76,7 +83,7 @@ export function DuzenlemeSohbeti({
     setHata('')
     setCalisiyor(true)
     try {
-      onUygula(await aiTarifDegistir(tarif, konusmaIstegi(sohbet, istek.trim()), profil))
+      await uygulayici(konusmaIstegi(sohbet, istek.trim()))
     } catch (e) {
       setHata((e as Error).message)
     }
@@ -97,15 +104,13 @@ export function DuzenlemeSohbeti({
   return (
     <div className="space-y-3">
       {!sohbet.length && (
-        <p className={`text-[13px] ${T_SOLUK}`}>
-          Formdaki tarifin şu anki hali üzerine konuşursunuz. Karar verince “Tarife uygula” de; değişiklikler forma yazılır, sonra kaydedersin.
-        </p>
+        <p className={`text-[13px] ${T_SOLUK}`}>{aciklama}</p>
       )}
       <SohbetBalonlari sohbet={sohbet} soruyor={soruyor} />
       {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
       <textarea
         className="lz-input min-h-[80px] text-[15px]"
-        placeholder="Örn. Grek yoğurdu bizdeki süzme yoğurt mu?"
+        placeholder={ornek}
         value={istek}
         onChange={(e) => setIstek(e.target.value)}
       />

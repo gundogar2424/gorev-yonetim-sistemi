@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, updateRecipe } from '../db'
-import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
-import { adimOzeti, termomiksKodu } from '../lib/tm7'
+import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
+import { DuzenlemeSohbeti } from '../components/TarifSohbet'
+import { aiTmDuzenle } from '../lib/ai'
+import { adimOzeti, termomiksKodu, type TmSurum } from '../lib/tm7'
 import { thermomixeUyarla } from './Thermomix'
 import { dosyaPaylas, tmHtml } from '../lib/paylas'
 
@@ -15,6 +17,8 @@ export default function TmDetail() {
   const [calisiyor, setCalisiyor] = useState(false)
   const [hata, setHata] = useState('')
   const [toast, goster] = useToast()
+  const [sohbetAc, setSohbetAc] = useState(false)
+  const [duzeltme, setDuzeltme] = useState<{ aciklama: string; onceki: TmSurum } | null>(null)
 
   if (r === undefined) return null
   if (!r) return <Header title="Tarif bulunamadı" back />
@@ -77,6 +81,26 @@ export default function TmDetail() {
         <Link to={`/thermomix/${r.id}/pisir`} className="lz-btn-primary w-full">
           <Icon name="play" className="w-4 h-4" /> TM7’de pişir
         </Link>
+        <button className="lz-btn-soft w-full text-[14.5px]" onClick={() => setSohbetAc(true)}>
+          💬 Yapay zekayla düzenle / sor
+        </button>
+        {duzeltme && (
+          <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3.5 space-y-2">
+            <div>
+              <b>✓ Thermomix tarifi güncellendi.</b> {duzeltme.aciklama}
+            </div>
+            <button
+              className="lz-btn-soft px-3 py-1.5 text-[12.5px]"
+              onClick={async () => {
+                await updateRecipe(r.id!, { tm: duzeltme.onceki })
+                setDuzeltme(null)
+                goster('Önceki haline döndü')
+              }}
+            >
+              ↶ Geri al
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2.5">
           <button className="lz-btn-soft text-sm px-3" onClick={() => void tmPaylas()}>
             <Icon name="share" className="w-4 h-4" /> Pişirme modunu paylaş
@@ -147,6 +171,32 @@ export default function TmDetail() {
           Uyarlama yapay zekayla yapıldı; ilk kez pişirirken süre ve devirleri gözle kontrol et.
         </p>
       </div>
+      <Sheet open={sohbetAc} onClose={() => setSohbetAc(false)} title="Thermomix tarifini düzenle">
+        <div className={T_GOVDE}>
+          <DuzenlemeSohbeti
+            tarif={{
+              title: `${r.title} (Thermomix TM7)`,
+              servings: r.servings,
+              minutes: r.minutes,
+              ingredients: tm.ingredients,
+              steps: tm.steps.map((a) => `${a.text}${a.ingredients ? ` (kaba: ${a.ingredients})` : ''}${adimOzeti(a) ? ` [${adimOzeti(a)}]` : ''}`),
+              notes: tm.warnings.join('\n')
+            }}
+            profil=""
+            baglam="Bu bir THERMOMIX TM7 tarifidir: süre, derece, devir, ters bıçak ve modlar (Kavurma, Karamelize, Varoma, hamur…) hakkında da Vorwerk kurallarına göre net öneri ver; TM7’de yapılabilen bir işi tavaya/ocağa gönderme."
+            aciklama="Thermomix adımları üzerine sorabilir ya da değişiklik isteyebilirsin (ör. “karamel tavada değil TM7’de yapılsın”, “süreleri kısalt”). Karar verince “Tarife uygula” de; Thermomix tarifi güncellenir, istersen geri alırsın."
+            ornek="Örn. Karameli tavada değil Thermomix’te yapalım"
+            uygula={async (istek) => {
+              const onceki = tm
+              const s = await aiTmDuzenle(r, tm, istek)
+              await updateRecipe(r.id!, { tm: s.tm })
+              setDuzeltme({ aciklama: s.aciklama, onceki })
+              setSohbetAc(false)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          />
+        </div>
+      </Sheet>
       <Toast text={toast} />
     </div>
   )

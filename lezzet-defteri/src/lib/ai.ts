@@ -463,7 +463,23 @@ export async function aiThermomix(r: {
   steps: string[]
   notes: string
 }): Promise<import('./tm7').TmSurum> {
-  const { HIZLAR, MODLAR, SICAKLIKLAR, TM_KATEGORILER, adimTemizle, tmKuralDenetle } = await import('./tm7')
+  return (await tmCagri(r)).tm
+}
+
+// THERMOMIX SURUMUNU DUZENLE: istek/konusma mevcut TM7 tarifine uygulanir
+export async function aiTmDuzenle(
+  r: { title: string; servings: number; ingredients: string[]; steps: string[]; notes: string },
+  tm: import('./tm7').TmSurum,
+  istek: string
+): Promise<{ tm: import('./tm7').TmSurum; aciklama: string }> {
+  return tmCagri(r, { tm, istek })
+}
+
+async function tmCagri(
+  r: { title: string; servings: number; ingredients: string[]; steps: string[]; notes: string },
+  duzenle?: { tm: import('./tm7').TmSurum; istek: string }
+): Promise<{ tm: import('./tm7').TmSurum; aciklama: string }> {
+  const { HIZLAR, MODLAR, SICAKLIKLAR, TM_KATEGORILER, adimTemizle, adimOzeti, tmKuralDenetle } = await import('./tm7')
   const schema = {
     type: 'object',
     additionalProperties: false,
@@ -492,7 +508,17 @@ export async function aiThermomix(r: {
       warnings: { type: 'array', items: { type: 'string' } }
     }
   }
-  const v = await jsonCagri<{ category: string; ingredients: string[]; steps: Partial<import('./tm7').TmAdim>[]; warnings: string[] }>(
+  const icerik = duzenle
+    ? `Mevcut THERMOMIX TM7 tarifi: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\nKategori: ${duzenle.tm.category}\n\nMalzemeler:\n${duzenle.tm.ingredients.join('\n')}` +
+      `\n\nAdımlar:\n${duzenle.tm.steps
+        .map((a, i) => `${i + 1}. ${a.text}${a.ingredients ? ` | kaba: ${a.ingredients}` : ''}${adimOzeti(a) ? ` | ayar: ${adimOzeti(a)}` : ''}${a.tip ? ` | ipucu: ${a.tip}` : ''}`)
+        .join('\n')}${duzenle.tm.warnings.length ? `\n\nUyarılar:\n${duzenle.tm.warnings.join('\n')}` : ''}` +
+      `\n\nKULLANICININ İSTEĞİ:\n${duzenle.istek}\n\nBu TM7 tarifini isteğe göre DÜZENLE: yalnızca gereken yerleri değiştir, geri kalan adım ve ayarları aynen koru; ` +
+      'tarifin TAMAMINI döndür. aciklama alanına neyi değiştirdiğini 1-3 cümleyle yaz.'
+    : `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}\n\nYapılışı:\n${r.steps
+        .map((s, i) => `${i + 1}. ${s}`)
+        .join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}`
+  const v = await jsonCagri<{ category: string; ingredients: string[]; steps: Partial<import('./tm7').TmAdim>[]; warnings: string[]; aciklama?: string }>(
     'Sen Thermomix TM7 konusunda uzman bir aşçısın. Normal (ocak/fırın) tarifini TM7’de yapılacak adımlara uyarlarsın. ' +
       'TM7 KURALLARI (Vorwerk): Hazne en fazla 2,2 L; ısıtılan tariflerde toplam 2 L’yi geçme, geçiyorsa miktarı böl ya da azalt ve uyar. ' +
       'Sıcaklık 37–160 °C; 120 °C üstü YALNIZCA sote (Kavurma/Browning) modunda kullanılır (et mühürleme, soğan karamelize, kavurma: mode "sote", 140–160 °C, ters bıçak, yumuşak/düşük devir). ' +
@@ -520,21 +546,20 @@ export async function aiThermomix(r: {
       'elle yapılan adımda seconds 0, speed boş, temp boş, metinde nerede yapılacağını yaz. ' +
       'Kazıma gerekiyorsa ("spatula ile kenarları sıyır") ayrı adım ya da tip olarak yaz. Porsiyonu koru. Adımlar kısa, net ve emir kipinde olsun. ' +
       'warnings alanına kapasite, sıcak sıvı, taşma ve elle yapılacak adımlarla ilgili gerçekten önemli uyarıları yaz.',
-    `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}\n\nYapılışı:\n${r.steps
-      .map((s, i) => `${i + 1}. ${s}`)
-      .join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}`,
-    schema,
+    icerik,
+    duzenle ? { ...schema, required: [...schema.required, 'aciklama'], properties: { ...schema.properties, aciklama: { type: 'string' } } } : schema,
     6000
   )
   const steps = (v.steps ?? []).map(adimTemizle).map(tmKuralDenetle).filter((a) => a.text)
   if (!steps.length) throw new Error('Thermomix adımları çıkarılamadı.')
-  return {
+  const tm = {
     category: TM_KATEGORILER.includes(v.category) ? v.category : 'Diğer',
     ingredients: (v.ingredients ?? []).map((x) => String(x).trim()).filter(Boolean),
     steps,
     warnings: (v.warnings ?? []).map((x) => String(x).trim()).filter(Boolean),
     createdAt: Date.now()
   }
+  return { tm, aciklama: String(v.aciklama ?? '').trim() }
 }
 
 // --- DIYET PLANI ---------------------------------------------------------------
@@ -734,7 +759,8 @@ export type SohbetMesaji = { rol: 'sen' | 'ai'; metin: string }
 export async function aiTarifSohbet(
   r: { title: string; servings: number; minutes: number; ingredients: string[]; steps: string[]; notes: string },
   gecmis: SohbetMesaji[],
-  profil: string
+  profil: string,
+  baglam = ''
 ): Promise<string> {
   const v = await jsonCagri<{ cevap: string }>(
     'Sen deneyimli bir pasta/yemek şefi ve diyetisyensin. Kullanıcıyla aşağıdaki tarif ÜZERİNE sohbet ediyorsun: sorularını ' +
@@ -742,7 +768,8 @@ export async function aiTarifSohbet(
       'süzme yoğurt), markette nasıl bulunacağını, ikame seçeneklerini, miktarları ve sonuca etkisini söyle. Birden fazla yol varsa ' +
       'artı/eksileriyle seçenek sun ve hangisini önerdiğini belirt. Tarifi burada YENİDEN YAZMA; kullanıcı karar verince uygulama ' +
       '"Tarifi değiştir" ile uygulayacak. Uygun olduğunda cevabın sonunda "İstersen tarife şöyle uygulayayım: …" diye kısa öneri ver. ' +
-      'Aile tercihleri verildiyse onlara dikkat et.',
+      'Aile tercihleri verildiyse onlara dikkat et.' +
+      (baglam ? ` ${baglam}` : ''),
     `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}${r.minutes ? `, ${r.minutes} dk` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}` +
       `\n\nYapılışı:\n${r.steps.map((x, i) => `${i + 1}. ${x}`).join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}` +
       `${profil ? `\n\nAile tercihleri:\n${profil}` : ''}\n\nKONUŞMA:\n${gecmis
