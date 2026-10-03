@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzSira } from '../types'
 import { Header, Icon, T_BASLIK, T_SOLUK } from '../components/ui'
-import { siraTekrar } from '../lib/sira'
+import { mekanOlarakTekrar, siraTekrar } from '../lib/sira'
 
 const IKON: Record<LzSira['durum'], string> = { bekliyor: '⏳', isleniyor: '⚙️', bitti: '✅', hata: '⚠️' }
 
@@ -48,6 +48,11 @@ export default function Sira() {
                 {x.durum === 'bitti' && x.mesaj.startsWith('Bu tarif zaten') && (
                   <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void siraTekrar(x.id!, true)}>
                     ↻ Yeniden çıkar
+                  </button>
+                )}
+                {x.tur !== 'mekan' && !x.mekanId && (x.durum === 'hata' || (x.durum === 'bitti' && x.recipeId > 0)) && (
+                  <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void mekanOlarakTekrar(x.id!)}>
+                    📍 Bu bir mekan
                   </button>
                 )}
                 {x.durum === 'hata' && (

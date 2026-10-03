@@ -3,7 +3,7 @@
 // yorulmasin). Her biri bitince tarif deftere kendiliginden kaydedilir ve
 // ustune "kontrol et" notu dusulur. Sira veritabaninda durdugu icin uygulama
 // kapansa da kaybolmaz; acilinca kaldigi yerden devam eder.
-import { addRecipe, lzDb, updateRecipe } from '../db'
+import { addRecipe, deleteRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft } from '../types'
 import { linkAyikla, platformBul } from './importer'
 import { ayniLinkliTarif, benzerTarif } from './kopya'
@@ -13,7 +13,7 @@ import { linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
 
 let calisiyor = false
 
-export async function siraEkle(girdi: string): Promise<void> {
+export async function siraEkle(girdi: string, tur?: 'tarif' | 'mekan'): Promise<void> {
   const metin = girdi.trim()
   if (!metin) return
   const url = linkAyikla(metin)
@@ -22,7 +22,7 @@ export async function siraEkle(girdi: string): Promise<void> {
   const ayni = await lzDb.sira.filter((x) => (linkAyikla(x.girdi) || x.girdi) === anahtar && (x.durum === 'bekliyor' || x.durum === 'isleniyor')).count()
   if (ayni) return
   const now = Date.now()
-  await lzDb.sira.add({ girdi: metin, durum: 'bekliyor', mesaj: 'Sırada', recipeId: 0, baslik: url ? kisaLink(url) : metin.slice(0, 50), createdAt: now, updatedAt: now })
+  await lzDb.sira.add({ girdi: metin, tur, durum: 'bekliyor', mesaj: tur === 'mekan' ? 'Sırada (mekan)' : 'Sırada', recipeId: 0, baslik: url ? kisaLink(url) : metin.slice(0, 50), createdAt: now, updatedAt: now })
   void siraIsle()
 }
 
@@ -41,6 +41,19 @@ export async function siraIsle(): Promise<void> {
       const g = async (patch: Partial<typeof is>) => lzDb.sira.update(is.id!, { ...patch, updatedAt: Date.now() })
       await g({ durum: 'isleniyor', mesaj: 'Başlıyor…' })
       try {
+        // Kullanici "Mekan" olarak paylastiysa tarif hic denenmez
+        if (is.tur === 'mekan') {
+          const sonuc = await mekanLinktenEkle(is.girdi, (m) => void g({ mesaj: m }))
+          const mk = await lzDb.mekanlar.get(sonuc.id)
+          await g({
+            durum: 'bitti',
+            mesaj: sonuc.yeni ? '📍 Mekanlarım’a kaydedildi.' : '📍 Bu mekan zaten kayıtlı.',
+            recipeId: 0,
+            mekanId: sonuc.id,
+            baslik: mk?.ad ?? is.baslik
+          })
+          continue
+        }
         const url = linkAyikla(is.girdi)
         // Bu link zaten defterdeyse tekrar ekleme
         if (url && !is.zorla) {
@@ -111,5 +124,15 @@ export async function siraBaslat(): Promise<void> {
 // zorla: "zaten defterde" denen linki yine de bastan cikar (yeni tarif olarak)
 export async function siraTekrar(id: number, zorla = false): Promise<void> {
   await lzDb.sira.update(id, { durum: 'bekliyor', mesaj: 'Sırada', zorla, updatedAt: Date.now() })
+  void siraIsle()
+}
+
+// Yanlislikla tarif olarak eklendiyse: (bu siradan eklenen) tarifi sil, mekan olarak yeniden isle
+export async function mekanOlarakTekrar(id: number): Promise<void> {
+  const x = await lzDb.sira.get(id)
+  if (!x) return
+  // Bu siranin ekledigi tarif silinir ("zaten defterde" denen eski tarife dokunulmaz)
+  if (x.recipeId && !x.mesaj.startsWith('Bu tarif zaten')) await deleteRecipe(x.recipeId)
+  await lzDb.sira.update(id, { tur: 'mekan', durum: 'bekliyor', mesaj: 'Sırada (mekan)', recipeId: 0, updatedAt: Date.now() })
   void siraIsle()
 }

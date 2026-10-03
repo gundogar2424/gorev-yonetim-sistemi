@@ -120,6 +120,7 @@ export interface LzSira {
   updatedAt: number
   zorla?: boolean // defterde olsa da yeniden cikar
   mekanId?: number // paylasim bir mekansa kaydedilen mekan
+  tur?: 'tarif' | 'mekan' // kullanici acikca sectiyse (Paylas menusundeki ayri secenek)
 }
 
 // Internette gorulen yeme-icme mekanlari (restoran, kafe, pastane…)

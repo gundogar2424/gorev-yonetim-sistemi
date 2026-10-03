@@ -96,7 +96,7 @@ const SEMA = {
   additionalProperties: false,
   required: ['is_recipe', 'title', 'servings', 'minutes', 'ingredients', 'steps', 'notes', 'tags'],
   properties: {
-    is_recipe: { type: 'boolean', description: 'Metinde gerçekten bir yemek tarifi var mı' },
+    is_recipe: { type: 'boolean', description: 'İçerikte EVDE YAPILIŞI anlatılan bir yemek tarifi var mı? Restoran/kafe/mekan tanıtımı, mekan önerisi ya da dışarıda yemek yeme videosuysa false' },
     title: { type: 'string', description: 'Kısa, doğal Türkçe tarif adı (emoji/hashtag yok)' },
     servings: { type: 'integer', description: 'Kaç kişilik; belirtilmemişse 0' },
     minutes: { type: 'integer', description: 'Toplam hazırlık+pişirme süresi (dk); belirtilmemişse makul tahmin, bilinmiyorsa 0' },

@@ -9,6 +9,7 @@ import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '..
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
 import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
+import { siraEkle } from '../lib/sira'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -276,6 +277,20 @@ export default function RecipeDetail() {
           )}
         </div>
 
+        {r.sourceUrl && (
+          <button
+            className="lz-btn-soft w-full text-sm"
+            onClick={async () => {
+              if (!confirm('Bu paylaşım bir tarif değil, mekan mı? Tarif silinip Mekanlarım’a mekan olarak kaydedilecek.')) return
+              const url = r.sourceUrl
+              await deleteRecipe(r.id!)
+              await siraEkle(url, 'mekan')
+              navigate('/sira', { replace: true })
+            }}
+          >
+            📍 Bu tarif değil, mekan — Mekanlarım’a taşı
+          </button>
+        )}
         <button
           className="lz-btn-danger w-full"
           onClick={async () => {

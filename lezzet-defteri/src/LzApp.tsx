@@ -40,10 +40,11 @@ export default function LzApp() {
   // Android "Paylaş" menusu: baska uygulamadan (Instagram, TikTok...) paylasilan
   // link/metin yerel katmandan bu isleve verilir; Tarif ekle ekrani acilip islenir.
   useEffect(() => {
-    const w = window as unknown as { __lzPaylasim?: (t: string) => void }
-    // Paylasimlar siraya girer: art arda gelenler tek tek islenir
-    w.__lzPaylasim = (t: string) => {
-      void siraEkle(t)
+    const w = window as unknown as { __lzPaylasim?: (t: string, tur?: string) => void }
+    // Paylasimlar siraya girer: art arda gelenler tek tek islenir.
+    // Paylas menusunde "Lezzet: Mekan" secildiyse tur = 'mekan'
+    w.__lzPaylasim = (t: string, tur?: string) => {
+      void siraEkle(t, tur === 'mekan' ? 'mekan' : tur === 'tarif' ? 'tarif' : undefined)
       navigate('/sira')
     }
     return () => {

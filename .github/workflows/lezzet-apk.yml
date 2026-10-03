@@ -64,7 +64,9 @@ jobs:
           # 1) Uygulama, baska uygulamalarin "Paylas" listesinde gorunsun (duz metin/link)
           f=android/app/src/main/AndroidManifest.xml
           grep -q 'ACCESS_COARSE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>#' "$f"
-          grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter>\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
+          grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter android:label="Lezzet: Tarif">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
+          # Paylas menusunde ikinci secenek: "Lezzet: Mekan" (ayni uygulama, mekan olarak kaydeder)
+          grep -q 'MekanPaylas' "$f" || sed -i 's#</application>#    <activity-alias android:name=".MekanPaylas" android:targetActivity=".MainActivity" android:exported="true" android:label="Lezzet: Mekan" android:icon="@mipmap/ic_launcher">\n            <intent-filter android:label="Lezzet: Mekan">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity-alias>\n    </application>#' "$f"
           grep -n -A4 "action.SEND" "$f"
           # 2) Paylasilan metni web katmanina ver (sayfa hazir olana kadar tekrar dener)
           d=android/app/src/main/java/com/lezzet/defteri
@@ -96,9 +98,11 @@ jobs:
                   if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
                   String metin = intent.getStringExtra(Intent.EXTRA_TEXT);
                   if (metin == null || metin.trim().isEmpty()) return;
+                  // "Lezzet: Mekan" seceneginden geldiyse mekan olarak islenir
+                  String tur = intent.getComponent() != null && intent.getComponent().getClassName().endsWith("MekanPaylas") ? "mekan" : "";
                   intent.setAction(Intent.ACTION_MAIN); // ayni paylasim iki kez islenmesin
                   final String js = "(function(){if(typeof window.__lzPaylasim==='function'){window.__lzPaylasim("
-                      + JSONObject.quote(metin) + ");return 'ok'}return 'bekle'})()";
+                      + JSONObject.quote(metin) + "," + JSONObject.quote(tur) + ");return 'ok'}return 'bekle'})()";
                   dene(js, 0);
               }
 
