@@ -6,7 +6,7 @@ import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { apiAnahtari } from '../lib/ai'
 import { linkAyikla } from '../lib/importer'
-import { adrestenKonum, konumIzniVerildi, mekanLinktenEkle, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
+import { adrestenKonum, konumReddedildi, konumReddiniKaydet, mekanLinktenEkle, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
 
 const YAKIN_KM = 3
 
@@ -39,9 +39,9 @@ export default function Mekanlar() {
     }
   }
 
-  // Daha once izin verildiyse acilista sessizce konum alinir
+  // Ekran acilinca konum kendiliginden alinir (ilk seferde telefon izin sorar)
   useEffect(() => {
-    if (!sonKonum && konumIzniVerildi()) void konumuAl()
+    if (!sonKonum) void konumuAl()
   }, [])
 
   const semtBul = async () => {
@@ -95,7 +95,7 @@ export default function Mekanlar() {
               Konumumu bul
             </button>
             <div className="flex gap-1.5">
-              <input className="lz-input py-2 text-[14px] min-w-0" placeholder="ya da semt yaz" value={semt} onChange={(e) => setSemt(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void semtBul()} />
+              <input className="lz-input py-2 text-[14px] min-w-0" placeholder="konum kapalıysa semt" value={semt} onChange={(e) => setSemt(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void semtBul()} />
               <button className="lz-btn-soft px-3 text-[13px]" disabled={!semt.trim()} onClick={() => void semtBul()}>
                 Bul
               </button>
@@ -109,7 +109,7 @@ export default function Mekanlar() {
           <div className={`font-semibold ${T_BASLIK}`}>Mekan ekle</div>
           <p className={`text-[12.5px] ${T_SOLUK}`}>
             Instagram, TikTok, YouTube ya da Google Haritalar linkini yapıştır; ya da sadece adını ve semtini yaz (“Karaköy Lokantası, İstanbul”).
-            Konum yazmasa da yapay zeka araştırıp yerini bulur. Paylaş → Lezzet Defteri ile de gönderebilirsin.
+            Konum yazmasa da yapay zeka Google’da araştırıp yerini kendisi bulur. En kolayı: Instagram’da Paylaş → Lezzet Defteri; hiçbir şey yazmana gerek yok.
           </p>
           <textarea className="lz-input min-h-[60px] text-[14px]" placeholder="Link ya da mekan adı + semt" value={link} onChange={(e) => setLink(e.target.value)} />
           <button className="lz-btn-primary w-full" disabled={!aiVar || !link.trim() || !!ekleniyor} onClick={() => void ekle()}>
@@ -164,7 +164,8 @@ export function YakinMekanSeridi() {
   const sayi = useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0
   const [yakin, setYakin] = useState(0)
   useEffect(() => {
-    if (!sayi || !konumIzniVerildi()) return
+    // Kayitli mekan varsa konum kendiliginden alinir (izin bir kez sorulur; reddedilirse bir daha sorulmaz)
+    if (!sayi || konumReddedildi()) return
     let iptal = false
     void (async () => {
       try {
@@ -173,8 +174,8 @@ export function YakinMekanSeridi() {
         const hepsi = await lzDb.mekanlar.toArray()
         const n = hepsi.filter((m) => m.lat !== undefined && m.lon !== undefined && !m.gidildi && mesafeKm(k, { lat: m.lat, lon: m.lon }) <= YAKIN_KM).length
         if (!iptal) setYakin(n)
-      } catch {
-        /* konum yok: serit gosterilmez */
+      } catch (e) {
+        if (/izin/i.test((e as Error).message)) konumReddiniKaydet()
       }
     })()
     return () => {

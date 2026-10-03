@@ -72,6 +72,22 @@ export function konumIzniVerildi(): boolean {
   }
 }
 
+const KEY_RED = 'lz-konum-red'
+export function konumReddedildi(): boolean {
+  try {
+    return localStorage.getItem(KEY_RED) === '1'
+  } catch {
+    return false
+  }
+}
+export function konumReddiniKaydet(): void {
+  try {
+    localStorage.setItem(KEY_RED, '1')
+  } catch {
+    /* yok */
+  }
+}
+
 // Telefonun konumu (izin istenir). Verilmezse hata atar.
 export function telefonKonumu(zamanAsimi = 12000): Promise<Konum> {
   return new Promise((res, rej) => {
@@ -80,6 +96,7 @@ export function telefonKonumu(zamanAsimi = 12000): Promise<Konum> {
       (p) => {
         try {
           localStorage.setItem(KEY_IZIN, '1')
+          localStorage.removeItem(KEY_RED)
         } catch {
           /* yok */
         }
