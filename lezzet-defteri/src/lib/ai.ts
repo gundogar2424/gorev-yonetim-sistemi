@@ -961,6 +961,15 @@ export function profilMetni(sofralar: { name: string; notes?: string }[]): strin
 
 // --- MEKANLAR ------------------------------------------------------------------
 
+// Mekan etiketleri (yapay zeka bunlardan secer; liste ekraninda suzgec olur)
+export const MEKAN_ETIKETLERI = [
+  'Kahvaltı', 'Brunch', 'Esnaf lokantası', 'Ev yemekleri', 'Kebap & Et', 'Döner', 'Pide & Lahmacun', 'Köfte', 'Balık & Deniz ürünleri',
+  'Meyhane', 'Sokak lezzeti', 'Burger', 'Pizza', 'Makarna & İtalyan', 'Uzak Doğu', 'Dünya mutfağı', 'Vegan & Vejetaryen', 'Sağlıklı',
+  'Tatlı', 'Baklava', 'Pastane', 'Fırın & Börek', 'Dondurma', 'Kahve', 'Çay bahçesi', 'Bar',
+  'Manzaralı', 'Deniz kenarı', 'Bahçeli', 'Romantik', 'Aile & Çocuk dostu', 'Tarihi', 'Gizli kalmış', 'Popüler',
+  'Rezervasyon gerekir', 'Paket servis', 'Geç saate kadar açık', '₺', '₺₺', '₺₺₺'
+]
+
 export interface MekanBilgisi {
   mekan_mi: boolean
   ad: string
@@ -995,7 +1004,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
       oneriler: { type: 'array', items: { type: 'string' }, description: 'Denenmesi önerilen yemek/içecekler' },
       fiyat: { type: 'string', description: 'Paylaşımda geçen fiyat bilgisi; yoksa boş' },
       notlar: { type: 'string', description: 'Çalışma saatleri, rezervasyon, şube bilgisi gibi kısa notlar' },
-      etiketler: { type: 'array', items: { type: 'string' }, description: 'Kısa etiketler: kahvaltı, deniz ürünleri, tatlı, manzaralı…' }
+      etiketler: { type: 'array', items: { type: 'string' }, description: 'Mekanın özelliklerine göre 3-7 kısa etiket (listeden seç, gerekirse ekle)' }
     }
   }
   const parcalar: Parca[] = []
@@ -1021,6 +1030,8 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
       'ilçesini, şehrini ve açık adresini bul. Birden çok şubesi varsa paylaşımda geçen semte uyanı seç; belirsizse ana şubeyi yaz ve ' +
       'notlara "birden çok şubesi var" ekle. Adresi ya da koordinatı bulamazsan boş/0 bırak, UYDURMA. Önerilen yemekleri paylaşımdan yaz. ' +
       'Mekanın adı açıklamada yoksa videodaki tabeladan, menüden, ekrandaki yazıdan, söylenenden ya da etiketlenen hesaptan (@…) bul. ' +
+      'ETİKETLER: mekanın özelliğine göre 3-7 etiket seç; mümkünse şu listeden: ' + MEKAN_ETIKETLERI.join(', ') + '. ' +
+      'Fiyat seviyesini paylaşımdan ya da araştırmandan çıkar (₺ uygun, ₺₺ orta, ₺₺₺ pahalı); emin değilsen fiyat etiketi koyma. ' +
       'Paylaşımda bir yeme-içme yeri gösteriliyor ya da öneriliyorsa mekan_mi true; yalnızca evde yapılan tarifse ya da hiç mekan yoksa false. Türkçe yaz.',
     parcalar,
     schema,

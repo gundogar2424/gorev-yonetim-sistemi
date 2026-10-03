@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import { Header, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { haritadaAcLinki, mekanYeriniBul, yolTarifiLinki } from '../lib/mekan'
+import { MEKAN_ETIKETLERI } from '../lib/ai'
 
 const KAYNAK: Record<string, string> = {
   harita: 'harita linkinden',
@@ -19,7 +20,7 @@ export default function MekanDetay() {
   const zatenVar = (useLocation().state as { zatenVar?: boolean } | null)?.zatenVar
   const m = useLiveQuery(() => lzDb.mekanlar.get(id), [id])
   const [duzenle, setDuzenle] = useState(false)
-  const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '' })
+  const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '', etiketler: [] as string[] })
   const [toast, goster] = useToast()
 
   if (m === undefined) return null
@@ -28,7 +29,7 @@ export default function MekanDetay() {
   const ac = (url: string) => window.open(url, '_blank')
 
   const duzenlemeyiAc = () => {
-    setForm({ ad: m.ad, adres: m.adres, ilce: m.ilce, sehir: m.sehir, oneriler: m.oneriler.join('\n'), notlar: m.notlar })
+    setForm({ ad: m.ad, adres: m.adres, ilce: m.ilce, sehir: m.sehir, oneriler: m.oneriler.join('\n'), notlar: m.notlar, etiketler: m.etiketler })
     setDuzenle(true)
   }
   const kaydet = async () => {
@@ -39,7 +40,8 @@ export default function MekanDetay() {
       ilce: form.ilce.trim(),
       sehir: form.sehir.trim(),
       oneriler: form.oneriler.split('\n').map((x) => x.trim()).filter(Boolean),
-      notlar: form.notlar.trim()
+      notlar: form.notlar.trim(),
+      etiketler: form.etiketler
     })
     setDuzenle(false)
     if (yerDegisti) {
@@ -137,6 +139,23 @@ export default function MekanDetay() {
               <span className="lz-label">Notlar</span>
               <textarea className="lz-input mt-1 min-h-[60px]" value={form.notlar} onChange={(e) => setForm({ ...form, notlar: e.target.value })} />
             </label>
+            <div>
+              <span className="lz-label">Etiketler</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {Array.from(new Set([...MEKAN_ETIKETLERI, ...form.etiketler])).map((e) => {
+                  const secili = form.etiketler.includes(e)
+                  return (
+                    <button
+                      key={e}
+                      className={`lz-chip text-[12.5px] ${secili ? 'lz-chip-on' : ''}`}
+                      onClick={() => setForm({ ...form, etiketler: secili ? form.etiketler.filter((x) => x !== e) : [...form.etiketler, e] })}
+                    >
+                      {e}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               <button className="lz-btn-soft text-sm" onClick={() => setDuzenle(false)}>
                 Vazgeç

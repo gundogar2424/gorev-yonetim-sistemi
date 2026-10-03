@@ -25,6 +25,7 @@ export default function Mekanlar() {
   const [hata, setHata] = useState('')
   const [arama, setArama] = useState('')
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
+  const [etiket, setEtiket] = useState('')
   const aiVar = !!apiAnahtari()
 
   const konumuAl = async () => {
@@ -68,10 +69,15 @@ export default function Mekanlar() {
     setEkleniyor('')
   }
 
+  // Kayitli mekanlardaki etiketler (cok kullanilan once)
+  const sayac = new Map<string, number>()
+  liste.forEach((m) => m.etiketler.forEach((e) => sayac.set(e, (sayac.get(e) ?? 0) + 1)))
+  const tumEtiketler = [...sayac.entries()].sort((a, b) => b[1] - a[1])
   const q = arama.trim().toLocaleLowerCase('tr')
   const suzulmus = liste.filter(
     (m) =>
       (!sadeceGidilmedi || !m.gidildi) &&
+      (!etiket || m.etiketler.includes(etiket)) &&
       (!q || `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')}`.toLocaleLowerCase('tr').includes(q))
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
@@ -135,6 +141,15 @@ export default function Mekanlar() {
                 Gitmediklerim
               </button>
             </div>
+            {tumEtiketler.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4">
+                {tumEtiketler.map(([e, n]) => (
+                  <button key={e} className={`lz-chip whitespace-nowrap flex-shrink-0 text-[12.5px] ${etiket === e ? 'lz-chip-on' : ''}`} onClick={() => setEtiket(etiket === e ? '' : e)}>
+                    {e} <span className="opacity-60 ml-0.5">{n}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {sirali.map((m) => {
               const km = mesafe(m)
               return (
@@ -146,6 +161,15 @@ export default function Mekanlar() {
                     </div>
                     <div className={`text-[12.5px] ${T_SOLUK}`}>{[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}</div>
                     {m.oneriler.length > 0 && <div className={`text-[12.5px] truncate ${T_GOVDE}`}>😋 {m.oneriler.slice(0, 3).join(', ')}</div>}
+                    {m.etiketler.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {m.etiketler.slice(0, 4).map((e) => (
+                          <span key={e} className="lz-pill !text-[11px] !py-0.5">
+                            {e}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {km !== undefined && <div className="text-[12.5px] font-semibold text-lz-600 whitespace-nowrap self-center">{mesafeYaz(km)}</div>}
                   {m.lat === undefined && <div className={`text-[11px] self-center ${T_SOLUK}`}>yer?</div>}
