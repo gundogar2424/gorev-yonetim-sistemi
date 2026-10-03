@@ -7,6 +7,7 @@ import { haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki
 import { MEKAN_ETIKETLERI } from '../lib/ai'
 
 const KAYNAK: Record<string, string> = {
+  google: 'Google Haritalar’dan',
   harita: 'harita linkinden',
   arama: 'yapay zekanın araştırmasından',
   adres: 'adresten (OpenStreetMap)',
@@ -107,7 +108,7 @@ export default function MekanDetay() {
           </button>
           {m.puanZamani && (
             <p className={`text-[11px] ${T_SOLUK}`}>
-              Yapay zekanın Google araması · {new Date(m.puanZamani).toLocaleDateString('tr')}; güncel puan için yorumları aç.
+              {m.googleId ? 'Google Haritalar' : 'Yapay zekanın Google araması'} · {new Date(m.puanZamani).toLocaleDateString('tr')}
             </p>
           )}
         </div>
@@ -116,7 +117,7 @@ export default function MekanDetay() {
           <div className="lz-card p-4 space-y-2.5">
             <div>
               <div className="lz-label mb-0.5">Adres</div>
-              <p className={`text-[14.5px] ${T_GOVDE}`}>{[m.adres, m.ilce, m.sehir].filter(Boolean).join(', ') || 'Adres bulunamadı'}</p>
+              <p className={`text-[14.5px] ${T_GOVDE}`}>{(m.googleId ? m.adres : [m.adres, m.ilce, m.sehir].filter(Boolean).join(', ')) || 'Adres bulunamadı'}</p>
               <p className={`text-[11.5px] mt-0.5 ${T_SOLUK}`}>
                 {m.lat !== undefined ? `Yeri ${KAYNAK[m.konumKaynak] || 'bulundu'} · ` : 'Haritadaki yeri bulunamadı · '}
                 <button className="underline" onClick={duzenlemeyiAc}>

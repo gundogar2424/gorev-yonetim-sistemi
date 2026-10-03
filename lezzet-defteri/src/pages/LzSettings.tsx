@@ -18,6 +18,7 @@ import { downloadBackup, restoreBackup } from '../lib/backup'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
 import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
+import { placesAnahtari, placesAnahtariKaydet, placesTest } from '../lib/places'
 
 export default function LzSettings() {
   const [sag, setSag] = useState<Saglayici>(saglayici())
@@ -129,6 +130,8 @@ export default function LzSettings() {
           </div>
           {test && <p className={`text-[13px] ${T_GOVDE}`}>{test}</p>}
         </section>
+
+        <GoogleHaritalarKarti />
 
         <section className="lz-card p-4 space-y-3">
           <div className={`font-semibold ${T_BASLIK}`}>🎬 Videodaki konuşma</div>
@@ -256,5 +259,89 @@ export default function LzSettings() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Mekanlar icin Google Places anahtari (puan, yorum, kesin konum)
+function GoogleHaritalarKarti() {
+  const [anahtar, setAnahtar] = useState(placesAnahtari())
+  const [goster, setGoster] = useState(false)
+  const [durum, setDurum] = useState('')
+  const [nasil, setNasil] = useState(false)
+  return (
+    <section className="lz-card p-4 space-y-3">
+      <div className={`font-semibold ${T_BASLIK}`}>📍 Google Haritalar (mekanlar için)</div>
+      <p className={`text-[13px] ${T_SOLUK}`}>
+        Girersen kaydettiğin mekanların adresi, haritadaki yeri, Google puanı ve yorum sayısı doğrudan Google Haritalar’dan alınır. Girmezsen yapay
+        zeka araştırır (daha az kesin).
+      </p>
+      <button className="text-[13px] text-lz-600 font-semibold underline" onClick={() => setNasil(!nasil)}>
+        {nasil ? 'Gizle' : 'Anahtarı nasıl alırım?'}
+      </button>
+      {nasil && (
+        <ol className={`text-[13px] space-y-1.5 list-decimal pl-5 ${T_GOVDE}`}>
+          <li>
+            <a href="https://console.cloud.google.com/apis/library/places.googleapis.com" target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
+              Places API (New) sayfasını aç
+            </a>
+            , Gemini anahtarını aldığın Google hesabıyla gir.
+          </li>
+          <li>Üstten projeni seç (Gemini’nin projesi olabilir; faturalandırması zaten açık).</li>
+          <li>
+            <b>Etkinleştir</b>’e bas.
+          </li>
+          <li>
+            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
+              Kimlik bilgileri
+            </a>{' '}
+            → <b>Kimlik bilgisi oluştur</b> → <b>API anahtarı</b>.
+          </li>
+          <li>
+            Anahtarı düzenle → <b>API kısıtlamaları</b> → yalnızca <b>Places API (New)</b>’u seç → Kaydet (anahtar başka işte kullanılamasın).
+          </li>
+          <li>Anahtarı kopyala, aşağıya yapıştır, “Dene”ye bas.</li>
+        </ol>
+      )}
+      <div className="flex gap-2">
+        <input
+          className="lz-input font-mono text-sm"
+          type={goster ? 'text' : 'password'}
+          placeholder="Google Haritalar anahtarı (AIza…)"
+          value={anahtar}
+          onChange={(e) => setAnahtar(e.target.value)}
+          autoComplete="off"
+        />
+        <button className="lz-btn-soft px-3 flex-shrink-0 text-sm" onClick={() => setGoster(!goster)}>
+          {goster ? 'Gizle' : 'Göster'}
+        </button>
+      </div>
+      <div className="flex gap-2">
+        <button
+          className="lz-btn-primary flex-1"
+          onClick={() => {
+            placesAnahtariKaydet(anahtar)
+            setDurum(anahtar.trim() ? 'Kaydedildi.' : 'Anahtar kaldırıldı.')
+          }}
+        >
+          Kaydet
+        </button>
+        <button
+          className="lz-btn-soft flex-1"
+          disabled={!anahtar.trim()}
+          onClick={async () => {
+            placesAnahtariKaydet(anahtar)
+            setDurum('Deneniyor…')
+            try {
+              setDurum(await placesTest())
+            } catch (e) {
+              setDurum(`⚠️ ${(e as Error).message}`)
+            }
+          }}
+        >
+          Dene
+        </button>
+      </div>
+      {durum && <p className={`text-[13px] ${T_GOVDE}`}>{durum}</p>}
+    </section>
   )
 }

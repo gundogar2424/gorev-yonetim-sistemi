@@ -5,6 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { aiMekanAyikla, aiMekanPuan, apiAnahtari, puanTemizle, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
+import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } from './places'
 import { linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
 import { uzaktanFotoIndir } from './image'
 import { temelLink } from './kopya'
@@ -179,6 +180,20 @@ export async function mekanLinktenEkle(
   if (ayni) return { id: ayni.id!, yeni: false }
   ilerleme('Mekanın haritadaki yeri bulunuyor…')
   const yer = koord ? { k: koord, kaynak: 'harita' as const } : await yerBul(b, { lat: b.enlem || 0, lon: b.boylam || 0 })
+  // Google Haritalar anahtari varsa mekanin kesin kaydi oradan alinir
+  let g: GoogleMekan | undefined
+  if (placesAnahtari()) {
+    ilerleme('Google Haritalar’da aranıyor…')
+    try {
+      g = await googleMekanAra([b.ad, b.adres || b.ilce, b.sehir].filter(Boolean).join(' '), koord ?? (b.enlem || b.boylam ? { lat: b.enlem, lon: b.boylam } : undefined))
+    } catch {
+      /* Google bulamazsa / anahtar sorunu: yapay zeka sonucuyla devam */
+    }
+    if (g) {
+      const var_ = (await lzDb.mekanlar.toArray()).find((x) => x.googleId === g!.id)
+      if (var_) return { id: var_.id!, yeni: false }
+    }
+  }
   const kayit: LzMekan = {
     ad: b.ad || baslik || 'Mekan',
     tur: b.tur,
@@ -202,6 +217,7 @@ export async function mekanLinktenEkle(
     yorumOzeti: String(b.yorum_ozeti ?? '').trim() || undefined,
     puanZamani: puanTemizle(b.google_puan) ? Date.now() : undefined
   }
+  if (g) googleIleBirlestir(kayit, g)
   return { id: await lzDb.mekanlar.add(kayit), yeni: true }
 }
 
@@ -210,8 +226,41 @@ export async function mekanAdlaEkle(ad: string, bolge: string): Promise<{ id: nu
   return mekanLinktenEkle(`${ad}${bolge ? ` — ${bolge}` : ''}`)
 }
 
+// Google Haritalar kaydindaki kesin bilgiler mekanin uzerine yazilir
+function googleIleBirlestir(k: Partial<LzMekan>, g: GoogleMekan): void {
+  k.googleId = g.id
+  if (g.ad) k.ad = g.ad
+  if (g.adres) k.adres = g.adres
+  if (g.lat || g.lon) {
+    k.lat = g.lat
+    k.lon = g.lon
+    k.konumKaynak = 'google'
+  }
+  if (g.puan) {
+    k.puan = g.puan
+    k.yorumSayisi = g.yorumSayisi || undefined
+    k.puanZamani = Date.now()
+  }
+  if (g.haritaUrl) k.haritaUrl = g.haritaUrl
+  if (!k.tur && g.tur) k.tur = g.tur
+  if (g.fiyat && k.etiketler && !k.etiketler.some((e) => /^₺+$/.test(e))) k.etiketler = [...k.etiketler, g.fiyat.length > 3 ? '₺₺₺' : g.fiyat]
+}
+
 // Adres degisince/duzeltilince yeri yeniden bul
 export async function mekanYeriniBul(m: LzMekan): Promise<boolean> {
+  if (placesAnahtari()) {
+    try {
+      const g = await googleMekanAra([m.ad, m.adres || m.ilce, m.sehir].filter(Boolean).join(' '))
+      if (g) {
+        const k: Partial<LzMekan> = { etiketler: m.etiketler, tur: m.tur }
+        googleIleBirlestir(k, g)
+        await lzDb.mekanlar.update(m.id!, k)
+        return true
+      }
+    } catch {
+      /* yapay zeka / OpenStreetMap ile devam */
+    }
+  }
   const yer = await yerBul(m)
   if (!yer.k) return false
   await lzDb.mekanlar.update(m.id!, { lat: yer.k.lat, lon: yer.k.lon, konumKaynak: yer.kaynak })
@@ -220,17 +269,29 @@ export async function mekanYeriniBul(m: LzMekan): Promise<boolean> {
 
 // Google Haritalar'da mekanin kartini acar (ad + adres ile arama en dogru sonucu verir)
 export function haritadaAcLinki(m: LzMekan): string {
+  if (m.haritaUrl) return m.haritaUrl
   const q = m.ad ? [m.ad, m.adres || m.ilce, m.sehir].filter(Boolean).join(' ') : `${m.lat},${m.lon}`
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
 }
 
 export function yolTarifiLinki(m: LzMekan): string {
+  if (m.googleId) return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(m.ad)}&destination_place_id=${encodeURIComponent(m.googleId)}`
   const hedef = m.lat !== undefined && m.lon !== undefined ? `${m.lat},${m.lon}` : [m.ad, m.adres, m.ilce, m.sehir].filter(Boolean).join(', ')
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hedef)}`
 }
 
 // Google puani ve yorum ozetini yeniden arastirir
 export async function puaniGuncelle(m: LzMekan): Promise<boolean> {
+  // Google Haritalar anahtari varsa puan dogrudan Google'dan
+  if (placesAnahtari()) {
+    const g = m.googleId ? await googleMekanGetir(m.googleId) : await googleMekanAra([m.ad, m.adres || m.ilce, m.sehir].filter(Boolean).join(' '))
+    if (g) {
+      const k: Partial<LzMekan> = { etiketler: m.etiketler, tur: m.tur, puanZamani: Date.now() }
+      googleIleBirlestir(k, g)
+      await lzDb.mekanlar.update(m.id!, k)
+      return !!g.puan
+    }
+  }
   const p = await aiMekanPuan(m)
   await lzDb.mekanlar.update(m.id!, {
     puan: p.puan || undefined,
@@ -243,6 +304,7 @@ export async function puaniGuncelle(m: LzMekan): Promise<boolean> {
 
 // Google Haritalar'da mekanin yorumlarini acar
 export function yorumlarLinki(m: LzMekan): string {
+  if (m.haritaUrl) return m.haritaUrl
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([m.ad, m.ilce || m.adres, m.sehir].filter(Boolean).join(' '))}`
 }
 

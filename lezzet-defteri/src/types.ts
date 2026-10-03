@@ -133,7 +133,7 @@ export interface LzMekan {
   sehir: string
   lat?: number
   lon?: number
-  konumKaynak: 'harita' | 'arama' | 'adres' | 'elle' | ''
+  konumKaynak: 'google' | 'harita' | 'arama' | 'adres' | 'elle' | ''
   oneriler: string[] // Ne yenir / denenecekler
   fiyat: string
   notlar: string
@@ -148,4 +148,6 @@ export interface LzMekan {
   yorumSayisi?: number
   yorumOzeti?: string // Yorumlarda one cikanlar (artı/eksi)
   puanZamani?: number
+  googleId?: string // Google Haritalar kaydi (Places)
+  haritaUrl?: string // Google Haritalar'daki sayfasi (yorumlar)
 }
