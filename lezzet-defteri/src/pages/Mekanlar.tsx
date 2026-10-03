@@ -26,6 +26,7 @@ export default function Mekanlar() {
   const [arama, setArama] = useState('')
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
   const [etiket, setEtiket] = useState('')
+  const [yaricap, setYaricap] = useState(0) // 0 = hepsi
   const aiVar = !!apiAnahtari()
 
   const konumuAl = async () => {
@@ -78,6 +79,7 @@ export default function Mekanlar() {
     (m) =>
       (!sadeceGidilmedi || !m.gidildi) &&
       (!etiket || m.etiketler.includes(etiket)) &&
+      (!yaricap || (konum && m.lat !== undefined && m.lon !== undefined && mesafeKm(konum, { lat: m.lat, lon: m.lon }) <= yaricap)) &&
       (!q || `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')}`.toLocaleLowerCase('tr').includes(q))
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
@@ -108,6 +110,25 @@ export default function Mekanlar() {
             </div>
           </div>
           {konumMesaj && <p className={`text-[12.5px] ${T_SOLUK}`}>{konumMesaj}</p>}
+          <button
+            className="lz-btn-primary w-full text-[15px]"
+            onClick={async () => {
+              if (!konum) await konumuAl()
+              setYaricap(yaricap || YAKIN_KM)
+              setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 100)
+            }}
+          >
+            📍 Yakınımdaki mekanları göster
+          </button>
+          {yaricap > 0 && (
+            <div className="flex gap-1.5 flex-wrap">
+              {[1, 3, 5, 10, 0].map((km) => (
+                <button key={km} className={`lz-chip text-[12.5px] ${yaricap === km ? 'lz-chip-on' : ''}`} onClick={() => setYaricap(km)}>
+                  {km ? `${km} km` : 'Hepsi'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Yeni mekan */}
@@ -135,7 +156,7 @@ export default function Mekanlar() {
 
         {liste.length > 0 && (
           <>
-            <div className="flex gap-2 items-center">
+            <div id="mekan-listesi" className="flex gap-2 items-center scroll-mt-24">
               <input className="lz-input py-2 text-[14px] flex-1" placeholder="Ara: ad, semt, yemek…" value={arama} onChange={(e) => setArama(e.target.value)} />
               <button className={`lz-chip whitespace-nowrap ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}>
                 Gitmediklerim
@@ -149,6 +170,9 @@ export default function Mekanlar() {
                   </button>
                 ))}
               </div>
+            )}
+            {yaricap > 0 && sirali.length === 0 && (
+              <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>{yaricap} km içinde kayıtlı mekan yok. Mesafeyi büyüt ya da “Hepsi”ni seç.</div>
             )}
             {sirali.map((m) => {
               const km = mesafe(m)
