@@ -149,5 +149,6 @@ export interface LzMekan {
   yorumOzeti?: string // Yorumlarda one cikanlar (artı/eksi)
   puanZamani?: number
   googleId?: string // Google Haritalar kaydi (Places)
+  paylasan?: string // Paylasimi yapan hesap (@…)
   haritaUrl?: string // Google Haritalar'daki sayfasi (yorumlar)
 }

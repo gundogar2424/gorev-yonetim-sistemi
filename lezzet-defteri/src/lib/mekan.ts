@@ -154,6 +154,7 @@ export async function mekanLinktenEkle(
   let koord = url ? haritaKoordinati(url) : undefined
   let video: VideoParcalari | undefined
   let okunamadi = false
+  let paylasan = ''
   if (url) {
     try {
       // Tarif denemesinde toplanan video parcalari varsa yeniden indirilmez
@@ -162,6 +163,7 @@ export async function mekanLinktenEkle(
       video = t.parca
       if (t.kapak) foto = t.kapak
       baslik = s.draft.title
+      paylasan = s.draft.author
       metin = [s.draft.title, s.draft.author && `Paylaşan: ${s.draft.author}`, s.hamMetin, girdi].filter(Boolean).join('\n\n')
       if (!koord) koord = haritaKoordinati(s.html)
       if (/^https:\/\//i.test(s.draft.photo)) foto = (await uzaktanFotoIndir(s.draft.photo).catch(() => '')) || foto
@@ -226,6 +228,7 @@ export async function mekanLinktenEkle(
     etiketler: b.etiketler,
     foto,
     sourceUrl: url,
+    paylasan: paylasan || undefined,
     platform: url ? platformBul(url) : 'manual',
     gidildi: false,
     createdAt: Date.now(),

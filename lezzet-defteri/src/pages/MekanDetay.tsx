@@ -6,6 +6,8 @@ import { Header, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/
 import { haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI } from '../lib/ai'
 
+const PLATFORM: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', pinterest: 'Pinterest' }
+
 const KAYNAK: Record<string, string> = {
   google: 'Google Haritalar’dan',
   harita: 'harita linkinden',
@@ -64,7 +66,25 @@ export default function MekanDetay() {
             Bu mekan zaten kayıtlıydı; ikinci kez eklenmedi.
           </div>
         )}
-        {m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />}
+        {m.sourceUrl ? (
+          // Tarifteki gibi: kapaga dokununca paylasimin videosu (Instagram/TikTok/YouTube) acilir
+          <button className="relative block w-full" onClick={() => ac(m.sourceUrl)} aria-label="Videoyu izle">
+            {m.foto ? (
+              <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />
+            ) : (
+              <div className="w-full h-40 rounded-3xl bg-gradient-to-br from-lz-500 to-lz-700" />
+            )}
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center pl-1">
+              ▶
+            </span>
+            <span className="absolute left-3 bottom-3 bg-black/65 text-white rounded-full px-3 py-1.5 text-[13px] font-semibold">
+              {PLATFORM[m.platform] ? `${PLATFORM[m.platform]}’da videoyu izle` : 'Paylaşımı aç'}
+            </span>
+          </button>
+        ) : (
+          m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />
+        )}
+        {m.paylasan && <p className={`text-[12.5px] px-1 -mt-1 ${T_SOLUK}`}>Paylaşan: {m.paylasan}</p>}
 
         <div className="grid grid-cols-2 gap-2.5">
           <button className="lz-btn-primary text-sm" onClick={() => ac(yolTarifiLinki(m))}>
@@ -236,11 +256,6 @@ export default function MekanDetay() {
             </button>
           )}
         </div>
-        {m.sourceUrl && (
-          <button className="lz-btn-soft w-full text-sm" onClick={() => ac(m.sourceUrl)}>
-            ▶ Paylaşımı aç
-          </button>
-        )}
         <button
           className={`text-[13px] w-full py-2 ${T_SOLUK}`}
           onClick={async () => {

@@ -253,6 +253,7 @@ export default function Mekanlar() {
                   <div className="flex-1 min-w-0">
                     <div className={`font-semibold leading-snug pr-7 ${T_BASLIK}`}>
                       {m.ad} {m.gidildi && <span className="text-[12px]">✅</span>}
+                      {m.sourceUrl && <span className="text-[11px] ml-1 opacity-60">▶</span>}
                     </div>
                     <div className={`text-[12.5px] ${T_SOLUK}`}>
                       {m.puan ? <b className="text-amber-600 dark:text-amber-300 font-semibold">{puanYaz(m)} · </b> : null}
