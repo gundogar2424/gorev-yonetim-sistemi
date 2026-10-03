@@ -986,6 +986,7 @@ export interface MekanBilgisi {
   google_puan: number
   yorum_sayisi: number
   yorum_ozeti: string
+  bulunamadi_neden: string
 }
 
 const PUAN_SEMA = {
@@ -1020,9 +1021,10 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
   const schema = {
     type: 'object',
     additionalProperties: false,
-    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti'],
+    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden'],
     properties: {
       mekan_mi: { type: 'boolean', description: 'Paylaşımda belirli bir yeme-içme mekanı tanıtılıyor/öneriliyor mu' },
+      bulunamadi_neden: { type: 'string', description: 'Mekanın adını ya da yerini bulamadıysan kısa sebebi (ör. "videoda ve açıklamada mekan adı geçmiyor"); bulduysan boş' },
       ad: { type: 'string', description: 'Mekanın tam adı' },
       tur: { type: 'string', description: 'Restoran, Kafe, Pastane, Kebapçı, Balıkçı, Fırın, Dondurmacı, Bar…' },
       sehir: { type: 'string' },

@@ -153,6 +153,7 @@ export async function mekanLinktenEkle(
   let baslik = ''
   let koord = url ? haritaKoordinati(url) : undefined
   let video: VideoParcalari | undefined
+  let okunamadi = false
   if (url) {
     try {
       // Tarif denemesinde toplanan video parcalari varsa yeniden indirilmez
@@ -165,6 +166,7 @@ export async function mekanLinktenEkle(
       if (!koord) koord = haritaKoordinati(s.html)
       if (/^https:\/\//i.test(s.draft.photo)) foto = (await uzaktanFotoIndir(s.draft.photo).catch(() => '')) || foto
     } catch {
+      okunamadi = true
       // Harita kisa linki gibi okunamayan sayfa: yonlendirilen adresi dene
       if (haritaLinkiMi(url)) {
         const html = await metinIndir(url, 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36').catch(() => '')
@@ -175,7 +177,22 @@ export async function mekanLinktenEkle(
   }
   ilerleme('Yapay zeka mekanı araştırıyor…')
   const b = await aiMekanAyikla(metin, foto, video)
-  if (!b.mekan_mi || !b.ad) throw new Error('Bu paylaşımda tarif de mekan da bulunamadı.')
+  if (!b.mekan_mi || !b.ad) {
+    // Kullanici neden bulunamadigini gorsun: ne okunabildi, ne okunamadi
+    const yazi = metin.replace(girdi, '').trim().length > 40
+    const vid = !!(video?.video || video?.youtube || video?.ses || video?.kareler.length || video?.konusma || video?.altyazi)
+    const durum = url
+      ? okunamadi || (!yazi && !vid)
+        ? 'Paylaşım açılamadı: platform (çoğunlukla Instagram) içeriği giriş yapmadan göstermedi; ne yazı ne video alınabildi.'
+        : `Okunanlar: açıklama ${yazi ? '✓' : '✗'}, video ${vid ? '✓' : '✗'}.`
+      : ''
+    const neden = String(b.bulunamadi_neden ?? '').trim()
+    throw new Error(
+      ['Mekan bulunamadı.', durum, neden && `Yapay zeka: ${neden}.`, 'Çözüm: mekanı Google Haritalar’da açıp oradan “Paylaş → Lezzet: Mekan” de ya da Mekanlarım’a adını yaz.']
+        .filter(Boolean)
+        .join(' ')
+    )
+  }
   const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir })
   if (ayni) return { id: ayni.id!, yeni: false }
   ilerleme('Mekanın haritadaki yeri bulunuyor…')
