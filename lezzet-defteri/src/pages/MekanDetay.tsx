@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import { Header, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
-import { haritadaAcLinki, mekanYeriniBul, yolTarifiLinki } from '../lib/mekan'
+import { haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI } from '../lib/ai'
 
 const KAYNAK: Record<string, string> = {
@@ -22,6 +22,7 @@ export default function MekanDetay() {
   const [duzenle, setDuzenle] = useState(false)
   const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '', etiketler: [] as string[] })
   const [toast, goster] = useToast()
+  const [puanAraniyor, setPuanAraniyor] = useState(false)
 
   if (m === undefined) return null
   if (!m) return <Header title="Mekan bulunamadı" back />
@@ -68,6 +69,44 @@ export default function MekanDetay() {
           <button className="lz-btn-soft text-sm" onClick={() => ac(haritadaAcLinki(m))}>
             🗺️ Haritada aç
           </button>
+        </div>
+
+        <div className="lz-card p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className={`flex-1 text-[15px] font-semibold ${T_GOVDE}`}>
+              {m.puan ? (
+                <>
+                  {puanYaz(m)} <span className={`text-[12px] font-normal ${T_SOLUK}`}>Google puanı</span>
+                </>
+              ) : (
+                <span className={`text-[13.5px] font-normal ${T_SOLUK}`}>Google puanı bulunamadı</span>
+              )}
+            </div>
+            <button
+              className="lz-btn-soft px-3 py-1.5 text-[12.5px]"
+              disabled={puanAraniyor}
+              onClick={async () => {
+                setPuanAraniyor(true)
+                try {
+                  goster((await puaniGuncelle(m)) ? 'Puan güncellendi' : 'Google puanı bulunamadı')
+                } catch (e) {
+                  goster((e as Error).message.slice(0, 80))
+                }
+                setPuanAraniyor(false)
+              }}
+            >
+              {puanAraniyor ? 'Aranıyor…' : '↻ Güncelle'}
+            </button>
+          </div>
+          {m.yorumOzeti && <p className={`text-[13.5px] ${T_GOVDE}`}>💬 {m.yorumOzeti}</p>}
+          <button className="lz-btn-soft w-full text-sm" onClick={() => ac(yorumlarLinki(m))}>
+            Google yorumlarını oku
+          </button>
+          {m.puanZamani && (
+            <p className={`text-[11px] ${T_SOLUK}`}>
+              Yapay zekanın Google araması · {new Date(m.puanZamani).toLocaleDateString('tr')}; güncel puan için yorumları aç.
+            </p>
+          )}
         </div>
 
         {!duzenle ? (

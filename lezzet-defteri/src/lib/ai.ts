@@ -983,6 +983,35 @@ export interface MekanBilgisi {
   fiyat: string
   notlar: string
   etiketler: string[]
+  google_puan: number
+  yorum_sayisi: number
+  yorum_ozeti: string
+}
+
+const PUAN_SEMA = {
+  google_puan: { type: 'number', description: 'Google Haritalar puanı (1-5, ör. 4.6); bulamazsan 0' },
+  yorum_sayisi: { type: 'integer', description: 'Google yorum sayısı; bulamazsan 0' },
+  yorum_ozeti: { type: 'string', description: 'Yorumlarda öne çıkan artılar/eksiler, 1-2 cümle; bulamazsan boş' }
+}
+const PUAN_KURALI =
+  'Google’da mekanın Google Haritalar PUANINI, YORUM SAYISINI ve yorumlarda öne çıkanları (beğenilen yemek, servis, fiyat, kalabalık gibi artı/eksi) ara. ' +
+  'Bulamadığın puanı UYDURMA, 0 bırak. '
+
+// Kayitli mekanin Google puanini/yorum ozetini yeniden arastirir
+export async function aiMekanPuan(m: { ad: string; ilce: string; sehir: string; adres: string }): Promise<{ puan: number; yorumSayisi: number; yorumOzeti: string }> {
+  const v = await jsonCagri<{ google_puan: number; yorum_sayisi: number; yorum_ozeti: string }>(
+    'Sen bir yeme-içme mekanı rehberisin. ' + PUAN_KURALI + 'Türkçe yaz.',
+    `Mekan: ${m.ad}\nYer: ${[m.adres, m.ilce, m.sehir].filter(Boolean).join(', ')}`,
+    { type: 'object', additionalProperties: false, required: ['google_puan', 'yorum_sayisi', 'yorum_ozeti'], properties: PUAN_SEMA },
+    1200,
+    true
+  )
+  return { puan: puanTemizle(v.google_puan), yorumSayisi: Math.max(0, Math.round(Number(v.yorum_sayisi) || 0)), yorumOzeti: String(v.yorum_ozeti ?? '').trim() }
+}
+
+export function puanTemizle(x: unknown): number {
+  const n = Number(String(x ?? '').replace(',', '.'))
+  return n >= 1 && n <= 5 ? Math.round(n * 10) / 10 : 0
 }
 
 // Paylasimdaki yeme-icme mekanini cikarir; Gemini'de Google aramasiyla
@@ -991,7 +1020,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
   const schema = {
     type: 'object',
     additionalProperties: false,
-    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler'],
+    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti'],
     properties: {
       mekan_mi: { type: 'boolean', description: 'Paylaşımda belirli bir yeme-içme mekanı tanıtılıyor/öneriliyor mu' },
       ad: { type: 'string', description: 'Mekanın tam adı' },
@@ -1004,7 +1033,8 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
       oneriler: { type: 'array', items: { type: 'string' }, description: 'Denenmesi önerilen yemek/içecekler' },
       fiyat: { type: 'string', description: 'Paylaşımda geçen fiyat bilgisi; yoksa boş' },
       notlar: { type: 'string', description: 'Çalışma saatleri, rezervasyon, şube bilgisi gibi kısa notlar' },
-      etiketler: { type: 'array', items: { type: 'string' }, description: 'Mekanın özelliklerine göre 3-7 kısa etiket (listeden seç, gerekirse ekle)' }
+      etiketler: { type: 'array', items: { type: 'string' }, description: 'Mekanın özelliklerine göre 3-7 kısa etiket (listeden seç, gerekirse ekle)' },
+      ...PUAN_SEMA
     }
   }
   const parcalar: Parca[] = []
@@ -1030,6 +1060,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
       'ilçesini, şehrini ve açık adresini bul. Birden çok şubesi varsa paylaşımda geçen semte uyanı seç; belirsizse ana şubeyi yaz ve ' +
       'notlara "birden çok şubesi var" ekle. Adresi ya da koordinatı bulamazsan boş/0 bırak, UYDURMA. Önerilen yemekleri paylaşımdan yaz. ' +
       'Mekanın adı açıklamada yoksa videodaki tabeladan, menüden, ekrandaki yazıdan, söylenenden ya da etiketlenen hesaptan (@…) bul. ' +
+      PUAN_KURALI +
       'ETİKETLER: mekanın özelliğine göre 3-7 etiket seç; mümkünse şu listeden: ' + MEKAN_ETIKETLERI.join(', ') + '. ' +
       'Fiyat seviyesini paylaşımdan ya da araştırmandan çıkar (₺ uygun, ₺₺ orta, ₺₺₺ pahalı); emin değilsen fiyat etiketi koyma. ' +
       'Paylaşımda bir yeme-içme yeri gösteriliyor ya da öneriliyorsa mekan_mi true; yalnızca evde yapılan tarifse ya da hiç mekan yoksa false. Türkçe yaz.',

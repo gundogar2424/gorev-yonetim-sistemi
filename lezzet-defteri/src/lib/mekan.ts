@@ -3,7 +3,7 @@
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { aiMekanAyikla, apiAnahtari, type VideoParcalari } from './ai'
+import { aiMekanAyikla, aiMekanPuan, apiAnahtari, puanTemizle, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
 import { linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
 import { uzaktanFotoIndir } from './image'
@@ -196,7 +196,11 @@ export async function mekanLinktenEkle(
     sourceUrl: url,
     platform: url ? platformBul(url) : 'manual',
     gidildi: false,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    puan: puanTemizle(b.google_puan) || undefined,
+    yorumSayisi: b.yorum_sayisi > 0 ? Math.round(b.yorum_sayisi) : undefined,
+    yorumOzeti: String(b.yorum_ozeti ?? '').trim() || undefined,
+    puanZamani: puanTemizle(b.google_puan) ? Date.now() : undefined
   }
   return { id: await lzDb.mekanlar.add(kayit), yeni: true }
 }
@@ -223,4 +227,27 @@ export function haritadaAcLinki(m: LzMekan): string {
 export function yolTarifiLinki(m: LzMekan): string {
   const hedef = m.lat !== undefined && m.lon !== undefined ? `${m.lat},${m.lon}` : [m.ad, m.adres, m.ilce, m.sehir].filter(Boolean).join(', ')
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hedef)}`
+}
+
+// Google puani ve yorum ozetini yeniden arastirir
+export async function puaniGuncelle(m: LzMekan): Promise<boolean> {
+  const p = await aiMekanPuan(m)
+  await lzDb.mekanlar.update(m.id!, {
+    puan: p.puan || undefined,
+    yorumSayisi: p.yorumSayisi || undefined,
+    yorumOzeti: p.yorumOzeti || undefined,
+    puanZamani: Date.now()
+  })
+  return !!p.puan
+}
+
+// Google Haritalar'da mekanin yorumlarini acar
+export function yorumlarLinki(m: LzMekan): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([m.ad, m.ilce || m.adres, m.sehir].filter(Boolean).join(' '))}`
+}
+
+export function puanYaz(m: Pick<LzMekan, 'puan' | 'yorumSayisi'>): string {
+  if (!m.puan) return ''
+  const y = m.yorumSayisi ? ` (${m.yorumSayisi.toLocaleString('tr')})` : ''
+  return `⭐ ${m.puan.toFixed(1).replace('.', ',')}${y}`
 }
