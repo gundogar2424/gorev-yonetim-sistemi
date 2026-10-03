@@ -16,6 +16,8 @@ import TmCook from './pages/TmCook'
 import Diyetim from './pages/Diyetim'
 import Sira from './pages/Sira'
 import TarifDegistir from './pages/TarifDegistir'
+import Mekanlar from './pages/Mekanlar'
+import MekanDetay from './pages/MekanDetay'
 import { siraBaslat, siraEkle, siraIsle } from './lib/sira'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from './db'
@@ -80,6 +82,8 @@ export default function LzApp() {
           <Route path="/thermomix/:id" element={<TmDetail />} />
           <Route path="/thermomix/:id/pisir" element={<TmCook />} />
           <Route path="/sira" element={<Sira />} />
+          <Route path="/mekanlar" element={<Mekanlar />} />
+          <Route path="/mekan/:id" element={<MekanDetay />} />
           <Route path="/tarif/:id/degistir" element={<TarifDegistir />} />
           <Route path="/diyet" element={<Diyetim />} />
           <Route path="/diyet/:i" element={<Diyetim />} />

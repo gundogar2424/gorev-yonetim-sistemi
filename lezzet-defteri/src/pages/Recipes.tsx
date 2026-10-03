@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
 import { SiraRozeti, SiraSeridi } from './Sira'
+import { YakinMekanSeridi } from './Mekanlar'
 import type { LzRecipe, LzTable } from '../types'
 import { Header, Icon, Logo, PlatformLabel, Sheet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
 
@@ -50,11 +51,14 @@ export default function Recipes() {
               📥
               <SiraRozeti />
             </Link>
+            <Link to="/mekanlar" className="lz-btn-soft px-2.5 py-2 text-[15px]" aria-label="Mekanlarım">
+              📍
+            </Link>
             <Link to="/diyet" className="lz-btn-soft px-2.5 py-2 text-[15px]" aria-label="Diyetim">
               🥗
             </Link>
             <Link to="/ne-pisirsem" className="lz-btn-soft px-3 py-2 text-[12.5px] whitespace-nowrap">
-              ✨ Ne pişirsem?
+              ✨ Ne pişirsem
             </Link>
           </>
         }
@@ -62,6 +66,7 @@ export default function Recipes() {
 
       <div className="px-4 space-y-3">
         <SiraSeridi />
+        <YakinMekanSeridi />
         <label className="relative block">
           <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${T_SOLUK}`}>
             <Icon name="search" className="w-[18px] h-[18px]" />

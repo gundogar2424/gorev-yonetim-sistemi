@@ -119,4 +119,27 @@ export interface LzSira {
   createdAt: number
   updatedAt: number
   zorla?: boolean // defterde olsa da yeniden cikar
+  mekanId?: number // paylasim bir mekansa kaydedilen mekan
+}
+
+// Internette gorulen yeme-icme mekanlari (restoran, kafe, pastane…)
+export interface LzMekan {
+  id?: number
+  ad: string
+  tur: string // Restoran, Kafe, Pastane, Kebapçı…
+  adres: string
+  ilce: string
+  sehir: string
+  lat?: number
+  lon?: number
+  konumKaynak: 'harita' | 'arama' | 'adres' | 'elle' | ''
+  oneriler: string[] // Ne yenir / denenecekler
+  fiyat: string
+  notlar: string
+  etiketler: string[]
+  foto: string
+  sourceUrl: string
+  platform: LzPlatform
+  gidildi: boolean
+  createdAt: number
 }

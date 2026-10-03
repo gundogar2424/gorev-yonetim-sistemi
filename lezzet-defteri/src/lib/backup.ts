@@ -1,7 +1,7 @@
 // Lezzet Defteri yedegi: tarifler, sofralar, haftalik plan ve alisveris listesi
 // tek JSON dosyasina indirilir; istenince geri yuklenir. API anahtari YAZILMAZ.
 import { lzDb } from '../db'
-import type { LzDiyet, LzPlan, LzRecipe, LzShopItem, LzTable } from '../types'
+import type { LzDiyet, LzMekan, LzPlan, LzRecipe, LzShopItem, LzTable } from '../types'
 
 interface LzBackup {
   app: 'lezzet-defteri'
@@ -12,6 +12,7 @@ interface LzBackup {
   plans: LzPlan[]
   shopping: LzShopItem[]
   diyet?: LzDiyet[]
+  mekanlar?: LzMekan[]
 }
 
 export async function downloadBackup(): Promise<void> {
@@ -23,7 +24,8 @@ export async function downloadBackup(): Promise<void> {
     tables: await lzDb.sofralar.toArray(),
     plans: await lzDb.plans.toArray(),
     shopping: await lzDb.shopping.toArray(),
-    diyet: await lzDb.diyet.toArray()
+    diyet: await lzDb.diyet.toArray(),
+    mekanlar: await lzDb.mekanlar.toArray()
   }
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -53,7 +55,15 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
 
   let eklendi = 0
   let atlandi = 0
-  await lzDb.transaction('rw', [lzDb.recipes, lzDb.sofralar, lzDb.plans, lzDb.shopping, lzDb.diyet], async () => {
+  await lzDb.transaction('rw', [lzDb.recipes, lzDb.sofralar, lzDb.plans, lzDb.shopping, lzDb.diyet, lzDb.mekanlar], async () => {
+    // Mekanlar: ayni adli ve ayni sehirdeki mekan atlanir
+    const mevcutMekan = await lzDb.mekanlar.toArray()
+    const mk = (m: LzMekan) => `${m.ad}|${m.sehir}`.toLocaleLowerCase('tr')
+    for (const m of data.mekanlar ?? []) {
+      if (mevcutMekan.some((x) => mk(x) === mk(m))) continue
+      const { id: _id, ...rest } = m
+      await lzDb.mekanlar.add(rest)
+    }
     // Diyet plani: telefonda plan yoksa yedektekini al (varsa uzerine yazma)
     if (data.diyet?.[0] && !(await lzDb.diyet.get(1))) await lzDb.diyet.put({ ...data.diyet[0], id: 1, eslesme: undefined })
     const sofraEsle = new Map<number, number>()

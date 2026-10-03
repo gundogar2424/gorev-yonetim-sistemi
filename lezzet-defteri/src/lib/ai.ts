@@ -161,6 +161,16 @@ function jsonCoz<T>(text: string, kesildi: boolean): T {
   try {
     return JSON.parse(t) as T
   } catch {
+    // Arama sonucu gibi metinle karisik cevapta JSON nesnesini ayikla
+    const a = t.indexOf('{')
+    const b = t.lastIndexOf('}')
+    if (a >= 0 && b > a) {
+      try {
+        return JSON.parse(t.slice(a, b + 1)) as T
+      } catch {
+        /* asagida */
+      }
+    }
     throw new Error(kesildi ? 'Yanıt çok uzun, yarıda kesildi.' : 'Yapay zeka yanıtı okunamadı.')
   }
 }
@@ -240,7 +250,7 @@ async function geminiModelBul(haric: string[] = [], liteDahil = false): Promise<
   return adlar[0] ?? ''
 }
 
-async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object, maxTokens: number): Promise<T> {
+async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object, maxTokens: number, arama = false): Promise<T> {
   const parts = parcalar.map((p) =>
     p.type === 'text'
       ? { text: p.text }
@@ -248,17 +258,23 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
         ? { file_data: { file_uri: p.url, mime_type: 'video/*' } }
         : { inline_data: { mime_type: p.mime, data: p.data } }
   )
-  const govde = (semaIle: boolean) => ({
-    system_instruction: { parts: [{ text: semaIle ? system : `${system}\n\nYanıtı YALNIZCA şu JSON şemasına uyan tek bir JSON nesnesi olarak ver:\n${JSON.stringify(schema)}` }] },
-    contents: [{ role: 'user', parts }],
-    generationConfig: {
-      // Yeni Gemini modelleri cevaptan once "dusunur" ve bu da bu tavandan yer;
-      // dar tavan cevabi yarida keser. Bu yuzden genis tutulur.
-      maxOutputTokens: Math.max(maxTokens * 4, 8192),
-      responseMimeType: 'application/json',
-      ...(semaIle ? { responseJsonSchema: schema } : {})
+  // arama: Google aramasiyla desteklenen cevap (mekan adresi bulmak gibi); bu
+  // durumda JSON modu kullanilamaz, sema metinle tarif edilir.
+  const govde = (semaIle0: boolean) => {
+    const semaIle = semaIle0 && !arama
+    return {
+      system_instruction: { parts: [{ text: semaIle ? system : `${system}\n\nYanıtı YALNIZCA şu JSON şemasına uyan tek bir JSON nesnesi olarak ver:\n${JSON.stringify(schema)}` }] },
+      contents: [{ role: 'user', parts }],
+      ...(arama ? { tools: [{ google_search: {} }] } : {}),
+      generationConfig: {
+        // Yeni Gemini modelleri cevaptan once "dusunur" ve bu da bu tavandan yer;
+        // dar tavan cevabi yarida keser. Bu yuzden genis tutulur.
+        maxOutputTokens: Math.max(maxTokens * 4, 8192),
+        ...(arama ? {} : { responseMimeType: 'application/json' }),
+        ...(semaIle ? { responseJsonSchema: schema } : {})
+      }
     }
-  })
+  }
 
   let model = oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelAdi()
   const cagir = (semaIle: boolean) => geminiGonder(`models/${encodeURIComponent(model)}:generateContent`, govde(semaIle))
@@ -340,10 +356,19 @@ export function geminiEtkinModel(): string {
 }
 
 // Yapilandirilmis cagri: secili saglayiciya gider, yanit JSON olarak cozulur.
-async function jsonCagri<T>(system: string, content: string | Parca[], schema: object, maxTokens = 4000): Promise<T> {
+async function jsonCagri<T>(system: string, content: string | Parca[], schema: object, maxTokens = 4000, arama = false): Promise<T> {
   if (!apiAnahtari()) throw new Error('Yapay zeka için Ayarlar’dan API anahtarı gir.')
   const parcalar: Parca[] = typeof content === 'string' ? [{ type: 'text', text: content }] : content
-  return saglayici() === 'gemini' ? geminiCagri<T>(system, parcalar, schema, maxTokens) : claudeCagri<T>(system, parcalar, schema, maxTokens)
+  if (saglayici() !== 'gemini') return claudeCagri<T>(system, parcalar, schema, maxTokens)
+  if (arama) {
+    // Google aramasi bu modelde/anahtarda calismazsa aramasiz dene
+    try {
+      return await geminiCagri<T>(system, parcalar, schema, maxTokens, true)
+    } catch (e) {
+      if (/anahtar|API key|kota|limit/i.test((e as Error).message)) throw e
+    }
+  }
+  return geminiCagri<T>(system, parcalar, schema, maxTokens)
 }
 
 interface TarifJson {
@@ -357,8 +382,16 @@ interface TarifJson {
   tags: string[]
 }
 
+// Paylasimda tarif yoksa (ör. bir mekan tanitimi) bu hata atilir; cagiran mekan olarak dener.
+export class TarifYokHatasi extends Error {
+  constructor() {
+    super('Burada bir tarif bulunamadı.')
+    this.name = 'TarifYokHatasi'
+  }
+}
+
 function tarifeCevir(v: TarifJson): Partial<LzDraft> {
-  if (!v.is_recipe && !v.ingredients?.length) throw new Error('Burada bir tarif bulunamadı.')
+  if (!v.is_recipe && !v.ingredients?.length) throw new TarifYokHatasi()
   return {
     title: v.title,
     servings: v.servings || 0,
@@ -370,7 +403,12 @@ function tarifeCevir(v: TarifJson): Partial<LzDraft> {
   }
 }
 
+const MEKAN_KURALI =
+  'Paylaşım bir restoran, kafe, pastane, kebapçı gibi bir yeme-içme MEKANININ tanıtımı ya da mekan önerisiyse (evde yapılış tarifi yoksa) ' +
+  'is_recipe false döndür ve mekanın yemeğinden tarif UYDURMA. '
+
 const AYIKLA_SISTEM =
+  MEKAN_KURALI +
   'Sen bir tarif editörüsün. Sosyal medya paylaşımı, web sayfası ya da fotoğraftan gelen dağınık içerikten ' +
   'yemek tarifini çıkarıp düzenli Türkçe tarif olarak döndürürsün. İçerikte olmayan malzeme UYDURMA ve ' +
   'yemeğin adından yola çıkarak "genelde konur" diye malzeme EKLEME; yalnızca içerikte geçenleri yaz. ' +
@@ -915,4 +953,66 @@ export function profilMetni(sofralar: { name: string; notes?: string }[]): strin
   if (g) satirlar.push(`Genel: ${g}`)
   for (const s of sofralar) if (s.notes?.trim()) satirlar.push(`${s.name}: ${s.notes.trim()}`)
   return satirlar.join('\n')
+}
+
+// --- MEKANLAR ------------------------------------------------------------------
+
+export interface MekanBilgisi {
+  mekan_mi: boolean
+  ad: string
+  tur: string
+  sehir: string
+  ilce: string
+  adres: string
+  enlem: number
+  boylam: number
+  oneriler: string[]
+  fiyat: string
+  notlar: string
+  etiketler: string[]
+}
+
+// Paylasimdaki yeme-icme mekanini cikarir; Gemini'de Google aramasiyla
+// mekanin acik adresini de arastirir (paylasimda konum olmasa bile).
+export async function aiMekanAyikla(metin: string, foto = ''): Promise<MekanBilgisi> {
+  const schema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler'],
+    properties: {
+      mekan_mi: { type: 'boolean', description: 'Paylaşımda belirli bir yeme-içme mekanı tanıtılıyor/öneriliyor mu' },
+      ad: { type: 'string', description: 'Mekanın tam adı' },
+      tur: { type: 'string', description: 'Restoran, Kafe, Pastane, Kebapçı, Balıkçı, Fırın, Dondurmacı, Bar…' },
+      sehir: { type: 'string' },
+      ilce: { type: 'string', description: 'İlçe/semt' },
+      adres: { type: 'string', description: 'Açık adres (cadde, sokak, no); bulamazsan boş' },
+      enlem: { type: 'number', description: 'Emin olduğun enlem; değilse 0' },
+      boylam: { type: 'number', description: 'Emin olduğun boylam; değilse 0' },
+      oneriler: { type: 'array', items: { type: 'string' }, description: 'Denenmesi önerilen yemek/içecekler' },
+      fiyat: { type: 'string', description: 'Paylaşımda geçen fiyat bilgisi; yoksa boş' },
+      notlar: { type: 'string', description: 'Çalışma saatleri, rezervasyon, şube bilgisi gibi kısa notlar' },
+      etiketler: { type: 'array', items: { type: 'string' }, description: 'Kısa etiketler: kahvaltı, deniz ürünleri, tatlı, manzaralı…' }
+    }
+  }
+  const parcalar: Parca[] = []
+  const m = foto.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
+  if (m) parcalar.push({ type: 'image', mime: m[1], data: m[2] })
+  parcalar.push({ type: 'text', text: `Paylaşım:\n"""\n${metin.slice(0, 8000)}\n"""` })
+  const v = await jsonCagri<MekanBilgisi>(
+    'Sen bir yeme-içme mekanı rehberisin. Sosyal medya paylaşımında tanıtılan restoran/kafe/pastane gibi MEKANI belirlersin. ' +
+      'Paylaşımda mekanın adı, kullanıcı adı (@…), semti ya da ipucu geçer; gerekirse Google’da ARAŞTIRARAK mekanın tam adını, ' +
+      'ilçesini, şehrini ve açık adresini bul. Birden çok şubesi varsa paylaşımda geçen semte uyanı seç; belirsizse ana şubeyi yaz ve ' +
+      'notlara "birden çok şubesi var" ekle. Adresi ya da koordinatı bulamazsan boş/0 bırak, UYDURMA. Önerilen yemekleri paylaşımdan yaz. ' +
+      'Paylaşım bir mekan değilse (ör. evde yapılan tarif) mekan_mi false. Türkçe yaz.',
+    parcalar,
+    schema,
+    2500,
+    true
+  )
+  return {
+    ...v,
+    ad: String(v.ad ?? '').trim(),
+    oneriler: (v.oneriler ?? []).map((x) => String(x).trim()).filter(Boolean),
+    etiketler: (v.etiketler ?? []).map((x) => String(x).trim()).filter(Boolean)
+  }
 }

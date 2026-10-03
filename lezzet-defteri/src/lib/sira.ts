@@ -7,6 +7,8 @@ import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft } from '../types'
 import { linkAyikla, platformBul } from './importer'
 import { ayniLinkliTarif, benzerTarif } from './kopya'
+import { TarifYokHatasi } from './ai'
+import { mekanLinktenEkle } from './mekan'
 import { linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
 
 let calisiyor = false
@@ -73,6 +75,24 @@ export async function siraIsle(): Promise<void> {
         const uyari = t.not.startsWith('⚠️')
         await g({ durum: 'bitti', mesaj: uyari ? t.not : 'Deftere eklendi.', recipeId: id, baslik: t.draft.title || is.baslik })
       } catch (e) {
+        // Tarif degil de bir yeme-icme mekani paylasildiysa Mekanlarim'a kaydedilir
+        if (e instanceof TarifYokHatasi) {
+          try {
+            const sonuc = await mekanLinktenEkle(is.girdi, (m) => void g({ mesaj: m }))
+            const mk = await lzDb.mekanlar.get(sonuc.id)
+            await g({
+              durum: 'bitti',
+              mesaj: sonuc.yeni ? '📍 Mekan olarak Mekanlarım’a kaydedildi.' : '📍 Bu mekan zaten kayıtlı.',
+              recipeId: 0,
+              mekanId: sonuc.id,
+              baslik: mk?.ad ?? is.baslik
+            })
+            continue
+          } catch (e2) {
+            await g({ durum: 'hata', mesaj: (e2 as Error).message || 'İşlenemedi.' })
+            continue
+          }
+        }
         await g({ durum: 'hata', mesaj: (e as Error).message || 'İşlenemedi.' })
       }
     }

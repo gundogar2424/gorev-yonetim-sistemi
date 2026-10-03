@@ -4,7 +4,7 @@
 // geri cagirimla bildirilir.
 import { linkAyikla, linktenTarif, metinIndir, type LinkSonucu, youtubeId } from './importer'
 import { metniAyristir } from './parse'
-import { aiAdi, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from './ai'
+import { aiAdi, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type VideoParcalari, TarifYokHatasi } from './ai'
 import { GEMINI_DOGRUDAN_MAX, instagramVeri, kareler, sesWavBase64, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from './video'
 import { uzaktanFotoIndir } from './image'
 import type { LzDraft } from '../types'
@@ -41,6 +41,7 @@ export async function yapilandir(ham: string, d: LzDraft, ilerleme: Ilerleme = (
       const ai = await aiIleAyikla(ham, d.title)
       return { d: { ...d, ...ai, title: ai.title || d.title }, not: '' }
     } catch (e) {
+      if (e instanceof TarifYokHatasi) throw e
       const kural = metniAyristir(ham)
       return {
         d: { ...d, ...kural, title: kural.title || d.title, notes: ham },
@@ -218,6 +219,8 @@ export async function linktenTaslak(girdi: string, ilerleme: Ilerleme = () => {}
             ilerleme
           )
         } catch (e) {
+          // Tarif yoksa (ör. mekan tanitimi) cagiran mekan olarak dener
+          if (e instanceof TarifYokHatasi) throw e
           // Sessizce gecme: sebep kullaniciya kirmizi uyariyla gosterilir
           if (!s.hamMetin) throw e
           const { d, not } = await yapilandir(s.hamMetin, s.draft, ilerleme)

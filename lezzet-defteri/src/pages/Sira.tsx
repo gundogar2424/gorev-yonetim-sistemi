@@ -35,6 +35,11 @@ export default function Sira() {
                 {x.mesaj}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
+                {x.durum === 'bitti' && !!x.mekanId && (
+                  <Link to={`/mekan/${x.mekanId}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
+                    📍 Mekanı aç
+                  </Link>
+                )}
                 {x.durum === 'bitti' && x.recipeId > 0 && (
                   <Link to={`/tarif/${x.recipeId}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
                     Tarifi aç

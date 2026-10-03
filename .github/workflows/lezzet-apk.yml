@@ -63,6 +63,7 @@ jobs:
         run: |
           # 1) Uygulama, baska uygulamalarin "Paylas" listesinde gorunsun (duz metin/link)
           f=android/app/src/main/AndroidManifest.xml
+          grep -q 'ACCESS_COARSE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>#' "$f"
           grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter>\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
           grep -n -A4 "action.SEND" "$f"
           # 2) Paylasilan metni web katmanina ver (sayfa hazir olana kadar tekrar dener)

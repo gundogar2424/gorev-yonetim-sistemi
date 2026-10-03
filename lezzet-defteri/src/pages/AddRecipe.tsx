@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { linkAyikla, platformBul } from '../lib/importer'
 import { geminiyeHazirla, linktenTaslak, taslakHazirla, yapilandir } from '../lib/pipeline'
-import { aiAdi, aiFotograftan, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from '../lib/ai'
+import { TarifYokHatasi, aiAdi, aiFotograftan, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from '../lib/ai'
+import { mekanLinktenEkle } from '../lib/mekan'
 import { kareler, konusmayiYaziyaCevir, sesModeli } from '../lib/video'
 import { fotoOku } from '../lib/image'
 import { paylasilanTarifOku } from '../lib/paylas'
@@ -56,6 +57,18 @@ export default function AddRecipe() {
       const t = await linktenTaslak(girdi, setYukleniyor)
       navigate('/yeni', { state: t })
     } catch (e) {
+      // Tarif degil de bir mekan paylasildiysa Mekanlarim'a kaydedilir
+      if (e instanceof TarifYokHatasi) {
+        try {
+          const { id, yeni } = await mekanLinktenEkle(girdi, setYukleniyor)
+          navigate(`/mekan/${id}`, { state: yeni ? undefined : { zatenVar: true } })
+          return
+        } catch (e2) {
+          setHata((e2 as Error).message)
+          setYukleniyor('')
+          return
+        }
+      }
       setHata((e as Error).message || 'Bir sorun oluştu.')
       setYukleniyor('')
     }
