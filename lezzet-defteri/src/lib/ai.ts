@@ -508,7 +508,16 @@ export async function aiThermomix(r: {
       'yoğurt/mayalama mode "ferment" 37 °C; uzun ağır pişirme mode "yavas" (12 saate kadar); vakumlu poşette mode "sousvide". ' +
       'Malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı su 200 g, yemek kaşığı yağ ~12 g, 1 su bardağı un ~110 g, şeker ~180 g); adet/tutam kalabilir; ' +
       'malzemeler TM7 tartısıyla doğrudan kaba tartılarak eklenir, her adımda o adımda eklenecek malzemeleri gramla yaz. ' +
-      'Fırın/tava gerektiren adım (ör. börek pişirme, kızartma) TM7 dışında elle yapılır: seconds 0, speed boş, temp boş, metinde nerede yapılacağını yaz. ' +
+      'ÖNCE TM7 İLKESİ: Tarifin TM7’de yapılabilen HER adımını TM7’de yap; orijinal tarif tava, tencere ya da ocak dese bile TM7’de ' +
+      'yapılabiliyorsa TM7’ye uyarla. TM7’de YAPILANLAR: KARAMEL (kuru ya da ıslak karamel, karamel sos: mode "karamel" — TM7 Karamelize modu; ' +
+      'şekeri kaba koy, karamelize modunu çalıştır; karamel sos için ardından krema/tereyağını ekle, 90–100 °C devir 2 karıştır; tip alanına ' +
+      '"Karamelize modu yoksa: Kavurma 160 °C, ters bıçak, yumuşak devir, gözle kontrol et" yaz), çikolata eritme 50 °C devir 2, tereyağı eritme 60–70 °C devir 2, ' +
+      'ganaj, beşamel, muhallebi, puding, krema, sos, reçel/marmelat (Varoma sıcaklığı, ölçü kabı yerine sepet), şurup/şerbet 100 °C, ' +
+      'krem şanti ve beze (kelebek aksesuarı, devir 3–4, ısıtmadan), mayonez, yumurta haşlama (buhar), soğan karamelize ve et/kıyma kavurma (mode "sote"), ' +
+      'haşlama, buharda pişirme, pilav, hamur yoğurma ve mayalama, doğrama/rendeleme/öğütme/pudra şekeri, smoothie. ' +
+      'TM7 DIŞINDA yalnızca şunlar yapılır: fırında pişirme, derin yağda kızartma, ızgara/mangal, geniş yüzey isteyen tava işleri ' +
+      '(krep, pankek, omlet, büyük et/balık mühürleme), kalıba dökme ve soğutma. Bunlarda bile hamur, harç, sos gibi hazırlığı TM7’de yap; ' +
+      'elle yapılan adımda seconds 0, speed boş, temp boş, metinde nerede yapılacağını yaz. ' +
       'Kazıma gerekiyorsa ("spatula ile kenarları sıyır") ayrı adım ya da tip olarak yaz. Porsiyonu koru. Adımlar kısa, net ve emir kipinde olsun. ' +
       'warnings alanına kapasite, sıcak sıvı, taşma ve elle yapılacak adımlarla ilgili gerçekten önemli uyarıları yaz.',
     `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}\n\nYapılışı:\n${r.steps

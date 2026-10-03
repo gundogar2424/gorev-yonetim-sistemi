@@ -5,7 +5,7 @@
 import type { LzRecipe } from '../types'
 
 export type TmHiz = '' | 'yumusak' | '0.5' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'turbo'
-export type TmMod = '' | 'sote' | 'hamur' | 'buhar' | 'yavas' | 'sousvide' | 'ferment' | 'pirinc' | 'blender' | 'tartim' | 'temizlik'
+export type TmMod = '' | 'sote' | 'karamel' | 'hamur' | 'buhar' | 'yavas' | 'sousvide' | 'ferment' | 'pirinc' | 'blender' | 'tartim' | 'temizlik'
 
 export interface TmAdim {
   text: string // Ne yapilacak
@@ -27,7 +27,7 @@ export interface TmSurum {
 }
 
 export const HIZLAR: TmHiz[] = ['', 'yumusak', '0.5', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'turbo']
-export const MODLAR: TmMod[] = ['', 'sote', 'hamur', 'buhar', 'yavas', 'sousvide', 'ferment', 'pirinc', 'blender', 'tartim', 'temizlik']
+export const MODLAR: TmMod[] = ['', 'sote', 'karamel', 'hamur', 'buhar', 'yavas', 'sousvide', 'ferment', 'pirinc', 'blender', 'tartim', 'temizlik']
 export const SICAKLIKLAR = ['', '37', '50', '60', '70', '80', '90', '95', '100', '110', '120', '130', '140', '150', '160', 'varoma']
 
 // Termomiks Defteri'nin kategori listesiyle ayni (aktarinca dogru rafa dussun)
@@ -41,6 +41,7 @@ export const TM_KATEGORILER = [
 const MOD_AD: Record<TmMod, string> = {
   '': '',
   sote: 'Sote / kavurma',
+  karamel: 'Karamelize',
   hamur: 'Hamur yoğurma',
   buhar: 'Varoma buhar',
   yavas: 'Yavaş pişirme',
@@ -114,7 +115,12 @@ export function termomiksKodu(r: LzRecipe): string {
       servings: r.servings || 0,
       minutes: r.minutes || 0,
       ingredients: tm.ingredients,
-      steps: tm.steps,
+      // Termomiks Defteri'nde Karamelize modu yok: kavurma (sote) olarak aktarilir, metinde belirtilir
+      steps: tm.steps.map((a) =>
+        a.mode === 'karamel'
+          ? { ...a, mode: 'sote', temp: a.temp || '160', text: /karamel/i.test(a.text) ? a.text : `Karamelize: ${a.text}` }
+          : a
+      ),
       notes: r.notes || '',
       warnings: tm.warnings,
       photo: r.photo || '',
@@ -136,7 +142,7 @@ export function tmKuralDenetle(a: TmAdim): TmAdim {
   const ekle = (t: string) => {
     if (!x.tip.toLocaleLowerCase('tr').includes(t.slice(0, 12).toLocaleLowerCase('tr'))) x.tip = x.tip ? `${x.tip} ${t}` : t
   }
-  if (derece > 120 && x.mode !== 'sote') x.mode = 'sote'
+  if (derece > 120 && x.mode !== 'sote' && x.mode !== 'karamel') x.mode = 'sote'
   if (x.speed === 'turbo' && derece >= 60) {
     x.speed = '10'
     ekle('Turbo sıcakta çalışmaz; hızı kademeli 10’a çıkar.')
