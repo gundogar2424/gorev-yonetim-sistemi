@@ -63,6 +63,9 @@ jobs:
         run: |
           # 1) Uygulama, baska uygulamalarin "Paylas" listesinde gorunsun (duz metin/link)
           f=android/app/src/main/AndroidManifest.xml
+          # Sira islenirken uygulama arka planda donmasin: bildirimli on plan servisi
+          grep -q 'SiraServisi' "$f" || sed -i 's#</application>#    <service android:name=".SiraServisi" android:exported="false" android:foregroundServiceType="dataSync" />\n    </application>#' "$f"
+          grep -q 'FOREGROUND_SERVICE_DATA_SYNC' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
           grep -q 'ACCESS_COARSE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>#' "$f"
           grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter android:label="Lezzet: Tarif">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
           # Paylas menusunde ikinci secenek: "Lezzet: Mekan" (ayni uygulama, mekan olarak kaydeder)
@@ -75,6 +78,7 @@ jobs:
           package com.lezzet.defteri;
 
           import android.content.Intent;
+          import android.os.Build;
           import android.os.Bundle;
           import android.webkit.WebView;
           import com.getcapacitor.BridgeActivity;
@@ -83,9 +87,13 @@ jobs:
           public class MainActivity extends BridgeActivity {
               @Override
               public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(SiraEklentisi.class); // web katmani sira servisini buradan acar/kapatir
                   super.onCreate(savedInstanceState);
+                  // Uygulama gorunmezken de web katmani onemli sayilsin (sira islenirken yavaslamasin)
+                  if (Build.VERSION.SDK_INT >= 26) getBridge().getWebView().setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
                   paylasimiIsle(getIntent());
               }
+
 
               @Override
               protected void onNewIntent(Intent intent) {
@@ -116,6 +124,130 @@ jobs:
           }
           JAVA
           sed -i 's/^          //' "$d/MainActivity.java"
+          cat > "$d/SiraServisi.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.app.Service;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.pm.ServiceInfo;
+          import android.os.Build;
+          import android.os.IBinder;
+          import android.os.PowerManager;
+          import androidx.core.app.NotificationCompat;
+
+          // Tarif sirasi islenirken calisan on plan servisi: Android uygulamayi
+          // arka planda/ekran kapaliyken dondurmaz; sira bitince kendiliginden kapanir.
+          public class SiraServisi extends Service {
+              static final String KANAL = "lz_sira";
+              static final int NO = 4711;
+              static boolean calisiyor = false;
+              private PowerManager.WakeLock kilit;
+
+              static Notification bildirim(Context c, String metin) {
+                  NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+                  if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(KANAL) == null) {
+                      nm.createNotificationChannel(new NotificationChannel(KANAL, "Tarif sırası", NotificationManager.IMPORTANCE_LOW));
+                  }
+                  Intent ac = new Intent(c, MainActivity.class);
+                  ac.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                  PendingIntent pi = PendingIntent.getActivity(c, 0, ac, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                  return new NotificationCompat.Builder(c, KANAL)
+                      .setSmallIcon(android.R.drawable.stat_sys_download)
+                      .setContentTitle("Lezzet Defteri")
+                      .setContentText(metin == null || metin.isEmpty() ? "Paylaşımlar işleniyor…" : metin)
+                      .setOngoing(true)
+                      .setOnlyAlertOnce(true)
+                      .setContentIntent(pi)
+                      .build();
+              }
+
+              static void guncelle(Context c, String metin) {
+                  if (!calisiyor) return;
+                  try {
+                      ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).notify(NO, bildirim(c, metin));
+                  } catch (Exception e) {
+                      // bildirim izni yoksa servis yine calisir
+                  }
+              }
+
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  String metin = intent != null ? intent.getStringExtra("metin") : null;
+                  Notification n = bildirim(this, metin);
+                  if (Build.VERSION.SDK_INT >= 29) startForeground(NO, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+                  else startForeground(NO, n);
+                  calisiyor = true;
+                  if (kilit == null) {
+                      kilit = ((PowerManager) getSystemService(Context.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "lezzet:sira");
+                      kilit.acquire(60 * 60 * 1000L); // en fazla 1 saat
+                  }
+                  return START_NOT_STICKY;
+              }
+
+              // Android 15: on plan suresi dolarsa nazikce kapan
+              public void onTimeout(int startId, int fgsType) {
+                  stopSelf();
+              }
+
+              @Override
+              public void onDestroy() {
+                  calisiyor = false;
+                  if (kilit != null && kilit.isHeld()) kilit.release();
+                  kilit = null;
+                  super.onDestroy();
+              }
+
+              @Override
+              public IBinder onBind(Intent intent) {
+                  return null;
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/SiraServisi.java"
+          cat > "$d/SiraEklentisi.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.content.Intent;
+          import androidx.core.content.ContextCompat;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          // Web katmanindan: sira islenirken bildirimli servisi ac, guncelle, kapat
+          @CapacitorPlugin(name = "LzSira")
+          public class SiraEklentisi extends Plugin {
+              @PluginMethod
+              public void basla(PluginCall call) {
+                  try {
+                      Intent s = new Intent(getContext(), SiraServisi.class);
+                      s.putExtra("metin", call.getString("metin", ""));
+                      ContextCompat.startForegroundService(getContext(), s);
+                  } catch (Exception e) {
+                      // arka plandan baslatilamazsa sessizce gec
+                  }
+                  call.resolve();
+              }
+
+              @PluginMethod
+              public void guncelle(PluginCall call) {
+                  SiraServisi.guncelle(getContext(), call.getString("metin", ""));
+                  call.resolve();
+              }
+
+              @PluginMethod
+              public void bitir(PluginCall call) {
+                  getContext().stopService(new Intent(getContext(), SiraServisi.class));
+                  call.resolve();
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/SiraEklentisi.java"
           head -5 "$d/MainActivity.java"
 
       - name: Uygulama simgesi

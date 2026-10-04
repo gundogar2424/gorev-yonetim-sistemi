@@ -165,6 +165,9 @@ export async function videoIndir(url: string, sayfa: string): Promise<Blob> {
     const r = await CapacitorHttp.get({
       url,
       responseType: 'blob',
+      // Takilan indirme sirayi kilitlemesin
+      connectTimeout: 20000,
+      readTimeout: 90000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36',
         Referer: sayfa,
@@ -176,7 +179,7 @@ export async function videoIndir(url: string, sayfa: string): Promise<Blob> {
     const b = await (await fetch(`data:video/mp4;base64,${r.data}`)).blob()
     return b
   }
-  const r = await fetch(url, { referrer: sayfa })
+  const r = await fetch(url, { referrer: sayfa, signal: AbortSignal.timeout(120000) })
   if (!r.ok) throw new Error('Video indirilemedi.')
   return r.blob()
 }
