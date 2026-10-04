@@ -278,7 +278,10 @@ async function analyzeHypeClaude(apiKey: string, place: Place, model: AiModel): 
 
 // ---------------------------------------------------------------------------
 // GEMINI (Google Arama ile "grounding"). REST API, duz fetch.
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
+const GEMINI_ROOT = 'https://generativelanguage.googleapis.com/v1beta'
+const GEMINI_DEFAULT_MODEL = 'gemini-flash-latest'
+// Takma ad bu anahtarla bulunamazsa (404) kendiliginden secilen model burada saklanir.
+const K_GEMINI_MODEL = 'et-gemini-model'
 
 interface GeminiResponse {
   candidates?: {
@@ -311,23 +314,113 @@ function geminiError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e))
 }
 
+// Anahtar reddi mi? (Lezzet Defteri'nde gorulen: Google'in yeni "AQ." bicimli
+// anahtarlari bazen x-goog-api-key basligiyla reddedilir ama adresin sonunda
+// ?key= olarak kabul edilir; eski "AIza" anahtarlari basliklik calisir.)
+function isKeyRejection(e: unknown): boolean {
+  return (
+    e instanceof HttpError &&
+    [400, 401, 403].includes(e.status) &&
+    /API key|API_KEY|UNAUTHENTICATED|PERMISSION_DENIED|credential/i.test(e.message)
+  )
+}
+
+async function geminiRequest<T>(apiKey: string, path: string, body: unknown | null, timeoutMs: number): Promise<T> {
+  const key = apiKey.trim()
+  const url = `${GEMINI_ROOT}/${path}`
+  const send = (viaQuery: boolean) =>
+    httpJson<T>({
+      url: viaQuery ? `${url}${url.includes('?') ? '&' : '?'}key=${encodeURIComponent(key)}` : url,
+      method: body === null ? 'GET' : 'POST',
+      headers: {
+        ...(body === null ? {} : { 'Content-Type': 'application/json' }),
+        ...(viaQuery ? {} : { 'x-goog-api-key': key })
+      },
+      body: body === null ? undefined : JSON.stringify(body),
+      timeoutMs
+    })
+  try {
+    return await send(false)
+  } catch (e) {
+    if (!isKeyRejection(e)) throw e
+    try {
+      return await send(true)
+    } catch (e2) {
+      throw isKeyRejection(e2) ? e : e2 // ikisi de reddettiyse ilk hatayi goster
+    }
+  }
+}
+
+// Takma ad bu anahtarla yoksa: anahtarin erisebildigi en yeni "flash" modeli.
+async function findGeminiFlash(apiKey: string): Promise<string | null> {
+  try {
+    const j = await geminiRequest<{ models?: { name: string; supportedGenerationMethods?: string[] }[] }>(
+      apiKey,
+      'models?pageSize=200',
+      null,
+      20000
+    )
+    const names = (j.models ?? [])
+      .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+      .map((m) => m.name.replace(/^models\//, ''))
+      .filter((n) => /flash/.test(n) && !/lite|image|tts|audio|live|embedding|exp/.test(n))
+    const ver = (n: string) => Number(n.match(/(\d+(?:\.\d+)?)/)?.[1] ?? 0)
+    names.sort((a, b) => ver(b) - ver(a) || Number(/preview/.test(a)) - Number(/preview/.test(b)))
+    return names[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+// generateContent: model bulunamazsa (404) en yeni Flash'a gecer ve hatirlar;
+// Google "yogun" derse (500/503) 2 sn bekleyip bir kez daha dener.
+async function geminiGenerate(apiKey: string, body: unknown, timeoutMs: number): Promise<GeminiResponse> {
+  let model = GEMINI_DEFAULT_MODEL
+  try {
+    model = localStorage.getItem(K_GEMINI_MODEL) || GEMINI_DEFAULT_MODEL
+  } catch {
+    /* yok say */
+  }
+  const call = (m: string) =>
+    geminiRequest<GeminiResponse>(apiKey, `models/${encodeURIComponent(m)}:generateContent`, body, timeoutMs)
+  try {
+    return await call(model)
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 404) {
+      const alt = await findGeminiFlash(apiKey)
+      if (alt && alt !== model) {
+        const res = await call(alt)
+        try {
+          localStorage.setItem(K_GEMINI_MODEL, alt)
+        } catch {
+          /* yok say */
+        }
+        return res
+      }
+    }
+    if (e instanceof HttpError && (e.status === 500 || e.status === 503)) {
+      await new Promise((r) => setTimeout(r, 2000))
+      return await call(model)
+    }
+    throw e
+  }
+}
+
 async function analyzeHypeGemini(apiKey: string, place: Place): Promise<HypeAnalysis> {
   if (!apiKey.trim()) throw new Error("Önce Ayarlar'dan Gemini API anahtarını girin.")
   let res: GeminiResponse
   try {
-    res = await httpJson<GeminiResponse>({
-      url: GEMINI_URL,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey.trim() },
-      body: JSON.stringify({
+    res = await geminiGenerate(
+      apiKey,
+      {
         system_instruction: { parts: [{ text: SYSTEM }] },
         contents: [
           { role: 'user', parts: [{ text: `Bu mekânın sosyal medya hype'ını değerlendir:\n\n${describe(place)}` }] }
         ],
         tools: [{ google_search: {} }]
-      }),
-      timeoutMs: 120000
-    })
+      },
+      120000
+    )
   } catch (e) {
     throw geminiError(e)
   }
@@ -361,7 +454,7 @@ async function analyzeHypeGemini(apiKey: string, place: Place): Promise<HypeAnal
     sources: sources.slice(0, 6),
     searchSuggestionsHtml: gm?.searchEntryPoint?.renderedContent || undefined,
     at: Date.now(),
-    model: res.modelVersion || 'gemini-flash-latest'
+    model: res.modelVersion || GEMINI_DEFAULT_MODEL
   }
 }
 
@@ -369,14 +462,12 @@ async function analyzeHypeGemini(apiKey: string, place: Place): Promise<HypeAnal
 export async function testAiKey(apiKey: string, model: AiModel = DEFAULT_AI_MODEL): Promise<string> {
   if (providerOf(model) === 'gemini') {
     try {
-      const res = await httpJson<GeminiResponse>({
-        url: GEMINI_URL,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey.trim() },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Sadece "tamam" yaz.' }] }] }),
-        timeoutMs: 30000
-      })
-      return `Çalışıyor ✓ (${modelName(res.modelVersion || 'gemini-flash-latest')})`
+      const res = await geminiGenerate(
+        apiKey,
+        { contents: [{ role: 'user', parts: [{ text: 'Sadece "tamam" yaz.' }] }] },
+        30000
+      )
+      return `Çalışıyor ✓ (${modelName(res.modelVersion || GEMINI_DEFAULT_MODEL)})`
     } catch (e) {
       return 'Hata: ' + geminiError(e).message
     }
