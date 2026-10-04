@@ -32,17 +32,11 @@ function buildQuery(center: LatLng, radiusM: number, cats: CategoryId[]): string
 }
 
 export async function fetchOsm(center: LatLng, radiusM: number, cats: CategoryId[]): Promise<Place[]> {
-  const body = 'data=' + encodeURIComponent(buildQuery(center, radiusM, cats))
+  const q = '?data=' + encodeURIComponent(buildQuery(center, radiusM, cats))
   let lastErr: unknown
   for (const url of ENDPOINTS) {
     try {
-      const res = await httpJson<{ elements?: OsmElement[] }>({
-        url,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-        timeoutMs: 30000
-      })
+      const res = await httpJson<{ elements?: OsmElement[] }>({ url: url + q, timeoutMs: 30000 })
       return (res.elements ?? []).map((el) => toPlace(el, center, cats)).filter((p): p is Place => !!p)
     } catch (e) {
       lastErr = e // bu sunucu mesgul olabilir, sonrakini dene
