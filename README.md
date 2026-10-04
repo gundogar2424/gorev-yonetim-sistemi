@@ -167,6 +167,51 @@ Bu depodaki **altıncı bağımsız program**: **Ses Egzersizi**. Kendi giriş s
 
 > Ses Egzersizi verisini yalnızca `ses-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet ve hesap gerektirmez; yalnızca mikrofon (ölçüm ve konuşma tanıma için) ve bildirim (hatırlatma için) izni ister, ikisi de isteğe bağlıdır. Konuşma tanıma telefonun kendi servisini kullanır; çevrimdışı Türkçe paketi yüklüyse internetsiz de çalışır. Yapay zeka geri bildirimi isteğe bağlıdır ve internet + API anahtarı gerektirir.
 
+## 📍 Etrafımda (ayrı program)
+
+Bu depodaki **yedinci bağımsız program**: **Etrafımda**. Kendi giriş sayfası (`etrafimda.html`), kendi rengi (mercan) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **Etrafımda** → `etrafimda.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/etrafimda.html`)
+- APK: `.github/workflows/etraf-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **etrafimda-latest** sürümüne `etrafimda.apk` yüklenir (`claude/**` dallarında da derlenir, Actions'ta artifact olarak iner).
+
+**Ne yapar?** Tek tuşa (📍 *Etrafımda ne var?*) basınca konumunu alır ve seçtiğin çaptaki (300 m – 5 km) her şeyi listeler:
+
+| Kategori | İçerik |
+|---|---|
+| 🍽️ **Yeme** | Restoran, fast food, kebapçı, pideci, balıkçı… (mutfak türüyle) |
+| ☕ **Kafe & Tatlı** | Kafe, kahveci, fırın, pastane, dondurmacı |
+| 🍸 **Bar & Gece** | Bar, pub, gece kulübü |
+| 🎭 **Kültür & Sanat** | Müze, galeri, tiyatro, sinema, sanat merkezi, kütüphane |
+| 🏛️ **Gezilecek** | Turistik yer, seyir noktası, anıt, kale, ören yeri |
+| 🎳 **Eğlence** | Bowling, kaçış oyunu, hayvanat bahçesi, akvaryum, tema parkı |
+| 🌳 **Park & Doğa** | Park, bahçe, tabiat alanı, plaj |
+| 🛍️ **AVM & Çarşı** | AVM, pazar |
+
+**Sıralama:** 📍 Yakınlık · ★ Google puanı (eşit puanda çok yorumlu önde) · 🔥 Popülerlik (hype) · 🗂️ Çeşit (türe göre gruplu: Kebap, Pizza, Müze…) · A-Z. **Süzme:** kategori çipleri, tür çipleri (ör. yalnızca "Kebap"), arama kutusu, ★ 4+ / 4,5+ ve "Şu an açık".
+
+**🗺️ Harita görünümü:** sonuç sayısının yanındaki **Liste / Harita** düğmesiyle geçilir (seçim hatırlanır). Her yer kendi kategori simgesiyle bir iğnedir, kayıtlılar sarı ve ★ işaretlidir; mavi nokta konumun, halka tarama çapıdır. Süzgeçler ve kategori çipleri haritada da geçerlidir; iğneye dokununca ayrıntı açılır. Altlık: CARTO (OpenStreetMap verisi, açık/koyu tema), [Leaflet](https://leafletjs.com) ile.
+
+**⭐ Kaydedilenler:** ayrıntı ekranında **☆ Kaydet** ile yer kaydedilir; **⭐ Kayıtlı** çipi kayıtlıları listeler ya da haritada gösterir. Yerin tam kopyası saklandığı için yeni taramada (başka semtte bile) kaybolmaz; mesafe son tarama noktasına göre yeniden hesaplanır. Aynı yer sonraki taramada gelirse bilgisi (puan, açık mı) tazelenir. Google'lı taramada kaydedilen yer Google'sız taramada da ad + konumdan tanınır.
+
+**🤖 Yapay zekâ hype yorumu (isteğe bağlı):** Ayarlar'a Anthropic (Claude) API anahtarı girilirse ayrıntı ekranında **"Ne kadar konuşuluyor?"** düğmesi çıkar. Claude web araması yapar (en fazla 5 arama) ve mekânın Instagram, TikTok, X, Ekşi Sözlük, YouTube, blog ve haberlerde ne kadar konuşulduğunu değerlendirir: **0-100 hype puanı**, kısa etiket, eğilim (yükselişte / sabit / düşüşte), 2-4 cümle özet, övülen ve şikâyet edilen yönler, en çok konuşulduğu platformlar ve **kaynak bağlantıları** (bağlantılar modelin metninden değil, gerçek arama sonuçlarından alınır). Bu puan 🤖 işaretiyle gösterilir ve 🔥 Popülerlik sıralamasında tahmini puanın yerine geçer. Sonuç 7 gün cihazda saklanır (aynı mekân için tekrar ücret çıkmaz; "Yenile" ile yeniden sorulur).
+
+| Model (Ayarlar › Model) | Mekân başına | Güvenlik reddinde yedek |
+|---|---|---|
+| **En iyi**: Claude Opus 5.5 (`claude-opus-5-5`, varsayılan) | ~0,10-0,30 $ | `claude-opus-4-8` (aynı çağrı içinde, sunucu tarafında) |
+| **Ekonomik**: Claude Sonnet 5.5 (`claude-sonnet-5-5`) | ~0,06-0,15 $ | Anthropic'in seçtiği model (`fallbacks: "default"`) |
+
+Yorumun altında, yanıtı gerçekte hangi modelin verdiği yazar (yedek model devreye girdiyse onun adı).
+
+**Ayrıntı ekranı:** mesafe ve yürüme süresi, puan/yorum sayısı, fiyat seviyesi, adres, çalışma saatleri; **Yol tarifi** (Google Haritalar, yürüyüş), **Haritada aç**, **Instagram** (hesabı biliniyorsa doğrudan, yoksa arama), **TikTok'ta ara**, web sitesi, telefon, Vikipedi.
+
+**Veri kaynakları:**
+- **OpenStreetMap (Overpass)** — ücretsiz, anahtar gerekmez; her zaman kullanılır. Ad, tür, mutfak, Instagram/web, çalışma saati verir; puan vermez.
+- **Google Places API (New)** — *isteğe bağlı*. Ayarlar'a kendi API anahtarını girersen Google puanı, yorum sayısı, fiyat seviyesi ve "şu an açık" bilgisi de gelir. Aynı yer iki kaynakta da varsa tek kayıtta birleştirilir. Her tarama kategori başına 1 istek (8 istek) yapar; Google'ın aylık ücretsiz payı kişisel kullanıma genellikle yeter ama faturalandırma hesabı ister.
+
+**Popülerlik (hype) puanı, 0-100, tahminidir:** Instagram/TikTok bir mekânın ne kadar konuşulduğunu herkese açık vermiyor. En güçlü vekil Google yorum **sayısı** (log ölçekli), yanına puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası eklenir. Google anahtarı yoksa yalnızca bu sosyal işaretlere bakılır, o yüzden kaba kalır. Daha isabetli puan için yapay zekâ hype yorumunu kullan (yukarıda).
+
+> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar, son tarama, kaydedilenler, yapay zekâ yorumları). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir; yapay zekâ yorumu istendiğinde mekânın adı, türü, adresi ve konumu Anthropic'e gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz
