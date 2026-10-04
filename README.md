@@ -167,6 +167,38 @@ Bu depodaki **altıncı bağımsız program**: **Ses Egzersizi**. Kendi giriş s
 
 > Ses Egzersizi verisini yalnızca `ses-` önekli yerel anahtarlarda tutar; diğer programların verisine dokunmaz. İnternet ve hesap gerektirmez; yalnızca mikrofon (ölçüm ve konuşma tanıma için) ve bildirim (hatırlatma için) izni ister, ikisi de isteğe bağlıdır. Konuşma tanıma telefonun kendi servisini kullanır; çevrimdışı Türkçe paketi yüklüyse internetsiz de çalışır. Yapay zeka geri bildirimi isteğe bağlıdır ve internet + API anahtarı gerektirir.
 
+## 📍 Etrafımda (ayrı program)
+
+Bu depodaki **yedinci bağımsız program**: **Etrafımda**. Kendi giriş sayfası (`etrafimda.html`), kendi rengi (mercan) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
+
+- **Etrafımda** → `etrafimda.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/etrafimda.html`)
+- APK: `.github/workflows/etraf-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **etrafimda-latest** sürümüne `etrafimda.apk` yüklenir (`claude/**` dallarında da derlenir, Actions'ta artifact olarak iner).
+
+**Ne yapar?** Tek tuşa (📍 *Etrafımda ne var?*) basınca konumunu alır ve seçtiğin çaptaki (300 m – 5 km) her şeyi listeler:
+
+| Kategori | İçerik |
+|---|---|
+| 🍽️ **Yeme** | Restoran, fast food, kebapçı, pideci, balıkçı… (mutfak türüyle) |
+| ☕ **Kafe & Tatlı** | Kafe, kahveci, fırın, pastane, dondurmacı |
+| 🍸 **Bar & Gece** | Bar, pub, gece kulübü |
+| 🎭 **Kültür & Sanat** | Müze, galeri, tiyatro, sinema, sanat merkezi, kütüphane |
+| 🏛️ **Gezilecek** | Turistik yer, seyir noktası, anıt, kale, ören yeri |
+| 🎳 **Eğlence** | Bowling, kaçış oyunu, hayvanat bahçesi, akvaryum, tema parkı |
+| 🌳 **Park & Doğa** | Park, bahçe, tabiat alanı, plaj |
+| 🛍️ **AVM & Çarşı** | AVM, pazar |
+
+**Sıralama:** 📍 Yakınlık · ★ Google puanı (eşit puanda çok yorumlu önde) · 🔥 Popülerlik (hype) · 🗂️ Çeşit (türe göre gruplu: Kebap, Pizza, Müze…) · A-Z. **Süzme:** kategori çipleri, tür çipleri (ör. yalnızca "Kebap"), arama kutusu, ★ 4+ / 4,5+ ve "Şu an açık".
+
+**Ayrıntı ekranı:** mesafe ve yürüme süresi, puan/yorum sayısı, fiyat seviyesi, adres, çalışma saatleri; **Yol tarifi** (Google Haritalar, yürüyüş), **Haritada aç**, **Instagram** (hesabı biliniyorsa doğrudan, yoksa arama), **TikTok'ta ara**, web sitesi, telefon, Vikipedi.
+
+**Veri kaynakları:**
+- **OpenStreetMap (Overpass)** — ücretsiz, anahtar gerekmez; her zaman kullanılır. Ad, tür, mutfak, Instagram/web, çalışma saati verir; puan vermez.
+- **Google Places API (New)** — *isteğe bağlı*. Ayarlar'a kendi API anahtarını girersen Google puanı, yorum sayısı, fiyat seviyesi ve "şu an açık" bilgisi de gelir. Aynı yer iki kaynakta da varsa tek kayıtta birleştirilir. Her tarama kategori başına 1 istek (8 istek) yapar; Google'ın aylık ücretsiz payı kişisel kullanıma genellikle yeter ama faturalandırma hesabı ister.
+
+**Popülerlik (hype) puanı, 0-100, tahminidir:** Instagram/TikTok bir mekânın ne kadar konuşulduğunu herkese açık vermiyor. En güçlü vekil Google yorum **sayısı** (log ölçekli), yanına puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası eklenir. Google anahtarı yoksa yalnızca bu sosyal işaretlere bakılır, o yüzden kaba kalır.
+
+> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar + son tarama). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL).
+
 ## Teknik Altyapı
 
 - **React + TypeScript** — modern, güvenli arayüz
