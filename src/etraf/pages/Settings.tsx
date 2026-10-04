@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistance } from '../lib/geo'
+import { AI_MODEL, testClaudeKey } from '../lib/ai'
 import { testGoogleKey } from '../lib/google'
 import { getSettings, RADIUS_OPTIONS, saveSettings } from '../lib/store'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
@@ -25,7 +26,9 @@ function Segment<T extends string | number>({
           key={String(v)}
           onClick={() => onChange(v)}
           className={`flex-1 h-10 rounded-lg text-[14px] font-semibold ${
-            value === v ? 'bg-white dark:bg-[#3a322e] text-et-700 dark:text-et-200 shadow-card' : 'text-slate-500 dark:text-[#a59b94]'
+            value === v
+              ? 'bg-white dark:bg-[#3a322e] text-et-700 dark:text-et-200 shadow-card'
+              : 'text-slate-500 dark:text-[#a59b94]'
           }`}
         >
           {l}
@@ -42,6 +45,16 @@ export default function Settings() {
   const [theme, setTheme] = useState<ThemePref>(getThemePref)
   const [test, setTest] = useState('')
   const [testing, setTesting] = useState(false)
+  const [cKey, setCKey] = useState(s.claudeKey)
+  const [cTest, setCTest] = useState('')
+  const [cTesting, setCTesting] = useState(false)
+
+  async function runClaudeTest() {
+    setCTesting(true)
+    setCTest('')
+    setCTest(await testClaudeKey(cKey))
+    setCTesting(false)
+  }
 
   useEffect(() => window.scrollTo(0, 0), [])
 
@@ -108,13 +121,65 @@ export default function Settings() {
             <summary className="text-[14px] font-semibold text-et-700 dark:text-et-300">Anahtar nasıl alınır?</summary>
             <ol className={`${body} mt-2 list-decimal pl-5 space-y-1`}>
               <li>console.cloud.google.com adresinde bir proje aç.</li>
-              <li>“APIs &amp; Services › Library” bölümünden <b>Places API (New)</b>'i etkinleştir.</li>
+              <li>
+                “APIs &amp; Services › Library” bölümünden <b>Places API (New)</b>'i etkinleştir.
+              </li>
               <li>“Credentials › Create credentials › API key” ile anahtar üret, buraya yapıştır.</li>
               <li>Güvenlik için anahtarı yalnızca Places API (New) ile sınırla.</li>
             </ol>
             <p className={`${body} mt-2`}>
-              Her tarama, kategori başına 1 istek (8 istek) yapar. Google'ın aylık ücretsiz kullanım payı kişisel kullanım için
-              genellikle yeter; yine de faturalandırma hesabı istenir ve aşımda ücret çıkar.
+              Her tarama, kategori başına 1 istek (8 istek) yapar. Google'ın aylık ücretsiz kullanım payı kişisel
+              kullanım için genellikle yeter; yine de faturalandırma hesabı istenir ve aşımda ücret çıkar.
+            </p>
+          </details>
+        </section>
+
+        <section className={card}>
+          <h3 className={label}>🤖 Yapay zekâ hype yorumu (isteğe bağlı)</h3>
+          <p className={`${body} mt-2`}>
+            Anthropic (Claude) API anahtarı eklersen, bir mekânın ayrıntısında “Ne kadar konuşuluyor?” düğmesi çıkar:
+            Claude web araması yapıp Instagram, TikTok, Ekşi Sözlük, blog ve haberlerde ne konuşulduğunu bulur; 0-100
+            hype puanı, eğilim, övülen/şikâyet edilen yönler ve kaynak bağlantıları verir. Bu puan, popülerlik
+            sıralamasında tahmini puanın yerine geçer.
+          </p>
+          <input
+            value={cKey}
+            onChange={(e) => setCKey(e.target.value)}
+            placeholder="sk-ant-…"
+            autoComplete="off"
+            spellCheck={false}
+            className="mt-3 w-full h-12 px-3 rounded-xl bg-slate-50 dark:bg-[#24201e] border border-slate-200 dark:border-[#332d29] text-slate-900 dark:text-[#f2ebe6] font-mono text-[14px]"
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => {
+                setS(saveSettings({ claudeKey: cKey.trim() }))
+                setCTest('Kaydedildi ✓')
+              }}
+              className="flex-1 h-11 rounded-xl bg-et-600 text-white font-semibold"
+            >
+              Kaydet
+            </button>
+            <button
+              onClick={runClaudeTest}
+              disabled={!cKey.trim() || cTesting}
+              className="flex-1 h-11 rounded-xl bg-slate-100 dark:bg-[#2a2421] text-slate-800 dark:text-[#eae2dc] font-semibold disabled:opacity-50"
+            >
+              {cTesting ? 'Deneniyor…' : 'Anahtarı dene'}
+            </button>
+          </div>
+          {cTest && <p className="mt-2 text-[14px] text-slate-700 dark:text-[#d9d0c9] break-words">{cTest}</p>}
+          <details className="mt-3">
+            <summary className="text-[14px] font-semibold text-et-700 dark:text-et-300">Anahtar ve ücret</summary>
+            <ol className={`${body} mt-2 list-decimal pl-5 space-y-1`}>
+              <li>console.anthropic.com adresinde hesap aç, “Billing” bölümünden kredi yükle.</li>
+              <li>“API Keys › Create Key” ile anahtar üret, buraya yapıştır.</li>
+              <li>Web araması Console › Settings › Privacy bölümünde açık olmalı (varsayılan açık).</li>
+            </ol>
+            <p className={`${body} mt-2`}>
+              Model: {AI_MODEL}. Her yorum en fazla 5 web araması yapar; mekân başına yaklaşık 0,10-0,30 $ tutar. Sonuç
+              7 gün bu cihazda saklanır, bu sürede aynı mekân için tekrar ücret çıkmaz (“Yenile” demedikçe). Anahtar
+              yalnızca bu cihazda durur ve doğrudan Anthropic'e gönderilir.
             </p>
           </details>
         </section>
@@ -148,17 +213,21 @@ export default function Settings() {
           <h3 className={label}>Popülerlik (hype) puanı nasıl hesaplanıyor?</h3>
           <p className={`${body} mt-2`}>
             Instagram ve TikTok, bir mekânın ne kadar konuşulduğunu herkese açık olarak paylaşmıyor. Bu yüzden puan{' '}
-            <b>tahminidir</b>: en güçlü işaret Google'daki yorum sayısıdır (çok konuşulan yer çok yorum alır), yanına puan,
-            Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası olup olmadığı eklenir. Bir mekânın sosyal medyasına
-            bakmak için ayrıntı ekranındaki “Instagram” ve “TikTok'ta ara” düğmelerini kullan.
+            <b>tahminidir</b>: en güçlü işaret Google'daki yorum sayısıdır (çok konuşulan yer çok yorum alır), yanına
+            puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası olup olmadığı eklenir. Bir mekânın sosyal
+            medyasına bakmak için ayrıntı ekranındaki “Instagram” ve “TikTok'ta ara” düğmelerini kullan. Claude anahtarı
+            eklediysen “Ne kadar konuşuluyor?” ile yapay zekânın web taramasına dayalı puanı alınır ve 🤖 işaretiyle
+            gösterilir.
           </p>
         </section>
 
         <section className={card}>
           <h3 className={label}>Veri ve gizlilik</h3>
           <p className={`${body} mt-2`}>
-            Konumun yalnızca tarama anında, yakındaki yerleri sorgulamak için OpenStreetMap (Overpass) sunucularına ve anahtar
-            girdiysen Google'a gönderilir. Ayarlar, son tarama ve kaydedilenler yalnızca bu cihazda saklanır.
+            Konumun yalnızca tarama anında, yakındaki yerleri sorgulamak için OpenStreetMap (Overpass) sunucularına ve
+            anahtar girdiysen Google'a gönderilir. Yapay zekâ yorumu istediğinde mekânın adı, türü, adresi ve konumu
+            Anthropic'e gönderilir. Ayarlar, son tarama, kaydedilenler ve yapay zekâ yorumları yalnızca bu cihazda
+            saklanır.
           </p>
           <p className="mt-2 text-[12px] text-slate-400 dark:text-[#857b74]">
             Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.

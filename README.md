@@ -193,15 +193,17 @@ Bu depodaki **yedinci bağımsız program**: **Etrafımda**. Kendi giriş sayfas
 
 **⭐ Kaydedilenler:** ayrıntı ekranında **☆ Kaydet** ile yer kaydedilir; **⭐ Kayıtlı** çipi kayıtlıları listeler ya da haritada gösterir. Yerin tam kopyası saklandığı için yeni taramada (başka semtte bile) kaybolmaz; mesafe son tarama noktasına göre yeniden hesaplanır. Aynı yer sonraki taramada gelirse bilgisi (puan, açık mı) tazelenir. Google'lı taramada kaydedilen yer Google'sız taramada da ad + konumdan tanınır.
 
+**🤖 Yapay zekâ hype yorumu (isteğe bağlı):** Ayarlar'a Anthropic (Claude) API anahtarı girilirse ayrıntı ekranında **"Ne kadar konuşuluyor?"** düğmesi çıkar. Claude (`claude-opus-5-5`) web araması yapar (en fazla 5 arama) ve mekânın Instagram, TikTok, X, Ekşi Sözlük, YouTube, blog ve haberlerde ne kadar konuşulduğunu değerlendirir: **0-100 hype puanı**, kısa etiket, eğilim (yükselişte / sabit / düşüşte), 2-4 cümle özet, övülen ve şikâyet edilen yönler, en çok konuşulduğu platformlar ve **kaynak bağlantıları** (bağlantılar modelin metninden değil, gerçek arama sonuçlarından alınır). Bu puan 🤖 işaretiyle gösterilir ve 🔥 Popülerlik sıralamasında tahmini puanın yerine geçer. Sonuç 7 gün cihazda saklanır (aynı mekân için tekrar ücret çıkmaz; "Yenile" ile yeniden sorulur). Mekân başına yaklaşık 0,10-0,30 $. Güvenlik nedeniyle reddedilen bir istek sunucu tarafında aynı çağrı içinde `claude-opus-4-8` ile yeniden denenir.
+
 **Ayrıntı ekranı:** mesafe ve yürüme süresi, puan/yorum sayısı, fiyat seviyesi, adres, çalışma saatleri; **Yol tarifi** (Google Haritalar, yürüyüş), **Haritada aç**, **Instagram** (hesabı biliniyorsa doğrudan, yoksa arama), **TikTok'ta ara**, web sitesi, telefon, Vikipedi.
 
 **Veri kaynakları:**
 - **OpenStreetMap (Overpass)** — ücretsiz, anahtar gerekmez; her zaman kullanılır. Ad, tür, mutfak, Instagram/web, çalışma saati verir; puan vermez.
 - **Google Places API (New)** — *isteğe bağlı*. Ayarlar'a kendi API anahtarını girersen Google puanı, yorum sayısı, fiyat seviyesi ve "şu an açık" bilgisi de gelir. Aynı yer iki kaynakta da varsa tek kayıtta birleştirilir. Her tarama kategori başına 1 istek (8 istek) yapar; Google'ın aylık ücretsiz payı kişisel kullanıma genellikle yeter ama faturalandırma hesabı ister.
 
-**Popülerlik (hype) puanı, 0-100, tahminidir:** Instagram/TikTok bir mekânın ne kadar konuşulduğunu herkese açık vermiyor. En güçlü vekil Google yorum **sayısı** (log ölçekli), yanına puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası eklenir. Google anahtarı yoksa yalnızca bu sosyal işaretlere bakılır, o yüzden kaba kalır.
+**Popülerlik (hype) puanı, 0-100, tahminidir:** Instagram/TikTok bir mekânın ne kadar konuşulduğunu herkese açık vermiyor. En güçlü vekil Google yorum **sayısı** (log ölçekli), yanına puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası eklenir. Google anahtarı yoksa yalnızca bu sosyal işaretlere bakılır, o yüzden kaba kalır. Daha isabetli puan için yapay zekâ hype yorumunu kullan (yukarıda).
 
-> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar, son tarama, kaydedilenler). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.
+> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar, son tarama, kaydedilenler, yapay zekâ yorumları). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir; yapay zekâ yorumu istendiğinde mekânın adı, türü, adresi ve konumu Anthropic'e gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.
 
 ## Teknik Altyapı
 

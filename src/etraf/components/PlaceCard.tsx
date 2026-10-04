@@ -8,17 +8,18 @@ export function Stars({ rating, count }: { rating?: number; count?: number }) {
   return (
     <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-amber-600 dark:text-amber-400 tabular-nums">
       ★ {rating.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-      {count != null && (
-        <span className="font-normal text-slate-400 dark:text-[#8a817b]">({compact(count)})</span>
-      )}
+      {count != null && <span className="font-normal text-slate-400 dark:text-[#8a817b]">({compact(count)})</span>}
     </span>
   )
 }
 
-export function HypeBar({ value }: { value: number }) {
+export function HypeBar({ value, ai }: { value: number; ai?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5" title={`Popülerlik ${value}/100 (tahmini)`}>
-      <span className="text-[12px]">🔥</span>
+    <span
+      className="inline-flex items-center gap-1.5"
+      title={`Popülerlik ${value}/100 (${ai ? 'yapay zekâ değerlendirmesi' : 'tahmini'})`}
+    >
+      <span className="text-[12px]">{ai ? '🤖' : '🔥'}</span>
       <span className="w-12 h-1.5 rounded-full bg-slate-200 dark:bg-[#332d29] overflow-hidden">
         <span className="block h-full rounded-full bg-et-500" style={{ width: `${Math.max(4, value)}%` }} />
       </span>
@@ -45,7 +46,11 @@ export default function PlaceCard({ place, fav, onOpen }: { place: Place; fav?: 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <h3 className="font-semibold text-[16px] text-slate-900 dark:text-[#f2ebe6] truncate flex-1">
-            {fav && <span className="text-amber-500 mr-1" aria-label="Kayıtlı">★</span>}
+            {fav && (
+              <span className="text-amber-500 mr-1" aria-label="Kayıtlı">
+                ★
+              </span>
+            )}
             {place.name}
           </h3>
           <span className="flex-shrink-0 text-[13px] font-semibold text-et-600 dark:text-et-300 tabular-nums">
@@ -59,8 +64,10 @@ export default function PlaceCard({ place, fav, onOpen }: { place: Place; fav?: 
         </div>
         <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1.5">
           <Stars rating={place.rating} count={place.ratingCount} />
-          <HypeBar value={place.hype} />
-          {place.openNow === true && <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">Açık</span>}
+          <HypeBar value={place.hype} ai={place.aiHype} />
+          {place.openNow === true && (
+            <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">Açık</span>
+          )}
           {place.openNow === false && <span className="text-[12px] font-medium text-rose-500">Kapalı</span>}
         </div>
       </div>

@@ -9,12 +9,13 @@ export type ViewMode = 'liste' | 'harita'
 
 export interface Settings {
   googleKey: string
+  claudeKey: string // istege bagli: yapay zeka hype yorumu
   radiusM: number
   sort: SortId
   view: ViewMode
 }
 
-const DEFAULTS: Settings = { googleKey: '', radiusM: 1000, sort: 'mesafe', view: 'liste' }
+const DEFAULTS: Settings = { googleKey: '', claudeKey: '', radiusM: 1000, sort: 'mesafe', view: 'liste' }
 
 export const RADIUS_OPTIONS = [300, 500, 1000, 2000, 5000]
 

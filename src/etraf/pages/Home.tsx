@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import MapView from '../components/MapView'
 import PlaceCard from '../components/PlaceCard'
 import PlaceSheet from '../components/PlaceSheet'
+import { getAllCachedHype, getCachedHype, type HypeAnalysis } from '../lib/ai'
 import { CATEGORIES } from '../lib/categories'
 import { distanceM, formatDistance, getCurrentPosition } from '../lib/geo'
 import { applyFilters, scan, sortPlaces, subtypeCounts, type Filters } from '../lib/scan'
@@ -63,6 +64,7 @@ export default function Home() {
   const [limit, setLimit] = useState(PAGE)
   const [favs, setFavs] = useState(getFavorites)
   const [showFavs, setShowFavs] = useState(false)
+  const [aiVersion, setAiVersion] = useState(0) // yeni yapay zeka sonucu gelince artar
   const [filters, setFilters] = useState<Filters>({
     category: 'hepsi',
     subtype: null,
@@ -108,7 +110,21 @@ export default function Home() {
     () => favs.map((f) => (center ? { ...f.place, distanceM: distanceM(center, f.place) } : f.place)),
     [favs, center]
   )
-  const places = showFavs ? favPlaces : scanned
+  // Yapay zeka degerlendirmesi olan yerlerde hype puani onunla degisir
+  // (🔥 Popülerlik siralamasi da buna gore yapilir).
+  const aiCache = useMemo(() => getAllCachedHype(), [aiVersion])
+  const places = useMemo(
+    () =>
+      (showFavs ? favPlaces : scanned).map((p) => {
+        const a = getCachedHype(p, aiCache)
+        return a ? { ...p, hype: a.score, aiHype: true } : p
+      }),
+    [showFavs, favPlaces, scanned, aiCache]
+  )
+  const onAiHype = (a: HypeAnalysis) => {
+    setAiVersion((v) => v + 1)
+    setOpen((o) => (o ? { ...o, hype: a.score, aiHype: true } : o))
+  }
   const catCounts = useMemo(() => {
     const m: Record<string, number> = {}
     for (const p of places) m[p.category] = (m[p.category] ?? 0) + 1
@@ -390,6 +406,7 @@ export default function Home() {
           place={open}
           isFav={isFav(open)}
           onToggleFav={() => toggleFav(open)}
+          onAiHype={onAiHype}
           onClose={() => setOpen(null)}
         />
       )}

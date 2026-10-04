@@ -3,6 +3,8 @@ import { CATEGORY_BY_ID } from '../lib/categories'
 import { formatDistance, walkMinutes } from '../lib/geo'
 import { directionsUrl, instagramUrl, mapsUrl, tiktokUrl, websiteUrl, wikipediaUrl } from '../lib/links'
 import type { Place } from '../lib/types'
+import type { HypeAnalysis } from '../lib/ai'
+import AiHype from './AiHype'
 import { HypeBar, Stars } from './PlaceCard'
 
 function LinkBtn({ href, children, primary }: { href: string; children: React.ReactNode; primary?: boolean }) {
@@ -26,10 +28,11 @@ interface Props {
   place: Place
   isFav: boolean
   onToggleFav: () => void
+  onAiHype: (a: HypeAnalysis) => void
   onClose: () => void
 }
 
-export default function PlaceSheet({ place, isFav, onToggleFav, onClose }: Props) {
+export default function PlaceSheet({ place, isFav, onToggleFav, onAiHype, onClose }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -77,7 +80,9 @@ export default function PlaceSheet({ place, isFav, onToggleFav, onClose }: Props
 
         <div className="grid grid-cols-3 gap-2 mt-4 text-center">
           <div className="rounded-xl bg-slate-50 dark:bg-[#24201e] py-2.5">
-            <div className="text-[17px] font-bold text-slate-900 dark:text-[#f2ebe6] tabular-nums">{formatDistance(place.distanceM)}</div>
+            <div className="text-[17px] font-bold text-slate-900 dark:text-[#f2ebe6] tabular-nums">
+              {formatDistance(place.distanceM)}
+            </div>
             <div className="text-[12px] text-slate-500 dark:text-[#a59b94]">🚶 ~{walkMinutes(place.distanceM)} dk</div>
           </div>
           <div className="rounded-xl bg-slate-50 dark:bg-[#24201e] py-2.5">
@@ -90,14 +95,18 @@ export default function PlaceSheet({ place, isFav, onToggleFav, onClose }: Props
           </div>
           <div className="rounded-xl bg-slate-50 dark:bg-[#24201e] py-2.5">
             <div className="text-[17px] font-bold text-slate-900 dark:text-[#f2ebe6] tabular-nums">{place.hype}</div>
-            <div className="text-[12px] text-slate-500 dark:text-[#a59b94]">popülerlik</div>
+            <div className="text-[12px] text-slate-500 dark:text-[#a59b94]">
+              {place.aiHype ? '🤖 popülerlik' : 'popülerlik'}
+            </div>
           </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-slate-600 dark:text-[#cfc5bd]">
-          <HypeBar value={place.hype} />
+          <HypeBar value={place.hype} ai={place.aiHype} />
           {place.priceLevel ? <span>Fiyat: {'₺'.repeat(place.priceLevel)}</span> : null}
-          {place.openNow === true && <span className="text-emerald-600 dark:text-emerald-400 font-medium">Şu an açık</span>}
+          {place.openNow === true && (
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Şu an açık</span>
+          )}
           {place.openNow === false && <span className="text-rose-500 font-medium">Şu an kapalı</span>}
         </div>
         {place.address && <p className="mt-2 text-[14px] text-slate-600 dark:text-[#cfc5bd]">📍 {place.address}</p>}
@@ -127,9 +136,15 @@ export default function PlaceSheet({ place, isFav, onToggleFav, onClose }: Props
           {wiki && <LinkBtn href={wiki}>📖 Vikipedi</LinkBtn>}
         </div>
 
+        <AiHype place={place} onResult={onAiHype} />
+
         <p className="mt-4 text-[12px] text-slate-400 dark:text-[#857b74]">
           Kaynak: {place.sources.map((s) => (s === 'google' ? 'Google' : 'OpenStreetMap')).join(' + ')}. Popülerlik
-          puanı tahminidir (yorum sayısı + sosyal medya/Vikipedi varlığı).
+          puanı{' '}
+          {place.aiHype
+            ? 'yapay zekâ değerlendirmesinden'
+            : 'tahminidir (yorum sayısı + sosyal medya/Vikipedi varlığı)'}
+          .
         </p>
       </div>
     </div>

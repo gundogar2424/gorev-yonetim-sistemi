@@ -34,6 +34,7 @@ export interface Place {
   openingHours?: string
   // Hesaplanan
   hype: number // 0-100 tahmini populerlik
+  aiHype?: boolean // true: hype puani yapay zeka degerlendirmesinden geliyor
   sources: ('osm' | 'google')[]
 }
 
