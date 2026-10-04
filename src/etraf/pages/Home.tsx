@@ -135,10 +135,22 @@ export default function Home() {
     [places, filters.category]
   )
   const subtypes = useMemo(() => subtypeCounts(inCategory).slice(0, 14), [inCategory])
-  const shown = useMemo(
-    () => sortPlaces(applyFilters(places, filters), settings.sort),
-    [places, filters, settings.sort]
-  )
+  // Kayitli yerler her siralamada ONDE gelir (kendi iclerinde secilen
+  // siralamayla); geri kalanlar arkadan. Kayitli gorunumunde zaten hepsi kayitli.
+  const shown = useMemo(() => {
+    const sorted = sortPlaces(applyFilters(places, filters), settings.sort)
+    if (showFavs) return sorted
+    return [...sorted.filter(isFav), ...sorted.filter((p) => !isFav(p))]
+  }, [places, filters, settings.sort, showFavs, isFav])
+  const hasFavInList = !showFavs && shown.some(isFav)
+  // Liste ara basligi: Cesit'te tur adi (kayitlilar ayri grup); diger
+  // siralamalarda listede kayitli varsa "Kayitli" / "Diger yerler".
+  const groupOf = (p: Place): string | null => {
+    const fav = !showFavs && isFav(p)
+    if (settings.sort === 'cesit') return fav ? '⭐ Kayıtlı' : p.subtype
+    if (hasFavInList) return fav ? '⭐ Kayıtlı' : 'Diğer yerler'
+    return null
+  }
   const hasGoogle = places.some((p) => p.rating != null)
   const hasOpenInfo = places.some((p) => p.openNow != null)
   const showList = places.length > 0 || showFavs
@@ -370,9 +382,9 @@ export default function Home() {
               <div className="flex flex-col gap-2">
                 {shown.slice(0, limit).map((p, i, arr) => (
                   <Fragment key={p.id}>
-                    {settings.sort === 'cesit' && (i === 0 || arr[i - 1].subtype !== p.subtype) && (
+                    {groupOf(p) && (i === 0 || groupOf(arr[i - 1]) !== groupOf(p)) && (
                       <h4 className="mt-3 first:mt-0 text-[13px] font-bold uppercase tracking-wide text-slate-500 dark:text-[#a59b94]">
-                        {p.subtype}
+                        {groupOf(p)}
                       </h4>
                     )}
                     <PlaceCard place={p} fav={isFav(p)} onOpen={() => setOpen(p)} />
