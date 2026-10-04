@@ -212,7 +212,11 @@ jobs:
           cat > "$d/SiraEklentisi.java" <<'JAVA'
           package com.lezzet.defteri;
 
+          import android.Manifest;
           import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.os.Build;
+          import androidx.core.app.ActivityCompat;
           import androidx.core.content.ContextCompat;
           import com.getcapacitor.Plugin;
           import com.getcapacitor.PluginCall;
@@ -245,9 +249,66 @@ jobs:
                   getContext().stopService(new Intent(getContext(), SiraServisi.class));
                   call.resolve();
               }
+
+              // Kampanya gibi bilgilendirme bildirimi
+              @PluginMethod
+              public void bildir(PluginCall call) {
+                  try {
+                      Bildirim.goster(getContext(), call.getString("baslik", "Lezzet Defteri"), call.getString("metin", ""), call.getInt("no", 5000));
+                  } catch (Exception e) {
+                      // izin yoksa sessizce gec
+                  }
+                  call.resolve();
+              }
+
+              // Android 13+: bildirim izni iste (bir kez sorulur)
+              @PluginMethod
+              public void bildirimIzni(PluginCall call) {
+                  if (Build.VERSION.SDK_INT >= 33 && getActivity() != null
+                      && ContextCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                      ActivityCompat.requestPermissions(getActivity(), new String[] { Manifest.permission.POST_NOTIFICATIONS }, 4712);
+                  }
+                  call.resolve();
+              }
+
           }
           JAVA
           sed -i 's/^          //' "$d/SiraEklentisi.java"
+          cat > "$d/Bildirim.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Build;
+          import androidx.core.app.NotificationCompat;
+
+          // Kampanya bildirimleri (dokununca uygulama acilir)
+          public class Bildirim {
+              static final String KANAL = "lz_kampanya";
+
+              static void goster(Context c, String baslik, String metin, int no) {
+                  NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+                  if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(KANAL) == null) {
+                      nm.createNotificationChannel(new NotificationChannel(KANAL, "Mekan kampanyaları", NotificationManager.IMPORTANCE_DEFAULT));
+                  }
+                  Intent ac = new Intent(c, MainActivity.class);
+                  ac.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                  PendingIntent pi = PendingIntent.getActivity(c, no, ac, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                  nm.notify(no, new NotificationCompat.Builder(c, KANAL)
+                      .setSmallIcon(android.R.drawable.star_on)
+                      .setContentTitle(baslik)
+                      .setContentText(metin)
+                      .setStyle(new NotificationCompat.BigTextStyle().bigText(metin))
+                      .setAutoCancel(true)
+                      .setContentIntent(pi)
+                      .build());
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/Bildirim.java"
           head -5 "$d/MainActivity.java"
 
       - name: Uygulama simgesi

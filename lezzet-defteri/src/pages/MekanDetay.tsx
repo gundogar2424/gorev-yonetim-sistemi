@@ -5,6 +5,7 @@ import { lzDb } from '../db'
 import { Header, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI } from '../lib/ai'
+import { mekanKampanyasi } from '../lib/kampanya'
 
 const PLATFORM: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', pinterest: 'Pinterest' }
 
@@ -26,6 +27,7 @@ export default function MekanDetay() {
   const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '', etiketler: [] as string[] })
   const [toast, goster] = useToast()
   const [puanAraniyor, setPuanAraniyor] = useState(false)
+  const [kampanyaAraniyor, setKampanyaAraniyor] = useState(false)
 
   if (m === undefined) return null
   if (!m) return <Header title="Mekan bulunamadı" back />
@@ -85,6 +87,32 @@ export default function MekanDetay() {
           m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />
         )}
         {m.paylasan && <p className={`text-[12.5px] px-1 -mt-1 ${T_SOLUK}`}>Paylaşan: {m.paylasan}</p>}
+        <button
+          className="lz-btn-soft w-full text-sm"
+          disabled={kampanyaAraniyor}
+          onClick={async () => {
+            setKampanyaAraniyor(true)
+            try {
+              goster((await mekanKampanyasi(m)) ? '🎁 Kampanya bulundu' : 'Şu an kampanya bulunamadı')
+            } catch (e) {
+              goster((e as Error).message.slice(0, 80))
+            }
+            setKampanyaAraniyor(false)
+          }}
+        >
+          {kampanyaAraniyor ? 'Kampanyalara bakılıyor…' : '🎁 Kampanya var mı?'}
+        </button>
+        {m.kampanya && (
+          <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[14px] p-3.5 space-y-1">
+            <div className="font-semibold">🎁 Kampanya</div>
+            <div>{m.kampanya.ozet}</div>
+            {m.kampanya.gecerlilik && <div className="text-[12.5px] opacity-80">Geçerli: {m.kampanya.gecerlilik}</div>}
+            <div className="text-[11.5px] opacity-70">
+              {m.kampanya.kaynak ? `Kaynak: ${m.kampanya.kaynak} · ` : ''}
+              {new Date(m.kampanya.zaman).toLocaleDateString('tr')} — gitmeden önce mekandan teyit et.
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2.5">
           <button className="lz-btn-primary text-sm" onClick={() => ac(yolTarifiLinki(m))}>

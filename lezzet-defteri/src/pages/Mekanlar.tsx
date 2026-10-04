@@ -5,6 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { apiAnahtari } from '../lib/ai'
+import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { linkAyikla } from '../lib/importer'
 import {
   puanYaz,
@@ -110,6 +111,7 @@ export default function Mekanlar() {
     <div>
       <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />
       <div className="px-4 space-y-3 pb-8">
+        <KampanyaKarti liste={liste} />
         {/* Nerede oldugun */}
         <div className="lz-card p-4 space-y-2.5">
           <div className={`font-semibold ${T_BASLIK}`}>📍 {konum ? `Konum: ${konum.ad ?? 'Bulunduğun yer'}` : 'Neredesin?'}</div>
@@ -314,5 +316,46 @@ export function YakinMekanSeridi() {
       <span className={`flex-1 text-[13.5px] font-medium ${T_BASLIK}`}>Yakınında kayıtlı {yakin} mekan var</span>
       <span className="text-lz-600 text-[13px] font-semibold">Göster</span>
     </Link>
+  )
+}
+
+// Kampanyalar: dugmeye basinca favori (yoksa tum) mekanlarin guncel kampanyalarina bakilir
+function KampanyaKarti({ liste }: { liste: LzMekan[] }) {
+  const [sonuc, setSonuc] = useState('')
+  const d = useKampanyaDurumu()
+  const kampanyali = liste.filter((m) => m.kampanya && Date.now() - m.kampanya.zaman < 7 * 24 * 3600 * 1000)
+  const favSayisi = liste.filter((m) => m.favori).length
+  if (!liste.length) return null
+  const son = sonKontrol()
+  return (
+    <div className="lz-card p-4 space-y-2.5">
+      <button
+        className="lz-btn-primary w-full text-[15px]"
+        disabled={d.calisiyor}
+        onClick={async () => {
+          setSonuc('')
+          void bildirimIzniIste()
+          try {
+            const r = await kampanyaKontrolEt()
+            setSonuc(r.bulunan.length ? `🎁 ${r.bulunan.length} mekanda kampanya bulundu.` : `${r.bakilan} mekana bakıldı, şu an kampanya bulunamadı.`)
+          } catch (e) {
+            setSonuc((e as Error).message)
+          }
+        }}
+      >
+        {d.calisiyor ? d.mesaj : '🎁 Kampanyaları kontrol et'}
+      </button>
+      <p className={`text-[12px] ${T_SOLUK}`}>
+        {favSayisi ? `${Math.min(favSayisi, 15)} favori mekanının` : 'Mekanlarının'} önümüzdeki 7 gündeki (hafta sonu dahil) kampanya, indirim ve etkinliklerine
+        yapay zeka Google’da bakar; bulursa bildirim gelir.{son ? ` Son kontrol: ${new Date(son).toLocaleDateString('tr')}.` : ''}
+      </p>
+      {sonuc && <p className={`text-[13px] font-medium ${T_GOVDE}`}>{sonuc}</p>}
+      {kampanyali.map((m) => (
+        <Link key={m.id} to={`/mekan/${m.id}`} className="block rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3">
+          🎁 <b>{m.ad}</b>: {m.kampanya!.ozet}
+          {m.kampanya!.gecerlilik ? ` (${m.kampanya!.gecerlilik})` : ''}
+        </Link>
+      ))}
+    </div>
   )
 }

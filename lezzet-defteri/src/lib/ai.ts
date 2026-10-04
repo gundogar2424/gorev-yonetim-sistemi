@@ -1078,3 +1078,32 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
     etiketler: (v.etiketler ?? []).map((x) => String(x).trim()).filter(Boolean)
   }
 }
+
+// Mekanin bu haftaki / hafta sonundaki kampanya, indirim ve etkinlik duyurularini arastirir
+export async function aiMekanKampanya(
+  m: { ad: string; ilce: string; sehir: string; paylasan?: string },
+  aralik: { bas: string; son: string }
+): Promise<{ var: boolean; ozet: string; gecerlilik: string; kaynak: string }> {
+  const v = await jsonCagri<{ kampanya_var: boolean; ozet: string; gecerlilik: string; kaynak: string }>(
+    'Sen bir yeme-içme mekanı kampanya takipçisisin. Google’da mekanın resmi Instagram/web sitesi, Google Haritalar, yemek siparişi ' +
+      'uygulamaları ve haber/duyuru sayfalarında GÜNCEL kampanya, indirim, happy hour, set menü, 1 alana 1 bedava, özel gün menüsü, canlı müzik ' +
+      'gibi etkinlik duyurularını ara. YALNIZCA verilen tarih aralığında geçerli olduğu açıkça anlaşılan duyuruları kabul et; tarihi belirsiz ' +
+      'ya da eski (geçen ay/yıl) duyuruları kampanya sayma. Emin değilsen kampanya_var false. UYDURMA. Türkçe, kısa yaz.',
+    `Mekan: ${m.ad}\nYer: ${[m.ilce, m.sehir].filter(Boolean).join(', ')}${m.paylasan ? `\nİlgili hesap: ${m.paylasan}` : ''}\n` +
+      `Tarih aralığı: ${aralik.bas} – ${aralik.son} (özellikle hafta sonu)`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['kampanya_var', 'ozet', 'gecerlilik', 'kaynak'],
+      properties: {
+        kampanya_var: { type: 'boolean' },
+        ozet: { type: 'string', description: 'Kampanya/etkinlik 1-2 cümle (ör. "Cumartesi kahvaltıda %20 indirim")' },
+        gecerlilik: { type: 'string', description: 'Geçerli olduğu gün/saat' },
+        kaynak: { type: 'string', description: 'Bilginin bulunduğu yer (ör. "resmi Instagram hesabı", site adresi)' }
+      }
+    },
+    1200,
+    true
+  )
+  return { var: !!v.kampanya_var && !!String(v.ozet ?? '').trim(), ozet: String(v.ozet ?? '').trim(), gecerlilik: String(v.gecerlilik ?? '').trim(), kaynak: String(v.kaynak ?? '').trim() }
+}

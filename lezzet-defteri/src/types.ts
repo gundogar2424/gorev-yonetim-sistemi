@@ -150,5 +150,7 @@ export interface LzMekan {
   puanZamani?: number
   googleId?: string // Google Haritalar kaydi (Places)
   paylasan?: string // Paylasimi yapan hesap (@…)
+  kampanya?: { ozet: string; gecerlilik: string; kaynak: string; zaman: number } // son kontrolde bulunan kampanya
+  kampanyaBakildi?: number
   haritaUrl?: string // Google Haritalar'daki sayfasi (yorumlar)
 }
