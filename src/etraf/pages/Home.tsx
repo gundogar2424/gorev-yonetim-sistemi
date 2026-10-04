@@ -1,11 +1,23 @@
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import MapView from '../components/MapView'
 import PlaceCard from '../components/PlaceCard'
 import PlaceSheet from '../components/PlaceSheet'
 import { CATEGORIES } from '../lib/categories'
-import { formatDistance, getCurrentPosition } from '../lib/geo'
+import { distanceM, formatDistance, getCurrentPosition } from '../lib/geo'
 import { applyFilters, scan, sortPlaces, subtypeCounts, type Filters } from '../lib/scan'
-import { getLastScan, getSettings, RADIUS_OPTIONS, saveLastScan, saveSettings } from '../lib/store'
+import {
+  getFavorites,
+  getLastScan,
+  getSettings,
+  matchesFavorite,
+  RADIUS_OPTIONS,
+  refreshFavorites,
+  saveLastScan,
+  saveSettings,
+  toggleFavorite,
+  type ViewMode
+} from '../lib/store'
 import type { Place, ScanResult, SortId } from '../lib/types'
 
 const SORTS: { id: SortId; label: string }[] = [
@@ -49,12 +61,21 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<Place | null>(null)
   const [limit, setLimit] = useState(PAGE)
-  const [filters, setFilters] = useState<Filters>({ category: 'hepsi', subtype: null, openOnly: false, minRating: 0, query: '' })
+  const [favs, setFavs] = useState(getFavorites)
+  const [showFavs, setShowFavs] = useState(false)
+  const [filters, setFilters] = useState<Filters>({
+    category: 'hepsi',
+    subtype: null,
+    openOnly: false,
+    minRating: 0,
+    query: ''
+  })
 
   const setF = (patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }))
     setLimit(PAGE)
   }
+  const setView = (view: ViewMode) => setSettings(saveSettings({ view }))
   const setSort = (sort: SortId) => {
     setSettings(saveSettings({ sort }))
     setLimit(PAGE)
@@ -69,6 +90,7 @@ export default function Home() {
       const r = await scan(here, settings.radiusM, settings.googleKey.trim())
       setResult(r)
       saveLastScan(r)
+      setFavs(refreshFavorites(r.places))
       setLimit(PAGE)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -77,7 +99,16 @@ export default function Home() {
     }
   }
 
-  const places = result?.places ?? []
+  const scanned = result?.places ?? []
+  const center = result?.center ?? null
+  const isFav = useCallback((p: Place) => favs.some((f) => matchesFavorite(f, p)), [favs])
+  // Kayitlilar baska bir yerde kaydedilmis olabilir: mesafe son tarama
+  // noktasina gore yeniden hesaplanir.
+  const favPlaces = useMemo(
+    () => favs.map((f) => (center ? { ...f.place, distanceM: distanceM(center, f.place) } : f.place)),
+    [favs, center]
+  )
+  const places = showFavs ? favPlaces : scanned
   const catCounts = useMemo(() => {
     const m: Record<string, number> = {}
     for (const p of places) m[p.category] = (m[p.category] ?? 0) + 1
@@ -88,9 +119,19 @@ export default function Home() {
     [places, filters.category]
   )
   const subtypes = useMemo(() => subtypeCounts(inCategory).slice(0, 14), [inCategory])
-  const shown = useMemo(() => sortPlaces(applyFilters(places, filters), settings.sort), [places, filters, settings.sort])
+  const shown = useMemo(
+    () => sortPlaces(applyFilters(places, filters), settings.sort),
+    [places, filters, settings.sort]
+  )
   const hasGoogle = places.some((p) => p.rating != null)
   const hasOpenInfo = places.some((p) => p.openNow != null)
+  const showList = places.length > 0 || showFavs
+
+  const pickFavs = (on: boolean) => {
+    setShowFavs(on)
+    setF({ category: 'hepsi', subtype: null })
+  }
+  const toggleFav = (p: Place) => setFavs(toggleFavorite(p))
 
   return (
     <div className="flex-1 flex flex-col">
@@ -142,20 +183,31 @@ export default function Home() {
           </select>
         </div>
 
-        {places.length > 0 && (
+        {(scanned.length > 0 || favs.length > 0) && (
           <>
             <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar -mx-4 px-4">
-              <Chip active={filters.category === 'hepsi'} onClick={() => setF({ category: 'hepsi', subtype: null })}>
-                Tümü {places.length}
+              {scanned.length > 0 && (
+                <Chip active={!showFavs && filters.category === 'hepsi'} onClick={() => pickFavs(false)}>
+                  Tümü {scanned.length}
+                </Chip>
+              )}
+              <Chip active={showFavs && filters.category === 'hepsi'} onClick={() => pickFavs(true)}>
+                ⭐ Kayıtlı {favs.length}
               </Chip>
               {CATEGORIES.filter((c) => catCounts[c.id]).map((c) => (
-                <Chip key={c.id} active={filters.category === c.id} onClick={() => setF({ category: c.id, subtype: null })}>
+                <Chip
+                  key={c.id}
+                  active={filters.category === c.id}
+                  onClick={() => setF({ category: c.id, subtype: null })}
+                >
                   {c.emoji} {c.label} {catCounts[c.id]}
                 </Chip>
               ))}
             </div>
             <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4 items-center">
-              <span className="flex-shrink-0 text-[12px] font-semibold uppercase tracking-wide text-slate-400">Sırala</span>
+              <span className="flex-shrink-0 text-[12px] font-semibold uppercase tracking-wide text-slate-400">
+                Sırala
+              </span>
               {SORTS.map((s) => (
                 <Chip key={s.id} active={settings.sort === s.id} onClick={() => setSort(s.id)}>
                   {s.label}
@@ -173,18 +225,23 @@ export default function Home() {
           </div>
         )}
         {result?.warnings.map((w) => (
-          <div key={w} className="mt-2 p-3 rounded-2xl bg-amber-50 dark:bg-[#2a2317] text-amber-800 dark:text-amber-300 text-[13px]">
+          <div
+            key={w}
+            className="mt-2 p-3 rounded-2xl bg-amber-50 dark:bg-[#2a2317] text-amber-800 dark:text-amber-300 text-[13px]"
+          >
             ⚠️ {w}
           </div>
         ))}
 
-        {!result && !busy && (
+        {!result && !busy && !showFavs && (
           <div className="mt-8 text-center text-slate-500 dark:text-[#a59b94] px-4">
             <div className="text-[56px]">🧭</div>
-            <p className="mt-2 text-[16px] font-medium text-slate-700 dark:text-[#d9d0c9]">Tek tuşla çevrendeki her şey</p>
+            <p className="mt-2 text-[16px] font-medium text-slate-700 dark:text-[#d9d0c9]">
+              Tek tuşla çevrendeki her şey
+            </p>
             <p className="mt-1 text-[14px]">
-              Restoranlar, kafeler, müzeler, tiyatrolar, parklar… Yakınlığa, Google puanına, çeşide ya da ne kadar popüler
-              olduğuna göre sırala.
+              Restoranlar, kafeler, müzeler, tiyatrolar, parklar… Yakınlığa, Google puanına, çeşide ya da ne kadar
+              popüler olduğuna göre sırala.
             </p>
             {!settings.googleKey && (
               <p className="mt-4 text-[13px]">
@@ -198,7 +255,7 @@ export default function Home() {
           </div>
         )}
 
-        {places.length > 0 && (
+        {showList && (
           <>
             {subtypes.length > 1 && (
               <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4">
@@ -257,20 +314,57 @@ export default function Home() {
               </p>
             )}
 
-            <p className="mt-3 mb-2 text-[13px] text-slate-500 dark:text-[#a59b94]">{shown.length} sonuç</p>
-            <div className="flex flex-col gap-2">
-              {shown.slice(0, limit).map((p, i, arr) => (
-                <Fragment key={p.id}>
-                  {settings.sort === 'cesit' && (i === 0 || arr[i - 1].subtype !== p.subtype) && (
-                    <h4 className="mt-3 first:mt-0 text-[13px] font-bold uppercase tracking-wide text-slate-500 dark:text-[#a59b94]">
-                      {p.subtype}
-                    </h4>
-                  )}
-                  <PlaceCard place={p} onOpen={() => setOpen(p)} />
-                </Fragment>
-              ))}
+            <div className="mt-3 mb-2 flex items-center gap-2">
+              <p className="flex-1 text-[13px] text-slate-500 dark:text-[#a59b94]">
+                {shown.length} {showFavs ? 'kayıtlı yer' : 'sonuç'}
+              </p>
+              <div className="flex p-0.5 rounded-xl bg-slate-100 dark:bg-[#24201e]" role="tablist" aria-label="Görünüm">
+                {(
+                  [
+                    ['liste', '☰ Liste'],
+                    ['harita', '🗺️ Harita']
+                  ] as [ViewMode, string][]
+                ).map(([v, l]) => (
+                  <button
+                    key={v}
+                    role="tab"
+                    aria-selected={settings.view === v}
+                    onClick={() => setView(v)}
+                    className={`h-8 px-3 rounded-lg text-[13px] font-semibold ${
+                      settings.view === v
+                        ? 'bg-white dark:bg-[#3a322e] text-et-700 dark:text-et-200 shadow-card'
+                        : 'text-slate-500 dark:text-[#a59b94]'
+                    }`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
             </div>
-            {shown.length > limit && (
+
+            {showFavs && favs.length === 0 && (
+              <p className="mt-6 text-center text-[14px] text-slate-500 dark:text-[#a59b94]">
+                Henüz kayıtlı yer yok. Bir yerin ayrıntısını açıp ☆ Kaydet'e dokun.
+              </p>
+            )}
+
+            {settings.view === 'harita' ? (
+              <MapView places={shown} center={center} radiusM={result?.radiusM ?? 0} isFav={isFav} onOpen={setOpen} />
+            ) : (
+              <div className="flex flex-col gap-2">
+                {shown.slice(0, limit).map((p, i, arr) => (
+                  <Fragment key={p.id}>
+                    {settings.sort === 'cesit' && (i === 0 || arr[i - 1].subtype !== p.subtype) && (
+                      <h4 className="mt-3 first:mt-0 text-[13px] font-bold uppercase tracking-wide text-slate-500 dark:text-[#a59b94]">
+                        {p.subtype}
+                      </h4>
+                    )}
+                    <PlaceCard place={p} fav={isFav(p)} onOpen={() => setOpen(p)} />
+                  </Fragment>
+                ))}
+              </div>
+            )}
+            {settings.view === 'liste' && shown.length > limit && (
               <button
                 onClick={() => setLimit((l) => l + PAGE)}
                 className="mt-3 w-full h-12 rounded-xl bg-slate-100 dark:bg-[#24201e] text-slate-700 dark:text-[#d9d0c9] font-semibold"
@@ -284,14 +378,21 @@ export default function Home() {
           </>
         )}
 
-        {result && places.length === 0 && !busy && (
+        {result && scanned.length === 0 && !showFavs && !busy && (
           <p className="mt-8 text-center text-slate-500 dark:text-[#a59b94]">
             Bu çevrede kayıtlı yer bulunamadı. Çapı büyütüp yeniden dene.
           </p>
         )}
       </main>
 
-      {open && <PlaceSheet place={open} onClose={() => setOpen(null)} />}
+      {open && (
+        <PlaceSheet
+          place={open}
+          isFav={isFav(open)}
+          onToggleFav={() => toggleFav(open)}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </div>
   )
 }

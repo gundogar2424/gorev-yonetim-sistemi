@@ -22,7 +22,14 @@ function LinkBtn({ href, children, primary }: { href: string; children: React.Re
   )
 }
 
-export default function PlaceSheet({ place, onClose }: { place: Place; onClose: () => void }) {
+interface Props {
+  place: Place
+  isFav: boolean
+  onToggleFav: () => void
+  onClose: () => void
+}
+
+export default function PlaceSheet({ place, isFav, onToggleFav, onClose }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -49,6 +56,16 @@ export default function PlaceSheet({ place, onClose }: { place: Place; onClose: 
               {place.subtype} · {cat.label}
             </p>
           </div>
+          <button
+            onClick={onToggleFav}
+            className={`w-10 h-10 rounded-full text-[19px] ${
+              isFav ? 'bg-amber-100 text-amber-500 dark:bg-[#3a2e14]' : 'bg-slate-100 dark:bg-[#2a2421] text-slate-400'
+            }`}
+            aria-label={isFav ? 'Kaydedilenlerden çıkar' : 'Kaydet'}
+            aria-pressed={isFav}
+          >
+            {isFav ? '★' : '☆'}
+          </button>
           <button
             onClick={onClose}
             className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#2a2421] text-slate-600 dark:text-[#cfc5bd] text-[18px]"
@@ -92,6 +109,16 @@ export default function PlaceSheet({ place, onClose }: { place: Place; onClose: 
           <LinkBtn href={directionsUrl(place)} primary>
             🧭 Yol tarifi
           </LinkBtn>
+          <button
+            onClick={onToggleFav}
+            className={`col-span-2 flex items-center justify-center gap-2 h-12 rounded-xl text-[15px] font-semibold active:scale-[0.98] transition ${
+              isFav
+                ? 'bg-amber-100 text-amber-800 dark:bg-[#3a2e14] dark:text-amber-300'
+                : 'bg-slate-100 dark:bg-[#2a2421] text-slate-800 dark:text-[#eae2dc]'
+            }`}
+          >
+            {isFav ? '★ Kaydedildi (çıkarmak için dokun)' : '☆ Kaydet'}
+          </button>
           <LinkBtn href={mapsUrl(place)}>🗺️ Haritada aç</LinkBtn>
           <LinkBtn href={instagramUrl(place)}>📸 Instagram{place.instagram ? '' : "'da ara"}</LinkBtn>
           <LinkBtn href={tiktokUrl(place)}>🎵 TikTok'ta ara</LinkBtn>

@@ -158,10 +158,10 @@ export default function Settings() {
           <h3 className={label}>Veri ve gizlilik</h3>
           <p className={`${body} mt-2`}>
             Konumun yalnızca tarama anında, yakındaki yerleri sorgulamak için OpenStreetMap (Overpass) sunucularına ve anahtar
-            girdiysen Google'a gönderilir. Ayarlar ve son tarama yalnızca bu cihazda saklanır.
+            girdiysen Google'a gönderilir. Ayarlar, son tarama ve kaydedilenler yalnızca bu cihazda saklanır.
           </p>
           <p className="mt-2 text-[12px] text-slate-400 dark:text-[#857b74]">
-            Harita verisi © OpenStreetMap katkıcıları (ODbL).
+            Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.
           </p>
         </section>
       </div>

@@ -54,7 +54,7 @@ function merge(osm: Place[], google: Place[]): Place[] {
   return out
 }
 
-function sameish(a: Place, b: Place): boolean {
+export function sameish(a: Place, b: Place): boolean {
   if (distanceM(a, b) > 90) return false
   const na = norm(a.name)
   const nb = norm(b.name)

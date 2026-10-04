@@ -32,7 +32,7 @@ export function compact(n: number): string {
   return String(n)
 }
 
-export default function PlaceCard({ place, onOpen }: { place: Place; onOpen: () => void }) {
+export default function PlaceCard({ place, fav, onOpen }: { place: Place; fav?: boolean; onOpen: () => void }) {
   const cat = CATEGORY_BY_ID[place.category]
   return (
     <button
@@ -44,7 +44,10 @@ export default function PlaceCard({ place, onOpen }: { place: Place; onOpen: () 
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <h3 className="font-semibold text-[16px] text-slate-900 dark:text-[#f2ebe6] truncate flex-1">{place.name}</h3>
+          <h3 className="font-semibold text-[16px] text-slate-900 dark:text-[#f2ebe6] truncate flex-1">
+            {fav && <span className="text-amber-500 mr-1" aria-label="Kayıtlı">★</span>}
+            {place.name}
+          </h3>
           <span className="flex-shrink-0 text-[13px] font-semibold text-et-600 dark:text-et-300 tabular-nums">
             {formatDistance(place.distanceM)}
           </span>

@@ -189,6 +189,10 @@ Bu depodaki **yedinci bağımsız program**: **Etrafımda**. Kendi giriş sayfas
 
 **Sıralama:** 📍 Yakınlık · ★ Google puanı (eşit puanda çok yorumlu önde) · 🔥 Popülerlik (hype) · 🗂️ Çeşit (türe göre gruplu: Kebap, Pizza, Müze…) · A-Z. **Süzme:** kategori çipleri, tür çipleri (ör. yalnızca "Kebap"), arama kutusu, ★ 4+ / 4,5+ ve "Şu an açık".
 
+**🗺️ Harita görünümü:** sonuç sayısının yanındaki **Liste / Harita** düğmesiyle geçilir (seçim hatırlanır). Her yer kendi kategori simgesiyle bir iğnedir, kayıtlılar sarı ve ★ işaretlidir; mavi nokta konumun, halka tarama çapıdır. Süzgeçler ve kategori çipleri haritada da geçerlidir; iğneye dokununca ayrıntı açılır. Altlık: CARTO (OpenStreetMap verisi, açık/koyu tema), [Leaflet](https://leafletjs.com) ile.
+
+**⭐ Kaydedilenler:** ayrıntı ekranında **☆ Kaydet** ile yer kaydedilir; **⭐ Kayıtlı** çipi kayıtlıları listeler ya da haritada gösterir. Yerin tam kopyası saklandığı için yeni taramada (başka semtte bile) kaybolmaz; mesafe son tarama noktasına göre yeniden hesaplanır. Aynı yer sonraki taramada gelirse bilgisi (puan, açık mı) tazelenir. Google'lı taramada kaydedilen yer Google'sız taramada da ad + konumdan tanınır.
+
 **Ayrıntı ekranı:** mesafe ve yürüme süresi, puan/yorum sayısı, fiyat seviyesi, adres, çalışma saatleri; **Yol tarifi** (Google Haritalar, yürüyüş), **Haritada aç**, **Instagram** (hesabı biliniyorsa doğrudan, yoksa arama), **TikTok'ta ara**, web sitesi, telefon, Vikipedi.
 
 **Veri kaynakları:**
@@ -197,7 +201,7 @@ Bu depodaki **yedinci bağımsız program**: **Etrafımda**. Kendi giriş sayfas
 
 **Popülerlik (hype) puanı, 0-100, tahminidir:** Instagram/TikTok bir mekânın ne kadar konuşulduğunu herkese açık vermiyor. En güçlü vekil Google yorum **sayısı** (log ölçekli), yanına puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası eklenir. Google anahtarı yoksa yalnızca bu sosyal işaretlere bakılır, o yüzden kaba kalır.
 
-> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar + son tarama). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL).
+> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar, son tarama, kaydedilenler). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.
 
 ## Teknik Altyapı
 
