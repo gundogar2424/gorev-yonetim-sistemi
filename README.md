@@ -193,14 +193,15 @@ Bu depodaki **yedinci bağımsız program**: **Etrafımda**. Kendi giriş sayfas
 
 **⭐ Kaydedilenler:** ayrıntı ekranında **☆ Kaydet** ile yer kaydedilir; **⭐ Kayıtlı** çipi kayıtlıları listeler ya da haritada gösterir. Taramada çevrede kayıtlı bir yer varsa listede her sıralamada **en önde** "⭐ Kayıtlı" başlığı altında çıkar (kendi içinde seçilen sıralamayla), geri kalanlar "Diğer yerler" altında gelir; Çeşit sıralamasında kayıtlılar ayrı bir grup olur. Yerin tam kopyası saklandığı için yeni taramada (başka semtte bile) kaybolmaz; mesafe son tarama noktasına göre yeniden hesaplanır. Aynı yer sonraki taramada gelirse bilgisi (puan, açık mı) tazelenir. Google'lı taramada kaydedilen yer Google'sız taramada da ad + konumdan tanınır.
 
-**🤖 Yapay zekâ hype yorumu (isteğe bağlı):** Ayarlar'a Anthropic (Claude) API anahtarı girilirse ayrıntı ekranında **"Ne kadar konuşuluyor?"** düğmesi çıkar. Claude web araması yapar (en fazla 5 arama) ve mekânın Instagram, TikTok, X, Ekşi Sözlük, YouTube, blog ve haberlerde ne kadar konuşulduğunu değerlendirir: **0-100 hype puanı**, kısa etiket, eğilim (yükselişte / sabit / düşüşte), 2-4 cümle özet, övülen ve şikâyet edilen yönler, en çok konuşulduğu platformlar ve **kaynak bağlantıları** (bağlantılar modelin metninden değil, gerçek arama sonuçlarından alınır). Bu puan 🤖 işaretiyle gösterilir ve 🔥 Popülerlik sıralamasında tahmini puanın yerine geçer. Sonuç 7 gün cihazda saklanır (aynı mekân için tekrar ücret çıkmaz; "Yenile" ile yeniden sorulur).
+**🤖 Yapay zekâ hype yorumu (isteğe bağlı):** Ayarlar'da bir yapay zekâ servisi seçilip anahtarı girilirse ayrıntı ekranında **"Ne kadar konuşuluyor?"** düğmesi çıkar. Yapay zekâ web'de arama yapar ve mekânın Instagram, TikTok, X, Ekşi Sözlük, YouTube, blog ve haberlerde ne kadar konuşulduğunu değerlendirir: **0-100 hype puanı**, kısa etiket, eğilim (yükselişte / sabit / düşüşte), 2-4 cümle özet, övülen ve şikâyet edilen yönler, en çok konuşulduğu platformlar ve **kaynak bağlantıları** (bağlantılar modelin metninden değil, gerçek arama sonuçlarından alınır). Bu puan 🤖 işaretiyle gösterilir ve 🔥 Popülerlik sıralamasında tahmini puanın yerine geçer. Sonuç 7 gün cihazda saklanır (aynı mekân için tekrar sorulmaz; "Yenile" ile yeniden sorulur).
 
-| Model (Ayarlar › Model) | Mekân başına | Güvenlik reddinde yedek |
-|---|---|---|
-| **En iyi**: Claude Opus 5.5 (`claude-opus-5-5`, varsayılan) | ~0,10-0,30 $ | `claude-opus-4-8` (aynı çağrı içinde, sunucu tarafında) |
-| **Ekonomik**: Claude Sonnet 5.5 (`claude-sonnet-5-5`) | ~0,06-0,15 $ | Anthropic'in seçtiği model (`fallbacks: "default"`) |
+| Servis (Ayarlar › Servis) | Arama | Mekân başına | Güvenlik reddinde yedek |
+|---|---|---|---|
+| **Gemini** (varsayılan): `gemini-flash-latest`, her zaman en yeni Gemini Flash | Google Arama | **Ücretsiz kotada ücretsiz** (günde ~500 arama) | — |
+| **Claude Opus**: Claude Opus 5.5 (`claude-opus-5-5`) | Claude web araması (en fazla 5) | ~0,10-0,30 $ | `claude-opus-4-8` (aynı çağrı içinde, sunucu tarafında) |
+| **Claude Sonnet**: Claude Sonnet 5.5 (`claude-sonnet-5-5`) | Claude web araması (en fazla 5) | ~0,06-0,15 $ | Anthropic'in seçtiği model (`fallbacks: "default"`) |
 
-Yorumun altında, yanıtı gerçekte hangi modelin verdiği yazar (yedek model devreye girdiyse onun adı).
+Gemini anahtarı aistudio.google.com'dan kart bilgisi olmadan ücretsiz alınır (Gemini Uygulaması aboneliği bu anahtarın yerine geçmez). Ücretsiz kullanımda Google, gönderilen bilgileri (mekânın adı, türü, adresi, konumu) ürünlerini geliştirmek için kullanabilir. Google'ın koşulları gereği Gemini'nin döndürdüğü "Google'da ara" önerileri yorumun altında, betik çalıştıramayan bir çerçeve içinde gösterilir. Her servisin anahtarı ayrı saklanır. Yorumun altında, yanıtı gerçekte hangi modelin verdiği yazar (yedek model devreye girdiyse onun adı).
 
 **Ayrıntı ekranı:** mesafe ve yürüme süresi, puan/yorum sayısı, fiyat seviyesi, adres, çalışma saatleri; **Yol tarifi** (Google Haritalar, yürüyüş), **Haritada aç**, **Instagram** (hesabı biliniyorsa doğrudan, yoksa arama), **TikTok'ta ara**, web sitesi, telefon, Vikipedi.
 
@@ -208,9 +209,9 @@ Yorumun altında, yanıtı gerçekte hangi modelin verdiği yazar (yedek model d
 - **OpenStreetMap (Overpass)** — ücretsiz, anahtar gerekmez; her zaman kullanılır. Ad, tür, mutfak, Instagram/web, çalışma saati verir; puan vermez.
 - **Google Places API (New)** — *isteğe bağlı*. Ayarlar'a kendi API anahtarını girersen Google puanı, yorum sayısı, fiyat seviyesi ve "şu an açık" bilgisi de gelir. Aynı yer iki kaynakta da varsa tek kayıtta birleştirilir. Her tarama kategori başına 1 istek (8 istek) yapar; Google'ın aylık ücretsiz payı kişisel kullanıma genellikle yeter ama faturalandırma hesabı ister.
 
-**Popülerlik (hype) puanı, 0-100, tahminidir:** Instagram/TikTok bir mekânın ne kadar konuşulduğunu herkese açık vermiyor. En güçlü vekil Google yorum **sayısı** (log ölçekli), yanına puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası eklenir. Google anahtarı yoksa yalnızca bu sosyal işaretlere bakılır, o yüzden kaba kalır. Daha isabetli puan için yapay zekâ hype yorumunu kullan (yukarıda).
+**Popülerlik (hype) puanı, 0-100, tahminidir:** Instagram/TikTok bir mekânın ne kadar konuşulduğunu herkese açık vermiyor. En güçlü vekil Google yorum **sayısı** (log ölçekli), yanına puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası eklenir. Google anahtarı yoksa yalnızca bu sosyal işaretlere bakılır, o yüzden kaba kalır. Daha isabetli puan için yapay zekâ hype yorumunu kullan (yukarıda; Gemini ile ücretsiz).
 
-> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar, son tarama, kaydedilenler, yapay zekâ yorumları). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir; yapay zekâ yorumu istendiğinde mekânın adı, türü, adresi ve konumu Anthropic'e gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.
+> Etrafımda verisini yalnızca `et-` önekli yerel anahtarlarda tutar (ayarlar, son tarama, kaydedilenler, yapay zekâ yorumları). Konum yalnızca tarama anında OpenStreetMap'e ve (anahtar girildiyse) Google'a gönderilir; yapay zekâ yorumu istendiğinde mekânın adı, türü, adresi ve konumu seçilen servise (Google ya da Anthropic) gönderilir. Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.
 
 ## Teknik Altyapı
 
