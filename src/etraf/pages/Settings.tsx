@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistance } from '../lib/geo'
-import { AI_MODELS, aiModelInfo, testClaudeKey, type AiModel } from '../lib/ai'
+import { AI_MODELS, aiModelInfo, providerOf, testAiKey, type AiModel } from '../lib/ai'
 import { testGoogleKey } from '../lib/google'
 import { getSettings, RADIUS_OPTIONS, saveSettings } from '../lib/store'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
@@ -45,15 +45,20 @@ export default function Settings() {
   const [theme, setTheme] = useState<ThemePref>(getThemePref)
   const [test, setTest] = useState('')
   const [testing, setTesting] = useState(false)
-  const [cKey, setCKey] = useState(s.claudeKey)
-  const [cTest, setCTest] = useState('')
-  const [cTesting, setCTesting] = useState(false)
+  const provider = providerOf(s.aiModel)
+  // Her servisin kutusu kendi taslagini tutar: servis degisince obur
+  // servisin anahtari kutuda gorunmez (yanlis yere kaydedilmesin).
+  const [aiDrafts, setAiDrafts] = useState({ gemini: s.geminiKey, claude: s.claudeKey })
+  const aiKey = aiDrafts[provider]
+  const setAiKey = (v: string) => setAiDrafts((d) => ({ ...d, [provider]: v }))
+  const [aiTest, setAiTest] = useState('')
+  const [aiTesting, setAiTesting] = useState(false)
 
-  async function runClaudeTest() {
-    setCTesting(true)
-    setCTest('')
-    setCTest(await testClaudeKey(cKey, s.aiModel))
-    setCTesting(false)
+  async function runAiTest() {
+    setAiTesting(true)
+    setAiTest('')
+    setAiTest(await testAiKey(aiKey, s.aiModel))
+    setAiTesting(false)
   }
 
   useEffect(() => window.scrollTo(0, 0), [])
@@ -137,15 +142,28 @@ export default function Settings() {
         <section className={card}>
           <h3 className={label}>🤖 Yapay zekâ hype yorumu (isteğe bağlı)</h3>
           <p className={`${body} mt-2`}>
-            Anthropic (Claude) API anahtarı eklersen, bir mekânın ayrıntısında “Ne kadar konuşuluyor?” düğmesi çıkar:
-            Claude web araması yapıp Instagram, TikTok, Ekşi Sözlük, blog ve haberlerde ne konuşulduğunu bulur; 0-100
-            hype puanı, eğilim, övülen/şikâyet edilen yönler ve kaynak bağlantıları verir. Bu puan, popülerlik
-            sıralamasında tahmini puanın yerine geçer.
+            Bir yapay zekâ anahtarı eklersen, mekânın ayrıntısında “Ne kadar konuşuluyor?” düğmesi çıkar: yapay zekâ
+            web'de arama yapıp Instagram, TikTok, Ekşi Sözlük, blog ve haberlerde ne konuşulduğunu bulur; 0-100 hype
+            puanı, eğilim, övülen/şikâyet edilen yönler ve kaynak bağlantıları verir. Bu puan, popülerlik sıralamasında
+            tahmini puanın yerine geçer.
+          </p>
+          <p className={`${body} mt-3 font-semibold`}>Servis</p>
+          <Segment<AiModel>
+            value={s.aiModel}
+            options={AI_MODELS.map((m) => [m.id, m.label] as [AiModel, string])}
+            onChange={(v) => {
+              setS(saveSettings({ aiModel: v }))
+              setAiTest('')
+            }}
+          />
+          <p className="mt-1.5 text-[13px] text-slate-500 dark:text-[#a59b94]">
+            {aiModelInfo(s.aiModel).note}: mekân başına {aiModelInfo(s.aiModel).cost}.
           </p>
           <input
-            value={cKey}
-            onChange={(e) => setCKey(e.target.value)}
-            placeholder="sk-ant-…"
+            key={provider}
+            value={aiKey}
+            onChange={(e) => setAiKey(e.target.value)}
+            placeholder={provider === 'gemini' ? 'Gemini API anahtarı (AIza…)' : 'Claude API anahtarı (sk-ant-…)'}
             autoComplete="off"
             spellCheck={false}
             className="mt-3 w-full h-12 px-3 rounded-xl bg-slate-50 dark:bg-[#24201e] border border-slate-200 dark:border-[#332d29] text-slate-900 dark:text-[#f2ebe6] font-mono text-[14px]"
@@ -153,45 +171,56 @@ export default function Settings() {
           <div className="flex gap-2 mt-2">
             <button
               onClick={() => {
-                setS(saveSettings({ claudeKey: cKey.trim() }))
-                setCTest('Kaydedildi ✓')
+                setS(saveSettings(provider === 'gemini' ? { geminiKey: aiKey.trim() } : { claudeKey: aiKey.trim() }))
+                setAiTest('Kaydedildi ✓')
               }}
               className="flex-1 h-11 rounded-xl bg-et-600 text-white font-semibold"
             >
               Kaydet
             </button>
             <button
-              onClick={runClaudeTest}
-              disabled={!cKey.trim() || cTesting}
+              onClick={runAiTest}
+              disabled={!aiKey.trim() || aiTesting}
               className="flex-1 h-11 rounded-xl bg-slate-100 dark:bg-[#2a2421] text-slate-800 dark:text-[#eae2dc] font-semibold disabled:opacity-50"
             >
-              {cTesting ? 'Deneniyor…' : 'Anahtarı dene'}
+              {aiTesting ? 'Deneniyor…' : 'Anahtarı dene'}
             </button>
           </div>
-          <p className={`${body} mt-3 font-semibold`}>Model</p>
-          <Segment<AiModel>
-            value={s.aiModel}
-            options={AI_MODELS.map((m) => [m.id, m.label] as [AiModel, string])}
-            onChange={(v) => setS(saveSettings({ aiModel: v }))}
-          />
-          <p className="mt-1.5 text-[13px] text-slate-500 dark:text-[#a59b94]">
-            {s.aiModel === 'claude-sonnet-5-5'
-              ? "Claude Sonnet 5.5: Opus 5.5'in yaklaşık yarı fiyatı."
-              : 'Claude Opus 5.5: en yetenekli model, varsayılan.'}{' '}
-            Mekân başına {aiModelInfo(s.aiModel).cost}.
-          </p>
-          {cTest && <p className="mt-2 text-[14px] text-slate-700 dark:text-[#d9d0c9] break-words">{cTest}</p>}
+          {aiTest && <p className="mt-2 text-[14px] text-slate-700 dark:text-[#d9d0c9] break-words">{aiTest}</p>}
           <details className="mt-3">
-            <summary className="text-[14px] font-semibold text-et-700 dark:text-et-300">Anahtar ve ücret</summary>
-            <ol className={`${body} mt-2 list-decimal pl-5 space-y-1`}>
-              <li>console.anthropic.com adresinde hesap aç, “Billing” bölümünden kredi yükle.</li>
-              <li>“API Keys › Create Key” ile anahtar üret, buraya yapıştır.</li>
-              <li>Web araması Console › Settings › Privacy bölümünde açık olmalı (varsayılan açık).</li>
-            </ol>
+            <summary className="text-[14px] font-semibold text-et-700 dark:text-et-300">
+              Anahtar nasıl alınır, ücret
+            </summary>
+            {provider === 'gemini' ? (
+              <>
+                <ol className={`${body} mt-2 list-decimal pl-5 space-y-1`}>
+                  <li>aistudio.google.com adresine Google hesabınla gir.</li>
+                  <li>“Get API key › Create API key” ile anahtar üret, buraya yapıştır. Kart bilgisi gerekmez.</li>
+                </ol>
+                <p className={`${body} mt-2`}>
+                  Model: gemini-flash-latest (her zaman en yeni Gemini Flash). Ücretsiz kotada Google Arama ile günde
+                  yaklaşık 500 istek yapılabilir; kota dolarsa ertesi gün yenilenir. Ücretsiz kullanımda Google,
+                  gönderilen bilgileri (mekânın adı, türü, adresi, konumu) ürünlerini geliştirmek için kullanabilir.
+                  Gemini Uygulaması aboneliği (Gemini Advanced / Google AI Pro) bu anahtar yerine geçmez; anahtar AI
+                  Studio'dan ayrıca alınır.
+                </p>
+              </>
+            ) : (
+              <>
+                <ol className={`${body} mt-2 list-decimal pl-5 space-y-1`}>
+                  <li>console.anthropic.com adresinde hesap aç, “Billing” bölümünden kredi yükle.</li>
+                  <li>“API Keys › Create Key” ile anahtar üret, buraya yapıştır.</li>
+                  <li>Web araması Console › Settings › Privacy bölümünde açık olmalı (varsayılan açık).</li>
+                </ol>
+                <p className={`${body} mt-2`}>
+                  Her yorum en fazla 5 web araması yapar; mekân başına Opus 5.5 ile yaklaşık 0,10-0,30 $, Sonnet 5.5 ile
+                  yaklaşık 0,06-0,15 $ tutar.
+                </p>
+              </>
+            )}
             <p className={`${body} mt-2`}>
-              Her yorum en fazla 5 web araması yapar; mekân başına Opus 5.5 ile yaklaşık 0,10-0,30 $, Sonnet 5.5 ile
-              yaklaşık 0,06-0,15 $ tutar. Sonuç 7 gün bu cihazda saklanır, bu sürede aynı mekân için tekrar ücret çıkmaz
-              (“Yenile” demedikçe). Anahtar yalnızca bu cihazda durur ve doğrudan Anthropic'e gönderilir.
+              Sonuç 7 gün bu cihazda saklanır; bu sürede aynı mekân yeniden sorulmaz (“Yenile” demedikçe). Anahtar
+              yalnızca bu cihazda durur ve doğrudan ilgili servise (Google ya da Anthropic) gönderilir.
             </p>
           </details>
         </section>
@@ -227,9 +256,9 @@ export default function Settings() {
             Instagram ve TikTok, bir mekânın ne kadar konuşulduğunu herkese açık olarak paylaşmıyor. Bu yüzden puan{' '}
             <b>tahminidir</b>: en güçlü işaret Google'daki yorum sayısıdır (çok konuşulan yer çok yorum alır), yanına
             puan, Instagram/Facebook hesabı, web sitesi ve Vikipedi sayfası olup olmadığı eklenir. Bir mekânın sosyal
-            medyasına bakmak için ayrıntı ekranındaki “Instagram” ve “TikTok'ta ara” düğmelerini kullan. Claude anahtarı
-            eklediysen “Ne kadar konuşuluyor?” ile yapay zekânın web taramasına dayalı puanı alınır ve 🤖 işaretiyle
-            gösterilir.
+            medyasına bakmak için ayrıntı ekranındaki “Instagram” ve “TikTok'ta ara” düğmelerini kullan. Yapay zekâ
+            anahtarı (Gemini ya da Claude) eklediysen “Ne kadar konuşuluyor?” ile yapay zekânın web taramasına dayalı
+            puanı alınır ve 🤖 işaretiyle gösterilir.
           </p>
         </section>
 
@@ -238,8 +267,8 @@ export default function Settings() {
           <p className={`${body} mt-2`}>
             Konumun yalnızca tarama anında, yakındaki yerleri sorgulamak için OpenStreetMap (Overpass) sunucularına ve
             anahtar girdiysen Google'a gönderilir. Yapay zekâ yorumu istediğinde mekânın adı, türü, adresi ve konumu
-            Anthropic'e gönderilir. Ayarlar, son tarama, kaydedilenler ve yapay zekâ yorumları yalnızca bu cihazda
-            saklanır.
+            seçtiğin servise (Google ya da Anthropic) gönderilir. Ayarlar, son tarama, kaydedilenler ve yapay zekâ
+            yorumları yalnızca bu cihazda saklanır.
           </p>
           <p className="mt-2 text-[12px] text-slate-400 dark:text-[#857b74]">
             Harita verisi © OpenStreetMap katkıcıları (ODbL), harita altlığı © CARTO.

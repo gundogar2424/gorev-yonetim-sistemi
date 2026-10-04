@@ -10,7 +10,8 @@ export type ViewMode = 'liste' | 'harita'
 
 export interface Settings {
   googleKey: string
-  claudeKey: string // istege bagli: yapay zeka hype yorumu
+  claudeKey: string // istege bagli: yapay zeka hype yorumu (Claude)
+  geminiKey: string // istege bagli: yapay zeka hype yorumu (Gemini)
   aiModel: AiModel
   radiusM: number
   sort: SortId
@@ -20,6 +21,7 @@ export interface Settings {
 const DEFAULTS: Settings = {
   googleKey: '',
   claudeKey: '',
+  geminiKey: '',
   aiModel: DEFAULT_AI_MODEL,
   radiusM: 1000,
   sort: 'mesafe',

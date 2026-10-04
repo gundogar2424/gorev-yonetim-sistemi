@@ -5,12 +5,29 @@ import {
   analyzeHype,
   modelName,
   getCachedHype,
+  providerOf,
   saveCachedHype,
   TREND_TEXT,
   type HypeAnalysis
 } from '../lib/ai'
 import { getSettings } from '../lib/store'
 import type { Place } from '../lib/types'
+
+// Gemini + Google Arama kullanildiginda Google'in kosullari, dondurdugu "Google'da
+// ara" onerilerinin gosterilmesini ister. Google'in hazirladigi HTML'i dogrudan
+// sayfaya koymak yerine kum havuzlu (betik calistiramayan) bir cerceve icinde
+// gosteriyoruz; baglantilar yeni pencerede (tarayicida) acilir.
+function SearchSuggestions({ html }: { html: string }) {
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>body{margin:0;background:transparent}</style></head><body>${html}</body></html>`
+  return (
+    <iframe
+      title="Google arama önerileri"
+      srcDoc={doc}
+      sandbox="allow-popups allow-popups-to-escape-sandbox"
+      className="mt-3 w-full h-[72px] rounded-lg border-0"
+    />
+  )
+}
 
 function ago(ts: number): string {
   const d = Math.floor((Date.now() - ts) / 864e5)
@@ -22,7 +39,9 @@ export default function AiHype({ place, onResult }: { place: Place; onResult: (a
   const [analysis, setAnalysis] = useState<HypeAnalysis | null>(() => getCachedHype(place))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { claudeKey: key, aiModel } = getSettings()
+  const { claudeKey, geminiKey, aiModel } = getSettings()
+  const provider = providerOf(aiModel)
+  const key = provider === 'gemini' ? geminiKey : claudeKey
 
   async function run() {
     setBusy(true)
@@ -46,9 +65,10 @@ export default function AiHype({ place, onResult }: { place: Place; onResult: (a
       <div className={box}>
         <p className="text-[14px] font-semibold text-violet-900 dark:text-violet-200">🤖 Yapay zekâ hype yorumu</p>
         <p className="mt-1 text-[13px] text-slate-600 dark:text-[#cfc5bd]">
-          Claude bu mekânı Instagram, TikTok, Ekşi Sözlük, blog ve haberlerde arayıp ne kadar konuşulduğunu yorumlar.{' '}
+          Yapay zekâ bu mekânı Instagram, TikTok, Ekşi Sözlük, blog ve haberlerde arayıp ne kadar konuşulduğunu
+          yorumlar.{' '}
           <Link to="/ayarlar" className="font-semibold text-violet-700 dark:text-violet-300 underline">
-            Ayarlar'dan Claude API anahtarı
+            Ayarlar'dan {provider === 'gemini' ? 'Gemini (ücretsiz)' : 'Claude'} API anahtarı
           </Link>{' '}
           ekleyince açılır.
         </p>
@@ -160,9 +180,11 @@ export default function AiHype({ place, onResult }: { place: Place; onResult: (a
               </ul>
             </div>
           )}
+          {analysis.searchSuggestionsHtml && <SearchSuggestions html={analysis.searchSuggestionsHtml} />}
           <p className="mt-3 text-[11px] text-slate-400 dark:text-[#857b74]">
-            {ago(analysis.at)} · {modelName(analysis.model)} web araması ile. Yapay zekâ yanılabilir; kaynaklara bakarak
-            doğrula.
+            {ago(analysis.at)} · {modelName(analysis.model)}{' '}
+            {analysis.model.startsWith('gemini') ? 'Google Arama' : 'web araması'} ile. Yapay zekâ yanılabilir;
+            kaynaklara bakarak doğrula.
           </p>
         </div>
       )}

@@ -1,22 +1,50 @@
-// YAPAY ZEKA HYPE YORUMU (istege bagli): Claude, web aramasi aracini kullanip
+// YAPAY ZEKA HYPE YORUMU (istege bagli): yapay zeka web'de arama yapip
 // mekan hakkinda sosyal medyada / sozlukte / bloglarda / haberlerde ne
 // konusuldugunu tarar ve kisa bir hype degerlendirmesi yazar.
-// Tarayicidan dogrudan cagrilir; kullanici kendi Anthropic API anahtarini
-// Ayarlar'a girer. SDK yalnizca cagri aninda (dinamik import) yuklenir.
+// Iki servis: Google Gemini (Google Arama ile; ucretsiz kotasi var, varsayilan)
+// ya da Anthropic Claude (web aramasi araci ile; ucretli). Tarayicidan
+// dogrudan cagrilir; kullanici kendi anahtarini Ayarlar'a girer. Claude SDK'si
+// yalnizca cagri aninda (dinamik import) yuklenir.
 import type Anthropic from '@anthropic-ai/sdk'
 import { CATEGORY_BY_ID } from './categories'
+import { HttpError, httpJson } from './http'
 import { sameish } from './scan'
 import type { Place } from './types'
 
-// Iki secenek: en iyi sonuc icin Opus 5.5 (varsayilan), yarisi fiyatina
-// Sonnet 5.5 (ekonomik). Fiyatlar 1M token basina girdi / cikti.
-export type AiModel = 'claude-opus-5-5' | 'claude-sonnet-5-5'
-export const DEFAULT_AI_MODEL: AiModel = 'claude-opus-5-5'
+// Uc secenek. Gemini: "gemini-flash-latest" takma adi her zaman en yeni Flash
+// modeline gider (Google model adini degistirse de bozulmaz). Claude: en iyi
+// sonuc icin Opus 5.5, yarisi fiyatina Sonnet 5.5.
+export type AiModel = 'gemini-flash-latest' | 'claude-opus-5-5' | 'claude-sonnet-5-5'
+export type AiProvider = 'gemini' | 'claude'
+export const DEFAULT_AI_MODEL: AiModel = 'gemini-flash-latest'
 
-export const AI_MODELS: { id: AiModel; label: string; note: string; cost: string }[] = [
-  { id: 'claude-opus-5-5', label: 'En iyi', note: 'Claude Opus 5.5', cost: 'yaklaşık 0,10-0,30 $' },
-  { id: 'claude-sonnet-5-5', label: 'Ekonomik', note: 'Claude Sonnet 5.5', cost: 'yaklaşık 0,06-0,15 $' }
+export const AI_MODELS: { id: AiModel; provider: AiProvider; label: string; note: string; cost: string }[] = [
+  {
+    id: 'gemini-flash-latest',
+    provider: 'gemini',
+    label: 'Gemini',
+    note: 'Google Gemini Flash',
+    cost: 'ücretsiz kotada (günde yaklaşık 500 arama) ücretsiz'
+  },
+  {
+    id: 'claude-opus-5-5',
+    provider: 'claude',
+    label: 'Claude Opus',
+    note: 'Claude Opus 5.5',
+    cost: 'yaklaşık 0,10-0,30 $'
+  },
+  {
+    id: 'claude-sonnet-5-5',
+    provider: 'claude',
+    label: 'Claude Sonnet',
+    note: 'Claude Sonnet 5.5',
+    cost: 'yaklaşık 0,06-0,15 $'
+  }
 ]
+
+export function providerOf(model: AiModel): AiProvider {
+  return model.startsWith('gemini') ? 'gemini' : 'claude'
+}
 
 export function aiModelInfo(id: string) {
   return AI_MODELS.find((m) => m.id === id) ?? AI_MODELS[0]
@@ -25,7 +53,15 @@ export function aiModelInfo(id: string) {
 // Yaniti gercekte hangi model verdi? (Guvenlik reddinde yedek model
 // calismis olabilir, ornegin claude-opus-4-8.)
 export function modelName(id: string): string {
-  return AI_MODELS.find((m) => m.id === id)?.note ?? id
+  const known = AI_MODELS.find((m) => m.id === id)?.note
+  if (known) return known
+  // Gemini gercek surum adini dondurur: "gemini-3.5-flash" -> "Gemini 3.5 Flash"
+  if (id.startsWith('gemini-'))
+    return id
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+  return id
 }
 
 // GUVENLIK REDDINDE YEDEK: sunucu ayni istegi ayni cagri icinde baska bir
@@ -61,6 +97,9 @@ export interface HypeAnalysis {
   complaints: string[] // sikayetler
   platforms: string[] // nerede konusuluyor: Instagram, TikTok, Ekşi Sözlük...
   sources: { title: string; url: string }[]
+  // Gemini + Google Arama: Google'in kosullari geregi gosterilmesi gereken
+  // "Google'da ara" onerileri (Google'in hazirladigi HTML).
+  searchSuggestionsHtml?: string
   at: number
   model: string
 }
@@ -166,6 +205,11 @@ export async function analyzeHype(
   place: Place,
   model: AiModel = DEFAULT_AI_MODEL
 ): Promise<HypeAnalysis> {
+  if (providerOf(model) === 'gemini') return analyzeHypeGemini(apiKey, place)
+  return analyzeHypeClaude(apiKey, place, model)
+}
+
+async function analyzeHypeClaude(apiKey: string, place: Place, model: AiModel): Promise<HypeAnalysis> {
   if (!apiKey.trim()) throw new Error("Önce Ayarlar'dan Anthropic (Claude) API anahtarını girin.")
   const mod = await import('@anthropic-ai/sdk')
   const AnthropicSDK = mod.default
@@ -232,8 +276,115 @@ export async function analyzeHype(
   return { ...parseVerdict(text), sources: collectSources(all), at: Date.now(), model: final.model }
 }
 
+// ---------------------------------------------------------------------------
+// GEMINI (Google Arama ile "grounding"). REST API, duz fetch.
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
+
+interface GeminiResponse {
+  candidates?: {
+    content?: { parts?: { text?: string; thought?: boolean }[] }
+    finishReason?: string
+    groundingMetadata?: {
+      webSearchQueries?: string[]
+      groundingChunks?: { web?: { uri?: string; title?: string } }[]
+      searchEntryPoint?: { renderedContent?: string }
+    }
+  }[]
+  promptFeedback?: { blockReason?: string }
+  modelVersion?: string
+}
+
+function geminiError(e: unknown): Error {
+  if (e instanceof HttpError) {
+    const msg = e.message
+    if (/API key not valid|API_KEY_INVALID/i.test(msg) || e.status === 401)
+      return new Error('Gemini API anahtarı geçersiz.')
+    if (e.status === 403) return new Error('Bu Gemini anahtarının yetkisi yok: ' + msg)
+    if (e.status === 429)
+      return new Error(
+        'Gemini ücretsiz kotası doldu ya da çok sık istek gönderildi. Biraz sonra (ya da yarın) tekrar deneyin.'
+      )
+    if (e.status >= 500) return new Error('Gemini şu an yanıt veremiyor; biraz sonra tekrar deneyin.')
+    return new Error(`Gemini hatası (${e.status}): ${msg}`)
+  }
+  if (e instanceof TypeError) return new Error('Gemini sunucusuna bağlanılamadı. İnternet bağlantısını kontrol edin.')
+  return e instanceof Error ? e : new Error(String(e))
+}
+
+async function analyzeHypeGemini(apiKey: string, place: Place): Promise<HypeAnalysis> {
+  if (!apiKey.trim()) throw new Error("Önce Ayarlar'dan Gemini API anahtarını girin.")
+  let res: GeminiResponse
+  try {
+    res = await httpJson<GeminiResponse>({
+      url: GEMINI_URL,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey.trim() },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM }] },
+        contents: [
+          { role: 'user', parts: [{ text: `Bu mekânın sosyal medya hype'ını değerlendir:\n\n${describe(place)}` }] }
+        ],
+        tools: [{ google_search: {} }]
+      }),
+      timeoutMs: 120000
+    })
+  } catch (e) {
+    throw geminiError(e)
+  }
+
+  if (res.promptFeedback?.blockReason) throw new Error('Yapay zekâ bu isteği yanıtlamadı.')
+  const c = res.candidates?.[0]
+  const text = (c?.content?.parts ?? [])
+    .filter((p) => !p.thought && typeof p.text === 'string')
+    .map((p) => p.text)
+    .join('\n')
+  if (!text.includes('{')) {
+    if (c?.finishReason && c.finishReason !== 'STOP')
+      throw new Error(`Yapay zekâ yanıtı tamamlanamadı (${c.finishReason}).`)
+    throw new Error('Yapay zekâ bir değerlendirme yazmadı. Tekrar deneyin.')
+  }
+
+  // Kaynaklar Google Arama sonuclarindan (baslik = site adi); site basina bir tane.
+  const gm = c?.groundingMetadata
+  const sources: { title: string; url: string }[] = []
+  const seen = new Set<string>()
+  for (const ch of gm?.groundingChunks ?? []) {
+    const url = ch.web?.uri
+    const title = ch.web?.title || ''
+    if (!url || seen.has(title || url)) continue
+    seen.add(title || url)
+    sources.push({ title: title || url, url })
+  }
+
+  return {
+    ...parseVerdict(text),
+    sources: sources.slice(0, 6),
+    searchSuggestionsHtml: gm?.searchEntryPoint?.renderedContent || undefined,
+    at: Date.now(),
+    model: res.modelVersion || 'gemini-flash-latest'
+  }
+}
+
 // Ayarlar'daki "Anahtarı dene": aramasiz, cok kucuk bir istek.
-export async function testClaudeKey(apiKey: string, model: AiModel = DEFAULT_AI_MODEL): Promise<string> {
+export async function testAiKey(apiKey: string, model: AiModel = DEFAULT_AI_MODEL): Promise<string> {
+  if (providerOf(model) === 'gemini') {
+    try {
+      const res = await httpJson<GeminiResponse>({
+        url: GEMINI_URL,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey.trim() },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Sadece "tamam" yaz.' }] }] }),
+        timeoutMs: 30000
+      })
+      return `Çalışıyor ✓ (${modelName(res.modelVersion || 'gemini-flash-latest')})`
+    } catch (e) {
+      return 'Hata: ' + geminiError(e).message
+    }
+  }
+  return testClaudeKey(apiKey, model)
+}
+
+async function testClaudeKey(apiKey: string, model: AiModel): Promise<string> {
   try {
     const mod = await import('@anthropic-ai/sdk')
     const client = new mod.default({ apiKey: apiKey.trim(), dangerouslyAllowBrowser: true })
