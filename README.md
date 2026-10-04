@@ -193,7 +193,14 @@ Bu depodaki **yedinci bağımsız program**: **Etrafımda**. Kendi giriş sayfas
 
 **⭐ Kaydedilenler:** ayrıntı ekranında **☆ Kaydet** ile yer kaydedilir; **⭐ Kayıtlı** çipi kayıtlıları listeler ya da haritada gösterir. Yerin tam kopyası saklandığı için yeni taramada (başka semtte bile) kaybolmaz; mesafe son tarama noktasına göre yeniden hesaplanır. Aynı yer sonraki taramada gelirse bilgisi (puan, açık mı) tazelenir. Google'lı taramada kaydedilen yer Google'sız taramada da ad + konumdan tanınır.
 
-**🤖 Yapay zekâ hype yorumu (isteğe bağlı):** Ayarlar'a Anthropic (Claude) API anahtarı girilirse ayrıntı ekranında **"Ne kadar konuşuluyor?"** düğmesi çıkar. Claude (`claude-opus-5-5`) web araması yapar (en fazla 5 arama) ve mekânın Instagram, TikTok, X, Ekşi Sözlük, YouTube, blog ve haberlerde ne kadar konuşulduğunu değerlendirir: **0-100 hype puanı**, kısa etiket, eğilim (yükselişte / sabit / düşüşte), 2-4 cümle özet, övülen ve şikâyet edilen yönler, en çok konuşulduğu platformlar ve **kaynak bağlantıları** (bağlantılar modelin metninden değil, gerçek arama sonuçlarından alınır). Bu puan 🤖 işaretiyle gösterilir ve 🔥 Popülerlik sıralamasında tahmini puanın yerine geçer. Sonuç 7 gün cihazda saklanır (aynı mekân için tekrar ücret çıkmaz; "Yenile" ile yeniden sorulur). Mekân başına yaklaşık 0,10-0,30 $. Güvenlik nedeniyle reddedilen bir istek sunucu tarafında aynı çağrı içinde `claude-opus-4-8` ile yeniden denenir.
+**🤖 Yapay zekâ hype yorumu (isteğe bağlı):** Ayarlar'a Anthropic (Claude) API anahtarı girilirse ayrıntı ekranında **"Ne kadar konuşuluyor?"** düğmesi çıkar. Claude web araması yapar (en fazla 5 arama) ve mekânın Instagram, TikTok, X, Ekşi Sözlük, YouTube, blog ve haberlerde ne kadar konuşulduğunu değerlendirir: **0-100 hype puanı**, kısa etiket, eğilim (yükselişte / sabit / düşüşte), 2-4 cümle özet, övülen ve şikâyet edilen yönler, en çok konuşulduğu platformlar ve **kaynak bağlantıları** (bağlantılar modelin metninden değil, gerçek arama sonuçlarından alınır). Bu puan 🤖 işaretiyle gösterilir ve 🔥 Popülerlik sıralamasında tahmini puanın yerine geçer. Sonuç 7 gün cihazda saklanır (aynı mekân için tekrar ücret çıkmaz; "Yenile" ile yeniden sorulur).
+
+| Model (Ayarlar › Model) | Mekân başına | Güvenlik reddinde yedek |
+|---|---|---|
+| **En iyi**: Claude Opus 5.5 (`claude-opus-5-5`, varsayılan) | ~0,10-0,30 $ | `claude-opus-4-8` (aynı çağrı içinde, sunucu tarafında) |
+| **Ekonomik**: Claude Sonnet 5.5 (`claude-sonnet-5-5`) | ~0,06-0,15 $ | Anthropic'in seçtiği model (`fallbacks: "default"`) |
+
+Yorumun altında, yanıtı gerçekte hangi modelin verdiği yazar (yedek model devreye girdiyse onun adı).
 
 **Ayrıntı ekranı:** mesafe ve yürüme süresi, puan/yorum sayısı, fiyat seviyesi, adres, çalışma saatleri; **Yol tarifi** (Google Haritalar, yürüyüş), **Haritada aç**, **Instagram** (hesabı biliniyorsa doğrudan, yoksa arama), **TikTok'ta ara**, web sitesi, telefon, Vikipedi.
 

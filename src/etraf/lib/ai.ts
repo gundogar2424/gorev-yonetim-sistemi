@@ -8,10 +8,44 @@ import { CATEGORY_BY_ID } from './categories'
 import { sameish } from './scan'
 import type { Place } from './types'
 
-export const AI_MODEL = 'claude-opus-5-5'
-// Bir istek guvenlik nedeniyle reddedilirse sunucu ayni istegi bu modelle
-// yeniden dener (ayni cagri icinde).
-const FALLBACK_MODEL = 'claude-opus-4-8'
+// Iki secenek: en iyi sonuc icin Opus 5.5 (varsayilan), yarisi fiyatina
+// Sonnet 5.5 (ekonomik). Fiyatlar 1M token basina girdi / cikti.
+export type AiModel = 'claude-opus-5-5' | 'claude-sonnet-5-5'
+export const DEFAULT_AI_MODEL: AiModel = 'claude-opus-5-5'
+
+export const AI_MODELS: { id: AiModel; label: string; note: string; cost: string }[] = [
+  { id: 'claude-opus-5-5', label: 'En iyi', note: 'Claude Opus 5.5', cost: 'yaklaşık 0,10-0,30 $' },
+  { id: 'claude-sonnet-5-5', label: 'Ekonomik', note: 'Claude Sonnet 5.5', cost: 'yaklaşık 0,06-0,15 $' }
+]
+
+export function aiModelInfo(id: string) {
+  return AI_MODELS.find((m) => m.id === id) ?? AI_MODELS[0]
+}
+
+// Yaniti gercekte hangi model verdi? (Guvenlik reddinde yedek model
+// calismis olabilir, ornegin claude-opus-4-8.)
+export function modelName(id: string): string {
+  return AI_MODELS.find((m) => m.id === id)?.note ?? id
+}
+
+// GUVENLIK REDDINDE YEDEK: sunucu ayni istegi ayni cagri icinde baska bir
+// modelle yeniden dener. Opus 5.5 icin hedefi biz seciyoruz (dizi bicimi);
+// Sonnet 5.5 yalnizca "default" bicimini kabul eder (hedefi Anthropic secer).
+// Iki bicimin beta basliklari farklidir; karistirilirsa istek 400 doner.
+// SDK 0.106'nin tipleri "default" degerini henuz tanimiyor, o yuzden tek
+// yerde tip donusumu var.
+function fallbackParams(model: AiModel): {
+  betas: string[]
+  fallbacks: Anthropic.Beta.Messages.BetaFallbackParam[]
+} {
+  if (model === 'claude-sonnet-5-5') {
+    return {
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default' as unknown as Anthropic.Beta.Messages.BetaFallbackParam[]
+    }
+  }
+  return { betas: ['server-side-fallback-2026-06-01'], fallbacks: [{ model: 'claude-opus-4-8' }] }
+}
 const MAX_SEARCHES = 5
 const CACHE_DAYS = 7
 const CACHE_MAX = 80
@@ -127,7 +161,11 @@ function searchError(content: Anthropic.Beta.BetaContentBlock[]): string | null 
   return null
 }
 
-export async function analyzeHype(apiKey: string, place: Place): Promise<HypeAnalysis> {
+export async function analyzeHype(
+  apiKey: string,
+  place: Place,
+  model: AiModel = DEFAULT_AI_MODEL
+): Promise<HypeAnalysis> {
   if (!apiKey.trim()) throw new Error("Önce Ayarlar'dan Anthropic (Claude) API anahtarını girin.")
   const mod = await import('@anthropic-ai/sdk')
   const AnthropicSDK = mod.default
@@ -145,10 +183,11 @@ export async function analyzeHype(apiKey: string, place: Place): Promise<HypeAna
     for (let i = 0; i < 4; i++) {
       final = await client.beta.messages
         .stream({
-          model: AI_MODEL,
+          model,
           max_tokens: 16000,
-          betas: ['server-side-fallback-2026-06-01'],
-          fallbacks: [{ model: FALLBACK_MODEL }],
+          ...fallbackParams(model),
+          // Iki modelde de "medium": cok adimli arama isi icin yeterli derinlik.
+          // (Opus 5.5'te varsayilan zaten medium; Sonnet 5.5'te high.)
           output_config: { effort: 'medium' },
           system: SYSTEM,
           tools: [
@@ -194,17 +233,17 @@ export async function analyzeHype(apiKey: string, place: Place): Promise<HypeAna
 }
 
 // Ayarlar'daki "Anahtarı dene": aramasiz, cok kucuk bir istek.
-export async function testClaudeKey(apiKey: string): Promise<string> {
+export async function testClaudeKey(apiKey: string, model: AiModel = DEFAULT_AI_MODEL): Promise<string> {
   try {
     const mod = await import('@anthropic-ai/sdk')
     const client = new mod.default({ apiKey: apiKey.trim(), dangerouslyAllowBrowser: true })
     await client.messages.create({
-      model: AI_MODEL,
+      model,
       max_tokens: 200,
       output_config: { effort: 'low' },
       messages: [{ role: 'user', content: 'Sadece "tamam" yaz.' }]
     })
-    return 'Çalışıyor ✓'
+    return `Çalışıyor ✓ (${aiModelInfo(model).note})`
   } catch (e) {
     return 'Hata: ' + (e instanceof Error ? e.message : String(e))
   }

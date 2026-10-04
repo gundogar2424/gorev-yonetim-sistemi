@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { analyzeHype, getCachedHype, saveCachedHype, TREND_TEXT, type HypeAnalysis } from '../lib/ai'
+import {
+  aiModelInfo,
+  analyzeHype,
+  modelName,
+  getCachedHype,
+  saveCachedHype,
+  TREND_TEXT,
+  type HypeAnalysis
+} from '../lib/ai'
 import { getSettings } from '../lib/store'
 import type { Place } from '../lib/types'
 
@@ -14,13 +22,13 @@ export default function AiHype({ place, onResult }: { place: Place; onResult: (a
   const [analysis, setAnalysis] = useState<HypeAnalysis | null>(() => getCachedHype(place))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const key = getSettings().claudeKey
+  const { claudeKey: key, aiModel } = getSettings()
 
   async function run() {
     setBusy(true)
     setError(null)
     try {
-      const a = await analyzeHype(key, place)
+      const a = await analyzeHype(key, place, aiModel)
       saveCachedHype(place, a)
       setAnalysis(a)
       onResult(a)
@@ -74,7 +82,7 @@ export default function AiHype({ place, onResult }: { place: Place; onResult: (a
         <>
           <p className="mt-1 text-[13px] text-slate-600 dark:text-[#cfc5bd]">
             Instagram, TikTok, Ekşi Sözlük, blog ve haberlerde ne konuşulduğuna bakar. Her yorum birkaç web araması
-            yapar (yaklaşık 0,10-0,30 $); sonuç 7 gün saklanır.
+            yapar ({aiModelInfo(aiModel).note} ile {aiModelInfo(aiModel).cost}); sonuç 7 gün saklanır.
           </p>
           <button
             onClick={run}
@@ -153,7 +161,8 @@ export default function AiHype({ place, onResult }: { place: Place; onResult: (a
             </div>
           )}
           <p className="mt-3 text-[11px] text-slate-400 dark:text-[#857b74]">
-            {ago(analysis.at)} · Claude web araması ile. Yapay zekâ yanılabilir; kaynaklara bakarak doğrula.
+            {ago(analysis.at)} · {modelName(analysis.model)} web araması ile. Yapay zekâ yanılabilir; kaynaklara bakarak
+            doğrula.
           </p>
         </div>
       )}

@@ -1,4 +1,5 @@
 // Etrafimda ayarlari ve son tarama (yalnizca 'et-' onekli yerel anahtarlar).
+import { DEFAULT_AI_MODEL, type AiModel } from './ai'
 import { sameish } from './scan'
 import type { Place, ScanResult, SortId } from './types'
 
@@ -10,12 +11,20 @@ export type ViewMode = 'liste' | 'harita'
 export interface Settings {
   googleKey: string
   claudeKey: string // istege bagli: yapay zeka hype yorumu
+  aiModel: AiModel
   radiusM: number
   sort: SortId
   view: ViewMode
 }
 
-const DEFAULTS: Settings = { googleKey: '', claudeKey: '', radiusM: 1000, sort: 'mesafe', view: 'liste' }
+const DEFAULTS: Settings = {
+  googleKey: '',
+  claudeKey: '',
+  aiModel: DEFAULT_AI_MODEL,
+  radiusM: 1000,
+  sort: 'mesafe',
+  view: 'liste'
+}
 
 export const RADIUS_OPTIONS = [300, 500, 1000, 2000, 5000]
 

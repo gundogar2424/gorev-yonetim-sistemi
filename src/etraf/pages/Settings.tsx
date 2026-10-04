@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistance } from '../lib/geo'
-import { AI_MODEL, testClaudeKey } from '../lib/ai'
+import { AI_MODELS, aiModelInfo, testClaudeKey, type AiModel } from '../lib/ai'
 import { testGoogleKey } from '../lib/google'
 import { getSettings, RADIUS_OPTIONS, saveSettings } from '../lib/store'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
@@ -52,7 +52,7 @@ export default function Settings() {
   async function runClaudeTest() {
     setCTesting(true)
     setCTest('')
-    setCTest(await testClaudeKey(cKey))
+    setCTest(await testClaudeKey(cKey, s.aiModel))
     setCTesting(false)
   }
 
@@ -168,6 +168,18 @@ export default function Settings() {
               {cTesting ? 'Deneniyor…' : 'Anahtarı dene'}
             </button>
           </div>
+          <p className={`${body} mt-3 font-semibold`}>Model</p>
+          <Segment<AiModel>
+            value={s.aiModel}
+            options={AI_MODELS.map((m) => [m.id, m.label] as [AiModel, string])}
+            onChange={(v) => setS(saveSettings({ aiModel: v }))}
+          />
+          <p className="mt-1.5 text-[13px] text-slate-500 dark:text-[#a59b94]">
+            {s.aiModel === 'claude-sonnet-5-5'
+              ? "Claude Sonnet 5.5: Opus 5.5'in yaklaşık yarı fiyatı."
+              : 'Claude Opus 5.5: en yetenekli model, varsayılan.'}{' '}
+            Mekân başına {aiModelInfo(s.aiModel).cost}.
+          </p>
           {cTest && <p className="mt-2 text-[14px] text-slate-700 dark:text-[#d9d0c9] break-words">{cTest}</p>}
           <details className="mt-3">
             <summary className="text-[14px] font-semibold text-et-700 dark:text-et-300">Anahtar ve ücret</summary>
@@ -177,9 +189,9 @@ export default function Settings() {
               <li>Web araması Console › Settings › Privacy bölümünde açık olmalı (varsayılan açık).</li>
             </ol>
             <p className={`${body} mt-2`}>
-              Model: {AI_MODEL}. Her yorum en fazla 5 web araması yapar; mekân başına yaklaşık 0,10-0,30 $ tutar. Sonuç
-              7 gün bu cihazda saklanır, bu sürede aynı mekân için tekrar ücret çıkmaz (“Yenile” demedikçe). Anahtar
-              yalnızca bu cihazda durur ve doğrudan Anthropic'e gönderilir.
+              Her yorum en fazla 5 web araması yapar; mekân başına Opus 5.5 ile yaklaşık 0,10-0,30 $, Sonnet 5.5 ile
+              yaklaşık 0,06-0,15 $ tutar. Sonuç 7 gün bu cihazda saklanır, bu sürede aynı mekân için tekrar ücret çıkmaz
+              (“Yenile” demedikçe). Anahtar yalnızca bu cihazda durur ve doğrudan Anthropic'e gönderilir.
             </p>
           </details>
         </section>
