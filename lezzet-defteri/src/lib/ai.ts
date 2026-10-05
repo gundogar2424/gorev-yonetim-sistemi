@@ -254,6 +254,69 @@ async function geminiModelBul(haric: string[] = [], liteDahil = false): Promise<
   return adlar[0] ?? ''
 }
 
+// --- MALIYET KONTROLU ---------------------------------------------------------
+const HAFIF_MODEL = 'gemini-flash-lite-latest'
+const KEY_TASARRUF = 'lz-tasarruf'
+const KEY_KULLANIM = 'lz-kullanim'
+const KEY_SINIR = 'lz-gunluk-sinir'
+
+export function tasarrufModu(): boolean {
+  return oku(KEY_TASARRUF) !== '0'
+}
+export function tasarrufModuAyarla(v: boolean): void {
+  yaz(KEY_TASARRUF, v ? '1' : '0')
+}
+export function gunlukSinir(): number {
+  const n = Number(oku(KEY_SINIR))
+  return Number.isFinite(n) && n > 0 ? n : 100
+}
+export function gunlukSinirAyarla(n: number): void {
+  yaz(KEY_SINIR, String(Math.max(5, Math.round(n))))
+}
+
+type KullanimVerisi = { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number }
+export interface Kullanim {
+  gun: string
+  ay: string
+  bugun: { istek: number; girdi: number; cikti: number; arama: number }
+  buAy: { istek: number; girdi: number; cikti: number; arama: number }
+}
+function bugunAnahtari(): { gun: string; ay: string } {
+  const d = new Date()
+  const ay = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  return { gun: `${ay}-${String(d.getDate()).padStart(2, '0')}`, ay }
+}
+export function kullanimOku(): Kullanim {
+  const { gun, ay } = bugunAnahtari()
+  const bos = { istek: 0, girdi: 0, cikti: 0, arama: 0 }
+  let k: Kullanim = { gun, ay, bugun: { ...bos }, buAy: { ...bos } }
+  try {
+    const v = JSON.parse(oku(KEY_KULLANIM) || 'null') as Kullanim | null
+    if (v) k = v
+  } catch {
+    /* yok */
+  }
+  if (k.ay !== ay) k = { ...k, ay, buAy: { ...bos } }
+  if (k.gun !== gun) k = { ...k, gun, bugun: { ...bos } }
+  return k
+}
+function kullanimEkle(u: KullanimVerisi | undefined, arama: boolean): void {
+  const k = kullanimOku()
+  const girdi = u?.promptTokenCount ?? 0
+  const cikti = (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0)
+  for (const b of [k.bugun, k.buAy]) {
+    b.istek++
+    b.girdi += girdi
+    b.cikti += cikti
+    if (arama) b.arama++
+  }
+  yaz(KEY_KULLANIM, JSON.stringify(k))
+}
+function gunlukSinirKontrol(): void {
+  if (kullanimOku().bugun.istek >= gunlukSinir())
+    throw new Error(`Bugünkü yapay zeka sınırı (${gunlukSinir()} istek) doldu; yarın devam eder. Gerekirse Ayarlar → Harcama kontrolü’nden artır.`)
+}
+
 // Gemini 2.5: dusunme butcesi 0 (kapali); Gemini 3 ve "-latest" takma adlari: en dusuk seviye
 function dusunmeAyari(model: string): Record<string, unknown> {
   return /2\.5|2\.0/.test(model) && !/pro/.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'low' }
@@ -289,9 +352,18 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
     }
   }
 
-  let model = oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelAdi()
+  const asilModel = oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelAdi()
+  // TASARRUF: video/ses ve Google aramasi gerektirmeyen isler en ucuz modele (Flash-Lite) gider
+  const hafif = tasarrufModu() && !arama && !parcalar.some((p) => p.type === 'video' || p.type === 'youtube' || p.type === 'audio') && /^(|gemini-flash-latest|gemini-[\d.]+-flash)$/.test(oku(KEY_MODEL.gemini).trim())
+  let model = hafif ? HAFIF_MODEL : asilModel
+  gunlukSinirKontrol()
   const cagir = (semaIle: boolean) => geminiGonder(`models/${encodeURIComponent(model)}:generateContent`, govde(semaIle))
   let r = await cagir(true)
+  // Ucuz model bu anahtarda yoksa normal modelle devam
+  if (hafif && r.status === 404) {
+    model = asilModel
+    r = await cagir(true)
+  }
   // Model dusunme ayarini kabul etmezse ayarsiz tekrar dene
   if (r.status === 400 && /thinking/i.test(r.govde) && !anahtarHatasi(r)) {
     dusunmeKis = false
@@ -360,6 +432,7 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   } catch {
     throw new Error('Yapay zekadan anlaşılmayan bir yanıt geldi.')
   }
+  kullanimEkle((json as { usageMetadata?: KullanimVerisi }).usageMetadata, arama)
   const aday = json.candidates?.[0]
   if (!aday) throw new Error(json.promptFeedback?.blockReason ? 'Gemini bu içeriği işlemeyi reddetti.' : 'Gemini boş yanıt verdi.')
   const text = (aday.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? '').join('')

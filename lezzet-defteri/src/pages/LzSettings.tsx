@@ -19,6 +19,7 @@ import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
 import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
 import { placesAnahtari, placesAnahtariKaydet, placesTest } from '../lib/places'
+import { gunlukSinir, gunlukSinirAyarla, kullanimOku, tasarrufModu, tasarrufModuAyarla } from '../lib/ai'
 
 export default function LzSettings() {
   const [sag, setSag] = useState<Saglayici>(saglayici())
@@ -130,6 +131,8 @@ export default function LzSettings() {
           </div>
           {test && <p className={`text-[13px] ${T_GOVDE}`}>{test}</p>}
         </section>
+
+        <HarcamaKarti />
 
         <GoogleHaritalarKarti />
 
@@ -342,6 +345,68 @@ function GoogleHaritalarKarti() {
         </button>
       </div>
       {durum && <p className={`text-[13px] ${T_GOVDE}`}>{durum}</p>}
+    </section>
+  )
+}
+
+// Yapay zeka harcamasini kontrol altinda tutar: ucuz model, gunluk sinir, kullanim sayaci
+function HarcamaKarti() {
+  const [tasarruf, setTasarruf] = useState(tasarrufModu())
+  const [sinir, setSinir] = useState(String(gunlukSinir()))
+  const [kayit, setKayit] = useState(false)
+  const k = kullanimOku()
+  const bin = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace('.', ',')} milyon` : n >= 1000 ? `${Math.round(n / 1000)} bin` : String(n))
+  const satir = (ad: string, b: typeof k.bugun) => (
+    <div className={`text-[13px] ${T_GOVDE}`}>
+      <b>{ad}:</b> {b.istek} istek · {bin(b.girdi)} girdi + {bin(b.cikti)} çıktı birimi{b.arama ? ` · ${b.arama} Google araması` : ''}
+    </div>
+  )
+  return (
+    <section className="lz-card p-4 space-y-3">
+      <div className={`font-semibold ${T_BASLIK}`}>💰 Harcama kontrolü</div>
+      <label className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          className="w-5 h-5 mt-0.5 accent-[#d93d20]"
+          checked={tasarruf}
+          onChange={(e) => {
+            tasarrufModuAyarla(e.target.checked)
+            setTasarruf(e.target.checked)
+          }}
+        />
+        <span className={`text-[13.5px] ${T_GOVDE}`}>
+          <b>Tasarruf modu (önerilen)</b>
+          <br />
+          Video ve Google araması gerektirmeyen işler (yazıdan tarif, diyet karşılaştırma, sohbet, Thermomix) en ucuz modelle yapılır.
+        </span>
+      </label>
+      <div className="flex items-center gap-2">
+        <span className={`text-[13.5px] flex-1 ${T_GOVDE}`}>Günde en fazla istek</span>
+        <input className="lz-input w-24 text-center" inputMode="numeric" value={sinir} onChange={(e) => setSinir(e.target.value.replace(/\D/g, ''))} />
+        <button
+          className="lz-btn-soft px-3 text-sm"
+          onClick={() => {
+            gunlukSinirAyarla(Number(sinir) || 100)
+            setSinir(String(gunlukSinir()))
+            setKayit(true)
+            setTimeout(() => setKayit(false), 1500)
+          }}
+        >
+          {kayit ? '✓' : 'Kaydet'}
+        </button>
+      </div>
+      <p className={`text-[12px] ${T_SOLUK}`}>Sınır dolunca o gün yapay zeka durur; bir şey kontrolden çıkıp kredi eritemez.</p>
+      <div className="rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-1">
+        {satir('Bugün', k.bugun)}
+        {satir('Bu ay', k.buAy)}
+      </div>
+      <p className={`text-[12px] ${T_SOLUK}`}>
+        En çok harcayan: videolu tarifler ve Google aramaları (mekan, puan, kampanya). Kesin tutar için{' '}
+        <a href="https://aistudio.google.com/usage" target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
+          AI Studio kullanım sayfası
+        </a>
+        .
+      </p>
     </section>
   )
 }
