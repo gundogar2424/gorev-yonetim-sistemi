@@ -66,21 +66,6 @@ export default {
           800: '#0b5c5b',
           900: '#0a4b4a'
         },
-        // ETRAFIMDA'nin kendi rengi: canli bir mercan (kesif / "disari cik"
-        // cagrisimi). Beyaz yaziyla okunakli koyulukta (600). Yalnizca
-        // src/etraf/** kullanir; diger programlarin renkleri degismez.
-        et: {
-          50: '#fff3ef',
-          100: '#ffe2d9',
-          200: '#ffc3b1',
-          300: '#ff9c80',
-          400: '#f9734f',
-          500: '#ee5733',
-          600: '#d94424', // eylem rengi (butonlar, secili cip)
-          700: '#b3361c',
-          800: '#8d2d1b',
-          900: '#6f2819'
-        },
         // SES EGZERSIZI'nin kendi rengi: sicak, enerjik bir turuncu (ses/nefes
         // cagrisimi). Beyaz yaziyla okunakli koyulukta (600). Yalnizca
         // src/ses/** kullanir; diger programlarin renkleri degismez.
