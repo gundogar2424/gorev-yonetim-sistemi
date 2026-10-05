@@ -254,6 +254,11 @@ async function geminiModelBul(haric: string[] = [], liteDahil = false): Promise<
   return adlar[0] ?? ''
 }
 
+// Gemini 2.5: dusunme butcesi 0 (kapali); Gemini 3 ve "-latest" takma adlari: en dusuk seviye
+function dusunmeAyari(model: string): Record<string, unknown> {
+  return /2\.5|2\.0/.test(model) && !/pro/.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'low' }
+}
+
 async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object, maxTokens: number, arama = false): Promise<T> {
   const parts = parcalar.map((p) =>
     p.type === 'text'
@@ -264,6 +269,7 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   )
   // arama: Google aramasiyla desteklenen cevap (mekan adresi bulmak gibi); bu
   // durumda JSON modu kullanilamaz, sema metinle tarif edilir.
+  let dusunmeKis = true
   const govde = (semaIle0: boolean) => {
     const semaIle = semaIle0 && !arama
     return {
@@ -274,6 +280,9 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
         // Yeni Gemini modelleri cevaptan once "dusunur" ve bu da bu tavandan yer;
         // dar tavan cevabi yarida keser. Bu yuzden genis tutulur.
         maxOutputTokens: Math.max(maxTokens * 4, 8192),
+        // MALIYET: modelin cevaptan once "dusunmesi" en pahali kalemdir (cikti olarak ucretlenir);
+        // bu isler (tarif ayiklama, eslestirme) icin dusunme kapatilir / en aza indirilir.
+        ...(dusunmeKis ? { thinkingConfig: dusunmeAyari(model) } : {}),
         ...(arama ? {} : { responseMimeType: 'application/json' }),
         ...(semaIle ? { responseJsonSchema: schema } : {})
       }
@@ -283,6 +292,11 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   let model = oku(KEY_GEMINI_OTO) && !oku(KEY_MODEL.gemini) ? oku(KEY_GEMINI_OTO) : modelAdi()
   const cagir = (semaIle: boolean) => geminiGonder(`models/${encodeURIComponent(model)}:generateContent`, govde(semaIle))
   let r = await cagir(true)
+  // Model dusunme ayarini kabul etmezse ayarsiz tekrar dene
+  if (r.status === 400 && /thinking/i.test(r.govde) && !anahtarHatasi(r)) {
+    dusunmeKis = false
+    r = await cagir(true)
+  }
   // "Su an yogun" (503/500/429-kaynak tukendi): biraz bekleyip tekrar dene,
   // olmazsa baska bir flash modeline gec (yogunluk genelde tek modelde olur).
   const yogun = (x: { status: number; govde: string }) =>
