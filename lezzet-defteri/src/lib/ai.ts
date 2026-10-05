@@ -125,6 +125,10 @@ function hataMetni(status: number, govde: string): string {
   if (status === 401)
     return `${ad} anahtarı geçersiz bulundu. Anahtar eksik kopyalanmış olabilir: Google sayfasında anahtarın yanındaki KOPYALA simgesine basıp yeniden yapıştır; olmazsa yeni anahtar oluştur.`
   if (status === 403) return `${ad} anahtarının bu modele erişimi yok ya da bakiye yetersiz.`
+  if (status === 402 || /prepayment credits|credits are depleted|insufficient.*(credit|balance)/i.test(govde))
+    return saglayici() === 'gemini'
+      ? 'Gemini ön ödemeli kredin bitti. Uygulamada sorun yok; kredi yükleyince devam eder: ai.studio/projects → projen → Faturalandırma (Billing) → kredi ekle. İstersen otomatik yüklemeyi aç.'
+      : 'Claude hesabındaki bakiye bitti; console.anthropic.com → Billing’den bakiye yükle.'
   if (status === 404) return `Model bulunamadı (${modelAdi()}). Ayarlar’dan modeli değiştir.`
   if (status === 429)
     return saglayici() === 'gemini'
@@ -334,7 +338,7 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
     } catch {
       /* yok */
     }
-    throw new Error(`${hataMetni(r.status, r.govde)}${ayrinti && r.status !== 429 ? ` [Google: ${ayrinti.slice(0, 140)}]` : ''}`)
+    throw new Error(`${hataMetni(r.status, r.govde)}${ayrinti && r.status !== 429 && r.status !== 402 ? ` [Google: ${ayrinti.slice(0, 140)}]` : ''}`)
   }
   let json: { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] }; finishReason?: string }[]; promptFeedback?: { blockReason?: string } }
   try {
