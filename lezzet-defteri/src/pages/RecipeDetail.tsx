@@ -204,7 +204,23 @@ export default function RecipeDetail() {
             )}
           </div>
           {malzemeler.length === 0 ? (
-            <p className={`text-sm ${T_SOLUK}`}>Malzeme yazılmamış.</p>
+            <div className="space-y-2">
+              <p className={`text-sm ${T_SOLUK}`}>Malzeme yazılmamış.</p>
+              {r.sourceUrl && (
+                <button
+                  className="lz-btn-primary w-full text-sm"
+                  onClick={async () => {
+                    if (!confirm('Tarif kaynaktan (açıklama, video ve paylaşanın yorumu) yeniden çıkarılsın mı? Bu kayıt silinip yenisi eklenecek.')) return
+                    const url = r.sourceUrl
+                    await deleteRecipe(r.id!)
+                    await siraEkle(url, 'tarif', true)
+                    navigate('/sira', { replace: true })
+                  }}
+                >
+                  ↻ Kaynaktan yeniden çıkar
+                </button>
+              )}
+            </div>
           ) : (
             <ul className="divide-y divide-[#f3ebe2] dark:divide-[#2a2420]">
               {malzemeler.map((m, i) => (

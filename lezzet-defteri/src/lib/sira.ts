@@ -13,7 +13,7 @@ import { mekanLinktenEkle } from './mekan'
 import { linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
 
 
-export async function siraEkle(girdi: string, tur?: 'tarif' | 'mekan'): Promise<void> {
+export async function siraEkle(girdi: string, tur?: 'tarif' | 'mekan', zorla = false): Promise<void> {
   const metin = girdi.trim()
   if (!metin) return
   const url = linkAyikla(metin)
@@ -22,7 +22,7 @@ export async function siraEkle(girdi: string, tur?: 'tarif' | 'mekan'): Promise<
   const ayni = await lzDb.sira.filter((x) => (linkAyikla(x.girdi) || x.girdi) === anahtar && (x.durum === 'bekliyor' || x.durum === 'isleniyor')).count()
   if (ayni) return
   const now = Date.now()
-  await lzDb.sira.add({ girdi: metin, tur, durum: 'bekliyor', mesaj: tur === 'mekan' ? 'Sırada (mekan)' : 'Sırada', recipeId: 0, baslik: url ? kisaLink(url) : metin.slice(0, 50), createdAt: now, updatedAt: now })
+  await lzDb.sira.add({ girdi: metin, tur, zorla, durum: 'bekliyor', mesaj: tur === 'mekan' ? 'Sırada (mekan)' : 'Sırada', recipeId: 0, baslik: url ? kisaLink(url) : metin.slice(0, 50), createdAt: now, updatedAt: now })
   void siraIsle()
 }
 

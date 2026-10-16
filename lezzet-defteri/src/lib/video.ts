@@ -77,8 +77,8 @@ export function videoAdresiBul(html: string, platform: LzPlatform): string {
 // --- Instagram herkese acik veri servisi ----------------------------------------
 // Sayfa ve gomme sayfasi video adresini vermezse Instagram'in web sitesinin
 // kendi kullandigi GraphQL sorgusu denenir (girissiz, herkese acik gonderiler).
-export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string }> {
-  const bos = { videoUrl: '', aciklama: '', kapak: '' }
+export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string; sahipYorumlari: string }> {
+  const bos = { videoUrl: '', aciklama: '', kapak: '', sahipYorumlari: '' }
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
   if (!Capacitor.isNativePlatform()) return bos
   const lsd = 'AVqbxe3J_YA'
@@ -102,15 +102,33 @@ export async function instagramVeri(kod: string): Promise<{ videoUrl: string; ac
       },
       data: form
     })
+    type Yorum = { node?: { text?: string; owner?: { username?: string } } }
     const j = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as {
-      data?: { xdt_shortcode_media?: { video_url?: string; display_url?: string; edge_media_to_caption?: { edges?: { node?: { text?: string } }[] } } }
+      data?: {
+        xdt_shortcode_media?: {
+          video_url?: string
+          display_url?: string
+          owner?: { username?: string }
+          edge_media_to_caption?: { edges?: { node?: { text?: string } }[] }
+          edge_media_to_parent_comment?: { edges?: Yorum[] }
+          edge_media_to_comment?: { edges?: Yorum[] }
+          edge_media_preview_comment?: { edges?: Yorum[] }
+        }
+      }
     }
     const m = j?.data?.xdt_shortcode_media
     if (!m) return bos
+    // "Tarif yorumda" paylasimlari: paylasanin kendi yorumlari (tarif cogu zaman ilk/sabit yorumdadir)
+    const sahip = m.owner?.username ?? ''
+    const yorumlar = [...(m.edge_media_to_parent_comment?.edges ?? []), ...(m.edge_media_to_comment?.edges ?? []), ...(m.edge_media_preview_comment?.edges ?? [])]
+    const sahipYorumlari = Array.from(
+      new Set(yorumlar.filter((y) => sahip && y.node?.owner?.username === sahip).map((y) => (y.node?.text ?? '').trim()).filter(Boolean))
+    ).join('\n\n')
     return {
       videoUrl: m.video_url ?? '',
       aciklama: m.edge_media_to_caption?.edges?.[0]?.node?.text ?? '',
-      kapak: m.display_url ?? ''
+      kapak: m.display_url ?? '',
+      sahipYorumlari
     }
   } catch {
     return bos

@@ -109,27 +109,36 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
   }
 
   let videoUrl = videoAdresiBul(s.html, s.draft.platform)
+  let gommeYorumlari = ''
   const kod = url.match(/instagram\.com\/(?:[^/]+\/)?(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/)?.[1]
-  if (!videoUrl && kod) {
-    // Instagram'in gomme sayfasi girissiz de video adresini ve aciklamayi verir
+  if (kod && (!videoUrl || /yorum|comment|👇/i.test(parca.aciklama) || parca.aciklama.length < 200)) {
+    // Instagram'in gomme sayfasi girissiz de video adresini, aciklamayi ve ilk yorumlari verir
     try {
       const gomme = await metinIndir(`https://www.instagram.com/p/${kod}/embed/captioned/`, ua)
-      videoUrl = videoAdresiBul(gomme, 'instagram')
+      videoUrl = videoUrl || videoAdresiBul(gomme, 'instagram')
       if (!parca.aciklama) {
         const c = gomme.match(/class="Caption"[^>]*>([\s\S]*?)<div class="CaptionComments"/)
         if (c) parca.aciklama = c[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').trim()
       }
+      // Gomme sayfasindaki ilk yorumlar ("tarif yorumda" paylasimlari icin)
+      const yc = gomme.match(/<div class="CaptionComments"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/)
+      if (yc) gommeYorumlari = yc[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').trim()
     } catch {
       /* gomme sayfasi da kapali */
     }
   }
-  if (!videoUrl && kod) {
-    ilerleme('Instagram’dan video bilgisi isteniyor…')
+  // Aciklama "tarif yorumda" diyorsa (ya da cok kisaysa) paylasanin yorumlari da alinir
+  const yorumdaMi = /yorum|comment|👇|aç[ıi]klama(da|lar)/i.test(parca.aciklama) || parca.aciklama.length < 200
+  if (kod && (!videoUrl || yorumdaMi)) {
+    ilerleme(videoUrl ? 'Paylaşanın yorumları okunuyor…' : 'Instagram’dan video bilgisi isteniyor…')
     const v = await instagramVeri(kod)
-    videoUrl = v.videoUrl
+    if (!videoUrl) videoUrl = v.videoUrl
     if (v.aciklama.length > parca.aciklama.length) parca.aciklama = v.aciklama
-    if (v.kapak) kapak = v.kapak
+    if (v.kapak && !kapak) kapak = v.kapak
+    if (v.sahipYorumlari) parca.aciklama += `\n\nPAYLAŞANIN KENDİ YORUMU (tarif burada olabilir):\n${v.sahipYorumlari}`
   }
+  if (gommeYorumlari && yorumdaMi && !parca.aciklama.includes('PAYLAŞANIN KENDİ YORUMU'))
+    parca.aciklama += `\n\nPAYLAŞIMIN İLK YORUMLARI (yalnızca paylaşanın kendi yorumundaki tarifi kullan):\n${gommeYorumlari.slice(0, 4000)}`
   if (!videoUrl) {
     notlar.push('video dosyasına ulaşılamadı (Instagram izin vermedi ya da paylaşım gizli)')
     return { parca, kapak, notlar }
