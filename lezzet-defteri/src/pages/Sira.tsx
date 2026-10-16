@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzSira } from '../types'
 import { Header, Icon, T_BASLIK, T_SOLUK } from '../components/ui'
-import { mekanOlarakTekrar, siraTekrar } from '../lib/sira'
+import { mekanOlarakTekrar, siraIsle, siraTekrar } from '../lib/sira'
 
 const IKON: Record<LzSira['durum'], string> = { bekliyor: '⏳', isleniyor: '⚙️', bitti: '✅', hata: '⚠️' }
 
@@ -12,6 +12,7 @@ export default function Sira() {
   const liste = useLiveQuery(() => lzDb.sira.orderBy('createdAt').reverse().toArray(), [], [] as LzSira[]) ?? []
   const bekleyen = liste.filter((x) => x.durum === 'bekliyor' || x.durum === 'isleniyor').length
   const biten = liste.filter((x) => x.durum === 'bitti')
+  const hatali = liste.filter((x) => x.durum === 'hata')
 
   return (
     <div>
@@ -21,6 +22,17 @@ export default function Sira() {
           Instagram, TikTok ya da YouTube’dan art arda “Paylaş → Lezzet Defteri” diyebilirsin; tarifler sırayla işlenip deftere kendiliğinden
           eklenir. Uygulama kapanırsa sıra kaybolmaz, açınca devam eder.
         </p>
+        {hatali.length > 1 && (
+          <button
+            className="lz-btn-primary w-full text-sm"
+            onClick={async () => {
+              for (const x of hatali) await lzDb.sira.update(x.id!, { durum: 'bekliyor', mesaj: 'Sırada', updatedAt: Date.now() })
+              void siraIsle()
+            }}
+          >
+            ↻ Hatalıların hepsini tekrar dene ({hatali.length})
+          </button>
+        )}
         {liste.length === 0 && <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>Sırada tarif yok.</div>}
         {liste.map((x) => (
           <div key={x.id} className="lz-card p-3.5 flex gap-3 items-start">
