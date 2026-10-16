@@ -10,6 +10,7 @@ import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
 import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
+import { aiIleAyikla, apiAnahtari } from '../lib/ai'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -206,9 +207,10 @@ export default function RecipeDetail() {
           {malzemeler.length === 0 ? (
             <div className="space-y-2">
               <p className={`text-sm ${T_SOLUK}`}>Malzeme yazılmamış.</p>
+              <YorumdanTarif id={r.id!} baslik={r.title} notlar={r.notes} />
               {r.sourceUrl && (
                 <button
-                  className="lz-btn-primary w-full text-sm"
+                  className="lz-btn-soft w-full text-sm"
                   onClick={async () => {
                     if (!confirm('Tarif kaynaktan (açıklama, video ve paylaşanın yorumu) yeniden çıkarılsın mı? Bu kayıt silinip yenisi eklenecek.')) return
                     const url = r.sourceUrl
@@ -408,5 +410,56 @@ export function PlanSec({ open, onClose, onSec }: { open: boolean; onClose: () =
         })}
       </div>
     </Sheet>
+  )
+}
+
+// "Tarif yorumda" paylasimlari: Instagram yorumlari girissiz okunamadigi icin kullanici
+// yorumu kopyalayip buraya yapistirir; yapay zeka malzeme ve adimlari bu tarife yazar.
+function YorumdanTarif({ id, baslik, notlar }: { id: number; baslik: string; notlar: string }) {
+  const [metin, setMetin] = useState('')
+  const [calisiyor, setCalisiyor] = useState(false)
+  const [hata, setHata] = useState('')
+  const yapistir = async () => {
+    try {
+      setMetin(await navigator.clipboard.readText())
+    } catch {
+      setHata('Pano okunamadı; kutuya uzun basıp “Yapıştır” de.')
+    }
+  }
+  const isle = async () => {
+    setHata('')
+    setCalisiyor(true)
+    try {
+      const t = await aiIleAyikla(metin, baslik)
+      await updateRecipe(id, {
+        ingredients: t.ingredients ?? [],
+        steps: t.steps ?? [],
+        ...(t.servings ? { servings: t.servings } : {}),
+        ...(t.minutes ? { minutes: t.minutes } : {}),
+        notes: [notlar, t.notes].filter(Boolean).join('\n\n'),
+        ...(t.tags?.length ? { tags: t.tags } : {}),
+        kontrol: undefined
+      })
+    } catch (e) {
+      setHata((e as Error).message)
+    }
+    setCalisiyor(false)
+  }
+  return (
+    <div className="rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-2">
+      <p className={`text-[13px] ${T_GOVDE}`}>
+        Tarif paylaşımın <b>yorumunda</b> mı? Instagram’da yoruma uzun basıp <b>Kopyala</b> de, buraya yapıştır.
+      </p>
+      <textarea className="lz-input min-h-[90px] text-[14px]" placeholder="Yorumdaki tarifi buraya yapıştır" value={metin} onChange={(e) => setMetin(e.target.value)} />
+      <div className="grid grid-cols-2 gap-2">
+        <button className="lz-btn-soft text-sm" onClick={() => void yapistir()}>
+          📋 Panodan yapıştır
+        </button>
+        <button className="lz-btn-primary text-sm" disabled={!apiAnahtari() || metin.trim().length < 15 || calisiyor} onClick={() => void isle()}>
+          {calisiyor ? 'Okunuyor…' : '✨ Tarife ekle'}
+        </button>
+      </div>
+      {hata && <p className="text-[12.5px] text-rose-600 dark:text-rose-300">⚠️ {hata}</p>}
+    </div>
   )
 }
