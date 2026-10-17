@@ -5,7 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
-import { konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
+import { adrestenKonum, konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
 import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal } from '../lib/hesaplar'
 import { YeniListe, adNormal, hesapParca, onunMekanlari } from './Takip'
 
@@ -59,15 +59,21 @@ export default function Influencer() {
         })
         yer = (await konumdanAdres(k)) || `${k.lat.toFixed(3)}, ${k.lon.toFixed(3)}`
         mesafe = km
-      } else if (!hizli && yerSecim === 'sehir' && sehir.trim()) yer = sehir.trim()
+      } else if (!hizli && yerSecim === 'sehir' && sehir.trim()) {
+        // Yazilan semt haritada bulunursa o noktanin cevresi (secilen km) aranir
+        yer = sehir.trim()
+        setDurum('Semt bulunuyor…')
+        k = await adrestenKonum(yer).catch(() => undefined)
+        if (k) mesafe = km
+      }
       const t = hizli ? 'Hepsi' : tur
       const istek = [
         z === 'son' ? 'Bu hesabın SON 60 GÜNDE paylaştığı/gittiği mekanlar, en yeniden eskiye.' : 'Bu hesabın bugüne kadar paylaştığı/tanıttığı mekanlar.',
         t !== 'Hepsi' && `Yalnızca ${t} mekanları.`,
         !hizli && ovdu && 'YALNIZCA en çok övdüğü, "kesinlikle gidin" dediği ya da yüksek puan verdiği yerler; en beğendiğinden başla.',
-        !hizli && yerSecim === 'sehir' && sehir.trim() && `Yalnızca ${sehir.trim()} içindekiler.`,
+        !hizli && yerSecim === 'sehir' && sehir.trim() && `Yalnızca ${sehir.trim()} ve yakın çevresindekiler.`,
         'populerlik alanına paylaşım tarihini ve mekan hakkında ne dediğini yaz.',
-        hizli || yerSecim !== 'yakin' ? 'Bulunduğum yere yakınlık şart değil.' : ''
+        hizli || yerSecim === 'her' ? 'Bulunduğum yere yakınlık şart değil.' : ''
       ]
         .filter(Boolean)
         .join(' ')
@@ -97,7 +103,7 @@ export default function Influencer() {
       setBaslik(
         hizli
           ? 'Son gittiği yeni yerler'
-          : [z === 'son' ? 'Son 2 ay' : 'Tüm zamanlar', t !== 'Hepsi' && t, ovdu && 'en çok övdükleri', yerSecim === 'yakin' ? `${mesafe} km içinde` : yerSecim === 'sehir' && sehir.trim()]
+          : [z === 'son' ? 'Son 2 ay' : 'Tüm zamanlar', t !== 'Hepsi' && t, ovdu && 'en çok övdükleri', yerSecim === 'yakin' ? `${mesafe} km içinde` : yerSecim === 'sehir' && `${sehir.trim()}${mesafe ? ` · ${mesafe} km` : ''}`]
               .filter(Boolean)
               .join(' · ')
       )
@@ -159,7 +165,7 @@ export default function Influencer() {
               <Secim on={yerSecim === 'yakin'} onClick={() => setYerSecim('yakin')}>Yakınımda</Secim>
               <Secim on={yerSecim === 'sehir'} onClick={() => setYerSecim('sehir')}>Şehir / semt</Secim>
             </div>
-            {yerSecim === 'yakin' && (
+            {yerSecim !== 'her' && (
               <div className="flex gap-1.5">
                 {[3, 5, 10, 25].map((x) => (
                   <button key={x} className={`lz-chip justify-center flex-1 text-[12.5px] ${km === x ? 'lz-chip-on' : ''}`} onClick={() => setKm(x)}>
@@ -168,7 +174,7 @@ export default function Influencer() {
                 ))}
               </div>
             )}
-            {yerSecim === 'sehir' && <input className="lz-input py-2 text-[14px]" placeholder="Ör. Bursa, Kadıköy, İzmir Alsancak" value={sehir} onChange={(e) => setSehir(e.target.value)} />}
+            {yerSecim === 'sehir' && <input className="lz-input py-2 text-[14px]" placeholder="Semt ya da şehir yaz: Moda Kadıköy, Nilüfer Bursa" value={sehir} onChange={(e) => setSehir(e.target.value)} />}
           </div>
           <div className="space-y-1.5">
             <div className="lz-label">Ne yemek</div>
