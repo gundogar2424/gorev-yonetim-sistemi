@@ -22,6 +22,7 @@ import GeziPlani from './pages/GeziPlani'
 import MekanOner from './pages/MekanOner'
 import HypeTarifler from './pages/HypeTarifler'
 import Takip from './pages/Takip'
+import Harcamalarim from './pages/Harcamalarim'
 import Influencer from './pages/Influencer'
 import { bekciBaslat, siraBaslat, siraBekci, siraEkle } from './lib/sira'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -101,6 +102,7 @@ export default function LzApp() {
           <Route path="/oner" element={<MekanOner />} />
           <Route path="/hype" element={<HypeTarifler />} />
           <Route path="/takip" element={<Takip />} />
+          <Route path="/harcamalarim" element={<Harcamalarim />} />
           <Route path="/influencer/:h" element={<Influencer />} />
           <Route path="/tarif/:id/degistir" element={<TarifDegistir />} />
           <Route path="/diyet" element={<Diyetim />} />

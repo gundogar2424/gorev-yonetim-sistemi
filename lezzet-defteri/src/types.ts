@@ -169,4 +169,5 @@ export interface LzZiyaret {
   yedim: string // ne yedim / ne ictim
   not: string
   tekrar: string // bir daha gelirsem bunu yerim
+  tutar?: number // hesabi ben odediysem kac TL
 }

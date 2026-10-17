@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import { ReklamRozeti } from './Takip'
+import { tlYaz, tutarOku } from '../lib/harcama'
 import type { LzMekan, LzZiyaret } from '../types'
 import { Header, Icon, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { fiyatlariGuncelle, haritadaAcLinki, instagramLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
@@ -496,10 +497,13 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
   const liste = m.ziyaretler ?? []
   const sirali = liste.map((x, i) => ({ x, i })).sort((a, b) => b.x.tarih.localeCompare(a.x.tarih))
   const puanlilar = liste.filter((x) => x.puan)
+  const odenen = liste.reduce((t, x) => t + (x.tutar || 0), 0)
+  const [tutarYazi, setTutarYazi] = useState('')
   const ortalama = puanlilar.length ? puanlilar.reduce((t, x) => t + x.puan, 0) / puanlilar.length : 0
 
   const yeni = () => {
     setZ({ tarih: bugun(), puan: 0, yedim: '', not: '', tekrar: '' })
+    setTutarYazi('')
     setDuzenlenen(-1)
     setAcik(true)
   }
@@ -507,6 +511,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
   useEffect(() => {
     if (!otoAc) return
     setZ({ tarih: bugun(), puan: 0, yedim: otoAc.yedim, not: '', tekrar: '' })
+    setTutarYazi('')
     setDuzenlenen(-1)
     setAcik(true)
   }, [])
@@ -529,6 +534,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
         <div className={`flex-1 font-semibold ${T_BASLIK}`}>
           Ziyaretlerim{liste.length ? ` (${liste.length})` : ''}
           {ortalama ? <span className="ml-2 text-[13px] font-normal text-amber-600 dark:text-amber-300">puanım ★ {ortalama.toFixed(1).replace('.', ',')}</span> : null}
+          {odenen ? <span className={`block text-[12.5px] font-normal ${T_SOLUK}`}>Burada toplam ödediğim: {tlYaz(odenen)}</span> : null}
         </div>
       </div>
       {sirali.map(({ x, i }) => (
@@ -537,6 +543,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
           className="w-full text-left rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-0.5"
           onClick={() => {
             setZ(x)
+            setTutarYazi('')
             setDuzenlenen(i)
             setAcik(true)
           }}
@@ -547,6 +554,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
           {x.yedim && <div className={`text-[13px] ${T_GOVDE}`}>{x.yedim}</div>}
           {x.not && <div className={`text-[13px] ${T_SOLUK}`}>{x.not}</div>}
           {x.tekrar && <div className="text-[13px] text-amber-700 dark:text-amber-300">Bir dahaki sefere: {x.tekrar}</div>}
+          {!!x.tutar && <div className={`text-[13px] font-semibold ${T_GOVDE}`}>Ödediğim: {tlYaz(x.tutar)}</div>}
         </button>
       ))}
       <button className={`w-full text-sm ${liste.length ? 'lz-btn-soft' : 'lz-btn-primary'}`} onClick={yeni}>
@@ -571,6 +579,19 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
           <label className="block">
             <span className="lz-label">Notum</span>
             <textarea className="lz-input mt-1 min-h-[70px]" placeholder="Ör. İskender çok iyiydi, künefe biraz şekerliydi; servis hızlı" value={z.not} onChange={(e) => setZ({ ...z, not: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="lz-label">Hesabı ben ödediysem (TL)</span>
+            <input
+              className="lz-input mt-1"
+              inputMode="decimal"
+              placeholder="Ör. 1.250 — ödemediysen boş bırak"
+              value={tutarYazi || (z.tutar ? String(z.tutar).replace('.', ',') : '')}
+              onChange={(e) => {
+                setTutarYazi(e.target.value)
+                setZ({ ...z, tutar: tutarOku(e.target.value) })
+              }}
+            />
           </label>
           <label className="block">
             <span className="lz-label">Bir daha gelirsem…</span>

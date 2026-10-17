@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import { ReklamRozeti } from './Takip'
+import { bugunAyYil, odemeler, tlYaz } from '../lib/harcama'
 import type { LzMekan } from '../types'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
@@ -172,6 +173,23 @@ export default function Mekanlar() {
           </span>
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
         </button>
+        <Link to="/harcamalarim" className="lz-card p-3.5 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-[#10261e] text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-[15px] font-bold">
+            ₺
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Harcamalarım</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>
+              {(() => {
+                const { ay, yil } = bugunAyYil()
+                const l = odemeler(liste)
+                const t = (k: string) => l.filter((o) => o.tarih.startsWith(k)).reduce((s, o) => s + o.tutar, 0)
+                return l.length ? `Bu ay ${tlYaz(t(ay))} · bu yıl ${tlYaz(t(yil))}` : 'Gittiğin yerlerde ödediğin hesaplar'
+              })()}
+            </span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
         <KampanyaKarti liste={liste} />
         {/* Nerede oldugun */}
         <div className="lz-card p-4 space-y-2.5">
