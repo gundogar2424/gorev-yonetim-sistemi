@@ -37,11 +37,6 @@ export function sayiYaz(n: number): string {
   return (Math.round(n * 10) / 10).toLocaleString('tr-TR')
 }
 
-// Miktari olmayan satir mi? ("Kakao", "Bir miktar süt")
-export function miktarsizMi(satir: string): boolean {
-  return !BAS.test(satir.replace(/^~\s*/, '').trim())
-}
-
 export function olcekle(satir0: string, carpan: number): string {
   if (carpan === 1) return satir0
   // "~2 yemek kaşığı …" (tahmini miktar) da olceklenir; isaret korunur
