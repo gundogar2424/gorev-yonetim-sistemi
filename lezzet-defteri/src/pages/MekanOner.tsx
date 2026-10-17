@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
@@ -107,6 +107,7 @@ export default function MekanOner() {
   const [onbellekten, setOnbellekten] = useState(0)
 
   const [oto, setOto] = useState(otoKontrol())
+  const [secilenOgun, setSecilenOgun] = useState(-1)
   // Takip edilen hesaplarin son tanittigi, kayitli olmayan yeni mekanlar
   const yeniAra = async () => {
     setHata('')
@@ -125,6 +126,11 @@ export default function MekanOner() {
     }
     setDurum('')
   }
+
+  // Sonuc gelince listeye kaydir (secim ekranin ustunde kaliyor, sonuclar asagida)
+  useEffect(() => {
+    if (sonuclar.length) setTimeout(() => document.getElementById('oneri-sonuclar')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+  }, [sonuclar])
 
   const ara = async (istekMetni = istek, hesap = '', diyet = '', yemek?: Yemek, yenile = false) => {
     setHata('')
@@ -284,6 +290,13 @@ export default function MekanOner() {
             </button>
           ))}
         </div>
+        {/* Hangi sekmede basilirsa basilsin arama suruyor bilgisi gorunsun */}
+        {durum && (
+          <div className="lz-card p-3.5 flex items-center gap-3">
+            <span className="w-5 h-5 rounded-full border-[2.5px] border-lz-600 border-t-transparent animate-spin flex-shrink-0" />
+            <span className={`text-[14px] font-medium ${T_GOVDE}`}>{durum}</span>
+          </div>
+        )}
         {!aiVar && (
           <p className="text-[12.5px] text-rose-600 dark:text-rose-300">
             Bunun için{' '}
@@ -359,9 +372,10 @@ export default function MekanOner() {
               {plan.ogunler.map((o, i) => (
                 <button
                   key={i}
-                  className="lz-chip text-[13px]"
+                  className={`lz-chip text-[13px] ${secilenOgun === i ? 'lz-chip-on' : ''}`}
                   disabled={!aiVar || !!durum}
-                  onClick={() =>
+                  onClick={() => {
+                    setSecilenOgun(i)
                     void ara(
                       `${o.ad} için diyetime uygun yemek yiyebileceğim restoran`,
                       '',
@@ -371,7 +385,7 @@ export default function MekanOner() {
                         o.hedef.yag
                       )} g` + (plan.notlar ? `\nPlanın genel kuralları: ${plan.notlar.slice(0, 800)}` : '')
                     )
-                  }
+                  }}
                 >
                   {o.ad}
                 </button>
@@ -475,7 +489,7 @@ export default function MekanOner() {
         )}
 
         {sonuclar.length > 0 && (
-          <div className={`flex items-center gap-2 px-1 text-[12.5px] ${T_SOLUK}`}>
+          <div id="oneri-sonuclar" className={`scroll-mt-24 flex items-center gap-2 px-1 text-[12.5px] ${T_SOLUK}`}>
             <span className="flex-1">
               {aktifYemek ? `${aktifYemek.ad}: en yüksek puanlıdan` : `${sonuclar.length} öneri, yakından uzağa`}
               {km ? ` · ${km} km içinde` : ''}
