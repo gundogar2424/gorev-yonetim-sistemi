@@ -32,6 +32,7 @@ export default function Influencer() {
   // Profil fotografi: kayitli degilse Instagram'dan bir kez getirilir
   const [foto, setFoto] = useState(hesapFoto(h))
   const [kirpilacak, setKirpilacak] = useState('')
+  const [aramaAcik, setAramaAcik] = useState(false)
   useEffect(() => {
     if (!foto) void hesapFotoGetir(h).then((f) => f && setFoto(f))
   }, [h])
@@ -129,109 +130,59 @@ export default function Influencer() {
 
   return (
     <div>
-      <Header title={ad} subtitle={platform || 'Influencer'} back />
+      <Header title="" back />
       <div className="px-4 space-y-3 pb-8">
-        <div className="lz-card p-4 flex items-center gap-4">
-          {/* Fotografa dokun: galeriden sec (otomatik bulunamadiysa ya da degistirmek icin) */}
-          <label className="relative flex-shrink-0 cursor-pointer" aria-label="Profil fotoğrafını değiştir">
-            <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-20 h-20 text-[26px]" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white dark:bg-[#26262a] border border-[#e4e3e0] dark:border-[#3a3a40] flex items-center justify-center text-[#52525b] dark:text-[#d4d4d8]">
-              <Icon name="edit" className="w-3.5 h-3.5" />
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={async (e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                e.target.value = ''
-                // Ekran goruntusu buyuk olabilir: once kucultulur, sonra kirpma ekrani acilir
-                const d = await fotoOku(f, 1400).catch(() => '')
-                if (!d) return goster('Fotoğraf açılamadı')
-                setKirpilacak(d)
-              }}
-            />
-          </label>
-          <div className="flex-1 grid grid-cols-3 text-center">
-            {(
-              [
-                [onun.length, 'mekan'],
-                [gidilen, 'gittin'],
-                [onun.length - gidilen, 'gitmedin']
-              ] as const
-            ).map(([n, e]) => (
-              <div key={e}>
-                <div className={`text-[20px] font-bold ${T_BASLIK}`}>{n}</div>
-                <div className={`text-[12px] ${T_SOLUK}`}>{e}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <a href={profilLinki(h)} target="_blank" rel="noreferrer" className="lz-btn-soft text-[14px]">
-            Profilini aç
-          </a>
-          <button className="lz-btn-primary text-[14px]" disabled={!apiAnahtari() || !!durum} onClick={() => void ara('yeni')}>
-            Yeni gittiği yerler
-          </button>
-        </div>
-
-        <div className="lz-card p-4 space-y-3">
-          <div className={`font-semibold ${T_BASLIK}`}>Gittiği yerlerde ara</div>
-          <div className="space-y-1.5">
-            <div className="lz-label">Ne zaman</div>
-            <div className="flex flex-wrap gap-1.5">
-              <Secim on={zaman === 'tum'} onClick={() => setZaman('tum')}>Tüm zamanlar</Secim>
-              <Secim on={zaman === 'son'} onClick={() => setZaman('son')}>Son 2 ay</Secim>
+        {/* PROFIL: en ustte buyuk fotograf, ad, platform ve sayilar */}
+        <div className="lz-card p-5 space-y-4">
+          <div className="flex flex-col items-center text-center gap-2">
+            {/* Fotografa dokun: galeriden sec (otomatik bulunamadiysa ya da degistirmek icin) */}
+            <label className="relative flex-shrink-0 cursor-pointer" aria-label="Profil fotoğrafını değiştir">
+              <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-20 h-20 text-[26px]" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white dark:bg-[#26262a] border border-[#e4e3e0] dark:border-[#3a3a40] flex items-center justify-center text-[#52525b] dark:text-[#d4d4d8]">
+                <Icon name="edit" className="w-3.5 h-3.5" />
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  e.target.value = ''
+                  // Ekran goruntusu buyuk olabilir: once kucultulur, sonra kirpma ekrani acilir
+                  const d = await fotoOku(f, 1400).catch(() => '')
+                  if (!d) return goster('Fotoğraf açılamadı')
+                  setKirpilacak(d)
+                }}
+              />
+            </label>
+            <div>
+              <div className={`text-[22px] font-bold tracking-tight ${T_BASLIK}`}>{ad}</div>
+              <div className={`text-[13px] ${T_SOLUK}`}>{platform || 'Influencer'}</div>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <div className="lz-label">Nerede</div>
-            <div className="flex flex-wrap gap-1.5">
-              <Secim on={yerSecim === 'her'} onClick={() => setYerSecim('her')}>Her yer</Secim>
-              <Secim on={yerSecim === 'yakin'} onClick={() => setYerSecim('yakin')}>Yakınımda</Secim>
-              <Secim on={yerSecim === 'sehir'} onClick={() => setYerSecim('sehir')}>Şehir / semt</Secim>
-            </div>
-            {yerSecim !== 'her' && (
-              <div className="flex gap-1.5">
-                {[3, 5, 10, 25].map((x) => (
-                  <button key={x} className={`lz-chip justify-center flex-1 text-[12.5px] ${km === x ? 'lz-chip-on' : ''}`} onClick={() => setKm(x)}>
-                    {x} km
-                  </button>
-                ))}
-              </div>
-            )}
-            {yerSecim === 'sehir' && <input className="lz-input py-2 text-[14px]" placeholder="Semt ya da şehir yaz: Moda Kadıköy, Nilüfer Bursa" value={sehir} onChange={(e) => setSehir(e.target.value)} />}
-          </div>
-          <div className="space-y-1.5">
-            <div className="lz-label">Ne yemek</div>
-            <div className="flex flex-wrap gap-1.5">
-              {['Hepsi', 'Kahvaltı', 'Kebap / et', 'Balık', 'Tatlı / pastane', 'Sokak lezzeti', 'Esnaf lokantası', 'Fine dining', 'Kahve'].map((x) => (
-                <Secim key={x} on={tur === x} onClick={() => setTur(x)}>
-                  {x}
-                </Secim>
+            <div className="grid grid-cols-3 text-center border-t border-[#efefed] dark:border-[#26262a] pt-3">
+              {(
+                [
+                  [onun.length, 'mekan'],
+                  [gidilen, 'gittin'],
+                  [onun.length - gidilen, 'gitmedin']
+                ] as const
+              ).map(([n, e]) => (
+                <div key={e}>
+                  <div className={`text-[20px] font-bold ${T_BASLIK}`}>{n}</div>
+                  <div className={`text-[12px] ${T_SOLUK}`}>{e}</div>
+                </div>
               ))}
             </div>
+          <div className="grid grid-cols-2 gap-2">
+            <a href={profilLinki(h)} target="_blank" rel="noreferrer" className="lz-btn-soft text-[14px]">
+              Profilini aç
+            </a>
+            <button className="lz-btn-primary text-[14px]" disabled={!apiAnahtari() || !!durum} onClick={() => void ara('yeni')}>
+              Yeni gittiği yerler
+            </button>
           </div>
-          <div className="space-y-1.5">
-            <div className="lz-label">Nasıl sıralansın</div>
-            <div className="flex flex-wrap gap-1.5">
-              <Secim on={sira === 'begeni'} onClick={() => setSira('begeni')}>En beğenilen + Google onaylı</Secim>
-              <Secim on={sira === 'ovdu'} onClick={() => setSira('ovdu')}>En çok övdüğü</Secim>
-              <Secim on={sira === 'yeni'} onClick={() => setSira('yeni')}>En yeni</Secim>
-            </div>
-            {sira === 'begeni' && (
-              <p className={`text-[12px] ${T_SOLUK}`}>Paylaşımı en çok beğeni ve olumlu yorum alan yerler; Google puanı 4,3 altında olanlar elenir, çok yorumlu ve yüksek puanlı olan üstte.</p>
-            )}
-          </div>
-          <button
-            className="lz-btn-primary w-full"
-            disabled={!apiAnahtari() || !!durum || (yerSecim === 'sehir' && !sehir.trim())}
-            onClick={() => void ara()}
-          >
-            Ara
-          </button>
         </div>
         {durum && (
           <div className="lz-card p-3.5 flex items-center gap-3">
@@ -267,6 +218,72 @@ export default function Influencer() {
             </Link>
           ))}
         </div>
+        {/* AYRINTILI ARAMA: varsayilan kapali, istenince acilir */}
+        <button className={`w-full lz-card p-4 flex items-center gap-2 text-left`} onClick={() => setAramaAcik(!aramaAcik)}>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Gittiği yerlerde ara</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>Yakınımda, şehirde, yemek türüne ya da en beğenilene göre</span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 transition ${aramaAcik ? 'rotate-90' : '-rotate-90'} ${T_SOLUK}`} />
+        </button>
+        {aramaAcik && (
+          <div className="lz-card p-4 space-y-3">
+            <div className={`font-semibold ${T_BASLIK}`}>Gittiği yerlerde ara</div>
+            <div className="space-y-1.5">
+              <div className="lz-label">Ne zaman</div>
+              <div className="flex flex-wrap gap-1.5">
+                <Secim on={zaman === 'tum'} onClick={() => setZaman('tum')}>Tüm zamanlar</Secim>
+                <Secim on={zaman === 'son'} onClick={() => setZaman('son')}>Son 2 ay</Secim>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <div className="lz-label">Nerede</div>
+              <div className="flex flex-wrap gap-1.5">
+                <Secim on={yerSecim === 'her'} onClick={() => setYerSecim('her')}>Her yer</Secim>
+                <Secim on={yerSecim === 'yakin'} onClick={() => setYerSecim('yakin')}>Yakınımda</Secim>
+                <Secim on={yerSecim === 'sehir'} onClick={() => setYerSecim('sehir')}>Şehir / semt</Secim>
+              </div>
+              {yerSecim !== 'her' && (
+                <div className="flex gap-1.5">
+                  {[3, 5, 10, 25].map((x) => (
+                    <button key={x} className={`lz-chip justify-center flex-1 text-[12.5px] ${km === x ? 'lz-chip-on' : ''}`} onClick={() => setKm(x)}>
+                      {x} km
+                    </button>
+                  ))}
+                </div>
+              )}
+              {yerSecim === 'sehir' && <input className="lz-input py-2 text-[14px]" placeholder="Semt ya da şehir yaz: Moda Kadıköy, Nilüfer Bursa" value={sehir} onChange={(e) => setSehir(e.target.value)} />}
+            </div>
+            <div className="space-y-1.5">
+              <div className="lz-label">Ne yemek</div>
+              <div className="flex flex-wrap gap-1.5">
+                {['Hepsi', 'Kahvaltı', 'Kebap / et', 'Balık', 'Tatlı / pastane', 'Sokak lezzeti', 'Esnaf lokantası', 'Fine dining', 'Kahve'].map((x) => (
+                  <Secim key={x} on={tur === x} onClick={() => setTur(x)}>
+                    {x}
+                  </Secim>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <div className="lz-label">Nasıl sıralansın</div>
+              <div className="flex flex-wrap gap-1.5">
+                <Secim on={sira === 'begeni'} onClick={() => setSira('begeni')}>En beğenilen + Google onaylı</Secim>
+                <Secim on={sira === 'ovdu'} onClick={() => setSira('ovdu')}>En çok övdüğü</Secim>
+                <Secim on={sira === 'yeni'} onClick={() => setSira('yeni')}>En yeni</Secim>
+              </div>
+              {sira === 'begeni' && (
+                <p className={`text-[12px] ${T_SOLUK}`}>Paylaşımı en çok beğeni ve olumlu yorum alan yerler; Google puanı 4,3 altında olanlar elenir, çok yorumlu ve yüksek puanlı olan üstte.</p>
+              )}
+            </div>
+            <button
+              className="lz-btn-primary w-full"
+              disabled={!apiAnahtari() || !!durum || (yerSecim === 'sehir' && !sehir.trim())}
+              onClick={() => void ara()}
+            >
+              Ara
+            </button>
+          </div>
+        )}
         <button
           className={`w-full text-[13px] py-2 ${T_SOLUK} underline`}
           onClick={() => {
