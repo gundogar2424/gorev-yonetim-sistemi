@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, Icon, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
+import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { instagramLinki, oneriKaydet } from '../lib/mekan'
@@ -206,23 +206,29 @@ export default function Takip() {
           </div>
         )}
 
-        {hesaplar.map((h) => {
-          const { ad, platform } = hesapParca(h)
-          const onun = onunMekanlari(mekanlar, h)
-          const gidilen = onun.filter((m) => m.gidildi).length
-          return (
-            <Link key={h} to={`/influencer/${encodeURIComponent(h)}`} className="lz-card p-3.5 flex items-center gap-3 active:scale-[0.99] transition">
-              <KisiAvatar ad={hesapNormal(h)} foto={hesapFoto(h)} className="w-12 h-12 text-[16px]" />
-              <span className="flex-1 min-w-0">
-                <span className={`block font-bold text-[15.5px] truncate ${T_BASLIK}`}>{ad}</span>
-                <span className={`block text-[12.5px] ${T_SOLUK}`}>
-                  {[platform, onun.length ? `${onun.length} mekan · ${gidilen} gittin` : 'kayıtlı mekanı yok'].filter(Boolean).join(' · ')}
-                </span>
-              </span>
-              <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
-            </Link>
-          )
-        })}
+        {/* Fotografli izgara: profil resimlerinden gorup sec */}
+        {hesaplar.length > 0 && (
+          <div className="grid grid-cols-3 gap-2.5">
+            {hesaplar.map((h) => {
+              const { ad, platform } = hesapParca(h)
+              const onun = onunMekanlari(mekanlar, h)
+              const gidilen = onun.filter((m) => m.gidildi).length
+              return (
+                <Link
+                  key={h}
+                  to={`/influencer/${encodeURIComponent(h)}`}
+                  className="lz-card p-2 flex flex-col items-center text-center gap-1.5 active:scale-[0.97] transition"
+                >
+                  <KisiAvatar ad={hesapNormal(h)} foto={hesapFoto(h)} className="w-full aspect-square h-auto text-[26px]" />
+                  <span className={`w-full font-semibold text-[12.5px] leading-tight truncate ${T_BASLIK}`}>{ad.replace(/^@/, '')}</span>
+                  <span className={`w-full text-[11px] leading-tight truncate ${T_SOLUK}`}>
+                    {onun.length ? `${onun.length} mekan · ${gidilen} gittin` : platform || 'mekan yok'}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        )}
       </div>
       <Toast text={toast} />
     </div>
