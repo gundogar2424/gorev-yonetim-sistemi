@@ -7,7 +7,7 @@ import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from 
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adrestenKonum, konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
 import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal } from '../lib/hesaplar'
-import { YeniListe, adNormal, hesapParca, onunMekanlari } from './Takip'
+import { BEGENI_KURALI, YeniListe, adNormal, guvenSkoru, hesapParca, onunMekanlari } from './Takip'
 
 // Fenomenin profili: sosyal medya hesabi; youtube kanalinda arama, @ad ise Instagram profili
 function profilLinki(h: string): string {
@@ -41,7 +41,7 @@ export default function Influencer() {
   const [sehir, setSehir] = useState('')
   const [km, setKm] = useState(10)
   const [tur, setTur] = useState('Hepsi')
-  const [ovdu, setOvdu] = useState(false)
+  const [sira, setSira] = useState<'begeni' | 'ovdu' | 'yeni'>('begeni')
   const [baslik, setBaslik] = useState('')
 
   const ara = async (hizli?: 'yeni') => {
@@ -70,7 +70,8 @@ export default function Influencer() {
       const istek = [
         z === 'son' ? 'Bu hesabın SON 60 GÜNDE paylaştığı/gittiği mekanlar, en yeniden eskiye.' : 'Bu hesabın bugüne kadar paylaştığı/tanıttığı mekanlar.',
         t !== 'Hepsi' && `Yalnızca ${t} mekanları.`,
-        !hizli && ovdu && 'YALNIZCA en çok övdüğü, "kesinlikle gidin" dediği ya da yüksek puan verdiği yerler; en beğendiğinden başla.',
+        !hizli && sira === 'ovdu' && 'YALNIZCA en çok övdüğü, "kesinlikle gidin" dediği ya da yüksek puan verdiği yerler; en beğendiğinden başla.',
+        !hizli && sira === 'begeni' && BEGENI_KURALI,
         !hizli && yerSecim === 'sehir' && sehir.trim() && `Yalnızca ${sehir.trim()} ve yakın çevresindekiler.`,
         'populerlik alanına paylaşım tarihini ve mekan hakkında ne dediğini yaz.',
         hizli || yerSecim === 'her' ? 'Bulunduğum yere yakınlık şart değil.' : ''
@@ -98,12 +99,16 @@ export default function Influencer() {
       const sonuc = k
         ? l.filter((o) => !(o.enlem || o.boylam) || mesafeKm(k!, { lat: o.enlem, lon: o.boylam }) <= mesafe + 0.5)
         : l
-      const liste = hizli ? sonuc.filter((o) => !mekanlar.some((m) => adNormal(m.ad) === adNormal(o.ad))) : sonuc
+      const liste = hizli
+        ? sonuc.filter((o) => !mekanlar.some((m) => adNormal(m.ad) === adNormal(o.ad)))
+        : sira === 'begeni'
+          ? sonuc.filter((o) => !o.puan || o.puan >= 4.3).sort((a, b) => guvenSkoru(b) - guvenSkoru(a))
+          : sonuc
       setYeniler(liste)
       setBaslik(
         hizli
           ? 'Son gittiği yeni yerler'
-          : [z === 'son' ? 'Son 2 ay' : 'Tüm zamanlar', t !== 'Hepsi' && t, ovdu && 'en çok övdükleri', yerSecim === 'yakin' ? `${mesafe} km içinde` : yerSecim === 'sehir' && `${sehir.trim()}${mesafe ? ` · ${mesafe} km` : ''}`]
+          : [z === 'son' ? 'Son 2 ay' : 'Tüm zamanlar', t !== 'Hepsi' && t, sira === 'ovdu' && 'en çok övdükleri', sira === 'begeni' && 'en beğenilenler, Google onaylı', yerSecim === 'yakin' ? `${mesafe} km içinde` : yerSecim === 'sehir' && `${sehir.trim()}${mesafe ? ` · ${mesafe} km` : ''}`]
               .filter(Boolean)
               .join(' · ')
       )
@@ -186,10 +191,17 @@ export default function Influencer() {
               ))}
             </div>
           </div>
-          <label className={`flex items-center gap-2.5 text-[13.5px] ${T_GOVDE}`}>
-            <input type="checkbox" className="w-4 h-4" checked={ovdu} onChange={(e) => setOvdu(e.target.checked)} />
-            Sadece en çok övdüğü yerler
-          </label>
+          <div className="space-y-1.5">
+            <div className="lz-label">Nasıl sıralansın</div>
+            <div className="flex flex-wrap gap-1.5">
+              <Secim on={sira === 'begeni'} onClick={() => setSira('begeni')}>En beğenilen + Google onaylı</Secim>
+              <Secim on={sira === 'ovdu'} onClick={() => setSira('ovdu')}>En çok övdüğü</Secim>
+              <Secim on={sira === 'yeni'} onClick={() => setSira('yeni')}>En yeni</Secim>
+            </div>
+            {sira === 'begeni' && (
+              <p className={`text-[12px] ${T_SOLUK}`}>Paylaşımı en çok beğeni ve olumlu yorum alan yerler; Google puanı 4,3 altında olanlar elenir, çok yorumlu ve yüksek puanlı olan üstte.</p>
+            )}
+          </div>
           <button
             className="lz-btn-primary w-full"
             disabled={!apiAnahtari() || !!durum || (yerSecim === 'sehir' && !sehir.trim())}
