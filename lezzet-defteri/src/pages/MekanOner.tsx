@@ -27,6 +27,35 @@ function hesaplariOku(): string[] {
     return []
   }
 }
+// Ayni arama 24 saat icinde tekrar yapilirsa yapay zekaya gitmeden onceki sonuc gosterilir (token tasarrufu)
+const KEY_ONBELLEK = 'lz-oneri-onbellek'
+const GUN = 24 * 60 * 60 * 1000
+type Onbellek = Record<string, { t: number; liste: MekanOnerisi[] }>
+function onbellekOku(): Onbellek {
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY_ONBELLEK) || '{}') as Onbellek
+    for (const k of Object.keys(o)) if (Date.now() - o[k].t > GUN) delete o[k]
+    return o
+  } catch {
+    return {}
+  }
+}
+function onbellekYaz(anahtar: string, liste: MekanOnerisi[]): void {
+  try {
+    const o = onbellekOku()
+    o[anahtar] = { t: Date.now(), liste }
+    const anahtarlar = Object.keys(o).sort((a, b) => o[b].t - o[a].t)
+    for (const k of anahtarlar.slice(20)) delete o[k]
+    localStorage.setItem(KEY_ONBELLEK, JSON.stringify(o))
+  } catch {
+    /* yok */
+  }
+}
+
+type Yemek = { ad: string; km: number }
+type Arama = { istek: string; hesap: string; diyet: string; yemek?: Yemek }
+const YARICAPLAR = [3, 5, 10]
+
 function hesaplariYaz(h: string[]): void {
   try {
     localStorage.setItem(KEY_HESAP, JSON.stringify(h))
@@ -50,12 +79,20 @@ export default function MekanOner() {
   const [aktifHesap, setAktifHesap] = useState('')
   const plan = useLiveQuery(() => lzDb.diyet.get(1), [])
   const [diyetModu, setDiyetModu] = useState(false)
+  const [yemekAd, setYemekAd] = useState('')
+  const [yemekKm, setYemekKm] = useState(5)
+  const [aktifYemek, setAktifYemek] = useState<Yemek>()
+  const [sonArama, setSonArama] = useState<Arama>()
+  const [onbellekten, setOnbellekten] = useState(0)
 
-  const ara = async (istekMetni = istek, hesap = '', diyet = '') => {
+  const ara = async (istekMetni = istek, hesap = '', diyet = '', yemek?: Yemek, yenile = false) => {
     setHata('')
     setSonuclar([])
     setAktifHesap(hesap)
     setDiyetModu(!!diyet)
+    setAktifYemek(yemek)
+    setOnbellekten(0)
+    setSonArama({ istek: istekMetni, hesap, diyet, yemek })
     try {
       // Nerede oldugum: yazilan semt ya da telefon konumu
       let yer = semt.trim()
@@ -72,16 +109,31 @@ export default function MekanOner() {
           throw new Error('Konum alınamadı. Konumu aç ya da semt yaz (ör. “Moda, Kadıköy”).')
         }
       }
-      setDurum(`Yapay zeka ${yer} çevresinde araştırıyor…`)
-      const liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap, diyet)
+      // Konum ~1 km'ye yuvarlanir: ayni yerde ayni arama icin token harcanmaz
+      const anahtar = [istekMetni.trim(), hesap, diyet, yemek ? `${yemek.ad.toLocaleLowerCase('tr')}|${yemek.km}` : '', k ? `${k.lat.toFixed(2)},${k.lon.toFixed(2)}` : yer.toLocaleLowerCase('tr')].join('|')
+      const eski = yenile ? undefined : onbellekOku()[anahtar]
+      let liste: MekanOnerisi[]
+      if (eski) {
+        liste = eski.liste
+        setOnbellekten(eski.t)
+      } else {
+        setDurum(yemek ? `${yemek.ad} için ${yemek.km} km içindeki yerler araştırılıyor…` : `Yapay zeka ${yer} çevresinde araştırıyor…`)
+        liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap, diyet, yemek)
+        if (liste.length) onbellekYaz(anahtar, liste)
+      }
       const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
       const sonuc: Sonuc[] = liste.map((o) => {
         const kayit = kayitli.find((m) => ad(m.ad) === ad(o.ad))
         const hedef = o.enlem || o.boylam ? { lat: o.enlem, lon: o.boylam } : kayit?.lat !== undefined ? { lat: kayit.lat, lon: kayit.lon! } : undefined
         return { ...o, kayitliId: kayit?.id, km: k && hedef ? mesafeKm(k, hedef) : undefined }
       })
-      setSonuclar(sonuc.sort((a, b) => (a.km ?? 999) - (b.km ?? 999)))
-      if (!sonuc.length) setHata(hesap ? `${hesap.includes(',') ? 'Takip ettiğin hesapların' : `${hesap} hesabının`} yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
+      if (yemek) {
+        // Yaricap disindakileri at; en iyi puanlidan baslayarak sirala
+        const icerde = sonuc.filter((o) => o.km === undefined || o.km <= yemek.km + 0.5)
+        setSonuclar(icerde.sort((a, b) => (b.puan || 0) - (a.puan || 0) || (a.km ?? 999) - (b.km ?? 999)))
+        if (!icerde.length) setHata(`${yemek.km} km içinde iyi yorum almış ${yemek.ad} yapan yer bulunamadı; yarıçapı büyütmeyi dene.`)
+      } else setSonuclar(sonuc.sort((a, b) => (a.km ?? 999) - (b.km ?? 999)))
+      if (!sonuc.length && !yemek) setHata(hesap ? `${hesap.includes(',') ? 'Takip ettiğin hesapların' : `${hesap} hesabının`} yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
     } catch (e) {
       setHata((e as Error).message)
     }
@@ -153,6 +205,26 @@ export default function MekanOner() {
             </p>
           )}
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+        </div>
+
+        <div className="lz-card p-4 space-y-2.5">
+          <div className={`font-semibold ${T_BASLIK}`}>🍽️ Canım şu yemeği çekiyor</div>
+          <p className={`text-[12.5px] ${T_SOLUK}`}>Yemeği yaz, mesafeyi seç: o yemeği en iyi yapan yakın yerler, yemeğin oradaki fiyatıyla listelenir.</p>
+          <input className="lz-input py-2 text-[14px]" placeholder="Ör. Tavuk şinitzel" value={yemekAd} onChange={(e) => setYemekAd(e.target.value)} />
+          <div className="flex gap-1.5">
+            {YARICAPLAR.map((km) => (
+              <button key={km} className={`lz-chip text-[13px] flex-1 ${yemekKm === km ? 'lz-chip-on' : ''}`} onClick={() => setYemekKm(km)}>
+                {km} km
+              </button>
+            ))}
+          </div>
+          <button
+            className="lz-btn-primary w-full"
+            disabled={!aiVar || !yemekAd.trim() || !!durum}
+            onClick={() => void ara(`Bana yakın, en iyi yorum almış ${yemekAd.trim()} yapan yerler`, '', '', { ad: yemekAd.trim(), km: yemekKm })}
+          >
+            {durum && aktifYemek ? durum : `🍽️ ${yemekKm} km içinde en iyisini bul`}
+          </button>
         </div>
 
         {plan && plan.ogunler.length > 0 && (
@@ -235,6 +307,19 @@ export default function MekanOner() {
           </div>
         </div>
 
+        {sonuclar.length > 0 && (
+          <div className={`flex items-center gap-2 px-1 text-[12.5px] ${T_SOLUK}`}>
+            <span className="flex-1">
+              {aktifYemek ? `${aktifYemek.ad}: ${aktifYemek.km} km içinde, en yüksek puanlıdan` : `${sonuclar.length} öneri`}
+              {onbellekten ? ` · ${Math.max(1, Math.round((Date.now() - onbellekten) / 60000))} dk önceki arama (kredi harcanmadı)` : ''}
+            </span>
+            {onbellekten > 0 && sonArama && (
+              <button className="lz-chip text-[12px]" disabled={!!durum} onClick={() => void ara(sonArama.istek, sonArama.hesap, sonArama.diyet, sonArama.yemek, true)}>
+                ↻ Yeniden ara
+              </button>
+            )}
+          </div>
+        )}
         {aktifHesap && sonuclar.length > 0 && <div className={`text-[13px] px-1 font-semibold ${T_GOVDE}`}>{aktifHesap.includes(',') ? 'Takip ettiğin hesapların' : `${aktifHesap} hesabının`} önerdikleri:</div>}
         {sonuclar.map((o, i) => (
           <div key={i} className="lz-card p-4 space-y-1.5">
@@ -250,6 +335,12 @@ export default function MekanOner() {
               {o.puan && o.fiyat ? ' · ' : ''}
               {o.fiyat}
             </div>
+            {aktifYemek && o.yemek_fiyati && (
+              <div className="rounded-xl bg-[#f6efe7] dark:bg-[#2a2420] px-3 py-1.5 text-[14px] font-semibold text-lz-600">
+                🍽️ {aktifYemek.ad}: {o.yemek_fiyati}
+              </div>
+            )}
+            {aktifYemek && o.yemek_yorumu && <p className={`text-[13px] ${T_GOVDE}`}>💬 {o.yemek_yorumu}</p>}
             <p className={`text-[13.5px] ${T_GOVDE}`}>{o.neden}</p>
             {o.ne_yenir.length > 0 && <p className={`text-[13px] ${T_GOVDE}`}>{diyetModu ? '🥗 Sipariş: ' : '😋 '}{o.ne_yenir.slice(0, 4).join(', ')}</p>}
             {o.populerlik && <p className={`text-[12.5px] ${T_SOLUK}`}>📱 {o.populerlik}</p>}

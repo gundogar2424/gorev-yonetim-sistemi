@@ -1250,10 +1250,19 @@ export interface MekanOnerisi {
   populerlik: string // sosyal medyadaki son durum
   ne_yenir: string[]
   link: string // varsa tanitan paylasimin linki
+  yemek_fiyati: string // aranan yemegin bu mekandaki fiyati
+  yemek_yorumu: string // aranan yemek hakkinda yorumlarda ne deniyor
 }
 
 // Kullanicinin istegine ve bulundugu yere gore Google'da arastirip mekan onerir
-export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: string[], hesap = '', diyet = ''): Promise<MekanOnerisi[]> {
+export async function aiMekanOner(
+  istek: string,
+  yer: string,
+  kayitliAdlar: string[],
+  hesap = '',
+  diyet = '',
+  yemek?: { ad: string; km: number }
+): Promise<MekanOnerisi[]> {
   const v = await jsonCagri<{ oneriler: MekanOnerisi[] }>(
     'Sen deneyimli bir yeme-içme rehberisin. Kullanıcının isteğine (canının çektiği yemek, mutfak türü, fiyat-performans, ortam…) ve ' +
       'BULUNDUĞU YERE göre Google’da güncel bilgilerle araştırıp en uygun 5 mekanı öner. Öncelik: isteğe uygunluk, yakınlık, ' +
@@ -1272,6 +1281,12 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
           '(ızgara, haşlama, buharda, salata, çorba, yoğurtlu, tam tahıllı vb.) restoranları öner; en yakından başla. ne_yenir alanına bu ' +
           'hedefe uyacak SOMUT sipariş önerisini yaz (yemek + porsiyon + değişiklik, ör. "Izgara tavuk, pilav yerine salata, sos ayrı"). ' +
           'neden alanına o siparişin tahmini kalori ve proteinini yaz (ör. "~520 kcal, 40 g protein — öğle hedefine uygun").'
+        : '') +
+      (yemek
+        ? ` YEMEK ARAMASI: Kullanıcı "${yemek.ad}" yemek istiyor. YALNIZCA bu yemeği yapan ve bu yemeği iyi yorum almış mekanları, bulunduğu ` +
+          `yerden en fazla ${yemek.km} km uzaklıkta olanlardan öner (en iyi yorumlanandan başla, en fazla 8). yemek_fiyati alanına bu yemeğin ` +
+          'o mekandaki GÜNCEL fiyatını yaz (menü/sipariş uygulaması; bulamazsan boş, UYDURMA). yemek_yorumu alanına yorumlarda bu yemek ' +
+          'hakkında ne denildiğini kısa yaz (ör. "Çıtır, porsiyonu büyük, patatesi taze").'
         : ''),
     `İstek: ${istek}\nBulunduğum yer: ${yer}${diyet ? `\nDiyet bilgisi:\n${diyet}` : ''}${kayitliAdlar.length ? `\nZaten kayıtlı mekanlarım (uygunsa önerebilirsin): ${kayitliAdlar.slice(0, 40).join(', ')}` : ''}`,
     {
@@ -1284,7 +1299,7 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
           items: {
             type: 'object',
             additionalProperties: false,
-            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'link'],
+            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'link', 'yemek_fiyati', 'yemek_yorumu'],
             properties: {
               ad: { type: 'string' },
               tur: { type: 'string' },
@@ -1299,7 +1314,9 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
               fiyat: { type: 'string' },
               populerlik: { type: 'string' },
               ne_yenir: { type: 'array', items: { type: 'string' } },
-              link: { type: 'string' }
+              link: { type: 'string' },
+              yemek_fiyati: { type: 'string' },
+              yemek_yorumu: { type: 'string' }
             }
           }
         }
@@ -1311,7 +1328,7 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
   return (v.oneriler ?? [])
     .filter((o) => o?.ad)
     .slice(0, 8)
-    .map((o) => ({ ...o, link: /^https?:\/\//.test(String(o.link ?? '')) ? String(o.link) : '', puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
+    .map((o) => ({ ...o, yemek_fiyati: String(o.yemek_fiyati ?? '').trim(), yemek_yorumu: String(o.yemek_yorumu ?? '').trim(), link: /^https?:\/\//.test(String(o.link ?? '')) ? String(o.link) : '', puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
 }
 
 // Mekana giden unluler: kim, ne dedi, paylasiminin linki (Google aramasiyla)
