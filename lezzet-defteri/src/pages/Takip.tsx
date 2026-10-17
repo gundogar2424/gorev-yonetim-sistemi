@@ -5,7 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
-import { hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
+import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { instagramLinki, oneriKaydet } from '../lib/mekan'
 import { PLATFORM_AD } from '../lib/importer'
 
@@ -91,6 +91,7 @@ export default function Takip() {
   const [hata, setHata] = useState('')
   const [oto, setOto] = useState(otoKontrol())
   const [yeni, setYeni] = useState('')
+  const [duzenle, setDuzenle] = useState(false)
   const [baslikT, setBaslikT] = useState('Son gittikleri yeni yerler')
   const [toast, goster] = useToast()
   const aiVar = !!apiAnahtari()
@@ -208,6 +209,14 @@ export default function Takip() {
 
         {/* Fotografli izgara: profil resimlerinden gorup sec */}
         {hesaplar.length > 0 && (
+          <div className="flex items-center px-1">
+            <span className={`flex-1 text-[13px] font-semibold ${T_SOLUK}`}>{duzenle ? 'Kaldırmak istediklerine ✕ ile dokun' : `${hesaplar.length} influencer`}</span>
+            <button className={`lz-chip text-[12.5px] ${duzenle ? 'lz-chip-on' : ''}`} onClick={() => setDuzenle(!duzenle)}>
+              {duzenle ? 'Bitti' : 'Düzenle'}
+            </button>
+          </div>
+        )}
+        {hesaplar.length > 0 && (
           <div className="grid grid-cols-3 gap-2.5">
             {hesaplar.map((h) => {
               const { ad, platform } = hesapParca(h)
@@ -217,8 +226,25 @@ export default function Takip() {
                 <Link
                   key={h}
                   to={`/influencer/${encodeURIComponent(h)}`}
-                  className="lz-card p-2 flex flex-col items-center text-center gap-1.5 active:scale-[0.97] transition"
+                  onClick={(e) => duzenle && e.preventDefault()}
+                  className={`lz-card relative p-2 flex flex-col items-center text-center gap-1.5 active:scale-[0.97] transition ${duzenle ? 'animate-[pulse_2s_ease-in-out_infinite]' : ''}`}
                 >
+                  {duzenle && (
+                    <button
+                      className="absolute -top-1.5 -right-1.5 z-10 w-7 h-7 rounded-full bg-rose-600 text-white text-[14px] font-bold shadow flex items-center justify-center"
+                      aria-label={`${ad} takipten çıkar`}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (!confirm(`${ad.replace(/^@/, '')} takipten çıkarılsın mı? (Kaydettiğin mekanları silinmez.)`)) return
+                        hesapBirak(h)
+                        setHesaplar(hesaplariOku())
+                        goster(`${ad.replace(/^@/, '')} takipten çıkarıldı`)
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
                   <KisiAvatar ad={hesapNormal(h)} foto={hesapFoto(h)} className="w-full aspect-square h-auto text-[26px]" />
                   <span className={`w-full font-semibold text-[12.5px] leading-tight truncate ${T_BASLIK}`}>{ad.replace(/^@/, '')}</span>
                   <span className={`w-full text-[11px] leading-tight truncate ${T_SOLUK}`}>
