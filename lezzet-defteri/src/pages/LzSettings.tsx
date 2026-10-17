@@ -60,7 +60,7 @@ export default function LzSettings() {
                   setTest('')
                 }}
                 className={`text-left rounded-2xl p-3 border transition ${
-                  sag === id ? 'border-lz-500 bg-lz-50 dark:bg-[#3a1d16]' : 'border-[#efe6dc] dark:border-[#2f2824]'
+                  sag === id ? 'border-lz-500 bg-lz-50 dark:bg-[#3a1d16]' : 'border-[#e9e8e5] dark:border-[#2e2e33]'
                 }`}
               >
                 <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>{ad}</span>
@@ -151,7 +151,7 @@ export default function LzSettings() {
                   sesModeliKaydet(m.id)
                 }}
                 className={`w-full text-left rounded-2xl p-3 border transition ${
-                  ses === m.id ? 'border-lz-500 bg-lz-50 dark:bg-[#3a1d16]' : 'border-[#efe6dc] dark:border-[#2f2824]'
+                  ses === m.id ? 'border-lz-500 bg-lz-50 dark:bg-[#3a1d16]' : 'border-[#e9e8e5] dark:border-[#2e2e33]'
                 }`}
               >
                 <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>{m.ad}</span>
@@ -399,7 +399,7 @@ function HarcamaKarti() {
         </button>
       </div>
       <p className={`text-[12px] ${T_SOLUK}`}>Sınır dolunca o gün yapay zeka durur; bir şey kontrolden çıkıp kredi eritemez.</p>
-      <div className="rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-1">
+      <div className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1">
         {satir('Bugün', k.bugun)}
         {satir('Bu ay', k.buAy)}
       </div>

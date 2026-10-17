@@ -10,7 +10,7 @@ export function getThemePref(): ThemePref {
   } catch {
     /* yok say */
   }
-  return 'auto'
+  return 'light' // varsayilan acik tema (telefon koyu modda olsa da)
 }
 
 function systemPrefersDark(): boolean {
@@ -36,7 +36,7 @@ async function applyStatusBar(dark: boolean): Promise<void> {
     const { Capacitor } = await import('@capacitor/core')
     if (!Capacitor.isNativePlatform()) return
     const { StatusBar, Style } = await import('@capacitor/status-bar')
-    await StatusBar.setBackgroundColor({ color: dark ? '#171412' : '#fbf7f2' })
+    await StatusBar.setBackgroundColor({ color: dark ? '#111113' : '#f7f7f5' })
     await StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light })
   } catch {
     /* eklenti yok — gorsel bir eksiklik, hata degil */

@@ -30,16 +30,20 @@ body,
 body {
   margin: 0;
   -webkit-tap-highlight-color: transparent;
-  background: #fbf7f2;
-  color: #2b211b;
+  background: #f7f7f5;
+  color: #18181b;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Inter'in daha duzgun rakam ve harf bicimleri */
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.011em;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.006em;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .dark body {
-  background: #171412;
-  color: #f2ebe5;
+  background: #111113;
+  color: #f4f4f5;
 }
 input,
 select,
@@ -61,81 +65,84 @@ textarea {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-/* Bilesen siniflari: krem zemin, domates kirmizisi vurgu, yumusak koseler. */
+/* Bilesen siniflari: sade notr zemin, ince cerceveli kartlar, domates kirmizisi vurgu. */
 .lz-app {
-  background-color: #fbf7f2;
+  background-color: #f7f7f5;
 }
 .dark .lz-app {
-  background-color: #171412;
+  background-color: #111113;
 }
 @layer components {
   .lz-card {
-    @apply bg-white rounded-[22px];
-    box-shadow: 0 1px 2px rgba(60, 30, 10, 0.05), 0 10px 24px -18px rgba(60, 30, 10, 0.28);
+    @apply bg-white rounded-[18px] border border-[#ebeae7];
+    box-shadow: 0 1px 2px rgba(16, 16, 20, 0.04);
   }
   .lz-input {
-    @apply w-full rounded-2xl bg-white px-4 py-3 text-slate-800 outline-none transition border border-[#efe6dc];
+    @apply w-full rounded-xl bg-white px-4 py-3 text-[#18181b] outline-none transition border border-[#e4e3e0] placeholder:text-[#a1a1aa];
     @apply focus:ring-4 focus:ring-lz-100 focus:border-lz-400;
   }
   .lz-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold transition;
-    @apply active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition text-[15px] tracking-[-0.01em];
+    @apply active:scale-[0.98] disabled:opacity-45 disabled:active:scale-100;
   }
   .lz-btn-primary {
     @apply lz-btn bg-lz-600 text-white hover:bg-lz-700;
+    box-shadow: 0 1px 2px rgba(181, 47, 23, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
   .lz-btn-soft {
-    @apply lz-btn bg-[#f3ebe2] text-[#5a4a3f] hover:bg-[#ece1d5];
+    @apply lz-btn bg-white text-[#27272a] border border-[#e4e3e0] hover:bg-[#f4f4f2];
   }
   .lz-btn-danger {
     @apply lz-btn bg-rose-50 text-rose-600 hover:bg-rose-100;
   }
   .lz-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3968b];
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8a93];
   }
   .lz-chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition whitespace-nowrap;
-    @apply bg-white text-[#6b5c51] border border-[#efe6dc];
+    @apply bg-white text-[#3f3f46] border border-[#e4e3e0];
   }
   .lz-chip-on {
-    @apply bg-lz-600 text-white border-lz-600;
+    @apply bg-[#18181b] text-white border-[#18181b];
   }
   .lz-pill {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold bg-lz-50 text-lz-700;
   }
 }
 .dark .lz-card {
-  background-color: #221d1a;
+  background-color: #1c1c1f;
+  border-color: #2a2a2e;
   box-shadow: none;
 }
 .dark .lz-input {
-  background-color: #221d1a;
-  border-color: #2f2824;
-  color: #efe8e2;
+  background-color: #1c1c1f;
+  border-color: #2e2e33;
+  color: #f4f4f5;
 }
 .dark .lz-btn-soft {
-  background-color: #2a2420;
-  color: #d9cec5;
+  background-color: #1c1c1f;
+  border-color: #2e2e33;
+  color: #e4e4e7;
 }
 .dark .lz-btn-danger {
   background-color: #2a1a1d;
 }
 .dark .lz-chip {
-  background-color: #221d1a;
-  border-color: #2f2824;
-  color: #cbbfb5;
+  background-color: #1c1c1f;
+  border-color: #2e2e33;
+  color: #c4c4cc;
 }
 .dark .lz-chip-on {
-  background-color: #d93d20;
-  border-color: #d93d20;
-  color: #ffffff;
+  background-color: #f4f4f5;
+  border-color: #f4f4f5;
+  color: #18181b;
 }
 .dark .lz-pill {
   background-color: #3a1d16;
   color: #ff9f88;
 }
 .dark .lz-label {
-  color: #8c8077;
+  color: #8a8a93;
 }
 .lz-app input[type='checkbox'] {
   accent-color: #d93d20;

@@ -42,10 +42,10 @@ export default function Week() {
         subtitle={`${kisaTarih(gunler[0])} – ${kisaTarih(gunler[6])} · ${planlar.length} yemek`}
         right={
           <>
-            <button onClick={() => setKaydir(kaydir - 1)} className="w-10 h-10 rounded-full bg-white dark:bg-[#221d1a] flex items-center justify-center" aria-label="Önceki hafta">
+            <button onClick={() => setKaydir(kaydir - 1)} className="w-10 h-10 rounded-full bg-white dark:bg-[#1c1c1f] flex items-center justify-center" aria-label="Önceki hafta">
               <Icon name="back" />
             </button>
-            <button onClick={() => setKaydir(kaydir + 1)} className="w-10 h-10 rounded-full bg-white dark:bg-[#221d1a] flex items-center justify-center" aria-label="Sonraki hafta">
+            <button onClick={() => setKaydir(kaydir + 1)} className="w-10 h-10 rounded-full bg-white dark:bg-[#1c1c1f] flex items-center justify-center" aria-label="Sonraki hafta">
               <Icon name="back" className="w-5 h-5 rotate-180" />
             </button>
           </>
@@ -97,7 +97,7 @@ export default function Week() {
                           const r = tarifMap.get(p.recipeId)
                           if (!r) return null
                           return (
-                            <span key={p.id} className="inline-flex items-center gap-1.5 bg-[#f6ece2] dark:bg-[#2a2420] rounded-full pl-1 pr-1 py-1 max-w-full">
+                            <span key={p.id} className="inline-flex items-center gap-1.5 bg-[#f1f1ef] dark:bg-[#26262a] rounded-full pl-1 pr-1 py-1 max-w-full">
                               <Thumb src={r.photo} className="w-6 h-6 rounded-full text-xs" />
                               <Link to={`/tarif/${r.id}`} className={`text-[13px] font-medium truncate ${T_BASLIK}`}>
                                 {r.title}
@@ -110,7 +110,7 @@ export default function Week() {
                         })}
                         <button
                           onClick={() => setSecim({ date: anahtar, meal: o.id })}
-                          className="w-8 h-8 rounded-full border border-dashed border-[#e3d6c9] dark:border-[#3a322d] text-[#b3a69b] flex items-center justify-center"
+                          className="w-8 h-8 rounded-full border border-dashed border-[#dcdbd7] dark:border-[#3a3a40] text-[#a1a1aa] flex items-center justify-center"
                           aria-label={`${o.ad} ekle`}
                         >
                           <Icon name="plus" className="w-4 h-4" />

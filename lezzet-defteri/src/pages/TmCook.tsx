@@ -65,7 +65,7 @@ export default function TmCook() {
       <div className="px-4 pt-5 pb-3 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-white dark:bg-[#221d1a] flex items-center justify-center text-[#5a4a3f] dark:text-[#d9cec5]"
+          className="w-10 h-10 rounded-full bg-white dark:bg-[#1c1c1f] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8]"
           aria-label="Kapat"
         >
           <Icon name="x" />
@@ -78,7 +78,7 @@ export default function TmCook() {
         </div>
       </div>
       <div className="px-4">
-        <div className="h-1.5 rounded-full bg-[#f3ebe2] dark:bg-[#2a2420] overflow-hidden">
+        <div className="h-1.5 rounded-full bg-[#f1f1ef] dark:bg-[#26262a] overflow-hidden">
           <div className="h-full bg-lz-600 transition-all" style={{ width: `${((i + 1) / adimlar.length) * 100}%` }} />
         </div>
       </div>

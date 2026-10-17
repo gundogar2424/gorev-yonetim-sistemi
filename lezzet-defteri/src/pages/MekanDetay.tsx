@@ -343,7 +343,7 @@ export default function MekanDetay() {
           <div className="lz-card p-4 space-y-2">
             <div className={`font-semibold ${T_BASLIK}`}>🎬 Aynı videodaki diğer mekanlar</div>
             {ayniVideo.map((x) => (
-              <Link key={x.id} to={`/mekan/${x.id}`} replace className={`flex items-center gap-2 rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] px-3 py-2 text-[14px] ${T_GOVDE}`}>
+              <Link key={x.id} to={`/mekan/${x.id}`} replace className={`flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2 text-[14px] ${T_GOVDE}`}>
                 <span className="flex-1 min-w-0">
                   <span className="font-semibold">{x.ad}</span>
                   <span className={`block text-[12px] ${T_SOLUK}`}>{[x.tur, x.ilce].filter(Boolean).join(' · ')}</span>
@@ -504,7 +504,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
       {sirali.map(({ x, i }) => (
         <button
           key={i}
-          className="w-full text-left rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-0.5"
+          className="w-full text-left rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-0.5"
           onClick={() => {
             setZ(x)
             setDuzenlenen(i)
@@ -593,7 +593,7 @@ function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
       </div>
       {u.liste.length ? (
         u.liste.map((x, i) => (
-          <div key={i} className="rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-1">
+          <div key={i} className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1">
             <div className={`font-semibold text-[14px] ${T_GOVDE}`}>
               {x.kisi}
               {x.tarih && <span className={`ml-2 text-[12px] font-normal ${T_SOLUK}`}>{x.tarih}</span>}

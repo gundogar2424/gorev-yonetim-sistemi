@@ -65,23 +65,23 @@ function gomuluVeri(r: LzRecipe, foto: string): string {
 }
 
 const STIL = `
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#fbf7f2;color:#2b211b;line-height:1.5}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f7f7f5;color:#18181b;line-height:1.5}
 .w{max-width:640px;margin:0 auto;padding:16px}h1{font-size:26px;line-height:1.2;margin:12px 0 6px}h2{font-size:18px;margin:0 0 10px}
 .kart{background:#fff;border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.05),0 10px 24px -18px rgba(0,0,0,.3)}
 .foto{width:100%;max-height:340px;object-fit:cover;border-radius:22px;display:block}
 .vid{position:relative;display:block;text-decoration:none}.foto.bos{height:200px;background:linear-gradient(135deg,#d93d20,#7a1e0e)}
 .oynat{position:absolute;left:50%;top:50%;transform:translate(-50%,-60%);width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;padding-left:5px}
-.vyazi{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600}.meta{color:#9a8b80;font-size:14px}
+.vyazi{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600}.meta{color:#86868f;font-size:14px}
 .pill{display:inline-block;background:#fff2ee;color:#b52f17;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;margin:2px 4px 2px 0}
-ul.m{list-style:none;padding:0;margin:0}ul.m li{padding:8px 0;border-bottom:1px solid #f3ebe2;display:flex;gap:10px;align-items:flex-start}
+ul.m{list-style:none;padding:0;margin:0}ul.m li{padding:8px 0;border-bottom:1px solid #f1f1ef;display:flex;gap:10px;align-items:flex-start}
 ul.m li:last-child{border:0}ul.m input{width:20px;height:20px;accent-color:#d93d20;margin-top:2px;flex-shrink:0}ul.m label{flex:1}
 input:checked+label{text-decoration:line-through;opacity:.5}ol.a{padding:0;margin:0;list-style:none;counter-reset:a}
 ol.a li{counter-increment:a;display:flex;gap:12px;margin:0 0 14px}ol.a li:before{content:counter(a);flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#fff2ee;color:#d93d20;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
-.not{white-space:pre-line}.alt{text-align:center;color:#9a8b80;font-size:12.5px;margin:24px 0 8px}a{color:#d93d20}
+.not{white-space:pre-line}.alt{text-align:center;color:#86868f;font-size:12.5px;margin:24px 0 8px}a{color:#d93d20}
 .btn{display:block;width:100%;border:0;border-radius:999px;padding:15px;font-size:17px;font-weight:700;background:#d93d20;color:#fff;cursor:pointer}
-.btn.y{background:#f3ebe2;color:#5a4a3f}.uyari{background:#fff8e6;color:#8a5a00;border-radius:16px;padding:12px 14px;font-size:14px;margin:12px 0}
-@media (prefers-color-scheme:dark){body{background:#171412;color:#f2ebe5}.kart{background:#221d1a;box-shadow:none}ul.m li{border-color:#2f2824}
-.pill{background:#3a1d16;color:#ff9f88}.btn.y{background:#2a2420;color:#d9cec5}.uyari{background:#2a2113;color:#f1c56b}ol.a li:before{background:#3a1d16}}
+.btn.y{background:#f1f1ef;color:#3f3f46}.uyari{background:#fff8e6;color:#8a5a00;border-radius:16px;padding:12px 14px;font-size:14px;margin:12px 0}
+@media (prefers-color-scheme:dark){body{background:#111113;color:#f4f4f5}.kart{background:#1c1c1f;box-shadow:none}ul.m li{border-color:#2e2e33}
+.pill{background:#3a1d16;color:#ff9f88}.btn.y{background:#26262a;color:#d4d4d8}.uyari{background:#2a2113;color:#f1c56b}ol.a li:before{background:#3a1d16}}
 `
 
 const PLATFORM_ADI: Record<string, string> = { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok', pinterest: 'Pinterest', facebook: 'Facebook' }
@@ -159,7 +159,7 @@ ${tm.warnings.map((w) => `<div class="uyari">⚠️ ${k(w)}</div>`).join('')}
 <div id="pisir" style="display:none">
 <div style="display:flex;align-items:center;gap:10px"><button class="btn y" style="width:auto;padding:10px 16px" onclick="kapat()">✕</button>
 <div><b>${k(r.title)}</b><div class="meta" id="sayi"></div></div></div>
-<div style="height:6px;background:#f3ebe2;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:#d93d20;width:0"></div></div>
+<div style="height:6px;background:#f1f1ef;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:#d93d20;width:0"></div></div>
 <div id="kaba" class="kart" style="display:none"><div class="meta">KABA EKLE</div><div id="kabaY" style="font-size:20px;font-weight:700"></div></div>
 <p id="metin" style="font-size:24px;font-weight:600;line-height:1.4;margin:16px 0"></p><div id="mod"></div>
 <div id="kutular" style="display:grid;gap:8px;margin:12px 0"></div><p id="ipucu" class="meta" style="font-size:15px"></p>

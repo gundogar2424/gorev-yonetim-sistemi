@@ -4,9 +4,9 @@ import type { LzPlatform, LzRecipe } from '../types'
 import { PLATFORM_AD } from '../lib/importer'
 
 // Sik kullanilan metin renkleri (acik / koyu tema)
-export const T_BASLIK = 'text-[#2b211b] dark:text-[#f2ebe5]'
-export const T_GOVDE = 'text-[#4f433b] dark:text-[#d6cbc2]'
-export const T_SOLUK = 'text-[#9a8b80] dark:text-[#8c8077]'
+export const T_BASLIK = 'text-[#18181b] dark:text-[#f4f4f5]'
+export const T_GOVDE = 'text-[#3f3f46] dark:text-[#d4d4d8]'
+export const T_SOLUK = 'text-[#86868f] dark:text-[#8a8a93]'
 
 export type IconName =
   | 'book'
@@ -28,6 +28,10 @@ export type IconName =
   | 'x'
   | 'users'
   | 'pot'
+  | 'inbox'
+  | 'pin'
+  | 'leaf'
+  | 'sparkle'
 
 export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; className?: string }) {
   const c = {
@@ -162,6 +166,34 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
           <path d="M4 10h16M9 10V7.5a3 3 0 0 1 6 0V10M19 12.5h2" />
         </svg>
       )
+    case 'inbox':
+      return (
+        <svg {...c}>
+          <path d="M3.5 13.5 6 5.5A2 2 0 0 1 7.9 4h8.2a2 2 0 0 1 1.9 1.5l2.5 8" />
+          <path d="M3.5 13.5V18a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-4.5h-5l-1.5 2.5h-4L8.5 13.5z" />
+        </svg>
+      )
+    case 'pin':
+      return (
+        <svg {...c}>
+          <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
+          <circle cx="12" cy="10" r="2.4" />
+        </svg>
+      )
+    case 'leaf':
+      return (
+        <svg {...c}>
+          <path d="M5 19c0-8 5-13.5 15-14-.4 10-6 15-14 15" />
+          <path d="M5 19c3-4 6-6.5 9.5-8.5" />
+        </svg>
+      )
+    case 'sparkle':
+      return (
+        <svg {...c}>
+          <path d="M12 3.5 13.8 9 19.5 10.8 13.8 12.6 12 18.5 10.2 12.6 4.5 10.8 10.2 9z" />
+          <path d="M19 3.5v3M17.5 5h3" />
+        </svg>
+      )
     case 'users':
       return (
         <svg {...c}>
@@ -176,19 +208,19 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
 export function Header({ title, subtitle, back, right }: { title: ReactNode; subtitle?: string; back?: boolean; right?: ReactNode }) {
   const navigate = useNavigate()
   return (
-    <header className="sticky top-0 z-10 backdrop-blur-xl bg-[#fbf7f2]/85 dark:bg-[#171412]/85">
-      <div className="px-5 pt-5 pb-3 flex items-center gap-3">
+    <header className="sticky top-0 z-10 backdrop-blur-xl bg-[#f7f7f5]/85 dark:bg-[#111113]/85">
+      <div className="px-5 pt-4 pb-3 flex items-center gap-3">
         {back && (
           <button
             onClick={() => navigate(-1)}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-white dark:bg-[#221d1a] flex items-center justify-center text-[#5a4a3f] dark:text-[#d9cec5] active:scale-95 transition"
+            className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-[#1c1c1f] border border-[#e4e3e0] dark:border-[#2e2e33] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8] active:scale-95 transition"
             aria-label="Geri"
           >
             <Icon name="back" />
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className={`text-[26px] font-bold leading-tight tracking-[-0.02em] truncate ${T_BASLIK}`}>{title}</h1>
+          <h1 className={`text-[24px] font-[750] leading-tight tracking-[-0.025em] truncate ${T_BASLIK}`}>{title}</h1>
           {subtitle && <p className={`text-[13px] mt-0.5 truncate ${T_SOLUK}`}>{subtitle}</p>}
         </div>
         {right && <div className="flex-shrink-0 flex items-center gap-2">{right}</div>}
@@ -205,9 +237,9 @@ export function Logo({ className = 'w-8 h-8' }: { className?: string }) {
       <rect x="8" y="22" width="48" height="6" rx="3" fill="#b52f17" />
       <path d="M11 28h42v14a14 14 0 0 1-14 14H25a14 14 0 0 1-14-14z" fill="#ee4c2e" />
       <path d="M11 32H5M53 32h6" stroke="#b52f17" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="25" cy="38" r="2.6" fill="#2b211b" />
-      <circle cx="39" cy="38" r="2.6" fill="#2b211b" />
-      <path d="M26 44c3 3.5 9 3.5 12 0" stroke="#2b211b" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+      <circle cx="25" cy="38" r="2.6" fill="#18181b" />
+      <circle cx="39" cy="38" r="2.6" fill="#18181b" />
+      <path d="M26 44c3 3.5 9 3.5 12 0" stroke="#18181b" strokeWidth="2.6" fill="none" strokeLinecap="round" />
       <circle cx="20" cy="43" r="2.4" fill="#ff9f88" opacity=".8" />
       <circle cx="44" cy="43" r="2.4" fill="#ff9f88" opacity=".8" />
     </svg>
@@ -219,7 +251,7 @@ export function Thumb({ src, className = 'w-20 h-20 rounded-2xl', emoji = '🍲'
   const [hata, setHata] = useState(false)
   if (!src || hata) {
     return (
-      <div className={`${className} bg-[#f6ece2] dark:bg-[#2a2420] flex items-center justify-center text-3xl flex-shrink-0`}>
+      <div className={`${className} bg-[#f1f1ef] dark:bg-[#26262a] flex items-center justify-center text-3xl flex-shrink-0`}>
         {emoji}
       </div>
     )
@@ -268,7 +300,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     <div className="fixed inset-0 z-40 flex items-end justify-center" role="dialog" aria-modal>
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative w-full max-w-xl bg-[#fbf7f2] dark:bg-[#1c1815] rounded-t-[28px] max-h-[85vh] flex flex-col"
+        className="relative w-full max-w-xl bg-[#f7f7f5] dark:bg-[#18181b] rounded-t-[28px] max-h-[85vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
@@ -287,7 +319,7 @@ export function Toast({ text }: { text: string }) {
   if (!text) return null
   return (
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-50 bg-[#2b211b] text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg max-w-[90vw] text-center"
+      className="fixed left-1/2 -translate-x-1/2 z-50 bg-[#18181b] text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg max-w-[90vw] text-center"
       style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
     >
       {text}

@@ -163,7 +163,7 @@ export default function GeziPlani() {
                 const onceki = i > 0 ? konumu(secili[i - 1]) : undefined
                 const bu = konumu(m)
                 return (
-                  <li key={m.id} className="flex items-center gap-2 rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] px-3 py-2">
+                  <li key={m.id} className="flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2">
                     <span className="w-6 h-6 rounded-full bg-lz-600 text-white text-[12px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
                     <Link to={`/mekan/${m.id}`} className={`flex-1 min-w-0 text-[14px] ${T_GOVDE}`}>
                       <span className="font-semibold">{m.ad}</span>

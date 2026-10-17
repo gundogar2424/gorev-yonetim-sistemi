@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
+import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { linkAyikla } from '../lib/importer'
@@ -135,10 +135,10 @@ export default function Mekanlar() {
       <div className="px-4 space-y-3 pb-8">
         <div className="grid grid-cols-2 gap-2.5">
           <Link to="/oner" className="lz-btn-primary text-[14px] px-2">
-            ✨ Bana mekan öner
+            <Icon name="sparkle" className="w-[18px] h-[18px]" /> Bana mekan öner
           </Link>
           <Link to="/gezi" className="lz-btn-soft text-[14px] px-2">
-            🗺️ Yemek gezisi
+            <Icon name="pin" className="w-[18px] h-[18px]" /> Yemek gezisi
           </Link>
         </div>
         <KampanyaKarti liste={liste} />

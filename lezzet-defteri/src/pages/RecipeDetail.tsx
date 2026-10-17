@@ -192,12 +192,12 @@ export default function RecipeDetail() {
           <div className="flex items-center justify-between mb-2">
             <h2 className={`font-bold text-[17px] ${T_BASLIK}`}>Malzemeler</h2>
             {temel > 0 && (
-              <div className="flex items-center gap-1 bg-[#f3ebe2] dark:bg-[#2a2420] rounded-full p-1">
-                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#221d1a] font-bold" onClick={() => setKisi(Math.max(1, hedef - 1))} aria-label="Azalt">
+              <div className="flex items-center gap-1 bg-[#f1f1ef] dark:bg-[#26262a] rounded-full p-1">
+                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1f] font-bold" onClick={() => setKisi(Math.max(1, hedef - 1))} aria-label="Azalt">
                   −
                 </button>
                 <span className={`text-[13px] font-semibold px-1.5 tabular-nums ${T_BASLIK}`}>{hedef} kişilik</span>
-                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#221d1a] font-bold" onClick={() => setKisi(hedef + 1)} aria-label="Artır">
+                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1f] font-bold" onClick={() => setKisi(hedef + 1)} aria-label="Artır">
                   +
                 </button>
               </div>
@@ -222,7 +222,7 @@ export default function RecipeDetail() {
               )}
             </div>
           ) : (
-            <ul className="divide-y divide-[#f3ebe2] dark:divide-[#2a2420]">
+            <ul className="divide-y divide-[#f1f1ef] dark:divide-[#26262a]">
               {malzemeler.map((m, i) => (
                 <li key={i}>
                   <label className="flex items-start gap-3 py-2.5 cursor-pointer">
@@ -374,7 +374,7 @@ function RoundBtn({ onClick, label, children }: { onClick: () => void; label: st
     <button
       onClick={onClick}
       aria-label={label}
-      className="w-10 h-10 rounded-full bg-white/90 dark:bg-[#171412]/80 backdrop-blur text-[#2b211b] dark:text-[#f2ebe5] flex items-center justify-center shadow-sm active:scale-95 transition"
+      className="w-10 h-10 rounded-full bg-white/90 dark:bg-[#111113]/80 backdrop-blur text-[#18181b] dark:text-[#f4f4f5] flex items-center justify-center shadow-sm active:scale-95 transition"
     >
       {children}
     </button>

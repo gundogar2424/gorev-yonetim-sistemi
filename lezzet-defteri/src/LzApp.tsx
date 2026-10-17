@@ -107,20 +107,22 @@ export default function LzApp() {
 
       {!pisirme && (
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-5 z-20 backdrop-blur-xl bg-white/85 dark:bg-[#171412]/90 border-t border-[#efe6dc] dark:border-[#2a2420]"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-5 z-20 backdrop-blur-xl bg-white/90 dark:bg-[#111113]/90 border-t border-[#e9e8e5] dark:border-[#26262a]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.map((t) => (
-          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-3 pb-2 gap-1.5">
+          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1">
             {({ isActive }) => (
               <>
-                <Icon
-                  name={t.icon}
-                  className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#b3a69b] dark:text-[#7d716a]'}`}
-                />
+                <span className={`px-4 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
+                  <Icon
+                    name={t.icon}
+                    className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#8a8a93] dark:text-[#71717a]'}`}
+                  />
+                </span>
                 <span
                   className={`text-[10.5px] leading-none transition-colors whitespace-nowrap ${
-                    isActive ? 'text-lz-600 dark:text-lz-400 font-semibold' : 'text-[#b3a69b] dark:text-[#7d716a] font-medium'
+                    isActive ? 'text-lz-600 dark:text-lz-400 font-semibold' : 'text-[#71717a] dark:text-[#8a8a93] font-medium'
                   }`}
                 >
                   {t.label}

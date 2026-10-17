@@ -69,7 +69,7 @@ export default function Shopping() {
         subtitle={acik.length ? `${acik.length} ürün alınacak` : 'Liste boş'}
         right={
           acik.length > 0 && (
-            <button onClick={() => void paylas()} className="w-10 h-10 rounded-full bg-white dark:bg-[#221d1a] flex items-center justify-center" aria-label="Listeyi paylaş">
+            <button onClick={() => void paylas()} className="w-10 h-10 rounded-full bg-white dark:bg-[#1c1c1f] flex items-center justify-center" aria-label="Listeyi paylaş">
               <Icon name="share" />
             </button>
           )
@@ -90,12 +90,12 @@ export default function Shopping() {
         </div>
 
         {acik.length > 0 && (
-          <div className="grid grid-cols-2 bg-[#f3ebe2] dark:bg-[#221d1a] rounded-full p-1">
+          <div className="grid grid-cols-2 bg-[#f1f1ef] dark:bg-[#1c1c1f] rounded-full p-1">
             {(['reyon', 'tarif'] as const).map((g) => (
               <button
                 key={g}
                 onClick={() => grupDegis(g)}
-                className={`py-1.5 rounded-full text-[13px] font-semibold transition ${grup === g ? 'bg-white dark:bg-[#2f2824] text-lz-600 shadow-sm' : 'text-[#8c7d72]'}`}
+                className={`py-1.5 rounded-full text-[13px] font-semibold transition ${grup === g ? 'bg-white dark:bg-[#2e2e33] text-lz-600 shadow-sm' : 'text-[#71717a]'}`}
               >
                 {g === 'reyon' ? 'Reyona göre' : 'Tarife göre'}
               </button>

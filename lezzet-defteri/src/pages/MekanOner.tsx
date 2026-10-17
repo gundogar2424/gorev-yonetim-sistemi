@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { platformBul } from '../lib/importer'
 import { hesapAdi, hesaplariOku, hesaplariYaz, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
@@ -251,7 +251,7 @@ export default function MekanOner() {
           </div>
           <div className="flex gap-1.5">
             {YARICAPLAR.map((x) => (
-              <button key={x} className={`lz-chip text-[13px] flex-1 !px-1 ${km === x ? 'lz-chip-on' : ''}`} onClick={() => kmSec(x)}>
+              <button key={x} className={`lz-chip justify-center text-[13px] flex-1 !px-1 ${km === x ? 'lz-chip-on' : ''}`} onClick={() => kmSec(x)}>
                 {x ? `${x} km` : 'Sınırsız'}
               </button>
             ))}
@@ -263,13 +263,13 @@ export default function MekanOner() {
             onChange={(e) => setSemt(e.target.value)}
           />
         </div>
-        <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#f0e6da] dark:bg-[#2a2420] p-1">
+        <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#ececea] dark:bg-[#26262a] p-1">
           {(
             [
-              ['oner', '✨', 'Öner'],
-              ['yemek', '🍽️', 'Yemek'],
-              ['hesap', '📱', 'Hesaplar'],
-              ['diyet', '🥗', 'Diyet']
+              ['oner', 'sparkle', 'Öner'],
+              ['yemek', 'pot', 'Yemek'],
+              ['hesap', 'users', 'Hesaplar'],
+              ['diyet', 'leaf', 'Diyet']
             ] as const
           ).map(([k, i, ad]) => (
             <button
@@ -279,7 +279,7 @@ export default function MekanOner() {
               }`}
               onClick={() => sekmeSec(k)}
             >
-              <span className="block text-[16px]">{i}</span>
+              <Icon name={i} className="w-[18px] h-[18px] mx-auto mb-0.5" />
               {ad}
             </button>
           ))}
@@ -517,7 +517,7 @@ export default function MekanOner() {
               {o.fiyat}
             </div>
             {aktifYemek && o.yemek_fiyati && (
-              <div className="rounded-xl bg-[#f6efe7] dark:bg-[#2a2420] px-3 py-1.5 text-[14px] font-semibold text-lz-600">
+              <div className="rounded-xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-1.5 text-[14px] font-semibold text-lz-600">
                 🍽️ {aktifYemek.ad}: {o.yemek_fiyati}
               </div>
             )}

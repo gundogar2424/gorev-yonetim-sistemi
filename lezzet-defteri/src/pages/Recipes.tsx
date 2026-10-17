@@ -42,29 +42,35 @@ export default function Recipes() {
       <Header
         title={
           <span className="flex items-center gap-2 min-w-0">
-            <Logo className="w-8 h-8 flex-shrink-0" /> <span className="truncate text-[22px]">Lezzet Defteri</span>
+            <Logo className="w-8 h-8 flex-shrink-0" /> <span className="truncate text-[23px]">Lezzet Defteri</span>
           </span>
-        }
-        right={
-          <>
-            <Link to="/sira" className="lz-btn-soft px-2.5 py-2 text-[15px] relative" aria-label="Tarif sırası">
-              📥
-              <SiraRozeti />
-            </Link>
-            <Link to="/mekanlar" className="lz-btn-soft px-2.5 py-2 text-[15px]" aria-label="Mekanlarım">
-              📍
-            </Link>
-            <Link to="/diyet" className="lz-btn-soft px-2.5 py-2 text-[15px]" aria-label="Diyetim">
-              🥗
-            </Link>
-            <Link to="/ne-pisirsem" className="lz-btn-soft px-3 py-2 text-[12.5px] whitespace-nowrap">
-              ✨ Ne pişirsem
-            </Link>
-          </>
         }
       />
 
       <div className="px-4 space-y-3">
+        {/* Hizli erisim: emojisiz, ayni boyda simgeli kutular */}
+        <div className="grid grid-cols-4 gap-2">
+          {(
+            [
+              ['/ne-pisirsem', 'sparkle', 'Ne pişirsem'],
+              ['/mekanlar', 'pin', 'Mekanlar'],
+              ['/diyet', 'leaf', 'Diyetim'],
+              ['/sira', 'inbox', 'Sıra']
+            ] as const
+          ).map(([to, ikon, ad]) => (
+            <Link
+              key={to}
+              to={to}
+              className="lz-card relative flex flex-col items-center justify-center gap-1.5 py-3 active:scale-[0.97] transition"
+            >
+              <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center">
+                <Icon name={ikon} className="w-[19px] h-[19px]" />
+              </span>
+              <span className={`text-[12px] font-semibold tracking-[-0.01em] ${T_BASLIK}`}>{ad}</span>
+              {to === '/sira' && <SiraRozeti />}
+            </Link>
+          ))}
+        </div>
         <SiraSeridi />
         <YakinMekanSeridi />
         <label className="relative block">
@@ -75,13 +81,13 @@ export default function Recipes() {
         </label>
 
         {/* Tariflerim / Sofralarım */}
-        <div className="grid grid-cols-2 bg-[#f3ebe2] dark:bg-[#221d1a] rounded-full p-1">
+        <div className="grid grid-cols-2 bg-[#ececea] dark:bg-[#1c1c1f] rounded-xl p-1">
           {(['tarifler', 'sofralar'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setSekme(s)}
-              className={`py-2 rounded-full text-sm font-semibold transition ${
-                sekme === s ? 'bg-lz-600 text-white shadow-sm' : 'text-[#8c7d72] dark:text-[#a3968b]'
+              className={`py-2 rounded-[10px] text-sm font-semibold transition ${
+                sekme === s ? 'bg-white dark:bg-[#2e2e33] text-[#18181b] dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]' : 'text-[#71717a] dark:text-[#8a8a93]'
               }`}
             >
               {s === 'tarifler' ? 'Tariflerim' : 'Sofralarım'}
@@ -99,7 +105,7 @@ export default function Recipes() {
                   <button key={t.id} onClick={() => setSofra(on ? 0 : t.id!)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16">
                     <span
                       className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition ${
-                        on ? 'bg-lz-600 ring-4 ring-lz-100 dark:ring-lz-900' : 'bg-white dark:bg-[#221d1a]'
+                        on ? 'bg-lz-600 ring-4 ring-lz-100 dark:ring-lz-900' : 'bg-white dark:bg-[#1c1c1f]'
                       }`}
                     >
                       {t.emoji}
@@ -109,7 +115,7 @@ export default function Recipes() {
                 )
               })}
               <button onClick={() => setYeniSofra(true)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16">
-                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#e3d6c9] dark:border-[#3a322d] text-[#b3a69b]">
+                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#dcdbd7] dark:border-[#3a3a40] text-[#a1a1aa]">
                   <Icon name="plus" />
                 </span>
                 <span className={`text-[11.5px] ${T_SOLUK}`}>Sofra</span>
@@ -191,7 +197,7 @@ function RecipeCard({ r }: { r: LzRecipe }) {
       </Link>
       <button
         onClick={() => r.id && toggleFavorite(r.id)}
-        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${r.favorite ? 'text-amber-400' : 'text-[#e0d4c8] dark:text-[#3a322d]'}`}
+        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${r.favorite ? 'text-amber-400' : 'text-[#dcdbd7] dark:text-[#3a3a40]'}`}
         aria-label={r.favorite ? 'Favoriden çıkar' : 'Favoriye ekle'}
       >
         <svg viewBox="0 0 24 24" className="w-[22px] h-[22px]" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
@@ -249,10 +255,10 @@ function SofraListesi({
               <button onClick={() => onAc(t.id!)} className="text-left w-full">
                 <div className="flex -space-x-3 mb-2">
                   {icindekiler.slice(0, 3).map((r) => (
-                    <Thumb key={r.id} src={r.photo} className="w-11 h-11 rounded-full ring-2 ring-white dark:ring-[#221d1a] text-lg" />
+                    <Thumb key={r.id} src={r.photo} className="w-11 h-11 rounded-full ring-2 ring-white dark:ring-[#1c1c1f] text-lg" />
                   ))}
                   {icindekiler.length === 0 && (
-                    <span className="w-11 h-11 rounded-full bg-[#f6ece2] dark:bg-[#2a2420] flex items-center justify-center text-xl">{t.emoji}</span>
+                    <span className="w-11 h-11 rounded-full bg-[#f1f1ef] dark:bg-[#26262a] flex items-center justify-center text-xl">{t.emoji}</span>
                   )}
                 </div>
                 <div className={`font-semibold truncate ${T_BASLIK}`}>
@@ -273,7 +279,7 @@ function SofraListesi({
         })}
         <button
           onClick={onYeni}
-          className="rounded-[22px] border-2 border-dashed border-[#e3d6c9] dark:border-[#3a322d] p-3 flex flex-col items-center justify-center gap-1 min-h-[120px] text-[#b3a69b]"
+          className="rounded-[22px] border-2 border-dashed border-[#dcdbd7] dark:border-[#3a3a40] p-3 flex flex-col items-center justify-center gap-1 min-h-[120px] text-[#a1a1aa]"
         >
           <Icon name="plus" className="w-6 h-6" />
           <span className="text-sm font-medium">Yeni sofra</span>
@@ -323,7 +329,7 @@ export function YeniSofra({
             <button
               key={e}
               onClick={() => setEmoji(e)}
-              className={`h-12 rounded-2xl text-2xl ${emoji === e ? 'bg-lz-100 dark:bg-lz-900 ring-2 ring-lz-500' : 'bg-white dark:bg-[#221d1a]'}`}
+              className={`h-12 rounded-2xl text-2xl ${emoji === e ? 'bg-lz-100 dark:bg-lz-900 ring-2 ring-lz-500' : 'bg-white dark:bg-[#1c1c1f]'}`}
             >
               {e}
             </button>
