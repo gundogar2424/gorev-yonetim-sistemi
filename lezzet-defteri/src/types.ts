@@ -153,7 +153,7 @@ export interface LzMekan {
   kampanya?: { ozet: string; gecerlilik: string; kaynak: string; zaman: number } // son kontrolde bulunan kampanya
   kampanyaBakildi?: number
   ziyaretler?: LzZiyaret[] // gittigim tarihler, puanim, ne yedim, notlarim
-  unluler?: { liste: { kisi: string; ozet: string; link: string }[]; zaman: number }
+  unluler?: { liste: { kisi: string; ozet: string; link: string; yedigi?: string; tarih?: string }[]; zaman: number }
   fiyatlar?: { kalemler: { ad: string; fiyat: string }[]; kaynak: string; tarih: string; zaman: number } // guncel menu fiyatlari
   haritaUrl?: string // Google Haritalar'daki sayfasi (yorumlar)
 }

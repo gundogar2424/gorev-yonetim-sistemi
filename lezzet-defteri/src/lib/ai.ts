@@ -1301,11 +1301,12 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
 }
 
 // Mekana giden unluler: kim, ne dedi, paylasiminin linki (Google aramasiyla)
-export async function aiMekanUnluler(m: { ad: string; ilce: string; sehir: string }): Promise<{ kisi: string; ozet: string; link: string }[]> {
-  const v = await jsonCagri<{ liste: { kisi: string; ozet: string; link: string }[] }>(
+export async function aiMekanUnluler(m: { ad: string; ilce: string; sehir: string }): Promise<{ kisi: string; ozet: string; link: string; yedigi: string; tarih: string }[]> {
+  const v = await jsonCagri<{ liste: { kisi: string; ozet: string; link: string; yedigi: string; tarih: string }[] }>(
     'Sen bir yeme-içme mekanı araştırmacısısın. Google’da bu mekana giden ünlüleri (sanatçı, sporcu, tanınmış yemek fenomeni, şef, ' +
       'gezi/yemek YouTuber’ı) ara: Instagram/TikTok/YouTube paylaşımları, haberler, röportajlar. Her biri için kişinin adını, mekan hakkında ' +
-      'ne dediğini ya da ne paylaştığını (1-2 cümle) ve paylaşımın/haberin GERÇEK linkini yaz. Linki bulamadıysan boş bırak; LİNK ya da ' +
+      'ne dediğini/yorumunu (1-2 cümle), orada ne yediğini (biliniyorsa), ne zaman gittiğini (paylaşım tarihi; ay-yıl yeterli, bilinmiyorsa boş) ' +
+      've paylaşımın/videonun GERÇEK linkini yaz. Linki bulamadıysan boş bırak; LİNK ya da ' +
       'ünlü ziyareti UYDURMA. Emin olmadığın kişiyi yazma. Bulamazsan boş liste. En fazla 8 kişi. Türkçe.',
     `Mekan: ${m.ad}\nYer: ${[m.ilce, m.sehir].filter(Boolean).join(', ')}`,
     {
@@ -1318,8 +1319,8 @@ export async function aiMekanUnluler(m: { ad: string; ilce: string; sehir: strin
           items: {
             type: 'object',
             additionalProperties: false,
-            required: ['kisi', 'ozet', 'link'],
-            properties: { kisi: { type: 'string' }, ozet: { type: 'string' }, link: { type: 'string' } }
+            required: ['kisi', 'ozet', 'link', 'yedigi', 'tarih'],
+            properties: { kisi: { type: 'string' }, ozet: { type: 'string' }, link: { type: 'string' }, yedigi: { type: 'string' }, tarih: { type: 'string' } }
           }
         }
       }
@@ -1328,7 +1329,7 @@ export async function aiMekanUnluler(m: { ad: string; ilce: string; sehir: strin
     true
   )
   return (v.liste ?? [])
-    .map((x) => ({ kisi: String(x.kisi ?? '').trim(), ozet: String(x.ozet ?? '').trim(), link: /^https?:\/\//.test(String(x.link ?? '').trim()) ? String(x.link).trim() : '' }))
+    .map((x) => ({ kisi: String(x.kisi ?? '').trim(), ozet: String(x.ozet ?? '').trim(), yedigi: String(x.yedigi ?? '').trim(), tarih: String(x.tarih ?? '').trim(), link: /^https?:\/\//.test(String(x.link ?? '').trim()) ? String(x.link).trim() : '' }))
     .filter((x) => x.kisi)
     .slice(0, 8)
 }

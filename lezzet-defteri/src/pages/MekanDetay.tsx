@@ -517,16 +517,28 @@ function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
       {u.liste.length ? (
         u.liste.map((x, i) => (
           <div key={i} className="rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-1">
-            <div className={`font-semibold text-[14px] ${T_GOVDE}`}>{x.kisi}</div>
-            {x.ozet && <div className={`text-[13px] ${T_GOVDE}`}>“{x.ozet}”</div>}
+            <div className={`font-semibold text-[14px] ${T_GOVDE}`}>
+              {x.kisi}
+              {x.tarih && <span className={`ml-2 text-[12px] font-normal ${T_SOLUK}`}>{x.tarih}</span>}
+            </div>
+            {x.yedigi && <div className={`text-[13px] ${T_GOVDE}`}>🍽️ {x.yedigi}</div>}
+            {x.ozet && <div className={`text-[13px] ${T_GOVDE}`}>💬 “{x.ozet}”</div>}
             <a href={x.link || aramaLinki(x.kisi)} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
-              {x.link ? '▶ Paylaşımı aç' : '🔎 Paylaşımı ara'}
+              {x.link ? '▶ Videoyu / paylaşımı aç' : '🔎 Videosunu ara'}
             </a>
           </div>
         ))
       ) : (
         <p className={`text-[13px] ${T_SOLUK}`}>Son aramada bu mekana giden ünlü bulunamadı.</p>
       )}
+      <div className="grid grid-cols-2 gap-2">
+        <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${m.ad} ${m.sehir}`)}`} target="_blank" rel="noreferrer" className="lz-btn-soft text-[12.5px] px-2">
+          ▶ YouTube videoları
+        </a>
+        <a href={`https://www.tiktok.com/search?q=${encodeURIComponent(`${m.ad} ${m.sehir}`)}`} target="_blank" rel="noreferrer" className="lz-btn-soft text-[12.5px] px-2">
+          ▶ TikTok videoları
+        </a>
+      </div>
       <p className={`text-[11.5px] ${T_SOLUK}`}>Yapay zekanın Google araması · {new Date(u.zaman).toLocaleDateString('tr')} — paylaşımı açıp kontrol et.</p>
     </div>
   )
