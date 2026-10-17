@@ -114,7 +114,7 @@ export default function Mekanlar() {
     const hafta = Date.now() - 7 * 24 * 3600 * 1000
     const bakilacak = sirali.filter((m) => !m.hype || m.hype.zaman < hafta).slice(0, 25)
     if (!bakilacak.length || !aiVar) return
-    setHypeDurum(`🔥 ${bakilacak.length} mekan sosyal medyada araştırılıyor…`)
+    setHypeDurum(`${bakilacak.length} mekan sosyal medyada araştırılıyor…`)
     try {
       const sonuc = await aiMekanHype(bakilacak.map((m) => ({ ad: m.ad, yer: [m.ilce, m.sehir].filter(Boolean).join(', ') })))
       const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
@@ -124,7 +124,7 @@ export default function Mekanlar() {
       }
       setHypeDurum('')
     } catch (e) {
-      setHypeDurum(`⚠️ ${(e as Error).message}`)
+      setHypeDurum(`${(e as Error).message}`)
     }
   }
   const yakinlar = konum ? sirali.filter((m) => (mesafe(m) ?? 1e9) <= YAKIN_KM) : []
@@ -144,11 +144,11 @@ export default function Mekanlar() {
         <KampanyaKarti liste={liste} />
         {/* Nerede oldugun */}
         <div className="lz-card p-4 space-y-2.5">
-          <div className={`font-semibold ${T_BASLIK}`}>📍 {konum ? `Konum: ${konum.ad ?? 'Bulunduğun yer'}` : 'Neredesin?'}</div>
+          <div className={`font-semibold ${T_BASLIK}`}>{konum ? `Konum: ${konum.ad ?? 'Bulunduğun yer'}` : 'Neredesin?'}</div>
           {konum && (
             <p className={`text-[13px] ${T_GOVDE}`}>
               {yakinlar.length
-                ? `${YAKIN_KM} km içinde kayıtlı ${yakinlar.length} mekan var 👇`
+                ? `${YAKIN_KM} km içinde kayıtlı ${yakinlar.length} mekan var`
                 : `${YAKIN_KM} km içinde kayıtlı mekan yok; en yakınlar aşağıda.`}
             </p>
           )}
@@ -178,7 +178,7 @@ export default function Mekanlar() {
               setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 100)
             }}
           >
-            📍 Yakınımdaki mekanları göster
+            Yakınımdaki mekanları göster
           </button>
           {yaricap > 0 && (
             <div className="flex gap-1.5 flex-wrap">
@@ -217,7 +217,7 @@ export default function Mekanlar() {
               ’dan Gemini anahtarı gerekli.
             </p>
           )}
-          {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+          {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
         </div>
 
         {liste.length > 0 && (
@@ -231,10 +231,10 @@ export default function Mekanlar() {
               />
               <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
                 <button className={`lz-chip whitespace-nowrap ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
-                  ❤️ Favoriler
+                  Favoriler
                 </button>
-                <button className={`lz-chip whitespace-nowrap ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.startsWith('🔥')} onClick={() => void hypeKontrol()}>
-                  🔥 Hype
+                <button className={`lz-chip whitespace-nowrap ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.endsWith('…')} onClick={() => void hypeKontrol()}>
+                  Hype
                 </button>
                 <button
                   className={`lz-chip whitespace-nowrap ${sadeceGidilmedi ? 'lz-chip-on' : ''}`}
@@ -243,7 +243,7 @@ export default function Mekanlar() {
                   Gitmediklerim
                 </button>
                 <button className="lz-chip whitespace-nowrap" onClick={() => setSiralama(siralama === 'puan' ? 'mesafe' : 'puan')}>
-                  {siralama === 'puan' ? '⭐ Puana göre' : '📍 Yakına göre'}
+                  {siralama === 'puan' ? '★ Puana göre' : 'Yakına göre'}
                 </button>
               </div>
             </div>
@@ -286,12 +286,12 @@ export default function Mekanlar() {
                       void lzDb.mekanlar.update(m.id!, { favori: !m.favori })
                     }}
                   >
-                    {m.favori ? '❤️' : '🤍'}
+                    <Icon name="heart" className={`w-5 h-5 ${m.favori ? 'text-lz-600 fill-current' : 'text-[#a1a1aa]'}`} />
                   </button>
-                  <Thumb src={m.foto} className="w-16 h-16 rounded-2xl" emoji="🍽️" />
+                  <Thumb src={m.foto} className="w-16 h-16 rounded-2xl" emoji="" />
                   <div className="flex-1 min-w-0">
                     <div className={`font-semibold leading-snug pr-7 ${T_BASLIK}`}>
-                      {m.ad} {m.gidildi && <span className="text-[12px]">✅</span>}
+                      {m.ad} {m.gidildi && <span className="text-[12px] text-emerald-600">✓</span>}
                       {(() => {
                         const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))
                         const p = z.filter((x) => x.puan)
@@ -308,8 +308,8 @@ export default function Mekanlar() {
                       {m.puan ? <b className="text-amber-600 dark:text-amber-300 font-semibold">{puanYaz(m)} · </b> : null}
                       {[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}
                     </div>
-                    {m.hype?.var && <div className="text-[12.5px] text-lz-600 font-semibold truncate">🔥 {m.hype.not || 'Şu an sosyal medyada konuşuluyor'}</div>}
-                    {m.oneriler.length > 0 && <div className={`text-[12.5px] truncate ${T_GOVDE}`}>😋 {m.oneriler.slice(0, 3).join(', ')}</div>}
+                    {m.hype?.var && <div className="text-[12.5px] text-lz-600 font-semibold truncate">{m.hype.not || 'Şu an sosyal medyada konuşuluyor'}</div>}
+                    {m.oneriler.length > 0 && <div className={`text-[12.5px] truncate ${T_GOVDE}`}>{m.oneriler.slice(0, 3).join(', ')}</div>}
                     {m.etiketler.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {m.etiketler.slice(0, 4).map((e) => (
@@ -360,7 +360,7 @@ export function YakinMekanSeridi() {
   if (!yakin) return null
   return (
     <Link to="/mekanlar" className="lz-card p-3 flex items-center gap-3 ring-2 ring-lz-500/50">
-      <span className="text-lg">📍</span>
+      <Icon name="pin" className="w-5 h-5 text-lz-600" />
       <span className={`flex-1 text-[13.5px] font-medium ${T_BASLIK}`}>Yakınında kayıtlı {yakin} mekan var</span>
       <span className="text-lz-600 text-[13px] font-semibold">Göster</span>
     </Link>
@@ -385,13 +385,13 @@ function KampanyaKarti({ liste }: { liste: LzMekan[] }) {
           void bildirimIzniIste()
           try {
             const r = await kampanyaKontrolEt()
-            setSonuc(r.bulunan.length ? `🎁 ${r.bulunan.length} mekanda kampanya bulundu.` : `${r.bakilan} mekana bakıldı, şu an kampanya bulunamadı.`)
+            setSonuc(r.bulunan.length ? `${r.bulunan.length} mekanda kampanya bulundu.` : `${r.bakilan} mekana bakıldı, şu an kampanya bulunamadı.`)
           } catch (e) {
             setSonuc((e as Error).message)
           }
         }}
       >
-        {d.calisiyor ? d.mesaj : '🎁 Kampanyaları kontrol et'}
+        {d.calisiyor ? d.mesaj : 'Kampanyaları kontrol et'}
       </button>
       <p className={`text-[12px] ${T_SOLUK}`}>
         {favSayisi ? `${Math.min(favSayisi, 15)} favori mekanının` : 'Mekanlarının'} önümüzdeki 7 gündeki (hafta sonu dahil) kampanya, indirim ve etkinliklerine
@@ -400,7 +400,7 @@ function KampanyaKarti({ liste }: { liste: LzMekan[] }) {
       {sonuc && <p className={`text-[13px] font-medium ${T_GOVDE}`}>{sonuc}</p>}
       {kampanyali.map((m) => (
         <Link key={m.id} to={`/mekan/${m.id}`} className="block rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3">
-          🎁 <b>{m.ad}</b>: {m.kampanya!.ozet}
+          <b>{m.ad}</b>: {m.kampanya!.ozet}
           {m.kampanya!.gecerlilik ? ` (${m.kampanya!.gecerlilik})` : ''}
         </Link>
       ))}

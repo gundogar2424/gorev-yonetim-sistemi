@@ -24,14 +24,14 @@ export default function Shopping() {
 
   const gruplar: [string, string, LzShopItem[]][] = []
   if (grup === 'reyon') {
-    const sira = [...REYONLAR.map((r) => [r.ad, r.emoji] as const), ['Diğer', '🛒'] as const]
+    const sira = [...REYONLAR.map((r) => [r.ad, r.emoji] as const), ['Diğer', ''] as const]
     for (const [ad, emoji] of sira) {
       const x = acik.filter((i) => reyonBul(i.text) === ad)
       if (x.length) gruplar.push([ad, emoji, x])
     }
   } else {
     const adlar = Array.from(new Set(acik.map((i) => i.recipeTitle || 'Elle eklenenler')))
-    for (const ad of adlar) gruplar.push([ad, '🍲', acik.filter((i) => (i.recipeTitle || 'Elle eklenenler') === ad)])
+    for (const ad of adlar) gruplar.push([ad, '', acik.filter((i) => (i.recipeTitle || 'Elle eklenenler') === ad)])
   }
 
   const ekle = async () => {
@@ -41,7 +41,7 @@ export default function Shopping() {
   }
 
   const paylas = async () => {
-    const metin = ['🛒 Alışveriş listesi', ...gruplar.flatMap(([ad, emoji, x]) => ['', `${emoji} ${ad}`, ...x.map((i) => `☐ ${i.text}`)])].join('\n')
+    const metin = ['Alışveriş listesi', ...gruplar.flatMap(([ad, emoji, x]) => ['', `${emoji} ${ad}`, ...x.map((i) => `☐ ${i.text}`)])].join('\n')
     try {
       if (navigator.share) await navigator.share({ title: 'Alışveriş listesi', text: metin })
       else {
@@ -105,7 +105,7 @@ export default function Shopping() {
 
         {liste.length === 0 && (
           <div className="lz-card p-6 text-center">
-            <div className="text-5xl mb-2">🛒</div>
+            <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center"><Icon name="cart" className="w-7 h-7" /></div>
             <p className={`font-semibold mb-1 ${T_BASLIK}`}>Liste boş</p>
             <p className={`text-sm ${T_SOLUK}`}>Bir tarifte “Alışveriş listesine ekle”ye bas ya da Bu Hafta’daki planın malzemelerini tek dokunuşla ekle.</p>
           </div>
@@ -113,8 +113,8 @@ export default function Shopping() {
 
         {gruplar.map(([ad, emoji, x]) => (
           <div key={ad} className="lz-card p-3.5">
-            <div className="lz-label mb-1 px-1">
-              {emoji} {ad}
+            <div className="lz-label mb-1 px-1" data-emoji={emoji}>
+              {ad}
             </div>
             <ul>
               {x.map((i) => (

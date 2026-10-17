@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan, LzZiyaret } from '../types'
-import { Header, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
+import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { fiyatlariGuncelle, haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { mekanKampanyasi } from '../lib/kampanya'
@@ -82,14 +82,14 @@ export default function MekanDetay() {
         )}
         {!!durumu?.digerleri && (
           <div className="rounded-2xl bg-emerald-50 dark:bg-[#15291f] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3.5">
-            🎬 Bu videoda {durumu.digerleri} mekan daha vardı; onlar da Mekanlarım’a kaydedildi (aşağıda).
+            Bu videoda {durumu.digerleri} mekan daha vardı; onlar da Mekanlarım’a kaydedildi (aşağıda).
           </div>
         )}
         {m.sourceUrl ? (
           // Tarifteki gibi: kapaga dokununca paylasimin videosu (Instagram/TikTok/YouTube) acilir
           <button className="relative block w-full" onClick={() => ac(m.sourceUrl)} aria-label="Videoyu izle">
             {m.foto ? (
-              <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />
+              <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="" />
             ) : (
               <div className="w-full h-40 rounded-3xl bg-gradient-to-br from-lz-500 to-lz-700" />
             )}
@@ -101,7 +101,7 @@ export default function MekanDetay() {
             </span>
           </button>
         ) : (
-          m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />
+          m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="" />
         )}
         {m.paylasan && (
           <div className={`flex items-center gap-2 text-[12.5px] px-1 -mt-1 ${T_SOLUK}`}>
@@ -114,7 +114,7 @@ export default function MekanDetay() {
                   className="lz-chip text-[12px] !py-1"
                   onClick={() => {
                     hesapTakipEt(m.paylasan!)
-                    goster(`📱 ${m.paylasan} takip ediliyor; yeni mekanları Bana mekan öner › Hesaplar’da`)
+                    goster(`${m.paylasan} takip ediliyor; yeni mekanları Bana mekan öner › Hesaplar’da`)
                   }}
                 >
                   ＋ Takip et
@@ -126,7 +126,7 @@ export default function MekanDetay() {
           const son = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih)).find((z) => z.tekrar)
           return son ? (
             <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-900 dark:text-amber-200 text-[14px] p-3.5">
-              📝 <b>Bir dahaki sefere:</b> {son.tekrar}
+              <b>Bir dahaki sefere:</b> {son.tekrar}
               <span className="block text-[11.5px] opacity-70 mt-0.5">{tarihYaz(son.tarih)} ziyaretinde not etmiştin</span>
             </div>
           ) : null
@@ -137,19 +137,19 @@ export default function MekanDetay() {
           onClick={async () => {
             setKampanyaAraniyor(true)
             try {
-              goster((await mekanKampanyasi(m)) ? '🎁 Kampanya bulundu' : 'Şu an kampanya bulunamadı')
+              goster((await mekanKampanyasi(m)) ? 'Kampanya bulundu' : 'Şu an kampanya bulunamadı')
             } catch (e) {
               goster((e as Error).message.slice(0, 80))
             }
             setKampanyaAraniyor(false)
           }}
         >
-          {kampanyaAraniyor ? 'Kampanyalara bakılıyor…' : '🎁 Kampanya var mı?'}
+          {kampanyaAraniyor ? 'Kampanyalara bakılıyor…' : 'Kampanya var mı?'}
         </button>
         <FiyatKarti m={m} goster={goster} />
         {m.kampanya && (
           <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[14px] p-3.5 space-y-1">
-            <div className="font-semibold">🎁 Kampanya</div>
+            <div className="font-semibold">Kampanya</div>
             <div>{m.kampanya.ozet}</div>
             {m.kampanya.gecerlilik && <div className="text-[12.5px] opacity-80">Geçerli: {m.kampanya.gecerlilik}</div>}
             <div className="text-[11.5px] opacity-70">
@@ -161,10 +161,10 @@ export default function MekanDetay() {
 
         <div className="grid grid-cols-2 gap-2.5">
           <button className="lz-btn-primary text-sm" onClick={() => ac(yolTarifiLinki(m))}>
-            🧭 Yol tarifi
+            Yol tarifi
           </button>
           <button className="lz-btn-soft text-sm" onClick={() => ac(haritadaAcLinki(m))}>
-            🗺️ Haritada aç
+            Haritada aç
           </button>
         </div>
 
@@ -195,7 +195,7 @@ export default function MekanDetay() {
               {puanAraniyor ? 'Aranıyor…' : '↻ Güncelle'}
             </button>
           </div>
-          {m.yorumOzeti && <p className={`text-[13.5px] ${T_GOVDE}`}>💬 {m.yorumOzeti}</p>}
+          {m.yorumOzeti && <p className={`text-[13.5px] ${T_GOVDE}`}>{m.yorumOzeti}</p>}
           <button
             className="lz-btn-soft w-full text-sm"
             onClick={() => {
@@ -237,7 +237,7 @@ export default function MekanDetay() {
                 <ul className="space-y-0.5">
                   {m.oneriler.map((x, i) => (
                     <li key={i} className={`text-[14.5px] ${T_GOVDE}`}>
-                      😋 {x}
+                      {x}
                     </li>
                   ))}
                 </ul>
@@ -324,24 +324,24 @@ export default function MekanDetay() {
           className={`w-full text-[15px] ${m.favori ? 'lz-btn-primary' : 'lz-btn-soft'}`}
           onClick={async () => {
             await lzDb.mekanlar.update(m.id!, { favori: !m.favori })
-            goster(m.favori ? 'Favorilerden çıkarıldı' : '❤️ Favorilere eklendi')
+            goster(m.favori ? 'Favorilerden çıkarıldı' : 'Favorilere eklendi')
           }}
         >
-          {m.favori ? '❤️ Favori mekanım' : '🤍 Favorilere ekle'}
+          <Icon name="heart" className={`w-[18px] h-[18px] ${m.favori ? 'text-lz-600 fill-current' : ''}`} /> {m.favori ? 'Favori mekanım' : 'Favorilere ekle'}
         </button>
         {m.paylasanYorumu && (
           <div className="lz-card p-4 space-y-1.5">
-            <div className={`font-semibold ${T_BASLIK}`}>🎙️ {m.paylasan || 'Paylaşan'} ne dedi?</div>
-            {m.paylasanYorumu.yedi && <p className={`text-[13.5px] ${T_GOVDE}`}>🍽️ <b>Yedi:</b> {m.paylasanYorumu.yedi}</p>}
-            {m.paylasanYorumu.begendi && <p className={`text-[13.5px] ${T_GOVDE}`}>👍 {m.paylasanYorumu.begendi}</p>}
-            {m.paylasanYorumu.begenmedi && <p className={`text-[13.5px] ${T_GOVDE}`}>👎 {m.paylasanYorumu.begenmedi}</p>}
-            {m.paylasanYorumu.karar && <p className="text-[13.5px] font-semibold text-lz-600">⭐ {m.paylasanYorumu.karar}</p>}
+            <div className={`font-semibold ${T_BASLIK}`}>{m.paylasan || 'Paylaşan'} ne dedi?</div>
+            {m.paylasanYorumu.yedi && <p className={`text-[13.5px] ${T_GOVDE}`}><b>Yedi:</b> {m.paylasanYorumu.yedi}</p>}
+            {m.paylasanYorumu.begendi && <p className={`text-[13.5px] ${T_GOVDE}`}>{m.paylasanYorumu.begendi}</p>}
+            {m.paylasanYorumu.begenmedi && <p className={`text-[13.5px] ${T_GOVDE}`}>{m.paylasanYorumu.begenmedi}</p>}
+            {m.paylasanYorumu.karar && <p className="text-[13.5px] font-semibold text-lz-600">{m.paylasanYorumu.karar}</p>}
           </div>
         )}
         <ZiyaretKarti m={m} goster={goster} otoAc={durumu?.gittim ? { yedim: durumu.yedim ?? '' } : undefined} />
         {ayniVideo.length > 0 && (
           <div className="lz-card p-4 space-y-2">
-            <div className={`font-semibold ${T_BASLIK}`}>🎬 Aynı videodaki diğer mekanlar</div>
+            <div className={`font-semibold ${T_BASLIK}`}>Aynı videodaki diğer mekanlar</div>
             {ayniVideo.map((x) => (
               <Link key={x.id} to={`/mekan/${x.id}`} replace className={`flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2 text-[14px] ${T_GOVDE}`}>
                 <span className="flex-1 min-w-0">
@@ -356,7 +356,7 @@ export default function MekanDetay() {
         <UnluKarti m={m} goster={goster} />
         {!duzenle && (
           <button className="lz-btn-soft w-full text-sm" onClick={duzenlemeyiAc}>
-            ✏️ Düzenle
+            Düzenle
           </button>
         )}
         <button
@@ -385,7 +385,7 @@ function FiyatKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) 
     setAraniyor(true)
     try {
       const n = await fiyatlariGuncelle(m)
-      goster(n ? `📋 Menüden ${n} ürün ve fiyatı bulundu` : 'Güncel menü/fiyat bulunamadı')
+      goster(n ? `Menüden ${n} ürün ve fiyatı bulundu` : 'Güncel menü/fiyat bulunamadı')
       setAcik(true)
     } catch (e) {
       goster((e as Error).message.slice(0, 80))
@@ -395,14 +395,14 @@ function FiyatKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) 
   if (!f)
     return (
       <button className="lz-btn-soft w-full text-sm" disabled={araniyor} onClick={() => void ara()}>
-        {araniyor ? 'Menü ve fiyatlar aranıyor…' : '📋 Güncel menü ve fiyatlar'}
+        {araniyor ? 'Menü ve fiyatlar aranıyor…' : 'Güncel menü ve fiyatlar'}
       </button>
     )
   const gorunen = acik ? f.kalemler : f.kalemler.slice(0, 6)
   return (
     <div className="lz-card p-4 space-y-2">
       <div className="flex items-center gap-2">
-        <div className={`flex-1 font-semibold ${T_GOVDE}`}>📋 Menü ve fiyatlar</div>
+        <div className={`flex-1 font-semibold ${T_GOVDE}`}>Menü ve fiyatlar</div>
         <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" disabled={araniyor} onClick={() => void ara()}>
           {araniyor ? 'Aranıyor…' : '↻ Güncelle'}
         </button>
@@ -484,7 +484,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
     const yeniListe = duzenlenen >= 0 ? liste.map((x, i) => (i === duzenlenen ? z : x)) : [...liste, z]
     await lzDb.mekanlar.update(m.id!, { ziyaretler: yeniListe, gidildi: true })
     setAcik(false)
-    goster('✅ Ziyaret kaydedildi')
+    goster('Ziyaret kaydedildi')
   }
   const sil = async () => {
     if (duzenlenen < 0 || !confirm('Bu ziyaret silinsin mi?')) return
@@ -497,7 +497,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
     <div className="lz-card p-4 space-y-2.5">
       <div className="flex items-center gap-2">
         <div className={`flex-1 font-semibold ${T_BASLIK}`}>
-          ✅ Ziyaretlerim{liste.length ? ` (${liste.length})` : ''}
+          Ziyaretlerim{liste.length ? ` (${liste.length})` : ''}
           {ortalama ? <span className="ml-2 text-[13px] font-normal text-amber-600 dark:text-amber-300">puanım ★ {ortalama.toFixed(1).replace('.', ',')}</span> : null}
         </div>
       </div>
@@ -514,13 +514,13 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
           <div className={`text-[13.5px] font-semibold ${T_GOVDE}`}>
             {tarihYaz(x.tarih)} {x.puan ? <Yildiz puan={x.puan} /> : null}
           </div>
-          {x.yedim && <div className={`text-[13px] ${T_GOVDE}`}>🍽️ {x.yedim}</div>}
+          {x.yedim && <div className={`text-[13px] ${T_GOVDE}`}>{x.yedim}</div>}
           {x.not && <div className={`text-[13px] ${T_SOLUK}`}>{x.not}</div>}
-          {x.tekrar && <div className="text-[13px] text-amber-700 dark:text-amber-300">📝 Bir dahaki sefere: {x.tekrar}</div>}
+          {x.tekrar && <div className="text-[13px] text-amber-700 dark:text-amber-300">Bir dahaki sefere: {x.tekrar}</div>}
         </button>
       ))}
       <button className={`w-full text-sm ${liste.length ? 'lz-btn-soft' : 'lz-btn-primary'}`} onClick={yeni}>
-        {liste.length ? '＋ Yeni ziyaret ekle' : '✅ Buraya gittim — not ekle'}
+        {liste.length ? '＋ Yeni ziyaret ekle' : 'Buraya gittim — not ekle'}
       </button>
       <Sheet open={acik} onClose={() => setAcik(false)} title={duzenlenen >= 0 ? 'Ziyareti düzenle' : 'Buraya gittim'}>
         <div className={`space-y-3 ${T_GOVDE}`}>
@@ -570,7 +570,7 @@ function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
     try {
       const liste = await aiMekanUnluler(m)
       await lzDb.mekanlar.update(m.id!, { unluler: { liste, zaman: Date.now() } })
-      goster(liste.length ? `⭐ ${liste.length} ünlü bulundu` : 'Bu mekana giden ünlü bulunamadı')
+      goster(liste.length ? `${liste.length} ünlü bulundu` : 'Bu mekana giden ünlü bulunamadı')
     } catch (e) {
       goster((e as Error).message.slice(0, 80))
     }
@@ -580,13 +580,13 @@ function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
   if (!u)
     return (
       <button className="lz-btn-soft w-full text-sm" disabled={araniyor} onClick={() => void ara()}>
-        {araniyor ? 'Ünlüler aranıyor…' : '⭐ Ünlüler gitti mi?'}
+        {araniyor ? 'Ünlüler aranıyor…' : 'Ünlüler gitti mi?'}
       </button>
     )
   return (
     <div className="lz-card p-4 space-y-2">
       <div className="flex items-center gap-2">
-        <div className={`flex-1 font-semibold ${T_BASLIK}`}>⭐ Giden ünlüler</div>
+        <div className={`flex-1 font-semibold ${T_BASLIK}`}>Giden ünlüler</div>
         <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" disabled={araniyor} onClick={() => void ara()}>
           {araniyor ? 'Aranıyor…' : '↻ Güncelle'}
         </button>
@@ -598,10 +598,10 @@ function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
               {x.kisi}
               {x.tarih && <span className={`ml-2 text-[12px] font-normal ${T_SOLUK}`}>{x.tarih}</span>}
             </div>
-            {x.yedigi && <div className={`text-[13px] ${T_GOVDE}`}>🍽️ {x.yedigi}</div>}
-            {x.ozet && <div className={`text-[13px] ${T_GOVDE}`}>💬 “{x.ozet}”</div>}
+            {x.yedigi && <div className={`text-[13px] ${T_GOVDE}`}>{x.yedigi}</div>}
+            {x.ozet && <div className={`text-[13px] ${T_GOVDE}`}>“{x.ozet}”</div>}
             <a href={x.link || aramaLinki(x.kisi)} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
-              {x.link ? '▶ Videoyu / paylaşımı aç' : '🔎 Videosunu ara'}
+              {x.link ? '▶ Videoyu / paylaşımı aç' : 'Videosunu ara'}
             </a>
           </div>
         ))

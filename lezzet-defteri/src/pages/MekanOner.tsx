@@ -247,7 +247,7 @@ export default function MekanOner() {
       <div className="px-4 space-y-3 pb-8">
         <div className="lz-card p-3 space-y-2">
           <div className={`text-[13px] font-semibold ${T_BASLIK}`}>
-            📍 Ne kadar uzağa gidebilirim? <span className={`font-normal ${T_SOLUK}`}>(tüm aramalar için)</span>
+            Ne kadar uzağa gidebilirim? <span className={`font-normal ${T_SOLUK}`}>(tüm aramalar için)</span>
           </div>
           <div className="flex gap-1.5">
             {YARICAPLAR.map((x) => (
@@ -293,7 +293,7 @@ export default function MekanOner() {
             ’dan Gemini anahtarı gerekli.
           </p>
         )}
-        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
         {sekme === 'oner' && (
           <div className="lz-card p-4 space-y-2.5">
             <textarea
@@ -310,17 +310,17 @@ export default function MekanOner() {
               ))}
             </div>
             <button className="lz-btn-primary w-full" disabled={!aiVar || !istek.trim() || !!durum} onClick={() => void ara()}>
-              {durum || '✨ Öner'}
+              {durum || 'Öner'}
             </button>
             <button className="lz-btn-soft w-full" disabled={!aiVar || !!durum} onClick={() => void ara(HYPE)}>
-              🔥 {km ? `${km} km içinde` : 'Yakınımda'} şu an hype olanlar
+              {km ? `${km} km içinde` : 'Yakınımda'} şu an hype olanlar
             </button>
           </div>
         )}
 
         {sekme === 'yemek' && (
           <div className="lz-card p-4 space-y-2.5">
-            <div className={`font-semibold ${T_BASLIK}`}>🍽️ Canım şu yemeği çekiyor</div>
+            <div className={`font-semibold ${T_BASLIK}`}>Canım şu yemeği çekiyor</div>
             <p className={`text-[12.5px] ${T_SOLUK}`}>
               Yemeği yaz (mesafe yukarıdan): o yemeği en iyi yapan yakın yerler, yemeğin oradaki fiyatıyla listelenir.
             </p>
@@ -335,7 +335,7 @@ export default function MekanOner() {
               disabled={!aiVar || !yemekAd.trim() || !!durum}
               onClick={() => void ara(`Bana yakın, en iyi yorum almış ${yemekAd.trim()} yapan yerler`, '', '', { ad: yemekAd.trim() })}
             >
-              {durum && aktifYemek ? durum : `🍽️ ${km ? `${km} km içinde` : ''} en iyisini bul`}
+              {durum && aktifYemek ? durum : `${km ? `${km} km içinde` : ''} en iyisini bul`}
             </button>
           </div>
         )}
@@ -351,7 +351,7 @@ export default function MekanOner() {
         )}
         {sekme === 'diyet' && plan && plan.ogunler.length > 0 && (
           <div className="lz-card p-4 space-y-2.5">
-            <div className={`font-semibold ${T_BASLIK}`}>🥗 Diyetime uygun yakın restoran</div>
+            <div className={`font-semibold ${T_BASLIK}`}>Diyetime uygun yakın restoran</div>
             <p className={`text-[12.5px] ${T_SOLUK}`}>
               Öğünü seç: menüsünde diyetine uyan yemek olan yakın restoranlar ve ne sipariş edeceğin listelenir.
             </p>
@@ -373,7 +373,7 @@ export default function MekanOner() {
                     )
                   }
                 >
-                  🥗 {o.ad}
+                  {o.ad}
                 </button>
               ))}
             </div>
@@ -382,7 +382,7 @@ export default function MekanOner() {
 
         {sekme === 'hesap' && (
           <div className="lz-card p-4 space-y-2.5">
-            <div className={`font-semibold ${T_BASLIK}`}>📱 Takip ettiğim yemek hesapları</div>
+            <div className={`font-semibold ${T_BASLIK}`}>Takip ettiğim yemek hesapları</div>
             <p className={`text-[12.5px] ${T_SOLUK}`}>Hesaba dokun: o hesabın tanıttığı mekanlardan sana yakın olanlar önerilir.</p>
             <div className="flex flex-wrap gap-1.5">
               {hesaplar.map((h) => (
@@ -414,7 +414,7 @@ export default function MekanOner() {
                 disabled={!aiVar || !!durum}
                 onClick={() => void ara('Takip ettiğim hesapların tanıttığı mekanlar', hesaplar.join(', '))}
               >
-                📍 Hepsinin buraya yakın önerdikleri ({hesaplar.length} hesap)
+                Hepsinin buraya yakın önerdikleri ({hesaplar.length} hesap)
               </button>
             )}
             {hesaplar.length > 0 && (
@@ -423,12 +423,12 @@ export default function MekanOner() {
                 disabled={!aiVar || !!durum}
                 onClick={() => void ara(`${HYPE}. Takip ettiğim hesapların tanıttıkları arasından şu an en çok konuşulanlar`, hesaplar.join(', '))}
               >
-                🔥 Takip ettiklerimin hype mekanları {km ? `(${km} km)` : ''}
+                Takip ettiklerimin hype mekanları {km ? `(${km} km)` : ''}
               </button>
             )}
             {hesaplar.length > 0 && (
               <button className="lz-btn-soft w-full text-[14px]" disabled={!aiVar || !!durum} onClick={() => void yeniAra()}>
-                🆕 Son gittikleri yeni mekanlar
+                Son gittikleri yeni mekanlar
               </button>
             )}
             {hesaplar.length > 0 && (
@@ -509,7 +509,7 @@ export default function MekanOner() {
             <div className={`text-[13px] ${T_GOVDE}`}>
               {o.puan ? (
                 <b className="text-amber-600 dark:text-amber-300">
-                  ⭐ {o.puan.toFixed(1).replace('.', ',')}
+                  ★ {o.puan.toFixed(1).replace('.', ',')}
                   {o.yorumSayisi ? ` (${o.yorumSayisi.toLocaleString('tr')})` : ''}
                 </b>
               ) : null}
@@ -518,18 +518,18 @@ export default function MekanOner() {
             </div>
             {aktifYemek && o.yemek_fiyati && (
               <div className="rounded-xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-1.5 text-[14px] font-semibold text-lz-600">
-                🍽️ {aktifYemek.ad}: {o.yemek_fiyati}
+                {aktifYemek.ad}: {o.yemek_fiyati}
               </div>
             )}
-            {aktifYemek && o.yemek_yorumu && <p className={`text-[13px] ${T_GOVDE}`}>💬 {o.yemek_yorumu}</p>}
+            {aktifYemek && o.yemek_yorumu && <p className={`text-[13px] ${T_GOVDE}`}>{o.yemek_yorumu}</p>}
             <p className={`text-[13.5px] ${T_GOVDE}`}>{o.neden}</p>
             {o.ne_yenir.length > 0 && (
               <p className={`text-[13px] ${T_GOVDE}`}>
-                {diyetModu ? '🥗 Sipariş: ' : '😋 '}
+                {diyetModu ? 'Sipariş: ' : ''}
                 {o.ne_yenir.slice(0, 4).join(', ')}
               </p>
             )}
-            {o.populerlik && <p className={`text-[12.5px] ${T_SOLUK}`}>📱 {o.populerlik}</p>}
+            {o.populerlik && <p className={`text-[12.5px] ${T_SOLUK}`}>{o.populerlik}</p>}
             {o.link && (
               <a href={o.link} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
                 ▶ Tanıtım paylaşımını aç
@@ -537,10 +537,10 @@ export default function MekanOner() {
             )}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <a href={yolTarifi(o)} target="_blank" rel="noreferrer" className="lz-btn-primary text-[12.5px] px-2">
-                🧭 Git
+                Git
               </a>
               <a href={haritada(o)} target="_blank" rel="noreferrer" className="lz-btn-soft text-[12.5px] px-2">
-                🗺️ Yorumlar
+                Yorumlar
               </a>
               {o.kayitliId ? (
                 <Link to={`/mekan/${o.kayitliId}`} className="lz-btn-soft text-[12.5px] px-2">
@@ -552,7 +552,7 @@ export default function MekanOner() {
                 </button>
               )}
               <button className="lz-btn-soft text-[12.5px] px-2" onClick={() => void gittim(o)}>
-                ✅ Gittim
+                Gittim
               </button>
             </div>
           </div>

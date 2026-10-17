@@ -54,7 +54,7 @@ export default function Week() {
 
       <div className="px-4 space-y-2.5 pb-6">
         <Link to="/diyet" className="lz-card p-3.5 flex items-center gap-3">
-          <span className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-[#10261e] flex items-center justify-center text-xl">🥗</span>
+          <span className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-600 dark:text-emerald-300 flex items-center justify-center"><Icon name="leaf" className="w-5 h-5" /></span>
           <span className="flex-1">
             <span className={`block font-semibold ${T_BASLIK}`}>Diyetim</span>
             <span className={`block text-[12px] ${T_SOLUK}`}>Diyetisyen planın · öğüne uygun tarif bul</span>
@@ -63,7 +63,7 @@ export default function Week() {
         </Link>
         <div className={`grid gap-2 ${planlar.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <button className="lz-btn-primary text-sm px-3" onClick={() => setSihirAc(true)}>
-            ✨ Sihirli menü
+            Sihirli menü
           </button>
           {planlar.length > 0 && (
             <button className="lz-btn-soft text-sm px-3" onClick={() => void haftaMalzeme()}>
@@ -214,7 +214,7 @@ function SihirliMenu({
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="✨ Sihirli menü">
+    <Sheet open={open} onClose={onClose} title="Sihirli menü">
       {tarifler.length < 3 ? (
         <p className={`text-sm py-4 ${T_SOLUK}`}>Menü kurabilmek için defterinde en az 3 tarif olmalı.</p>
       ) : (

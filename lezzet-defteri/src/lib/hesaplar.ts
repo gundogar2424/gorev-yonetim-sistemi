@@ -103,7 +103,7 @@ export async function yeniMekanOtoKontrol(): Promise<void> {
     if (!yeniler.length) return
     const ilk = yeniler[0]
     await bildir(
-      yeniler.length > 1 ? `🆕 Takip ettiklerinden ${yeniler.length} yeni mekan` : `🆕 ${ilk.ad}`,
+      yeniler.length > 1 ? `Takip ettiklerinden ${yeniler.length} yeni mekan` : `${ilk.ad}`,
       yeniler.length > 1 ? yeniler.map((o) => o.ad).slice(0, 4).join(', ') : `${ilk.populerlik || 'Takip ettiğin bir hesap yeni tanıttı'}`,
       7000
     )

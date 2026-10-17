@@ -41,7 +41,7 @@ export default function TmDetail() {
         <Header title={r.title} back />
         <div className="px-4 space-y-3">
           <p className={`text-sm ${T_SOLUK}`}>Bu tarif henüz Thermomix’e uyarlanmadı.</p>
-          {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">⚠️ {hata}</div>}
+          {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
           <button className="lz-btn-primary w-full" disabled={calisiyor} onClick={() => void yeniden()}>
             {calisiyor ? 'Uyarlanıyor…' : 'Thermomix’e uyarla'}
           </button>
@@ -82,7 +82,7 @@ export default function TmDetail() {
           <Icon name="play" className="w-4 h-4" /> TM7’de pişir
         </Link>
         <button className="lz-btn-soft w-full text-[14.5px]" onClick={() => setSohbetAc(true)}>
-          💬 Yapay zekayla düzenle / sor
+          Yapay zekayla düzenle / sor
         </button>
         {duzeltme && (
           <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3.5 space-y-2">
@@ -113,7 +113,7 @@ export default function TmDetail() {
         {tm.warnings.length > 0 && (
           <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-800 dark:text-amber-200 text-[13px] p-3.5 space-y-1">
             {tm.warnings.map((w, i) => (
-              <div key={i}>⚠️ {w}</div>
+              <div key={i}>{w}</div>
             ))}
           </div>
         )}
@@ -141,14 +141,14 @@ export default function TmDetail() {
                   <p className={`text-[15px] leading-relaxed ${T_GOVDE}`}>{s.text}</p>
                   {s.ingredients && <p className={`text-[13px] mt-0.5 ${T_SOLUK}`}>Kaba: {s.ingredients}</p>}
                   {adimOzeti(s) && <span className="lz-pill mt-1.5">{adimOzeti(s)}</span>}
-                  {s.tip && <p className={`text-[12.5px] mt-1 ${T_SOLUK}`}>💡 {s.tip}</p>}
+                  {s.tip && <p className={`text-[12.5px] mt-1 ${T_SOLUK}`}>{s.tip}</p>}
                 </div>
               </li>
             ))}
           </ol>
         </div>
 
-        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">⚠️ {hata}</div>}
+        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
         <div className="grid grid-cols-2 gap-2.5">
           <button className="lz-btn-soft text-sm" disabled={calisiyor} onClick={() => void yeniden()}>
             {calisiyor ? 'Uyarlanıyor…' : '↻ Yeniden uyarla'}

@@ -124,7 +124,7 @@ export default function Recipes() {
 
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
               <Chip on={filtre === 'hepsi'} onClick={() => setFiltre('hepsi')} label="Tüm Tarifler" />
-              <Chip on={filtre === 'yeni'} onClick={() => setFiltre('yeni')} label="✨ Yeni" />
+              <Chip on={filtre === 'yeni'} onClick={() => setFiltre('yeni')} label="Yeni" />
               <Chip on={filtre === 'favori'} onClick={() => setFiltre('favori')} label="★ Favoriler" />
               {etiketler.map((e) => (
                 <Chip key={e} on={filtre === e} onClick={() => setFiltre(filtre === e ? 'hepsi' : e)} label={e} />
@@ -265,7 +265,7 @@ function SofraListesi({
                   {t.emoji} {t.name}
                 </div>
                 <div className={`text-[12px] ${T_SOLUK}`}>{icindekiler.length} tarif</div>
-                {t.notes && <div className={`text-[11.5px] mt-1 line-clamp-2 ${T_SOLUK}`}>⚠︎ {t.notes}</div>}
+                {t.notes && <div className={`text-[11.5px] mt-1 line-clamp-2 ${T_SOLUK}`}>{t.notes}</div>}
               </button>
               <button
                 onClick={() => onDuzenle(t)}

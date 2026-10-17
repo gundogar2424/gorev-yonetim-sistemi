@@ -134,7 +134,7 @@ export default function GeziPlani() {
               <label key={m.id} className={`flex items-center gap-3 py-1.5 text-[14px] ${T_GOVDE}`}>
                 <input type="checkbox" className="w-5 h-5 accent-[#d93d20]" checked={kayit.ids.includes(m.id!)} onChange={() => degis(m.id!)} />
                 <span className="flex-1 min-w-0">
-                  {m.favori ? '❤️ ' : ''}
+                  {m.favori ? '' : ''}
                   {m.ad}
                   <span className={`block text-[12px] ${T_SOLUK}`}>{[m.tur, m.ilce].filter(Boolean).join(' · ')}</span>
                 </span>
@@ -154,7 +154,7 @@ export default function GeziPlani() {
             <div className="flex items-center gap-2">
               <div className={`flex-1 font-semibold ${T_BASLIK}`}>2. Rota sırası</div>
               <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void sirala()}>
-                📍 Yakından uzağa sırala
+                Yakından uzağa sırala
               </button>
             </div>
             {mesaj && <p className={`text-[12.5px] ${T_SOLUK}`}>{mesaj}</p>}
@@ -185,7 +185,7 @@ export default function GeziPlani() {
               })}
             </ol>
             {yersiz.length > 0 && (
-              <p className="text-[12px] text-amber-700 dark:text-amber-300">⚠️ {yersiz.map((m) => m.ad).join(', ')}: adresi yok; Google Haritalar adından bulmaya çalışır.</p>
+              <p className="text-[12px] text-amber-700 dark:text-amber-300">{yersiz.map((m) => m.ad).join(', ')}: adresi yok; Google Haritalar adından bulmaya çalışır.</p>
             )}
           </div>
         )}
@@ -196,7 +196,7 @@ export default function GeziPlani() {
             <div className={`font-semibold ${T_BASLIK}`}>3. Yola çık</div>
             {linkler.map((l, i) => (
               <a key={i} href={l} target="_blank" rel="noreferrer" className="lz-btn-primary w-full text-[15px]">
-                🗺️ {linkler.length > 1 ? `Bölüm ${i + 1}: ${i * PARCA + 1}–${Math.min((i + 1) * PARCA, secili.length)}. duraklar` : 'Google Haritalar’da rotayı aç'}
+                {linkler.length > 1 ? `Bölüm ${i + 1}: ${i * PARCA + 1}–${Math.min((i + 1) * PARCA, secili.length)}. duraklar` : 'Google Haritalar’da rotayı aç'}
               </a>
             ))}
             <p className={`text-[12px] ${T_SOLUK}`}>

@@ -107,7 +107,7 @@ export function DuzenlemeSohbeti({
         <p className={`text-[13px] ${T_SOLUK}`}>{aciklama}</p>
       )}
       <SohbetBalonlari sohbet={sohbet} soruyor={soruyor} />
-      {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+      {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
       <textarea
         className="lz-input min-h-[80px] text-[15px]"
         placeholder={ornek}
@@ -116,10 +116,10 @@ export function DuzenlemeSohbeti({
       />
       <div className="grid grid-cols-2 gap-2.5">
         <button className="lz-btn-soft text-sm px-2" disabled={!istek.trim() || soruyor || calisiyor} onClick={() => void sor()}>
-          {soruyor ? 'Soruluyor…' : '💬 Sor'}
+          {soruyor ? 'Soruluyor…' : 'Sor'}
         </button>
         <button className="lz-btn-primary text-sm px-2" disabled={(!istek.trim() && !sohbet.length) || soruyor || calisiyor} onClick={() => void uygula()}>
-          {calisiyor ? 'Uygulanıyor…' : '✨ Tarife uygula'}
+          {calisiyor ? 'Uygulanıyor…' : 'Tarife uygula'}
         </button>
       </div>
       <div ref={alt} />

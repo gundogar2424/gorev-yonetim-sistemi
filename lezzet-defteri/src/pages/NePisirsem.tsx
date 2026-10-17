@@ -45,7 +45,7 @@ export default function NePisirsem() {
         photo: '',
         sourceUrl: '',
         platform: 'manual',
-        author: '✨ Yapay zeka',
+        author: 'Yapay zeka',
         servings: t.servings ?? 0,
         minutes: t.minutes ?? 0,
         ingredients: t.ingredients ?? [],
@@ -56,7 +56,7 @@ export default function NePisirsem() {
       }
       const b = t.besin
       const not = ogun && b
-        ? `🥗 ${ogun.ad} öğününe göre, 1 porsiyon: ~${Math.round(b.kalori)} kcal · P ${Math.round(b.protein)} · K ${Math.round(b.karb)} · Y ${Math.round(b.yag)} g ` +
+        ? `${ogun.ad} öğününe göre, 1 porsiyon: ~${Math.round(b.kalori)} kcal · P ${Math.round(b.protein)} · K ${Math.round(b.karb)} · Y ${Math.round(b.yag)} g ` +
           `(hedef ${ogun.hedef.kalori} kcal). Değerler tahminidir. Beğendiysen kaydet.`
         : 'Yapay zekanın önerisi. Beğendiysen düzenleyip deftere kaydet; istersen fotoğraf ekle.'
       navigate('/yeni', { state: { draft: d, not } })
@@ -99,7 +99,7 @@ export default function NePisirsem() {
 
         {plan && plan.ogunler.length > 0 && (
           <div className="lz-card p-4 space-y-2">
-            <div className={`font-semibold ${T_BASLIK}`}>🥗 Diyetime göre</div>
+            <div className={`font-semibold ${T_BASLIK}`}>Diyetime göre</div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setOgunSec(-1)} className={`lz-chip ${ogunSec === -1 ? 'lz-chip-on' : ''}`}>
                 Serbest
@@ -151,7 +151,7 @@ export default function NePisirsem() {
         {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
 
         <button className="lz-btn-primary w-full text-[16px]" disabled={!aiVar || !istek.trim() || yukleniyor} onClick={() => void uret()}>
-          {yukleniyor ? 'Tarif hazırlanıyor…' : '✨ Tarifi hazırla'}
+          {yukleniyor ? 'Tarif hazırlanıyor…' : 'Tarifi hazırla'}
         </button>
       </div>
     </div>

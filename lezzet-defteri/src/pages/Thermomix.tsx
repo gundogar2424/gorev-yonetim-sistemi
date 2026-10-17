@@ -52,7 +52,7 @@ export default function Thermomix() {
           </div>
         )}
         {tarifler.length > 3 && <input className="lz-input" placeholder="Tarif ara…" value={q} onChange={(e) => setQ(e.target.value)} />}
-        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">⚠️ {hata}</div>}
+        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
 
         {uyarlanan.length > 0 && (
           <>

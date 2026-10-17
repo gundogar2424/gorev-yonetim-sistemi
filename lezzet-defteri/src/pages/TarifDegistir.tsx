@@ -140,14 +140,14 @@ export default function TarifDegistir() {
           />
           <div className="grid grid-cols-2 gap-2.5">
             <button className="lz-btn-soft text-sm px-2" disabled={!aiVar || !istek.trim() || soruyor || calisiyor} onClick={() => void sohbetSor()}>
-              {soruyor ? 'Soruluyor…' : '💬 Sor'}
+              {soruyor ? 'Soruluyor…' : 'Sor'}
             </button>
             <button
               className="lz-btn-primary text-sm px-2"
               disabled={!aiVar || (!istek.trim() && !sohbet.length) || calisiyor || soruyor}
               onClick={() => void sor()}
             >
-              {calisiyor ? 'Değiştiriliyor…' : '✨ Tarifi değiştir'}
+              {calisiyor ? 'Değiştiriliyor…' : 'Tarifi değiştir'}
             </button>
           </div>
           <p className={`text-[12px] ${T_SOLUK}`}>
@@ -168,13 +168,13 @@ export default function TarifDegistir() {
         </div>
         <div ref={alt} />
 
-        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">⚠️ {hata}</div>}
+        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
 
         {sonuc && (
           <>
             {sonuc.aciklama && (
               <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[14px] p-4 leading-relaxed">
-                💡 {sonuc.aciklama}
+                {sonuc.aciklama}
               </div>
             )}
             {sonuc.degisiklikler.length > 0 && (

@@ -150,7 +150,7 @@ export default function EditRecipe() {
         )}
 
         <button className="lz-btn-soft w-full text-[14.5px]" onClick={() => setSohbetAc(true)}>
-          💬 Bu tarif üzerine yapay zekayla sohbet et
+          Bu tarif üzerine yapay zekayla sohbet et
         </button>
         {uygulanan && (
           <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3.5 space-y-1">
@@ -164,7 +164,7 @@ export default function EditRecipe() {
         <div className="lz-card p-4 space-y-3">
           <div className="flex gap-3 items-center">
             <button onClick={() => dosya.current?.click()} className="relative">
-              <Thumb src={d.photo} className="w-24 h-24 rounded-2xl" emoji="📷" />
+              <Thumb src={d.photo} className="w-24 h-24 rounded-2xl" emoji="" />
             </button>
             <div className="flex-1 space-y-2">
               <button className="lz-btn-soft w-full py-2 text-sm" onClick={() => dosya.current?.click()}>

@@ -123,5 +123,5 @@ export async function googleMekanGetir(id: string): Promise<GoogleMekan> {
 // Ayarlar'daki "Dene" dugmesi
 export async function placesTest(): Promise<string> {
   const m = await googleMekanAra('Galata Kulesi İstanbul')
-  return m ? `✓ Google Haritalar çalışıyor (${m.ad}${m.puan ? `, ⭐ ${m.puan}` : ''})` : '✓ Anahtar çalışıyor'
+  return m ? `✓ Google Haritalar çalışıyor (${m.ad}${m.puan ? `, ★ ${m.puan}` : ''})` : '✓ Anahtar çalışıyor'
 }

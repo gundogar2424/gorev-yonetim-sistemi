@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addPlan, addToShopping, deleteRecipe, lzDb, toggleFavorite, updateRecipe } from '../db'
 import type { LzMeal, LzTable } from '../types'
-import { Icon, PlatformLabel, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
+import { Icon, type IconName, PlatformLabel, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
 import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
@@ -154,7 +154,7 @@ export default function RecipeDetail() {
         </div>
 
         <Link to={`/tarif/${r.id}/degistir`} className="lz-card p-3 flex items-center gap-3 active:scale-[0.99] transition">
-          <span className="w-10 h-10 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] flex items-center justify-center text-lg">✨</span>
+          <span className="w-10 h-10 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center"><Icon name="sparkle" className="w-5 h-5" /></span>
           <span className="flex-1">
             <span className={`block font-semibold text-[15px] ${T_BASLIK}`}>Yapay zekayla değiştir</span>
             <span className={`block text-[12px] ${T_SOLUK}`}>Stevia, glutensiz, daha az kalori, airfryer…</span>
@@ -304,7 +304,7 @@ export default function RecipeDetail() {
               navigate('/sira', { replace: true })
             }}
           >
-            📍 Bu tarif değil, mekan — Mekanlarım’a taşı
+            Bu tarif değil, mekan — Mekanlarım’a taşı
           </button>
         )}
         <button
@@ -325,7 +325,7 @@ export default function RecipeDetail() {
             baslik="Tarif sayfası (dosya)"
             alt="Fotoğraflı sayfa; videoya tıklayınca kaynak video açılır. Uygulama gerekmez"
             onClick={() => void paylasYap('html')}
-            ikon="📄"
+            ikon="file"
           />
           <PaylasSecenek
             baslik="Thermomix pişirme modu (dosya)"
@@ -335,7 +335,7 @@ export default function RecipeDetail() {
                 : 'Önce Thermomix önizlemesi hazırlanır, oradan paylaşırsın'
             }
             onClick={() => void paylasYap('tm')}
-            ikon="🍲"
+            ikon="pot"
           />
           <p className={`text-[11.5px] px-1 pt-1 ${T_SOLUK}`}>
             Karşı tarafta Lezzet Defteri varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
@@ -357,10 +357,12 @@ export default function RecipeDetail() {
   )
 }
 
-function PaylasSecenek({ baslik, alt, ikon, onClick }: { baslik: string; alt: string; ikon: string; onClick: () => void }) {
+function PaylasSecenek({ baslik, alt, ikon, onClick }: { baslik: string; alt: string; ikon: IconName; onClick: () => void }) {
   return (
     <button onClick={onClick} className="lz-card p-3.5 w-full flex items-center gap-3 text-left active:scale-[0.99] transition">
-      <span className="text-2xl">{ikon}</span>
+      <span className="w-10 h-10 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center flex-shrink-0">
+        <Icon name={ikon} className="w-5 h-5" />
+      </span>
       <span className="flex-1">
         <span className={`block font-semibold ${T_BASLIK}`}>{baslik}</span>
         <span className={`block text-[12.5px] ${T_SOLUK}`}>{alt}</span>

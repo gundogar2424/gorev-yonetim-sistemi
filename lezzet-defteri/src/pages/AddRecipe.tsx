@@ -261,7 +261,7 @@ export default function AddRecipe() {
               }}
             />
             <button className="lz-btn-primary w-full" disabled={!!yukleniyor} onClick={() => videoGiris.current?.click()}>
-              {yukleniyor || '🎬 Galeriden video seç'}
+              {yukleniyor || 'Galeriden video seç'}
             </button>
             {!aiVar && <p className={`text-[12px] ${T_SOLUK}`}>Bunun için Ayarlar’dan Gemini (ücretsiz) ya da Claude anahtarı gir.</p>}
           </div>
@@ -284,7 +284,7 @@ export default function AddRecipe() {
               }}
             />
             <button className="lz-btn-primary w-full" disabled={!!yukleniyor} onClick={() => fotoGiris.current?.click()}>
-              {yukleniyor || '📷 Fotoğraf seç'}
+              {yukleniyor || 'Fotoğraf seç'}
             </button>
             {!aiVar && <p className={`text-[12px] ${T_SOLUK}`}>Yazıyı okumak için yapay zeka gerekir (Ayarlar › API anahtarı).</p>}
           </div>
@@ -296,7 +296,7 @@ export default function AddRecipe() {
             </p>
             <textarea
               className="lz-input min-h-[200px] text-[15px]"
-              placeholder={'Fırında Köfte 😋\nMalzemeler:\n500 gr kıyma\n1 soğan\n…\nYapılışı:\n1. …'}
+              placeholder={'Fırında Köfte\nMalzemeler:\n500 gr kıyma\n1 soğan\n…\nYapılışı:\n1. …'}
               value={metin}
               onChange={(e) => setMetin(e.target.value)}
             />
@@ -316,7 +316,7 @@ export default function AddRecipe() {
 
         <div className={`text-[13px] px-1 ${T_GOVDE}`}>
           {aiVar ? (
-            <span>✨ Yapay zeka açık: dağınık açıklamalar düzenli tarife çevrilir.</span>
+            <span>Yapay zeka açık: dağınık açıklamalar düzenli tarife çevrilir.</span>
           ) : (
             <span>
               İpucu: <Link to="/ayarlar" className="text-lz-600 font-semibold">Ayarlar</Link>’dan ücretsiz Gemini ya da Claude anahtarı girersen videolar ve dağınık açıklamalar da
@@ -326,7 +326,7 @@ export default function AddRecipe() {
         </div>
 
         <button onClick={() => dosyaGiris.current?.click()} className="lz-card p-4 flex items-center gap-3 w-full text-left">
-          <span className="w-11 h-11 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-xl flex items-center justify-center">📄</span>
+          <span className="w-11 h-11 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center"><Icon name="file" className="w-5 h-5" /></span>
           <span className="flex-1">
             <span className={`block font-semibold ${T_BASLIK}`}>Dosyadan</span>
             <span className={`block text-[13px] ${T_SOLUK}`}>Sana paylaşılan tarif dosyasını deftere al</span>
@@ -373,7 +373,7 @@ export default function AddRecipe() {
         />
 
         <Link to="/ne-pisirsem" className="lz-card p-4 flex items-center gap-3">
-          <span className="w-11 h-11 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-xl flex items-center justify-center">✨</span>
+          <span className="w-11 h-11 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center"><Icon name="sparkle" className="w-5 h-5" /></span>
           <span className="flex-1">
             <span className={`block font-semibold ${T_BASLIK}`}>Ne pişirsem?</span>
             <span className={`block text-[13px] ${T_SOLUK}`}>İsteğini ya da dolabındakileri yaz, tarif hazırlansın</span>

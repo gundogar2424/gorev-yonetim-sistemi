@@ -39,7 +39,7 @@ export default function LzSettings() {
       <Header title="Ayarlar" />
       <div className="px-4 space-y-3 pb-8">
         <section className="lz-card p-4 space-y-3">
-          <div className={`font-semibold ${T_BASLIK}`}>✨ Yapay zeka (isteğe bağlı)</div>
+          <div className={`font-semibold ${T_BASLIK}`}>Yapay zeka (isteğe bağlı)</div>
           <p className={`text-[13px] ${T_SOLUK}`}>
             Videodan ve fotoğraftan tarif çıkarma, “Ne pişirsem?” ve aileye göre menü yapay zekayla çalışır. Anahtar yalnızca bu telefonda saklanır,
             yedeğe yazılmaz.
@@ -100,7 +100,7 @@ export default function LzSettings() {
             </button>
           </div>
           {anahtar.trim() && anahtarSorunu(sag, anahtar) && (
-            <p className="text-[12.5px] text-rose-600 dark:text-rose-300 font-medium">⚠️ {anahtarSorunu(sag, anahtar)}</p>
+            <p className="text-[12.5px] text-rose-600 dark:text-rose-300 font-medium">{anahtarSorunu(sag, anahtar)}</p>
           )}
           <input className="lz-input font-mono text-sm" placeholder={VARSAYILAN_MODEL[sag]} value={model} onChange={(e) => setModel(e.target.value)} />
           <div className="flex gap-2">
@@ -137,7 +137,7 @@ export default function LzSettings() {
         <GoogleHaritalarKarti />
 
         <section className="lz-card p-4 space-y-3">
-          <div className={`font-semibold ${T_BASLIK}`}>🎬 Videodaki konuşma</div>
+          <div className={`font-semibold ${T_BASLIK}`}>Videodaki konuşma</div>
           <p className={`text-[13px] ${T_SOLUK}`}>
             Claude seçiliyken, tarif açıklamada yazmıyorsa videoda söylenenler telefonun içinde yazıya çevrilir (ses hiçbir yere gönderilmez). Model
             ilk kullanımda bir kez indirilir. Gemini seçiliyse bu gerekmez: Gemini videoyu kendisi dinler (18 MB’tan büyük videolarda yine bu kullanılır).
@@ -273,7 +273,7 @@ function GoogleHaritalarKarti() {
   const [nasil, setNasil] = useState(false)
   return (
     <section className="lz-card p-4 space-y-3">
-      <div className={`font-semibold ${T_BASLIK}`}>📍 Google Haritalar (mekanlar için)</div>
+      <div className={`font-semibold ${T_BASLIK}`}>Google Haritalar (mekanlar için)</div>
       <p className={`text-[13px] ${T_SOLUK}`}>
         Girersen kaydettiğin mekanların adresi, haritadaki yeri, Google puanı ve yorum sayısı doğrudan Google Haritalar’dan alınır. Girmezsen yapay
         zeka araştırır (daha az kesin).
@@ -337,7 +337,7 @@ function GoogleHaritalarKarti() {
             try {
               setDurum(await placesTest())
             } catch (e) {
-              setDurum(`⚠️ ${(e as Error).message}`)
+              setDurum(`${(e as Error).message}`)
             }
           }}
         >
@@ -366,7 +366,7 @@ function HarcamaKarti() {
   )
   return (
     <section className="lz-card p-4 space-y-3">
-      <div className={`font-semibold ${T_BASLIK}`}>💰 Harcama kontrolü</div>
+      <div className={`font-semibold ${T_BASLIK}`}>Harcama kontrolü</div>
       <label className="flex items-start gap-3">
         <input
           type="checkbox"

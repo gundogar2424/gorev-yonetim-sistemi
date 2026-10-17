@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listRecipes, lzDb } from '../db'
 import type { LzBesin, LzDiyet, LzDiyetOgun, LzRecipe } from '../types'
-import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
+import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { aiDiyetOku, apiAnahtari, type OgunUyum } from '../lib/ai'
 import { ogunTara, tumOgunleriTara, useTaramaDurumu, yeniTarifSayisi } from '../lib/diyetTara'
 import { sayiYaz } from '../lib/qty'
@@ -68,7 +68,7 @@ export default function Diyetim() {
             onClick={() => sec(-1)}
             className={`lz-chip whitespace-nowrap flex-shrink-0 ${sekme === -1 ? '!bg-lz-600 !text-white !border-lz-600' : ''}`}
           >
-            📋 Plan
+            Plan
           </button>
         </div>
       )}
@@ -136,7 +136,9 @@ function KontrolSeridi({ plan, tarifler }: { plan: LzDiyet; tarifler: LzRecipe[]
   }
   return (
     <div className="lz-card p-3 flex items-center gap-3">
-      <span className={`text-lg ${calisan ? 'animate-pulse' : ''}`}>{calisan ? '🔎' : enCok ? '🆕' : '✅'}</span>
+      <span className={`w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 dark:bg-[#10261e] dark:text-emerald-300 ${calisan ? 'animate-pulse' : ''}`}>
+        <Icon name={calisan ? 'search' : 'leaf'} className="w-[18px] h-[18px]" />
+      </span>
       <span className={`flex-1 text-[13px] ${T_GOVDE}`}>
         {calisan
           ? 'Tarifler öğünlerle karşılaştırılıyor…'
@@ -189,12 +191,12 @@ function OgunSekmesi({ i, plan, tarifler }: { i: number; plan: LzDiyet; tarifler
       )}
       {d.calisiyor && (
         <div className={`lz-card p-4 text-center text-sm ${T_SOLUK}`}>
-          🔎 {e ? `${yeni} yeni tarif` : `${adaylar.length} tarif`} bu öğünün hedefiyle karşılaştırılıyor…
+          {e ? `${yeni} yeni tarif` : `${adaylar.length} tarif`} bu öğünün hedefiyle karşılaştırılıyor…
         </div>
       )}
       {d.hata && (
         <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5 space-y-2">
-          <div>⚠️ {d.hata}</div>
+          <div>{d.hata}</div>
           <button className="lz-btn-primary w-full text-sm" onClick={() => void ogunTara(i)}>
             ↻ Tekrar dene
           </button>
@@ -204,8 +206,8 @@ function OgunSekmesi({ i, plan, tarifler }: { i: number; plan: LzDiyet; tarifler
 
       {e && (
         <>
-          <Bolum baslik="✅ Uygun" liste={grup('uygun')} tarifMap={tarifMap} />
-          <Bolum baslik="⚖️ Porsiyonu ayarlarsan uygun" liste={grup('ayarla')} tarifMap={tarifMap} />
+          <Bolum baslik="Uygun" liste={grup('uygun')} tarifMap={tarifMap} />
+          <Bolum baslik="Porsiyonu ayarlarsan uygun" liste={grup('ayarla')} tarifMap={tarifMap} />
           {grup('uygun').length + grup('ayarla').length === 0 && !d.calisiyor && tarifler.length > 0 && (
             <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Defterinde bu öğüne uyan tarif bulunamadı.</div>
           )}
@@ -221,7 +223,7 @@ function OgunSekmesi({ i, plan, tarifler }: { i: number; plan: LzDiyet; tarifler
       )}
 
       <Link to="/ne-pisirsem" state={{ ogun: i }} className="lz-btn-soft w-full">
-        🥕 Elimdeki malzemelerle bu öğüne tarif
+        Elimdeki malzemelerle bu öğüne tarif
       </Link>
       {e && aiVar && (
         <>
@@ -284,7 +286,7 @@ function OgunEkle({ onEklendi }: { onEklendi: (i: number) => void }) {
   if (!acik)
     return (
       <button className="lz-btn-primary w-full text-sm" onClick={() => setAcik(true)}>
-        ➕ Öğün ekle
+        Öğün ekle
       </button>
     )
 
@@ -320,7 +322,7 @@ function OgunEkle({ onEklendi }: { onEklendi: (i: number) => void }) {
         value={icerik}
         onChange={(e) => setIcerik(e.target.value)}
       />
-      {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+      {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
       <div className="grid grid-cols-2 gap-2.5">
         <button className="lz-btn-soft text-sm" onClick={() => setAcik(false)}>
           Vazgeç
@@ -383,7 +385,7 @@ function PlanYukle({ onBitti, iptal }: { onBitti: () => void; iptal?: () => void
         }}
       />
       <button className="lz-btn-primary w-full" disabled={!aiVar || !!yukleniyor} onClick={() => dosya.current?.click()}>
-        {yukleniyor || '📷 Planın fotoğrafını seç'}
+        {yukleniyor || 'Planın fotoğrafını seç'}
       </button>
       <div className={`text-center text-[12px] ${T_SOLUK}`}>ya da</div>
       <textarea
@@ -395,7 +397,7 @@ function PlanYukle({ onBitti, iptal }: { onBitti: () => void; iptal?: () => void
       <button className="lz-btn-soft w-full" disabled={!aiVar || !!yukleniyor || metin.trim().length < 10} onClick={() => void kaydet({ metin })}>
         {yukleniyor || 'Yazıdan oku'}
       </button>
-      {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+      {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
       {iptal && (
         <button className={`text-[13px] w-full ${T_SOLUK}`} onClick={iptal}>
           Vazgeç

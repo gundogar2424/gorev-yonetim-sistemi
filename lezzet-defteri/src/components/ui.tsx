@@ -32,6 +32,8 @@ export type IconName =
   | 'pin'
   | 'leaf'
   | 'sparkle'
+  | 'heart'
+  | 'file'
 
 export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; className?: string }) {
   const c = {
@@ -194,6 +196,19 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
           <path d="M19 3.5v3M17.5 5h3" />
         </svg>
       )
+    case 'heart':
+      return (
+        <svg {...c}>
+          <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" />
+        </svg>
+      )
+    case 'file':
+      return (
+        <svg {...c}>
+          <path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z" />
+          <path d="M14 3.5V8h4.5M9 13h6M9 16.5h4" />
+        </svg>
+      )
     case 'users':
       return (
         <svg {...c}>
@@ -247,12 +262,12 @@ export function Logo({ className = 'w-8 h-8' }: { className?: string }) {
 }
 
 // Tarif fotografi; yoksa ya da yuklenemezse sicak renkli yer tutucu.
-export function Thumb({ src, className = 'w-20 h-20 rounded-2xl', emoji = '🍲' }: { src: string; className?: string; emoji?: string }) {
+export function Thumb({ src, className = 'w-20 h-20 rounded-2xl', emoji = '' }: { src: string; className?: string; emoji?: string }) {
   const [hata, setHata] = useState(false)
   if (!src || hata) {
     return (
-      <div className={`${className} bg-[#f1f1ef] dark:bg-[#26262a] flex items-center justify-center text-3xl flex-shrink-0`}>
-        {emoji}
+      <div className={`${className} bg-[#f1f1ef] dark:bg-[#26262a] flex items-center justify-center flex-shrink-0 text-[#a1a1aa] dark:text-[#71717a]`} data-emoji={emoji}>
+        <Icon name="pot" className="w-1/3 h-1/3 max-w-[48px] max-h-[48px]" />
       </div>
     )
   }

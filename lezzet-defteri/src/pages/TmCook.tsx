@@ -102,7 +102,7 @@ export default function TmCook() {
             ))}
           </div>
         )}
-        {a.tip && <p className={`text-[14px] ${T_GOVDE}`}>💡 {a.tip}</p>}
+        {a.tip && <p className={`text-[14px] ${T_GOVDE}`}>{a.tip}</p>}
         {a.seconds > 0 && (
           <div className="lz-card p-4 flex items-center gap-4">
             <div className={`text-3xl font-bold tabular-nums flex-1 ${T_BASLIK}`}>{sayacYaz(kalan || a.seconds)}</div>

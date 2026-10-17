@@ -399,7 +399,7 @@ export function yorumlarLinki(m: LzMekan): string {
 export function puanYaz(m: Pick<LzMekan, 'puan' | 'yorumSayisi'>): string {
   if (!m.puan) return ''
   const y = m.yorumSayisi ? ` (${m.yorumSayisi.toLocaleString('tr')})` : ''
-  return `⭐ ${m.puan.toFixed(1).replace('.', ',')}${y}`
+  return `★ ${m.puan.toFixed(1).replace('.', ',')}${y}`
 }
 
 // Guncel menu fiyatlarini arastirir ve mekana yazar; bulunan kalem sayisini doner

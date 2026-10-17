@@ -107,7 +107,7 @@ export async function kampanyaKontrolEt(): Promise<{ bakilan: number; bulunan: L
         const k = await tekMekan(m)
         if (k.var) {
           bulunan.push(m)
-          await bildir(`🎁 ${m.ad}`, `${k.ozet}${k.gecerlilik ? ` (${k.gecerlilik})` : ''}`, 5000 + (m.id ?? 0))
+          await bildir(`${m.ad}`, `${k.ozet}${k.gecerlilik ? ` (${k.gecerlilik})` : ''}`, 5000 + (m.id ?? 0))
         }
       } catch {
         /* tek mekan hatasi digerlerini durdurmaz */

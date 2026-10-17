@@ -5,7 +5,8 @@ import type { LzSira } from '../types'
 import { Header, Icon, T_BASLIK, T_SOLUK } from '../components/ui'
 import { mekanOlarakTekrar, siraDurdur, siraIsle, siraTekrar } from '../lib/sira'
 
-const IKON: Record<LzSira['durum'], string> = { bekliyor: '⏳', isleniyor: '⚙️', bitti: '✅', hata: '⚠️' }
+// Durum isareti: renkli nokta (emojisiz)
+const IKON: Record<LzSira['durum'], string> = { bekliyor: 'bg-[#d4d4d8]', isleniyor: 'bg-amber-400 animate-pulse', bitti: 'bg-emerald-500', hata: 'bg-rose-500' }
 
 // Arka arkaya paylasilan tariflerin durumu
 export default function Sira() {
@@ -36,7 +37,7 @@ export default function Sira() {
         {liste.length === 0 && <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>Sırada tarif yok.</div>}
         {liste.map((x) => (
           <div key={x.id} className="lz-card p-3.5 flex gap-3 items-start">
-            <span className={`text-xl leading-none mt-0.5 ${x.durum === 'isleniyor' ? 'animate-spin' : ''}`}>{IKON[x.durum]}</span>
+            <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${IKON[x.durum]}`} />
             <div className="flex-1 min-w-0">
               <div className={`font-semibold text-[14.5px] leading-snug line-clamp-2 break-all ${T_BASLIK}`}>{x.baslik}</div>
               <div
@@ -49,7 +50,7 @@ export default function Sira() {
               <div className="flex flex-wrap gap-2 mt-2">
                 {x.durum === 'bitti' && !!x.mekanId && (
                   <Link to={`/mekan/${x.mekanId}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
-                    📍 Mekanı aç
+                    Mekanı aç
                   </Link>
                 )}
                 {x.durum === 'bitti' && x.recipeId > 0 && (
@@ -64,7 +65,7 @@ export default function Sira() {
                 )}
                 {x.tur !== 'mekan' && !x.mekanId && (x.durum === 'hata' || (x.durum === 'bitti' && x.recipeId > 0)) && (
                   <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void mekanOlarakTekrar(x.id!)}>
-                    📍 Bu bir mekan
+                    Bu bir mekan
                   </button>
                 )}
                 {x.durum === 'hata' && (
@@ -96,7 +97,7 @@ export default function Sira() {
   )
 }
 
-// Tariflerim basligindaki 📥 dugmesinde bekleyen sayisi
+// Tariflerim basligindaki dugmesinde bekleyen sayisi
 export function SiraRozeti() {
   const n = useLiveQuery(() => lzDb.sira.where('durum').anyOf('bekliyor', 'isleniyor', 'hata').count(), [], 0) ?? 0
   if (!n) return null
@@ -122,7 +123,9 @@ export function SiraSeridi() {
   ].filter(Boolean)
   return (
     <Link to="/sira" className="lz-card p-3 flex items-center gap-3">
-      <span className={`text-lg ${bekleyen ? 'animate-pulse' : ''}`}>{bekleyen ? '⚙️' : hata ? '⚠️' : '📥'}</span>
+      <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${hata && !bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${bekleyen ? 'animate-pulse' : ''}`}>
+        <Icon name="inbox" className="w-[18px] h-[18px]" />
+      </span>
       <span className={`flex-1 text-[13.5px] font-medium ${T_BASLIK}`}>{parca.join(' · ')}</span>
       <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
     </Link>
