@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, Icon, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
+import { Header, Icon, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { apiAnahtari, type MekanOnerisi } from '../lib/ai'
-import { hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
+import { hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { instagramLinki, oneriKaydet } from '../lib/mekan'
 import { PLATFORM_AD } from '../lib/importer'
 
@@ -77,6 +77,21 @@ export default function Takip() {
     for (const m of mekanlar) if (m.paylasan && hesapTakipEt(m.paylasan, PLATFORM_AD[m.platform] ?? '', true)) degisti = true
     if (degisti) setHesaplar(hesaplariOku())
   }, [mekanlar])
+
+  // Profil fotografi olmayan @hesaplarin fotografi sirayla getirilir (her biri gunde en fazla bir deneme)
+  const [, setFotoSayac] = useState(0)
+  useEffect(() => {
+    let iptal = false
+    void (async () => {
+      for (const h of hesaplar) {
+        if (iptal || hesapFoto(h)) continue
+        if (await hesapFotoGetir(h)) setFotoSayac((x) => x + 1)
+      }
+    })()
+    return () => {
+      iptal = true
+    }
+  }, [hesaplar])
 
   const hepsiYeni = async () => {
     setHata('')
@@ -156,7 +171,7 @@ export default function Takip() {
           const gidilen = onun.filter((m) => m.gidildi).length
           return (
             <Link key={h} to={`/influencer/${encodeURIComponent(h)}`} className="lz-card p-3.5 flex items-center gap-3 active:scale-[0.99] transition">
-              <SofraRozet ad={hesapNormal(h)} className="w-12 h-12 text-[16px]" />
+              <KisiAvatar ad={hesapNormal(h)} foto={hesapFoto(h)} className="w-12 h-12 text-[16px]" />
               <span className="flex-1 min-w-0">
                 <span className={`block font-bold text-[15.5px] truncate ${T_BASLIK}`}>{ad}</span>
                 <span className={`block text-[12.5px] ${T_SOLUK}`}>

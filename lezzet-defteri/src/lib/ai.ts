@@ -619,6 +619,7 @@ export interface VideoParcalari {
   youtube?: string // YouTube adresi (yalnizca Gemini videoyu dogrudan izleyebilir)
   galeri?: boolean // kareler kaydirmali gonderinin sayfalari (video karesi degil)
   yazar?: string // paylasan hesap (@ad), bulunabildiyse
+  yazarFoto?: string // paylasanin profil fotografi adresi
 }
 export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
   const icerik: Parca[] = []

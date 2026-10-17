@@ -138,6 +138,7 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
     if (v.aciklama.length > parca.aciklama.length) parca.aciklama = v.aciklama
     if (v.kapak) kapak = v.kapak
     if (v.yazar) parca.yazar = v.yazar
+    if (v.yazarFoto) parca.yazarFoto = v.yazarFoto
     // KAYDIRMALI GONDERI: videosu yoksa sayfa gorselleri indirilir; tarif cogunlukla gorsellerin uzerinde yazar
     if (!videoUrl && v.galeri.length) {
       ilerleme(`Kaydırmalı gönderi: ${v.galeri.length} görsel alınıyor…`)

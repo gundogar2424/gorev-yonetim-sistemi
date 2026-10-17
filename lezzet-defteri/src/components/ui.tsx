@@ -264,6 +264,13 @@ export function SofraRozet({ ad, className = 'w-6 h-6 text-[10px]', secili = fal
   )
 }
 
+// Influencer avatari: profil fotografi varsa o, yoksa bas harfli yuvarlak
+export function KisiAvatar({ ad, foto, className = 'w-12 h-12 text-[16px]' }: { ad: string; foto?: string; className?: string }) {
+  const [hata, setHata] = useState(false)
+  if (foto && !hata) return <img src={foto} alt="" onError={() => setHata(true)} className={`${className} rounded-full object-cover flex-shrink-0`} />
+  return <SofraRozet ad={ad} className={className} />
+}
+
 // Uygulama amblemi: gulumseyen tencere (buharli). Simgeyle ayni cizim.
 export function Logo({ className = 'w-8 h-8' }: { className?: string }) {
   return (

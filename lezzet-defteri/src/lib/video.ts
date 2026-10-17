@@ -77,8 +77,8 @@ export function videoAdresiBul(html: string, platform: LzPlatform): string {
 // --- Instagram herkese acik veri servisi ----------------------------------------
 // Sayfa ve gomme sayfasi video adresini vermezse Instagram'in web sitesinin
 // kendi kullandigi GraphQL sorgusu denenir (girissiz, herkese acik gonderiler).
-export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string; galeri: string[]; yazar: string }> {
-  const bos = { videoUrl: '', aciklama: '', kapak: '', galeri: [] as string[], yazar: '' }
+export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string; galeri: string[]; yazar: string; yazarFoto: string }> {
+  const bos = { videoUrl: '', aciklama: '', kapak: '', galeri: [] as string[], yazar: '', yazarFoto: '' }
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
   if (!Capacitor.isNativePlatform()) return bos
   const lsd = 'AVqbxe3J_YA'
@@ -109,7 +109,7 @@ export async function instagramVeri(kod: string): Promise<{ videoUrl: string; ac
           display_url?: string
           edge_media_to_caption?: { edges?: { node?: { text?: string } }[] }
           edge_sidecar_to_children?: { edges?: { node?: { display_url?: string; is_video?: boolean } }[] } // kaydirmali gonderi
-          owner?: { username?: string } // paylasan hesap
+          owner?: { username?: string; profile_pic_url?: string } // paylasan hesap
         }
       }
     }
@@ -120,10 +120,30 @@ export async function instagramVeri(kod: string): Promise<{ videoUrl: string; ac
       aciklama: m.edge_media_to_caption?.edges?.[0]?.node?.text ?? '',
       kapak: m.display_url ?? '',
       galeri: (m.edge_sidecar_to_children?.edges ?? []).map((e) => e.node?.display_url ?? '').filter(Boolean),
-      yazar: m.owner?.username ? `@${m.owner.username}` : ''
+      yazar: m.owner?.username ? `@${m.owner.username}` : '',
+      yazarFoto: m.owner?.profile_pic_url ?? ''
     }
   } catch {
     return bos
+  }
+}
+
+// Instagram profil fotografi (girissiz web_profile_info; yalnizca telefonda calisir)
+export async function instagramProfilFoto(kullanici: string): Promise<string> {
+  const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+  if (!Capacitor.isNativePlatform()) return ''
+  try {
+    const r = await CapacitorHttp.get({
+      url: `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(kullanici)}`,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36',
+        'X-IG-App-ID': '936619743392459'
+      }
+    })
+    const j = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as { data?: { user?: { profile_pic_url_hd?: string; profile_pic_url?: string } } }
+    return j?.data?.user?.profile_pic_url_hd || j?.data?.user?.profile_pic_url || ''
+  } catch {
+    return ''
   }
 }
 

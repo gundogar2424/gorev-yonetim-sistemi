@@ -9,7 +9,7 @@ import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } fr
 import { PLATFORM_AD, linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
 import { uzaktanFotoIndir } from './image'
 import { temelLink } from './kopya'
-import { hesapAdi, hesapTakipEt } from './hesaplar'
+import { hesapAdi, hesapFotoGetir, hesapTakipEt } from './hesaplar'
 
 export type Konum = { lat: number; lon: number; ad?: string }
 
@@ -218,7 +218,10 @@ export async function mekanLinktenEkle(
   if (!paylasan) paylasan = video?.yazar || String(b.paylasan_hesap ?? '').trim()
   if (paylasan && instagramAdi(b.instagram) && hesapAdi(paylasan) === `@${instagramAdi(b.instagram)}`) paylasan = '' // mekanin kendi hesabi
   // Videoyu paylasan (influencer) kendiliginden takip edilir (takipten cikarildiysa tekrar eklenmez)
-  if (paylasan) hesapTakipEt(paylasan, url ? PLATFORM_AD[platformBul(url)] : '', true)
+  if (paylasan) {
+    hesapTakipEt(paylasan, url ? PLATFORM_AD[platformBul(url)] : '', true)
+    void hesapFotoGetir(paylasan, video?.yazarFoto ?? '')
+  }
   const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir })
   if (ayni) return { id: ayni.id!, yeni: false, digerleri }
   ilerleme('Mekanın haritadaki yeri bulunuyor…')

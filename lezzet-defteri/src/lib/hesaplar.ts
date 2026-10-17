@@ -9,6 +9,7 @@ const KEY_HESAP = 'lz-yemek-hesaplari'
 const KEY_YENI = 'lz-hesap-yeni' // { zaman, gorulen: normal adlar, liste: son bulunanlar }
 const KEY_OTO = 'lz-hesap-oto' // '0' ise kendiliginden bakilmaz
 const KEY_CIKAN = 'lz-hesap-cikan' // takipten cikarilanlar: otomatik takip bunlari tekrar eklemez
+const KEY_FOTO = 'lz-hesap-foto' // { normalAd: { foto: dataURL, t: deneme zamani } }
 const ARALIK = 3 * 24 * 3600 * 1000 // kendiliginden kontrol en fazla 3 gunde bir
 
 function oku(k: string): string {
@@ -73,6 +74,36 @@ export function hesapNormal(x: string): string {
 export function takipEdiliyor(girdi: string): boolean {
   const h = hesapNormal(hesapAdi(girdi))
   return !!h && hesaplariOku().some((x) => hesapNormal(x) === h)
+}
+
+// PROFIL FOTOGRAFI: cihaza kucuk resim olarak kaydedilir (Instagram adresleri birkac gunde gecersiz olur)
+type FotoKayit = Record<string, { foto: string; t: number }>
+function fotolar(): FotoKayit {
+  try {
+    return JSON.parse(oku(KEY_FOTO) || '{}') as FotoKayit
+  } catch {
+    return {}
+  }
+}
+export function hesapFoto(h: string): string {
+  return fotolar()[hesapNormal(h)]?.foto ?? ''
+}
+// adres: bilinen fotograf adresi (ör. gonderi sahibinin); yoksa @kullaniciadi ile Instagram'dan bulunur. Gunde en fazla bir deneme.
+export async function hesapFotoGetir(h: string, adres = ''): Promise<string> {
+  const k = hesapNormal(h)
+  const f = fotolar()
+  if (f[k]?.foto) return f[k].foto
+  if (!adres && f[k] && Date.now() - f[k].t < 24 * 3600 * 1000) return ''
+  try {
+    const { instagramProfilFoto } = await import('./video')
+    const { uzaktanFotoIndir } = await import('./image')
+    const url = adres || (h.trim().startsWith('@') ? await instagramProfilFoto(h.trim().slice(1)) : '')
+    const foto = url ? await uzaktanFotoIndir(url).catch(() => '') : ''
+    yaz(KEY_FOTO, JSON.stringify({ ...fotolar(), [k]: { foto, t: Date.now() } }))
+    return foto
+  } catch {
+    return ''
+  }
 }
 
 export function otoKontrol(): boolean {

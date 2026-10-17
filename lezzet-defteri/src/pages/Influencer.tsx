@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
+import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
-import { hesapBirak, hesapNormal } from '../lib/hesaplar'
+import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal } from '../lib/hesaplar'
 import { YeniListe, adNormal, hesapParca, onunMekanlari } from './Takip'
 
 // Fenomenin profili: sosyal medya hesabi; youtube kanalinda arama, @ad ise Instagram profili
@@ -26,6 +26,11 @@ export default function Influencer() {
   const [hata, setHata] = useState('')
   const [toast, goster] = useToast()
   const { ad, platform } = hesapParca(h)
+  // Profil fotografi: kayitli degilse Instagram'dan bir kez getirilir
+  const [foto, setFoto] = useState(hesapFoto(h))
+  useEffect(() => {
+    if (!foto) void hesapFotoGetir(h).then((f) => f && setFoto(f))
+  }, [h])
   const onun = onunMekanlari(mekanlar, h)
   const gidilen = onun.filter((m) => m.gidildi).length
 
@@ -53,7 +58,7 @@ export default function Influencer() {
       <Header title={ad} subtitle={platform || 'Influencer'} back />
       <div className="px-4 space-y-3 pb-8">
         <div className="lz-card p-4 flex items-center gap-4">
-          <SofraRozet ad={hesapNormal(h)} className="w-16 h-16 text-[22px]" />
+          <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-16 h-16 text-[22px]" />
           <div className="flex-1 grid grid-cols-3 text-center">
             {(
               [
