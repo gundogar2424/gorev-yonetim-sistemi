@@ -778,6 +778,22 @@ const BESIN_SEMA = {
   }
 }
 
+// Miktari yazmayan malzemelere olagan miktar tahmini ("~" ile isaretlenir); yazanlar aynen kalir
+export async function aiMiktarTamamla(r: { title: string; servings: number; ingredients: string[]; steps: string[] }): Promise<string[]> {
+  const v = await jsonCagri<{ malzemeler: string[] }>(
+    'Sen deneyimli bir aşçısın. Tarifteki malzemelerden MİKTARI YAZMAYANLARA, tarifin porsiyonuna ve yapılışına uygun olağan ev ölçüsünü ' +
+      'ekle ve satırın başına "~" koy (ör. "Kakao" → "~2 yemek kaşığı kakao", "Bir miktar süt" → "~1/2 su bardağı süt"). Miktarı zaten ' +
+      'yazanları HİÇ DEĞİŞTİRME. "Üzeri için", "isteğe göre" gibi notları koru. Aynı sırayla, aynı sayıda satır döndür.',
+    `Tarif: ${r.title}\nPorsiyon: ${r.servings || 'belirtilmemiş'}\nMalzemeler:\n${r.ingredients.join('\n')}\nYapılış:\n${r.steps.join('\n').slice(0, 1500)}`,
+    { type: 'object', additionalProperties: false, required: ['malzemeler'], properties: { malzemeler: { type: 'array', items: { type: 'string' } } } },
+    800
+  )
+  const l = (v.malzemeler ?? []).map((x) => String(x).trim()).filter(Boolean)
+  // Guvenlik: satir sayisi tutmazsa ya da miktarli satir degistiyse eskisi korunur
+  if (l.length !== r.ingredients.length) throw new Error('Miktarlar tamamlanamadı; tekrar dene.')
+  return r.ingredients.map((eski, i) => (/^\s*[\d½¼¾⅓⅔⅛]/.test(eski) ? eski : l[i]))
+}
+
 // Tarifin 1 porsiyonunun tahmini kalori ve makrolari (yalnizca yazi; Tasarruf modunda en ucuz model)
 export async function aiTarifBesin(r: { title: string; servings: number; ingredients: string[] }): Promise<import('../types').LzBesin> {
   const v = await jsonCagri<import('../types').LzBesin>(

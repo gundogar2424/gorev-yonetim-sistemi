@@ -37,19 +37,29 @@ export function sayiYaz(n: number): string {
   return (Math.round(n * 10) / 10).toLocaleString('tr-TR')
 }
 
-export function olcekle(satir: string, carpan: number): string {
-  if (carpan === 1) return satir
+// Miktari olmayan satir mi? ("Kakao", "Bir miktar süt")
+export function miktarsizMi(satir: string): boolean {
+  return !BAS.test(satir.replace(/^~\s*/, '').trim())
+}
+
+export function olcekle(satir0: string, carpan: number): string {
+  if (carpan === 1) return satir0
+  // "~2 yemek kaşığı …" (tahmini miktar) da olceklenir; isaret korunur
+  const on = /^~\s*/.exec(satir0)?.[0] ?? ''
+  const satir = satir0.slice(on.length)
   const m = satir.match(BAS)
-  if (!m) return satir
+  if (!m) return satir0
   let ana = sayiOku(m[1])
   if (m[2]) ana += sayiOku(m[2])
-  if (!isFinite(ana) || ana <= 0) return satir
-  let yeni = sayiYaz(ana * carpan)
+  if (!isFinite(ana) || ana <= 0) return satir0
+  // Buyuk miktarlar (gram, ml) mutfakta okunur olsun diye 5'e yuvarlanir: 583 1/3 g -> 585 g
+  const yaz = (n: number) => (n >= 20 ? String(Math.round(n / 5) * 5) : sayiYaz(n))
+  let yeni = yaz(ana * carpan)
   if (m[3]) {
     const ust = sayiOku(m[3])
-    if (isFinite(ust)) yeni += `-${sayiYaz(ust * carpan)}`
+    if (isFinite(ust)) yeni += `-${yaz(ust * carpan)}`
   }
-  return yeni + satir.slice(m[0].length)
+  return on + yeni + satir.slice(m[0].length)
 }
 
 // --- Alisveris reyonlari --------------------------------------------------

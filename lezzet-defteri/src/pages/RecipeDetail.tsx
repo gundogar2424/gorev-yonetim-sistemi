@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { aiTarifBesin, apiAnahtari } from '../lib/ai'
+import { aiTarifBesin, apiAnahtari, aiMiktarTamamla } from '../lib/ai'
 import { addPlan, addToShopping, deleteRecipe, lzDb, toggleFavorite, updateRecipe } from '../db'
 import type { LzMeal, LzTable } from '../types'
 import { Icon, type IconName, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
-import { olcekle } from '../lib/qty'
+import { miktarsizMi, olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
@@ -23,6 +23,8 @@ export default function RecipeDetail() {
   const [paylasAc, setPaylasAc] = useState(false)
   const [toast, goster] = useToast()
   const [besinHesap, setBesinHesap] = useState(false)
+  const [miktarHesap, setMiktarHesap] = useState(false)
+  const [eskiMalzeme, setEskiMalzeme] = useState<string[] | null>(null)
 
   if (r === undefined) return null
   if (!r) {
@@ -263,6 +265,43 @@ export default function RecipeDetail() {
                 </li>
               ))}
             </ul>
+          )}
+          {/* Kaynakta olcu yoksa: eksik miktarlar tahmin edilir ("~" ile), geri alinabilir */}
+          {apiAnahtari() && (r.ingredients.filter(miktarsizMi).length > 0 || eskiMalzeme) && (
+            <div className="mt-3 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 flex items-center gap-2">
+              <span className={`flex-1 text-[12.5px] ${T_SOLUK}`}>
+                {eskiMalzeme ? '“~” olanlar tahmini miktar.' : `${r.ingredients.filter(miktarsizMi).length} malzemenin miktarı yazmıyor.`}
+              </span>
+              {eskiMalzeme ? (
+                <button
+                  className="lz-chip text-[12.5px]"
+                  onClick={async () => {
+                    await updateRecipe(r.id!, { ingredients: eskiMalzeme })
+                    setEskiMalzeme(null)
+                  }}
+                >
+                  Geri al
+                </button>
+              ) : (
+                <button
+                  className="lz-chip lz-chip-on text-[12.5px]"
+                  disabled={miktarHesap}
+                  onClick={async () => {
+                    setMiktarHesap(true)
+                    try {
+                      const yeni = await aiMiktarTamamla(r)
+                      setEskiMalzeme(r.ingredients)
+                      await updateRecipe(r.id!, { ingredients: yeni, besin: undefined })
+                    } catch (e) {
+                      goster((e as Error).message)
+                    }
+                    setMiktarHesap(false)
+                  }}
+                >
+                  {miktarHesap ? 'Tahmin ediliyor…' : 'Miktarları tahmin et'}
+                </button>
+              )}
+            </div>
           )}
           {malzemeler.length > 0 && (
             <button className="lz-btn-soft w-full mt-3 text-sm" onClick={() => void alisveriseEkle()}>
