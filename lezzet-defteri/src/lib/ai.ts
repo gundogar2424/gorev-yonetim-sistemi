@@ -778,6 +778,19 @@ const BESIN_SEMA = {
   }
 }
 
+// Tarifin 1 porsiyonunun tahmini kalori ve makrolari (yalnizca yazi; Tasarruf modunda en ucuz model)
+export async function aiTarifBesin(r: { title: string; servings: number; ingredients: string[] }): Promise<import('../types').LzBesin> {
+  const v = await jsonCagri<import('../types').LzBesin>(
+    'Sen bir diyetisyensin. Verilen tarifin malzeme miktarlarından TOPLAM kalori ve makroları standart besin değerleriyle hesapla, ' +
+      'porsiyon sayısına bölerek 1 PORSİYONUN değerlerini ver. Miktarı yazmayan malzeme için olağan ev ölçüsü kullan. Yalnızca sayılar.',
+    `Tarif: ${r.title}\nPorsiyon: ${r.servings || 'belirtilmemiş (malzemeye göre makul tahmin et)'}\nMalzemeler:\n${r.ingredients.join('\n')}`,
+    BESIN_SEMA,
+    300
+  )
+  const s = (x: unknown) => Math.max(0, Math.round(Number(x) || 0))
+  return { kalori: s(v.kalori), protein: s(v.protein), karb: s(v.karb), yag: s(v.yag), hesap: Date.now() }
+}
+
 // Diyetisyenin planini (yazi ya da fotograf) ogunlere ayirir; her ogunun
 // kalori/makro hedefini plandan alir, yazmiyorsa icerikten tahmin eder.
 export async function aiDiyetOku(girdi: { metin?: string; foto?: string }): Promise<{

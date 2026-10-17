@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { aiTarifBesin, apiAnahtari } from '../lib/ai'
 import { addPlan, addToShopping, deleteRecipe, lzDb, toggleFavorite, updateRecipe } from '../db'
 import type { LzMeal, LzTable } from '../types'
 import { Icon, type IconName, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
@@ -21,6 +22,7 @@ export default function RecipeDetail() {
   const [planAc, setPlanAc] = useState(false)
   const [paylasAc, setPaylasAc] = useState(false)
   const [toast, goster] = useToast()
+  const [besinHesap, setBesinHesap] = useState(false)
 
   if (r === undefined) return null
   if (!r) {
@@ -126,11 +128,30 @@ export default function RecipeDetail() {
             )}
             {r.cookCount > 0 && <span className="text-[12px] text-lz-600">{r.cookCount} kez pişirildi</span>}
           </div>
-          {r.besin && (
+          {r.besin ? (
             <div className="mt-3">
               <div className={`text-[11.5px] mb-1 ${T_SOLUK}`}>1 porsiyon (tahmini)</div>
               <BesinSatiri b={r.besin} kucuk />
             </div>
+          ) : (
+            r.ingredients.length > 0 &&
+            apiAnahtari() && (
+              <button
+                className="mt-3 lz-chip text-[12.5px]"
+                disabled={besinHesap}
+                onClick={async () => {
+                  setBesinHesap(true)
+                  try {
+                    await updateRecipe(r.id!, { besin: await aiTarifBesin(r) })
+                  } catch (e) {
+                    goster((e as Error).message)
+                  }
+                  setBesinHesap(false)
+                }}
+              >
+                {besinHesap ? 'Hesaplanıyor…' : 'Kalori ve makroları hesapla'}
+              </button>
+            )
           )}
           {r.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
