@@ -134,7 +134,7 @@ export default function Influencer() {
         <div className="lz-card p-4 flex items-center gap-4">
           {/* Fotografa dokun: galeriden sec (otomatik bulunamadiysa ya da degistirmek icin) */}
           <label className="relative flex-shrink-0 cursor-pointer" aria-label="Profil fotoğrafını değiştir">
-            <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-16 h-16 text-[22px]" />
+            <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-20 h-20 text-[26px]" />
             <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white dark:bg-[#26262a] border border-[#e4e3e0] dark:border-[#3a3a40] flex items-center justify-center text-[#52525b] dark:text-[#d4d4d8]">
               <Icon name="edit" className="w-3.5 h-3.5" />
             </span>

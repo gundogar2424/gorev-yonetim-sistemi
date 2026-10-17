@@ -257,13 +257,13 @@ export function basHarfler(ad: string): string {
   const k = ad.trim().split(/\s+/).filter(Boolean)
   return ((k[0]?.[0] ?? '') + (k.length > 1 ? k[1][0] : '')).toLocaleUpperCase('tr') || '?'
 }
-export function SofraRozet({ ad, className = 'w-6 h-6 text-[10px]', secili = false }: { ad: string; className?: string; secili?: boolean }) {
+export function SofraRozet({ ad, className = 'w-6 h-6 text-[10px]', secili = false, kare = false }: { ad: string; className?: string; secili?: boolean; kare?: boolean }) {
   let h = 0
   for (const ch of ad) h = (h * 31 + ch.charCodeAt(0)) >>> 0
   const renk = ROZET_RENK[h % ROZET_RENK.length]
   return (
     <span
-      className={`${className} rounded-full inline-flex items-center justify-center font-bold tracking-[-0.02em] flex-shrink-0 ${secili ? 'ring-[3px] ring-offset-2 ring-offset-[#f7f7f5] dark:ring-offset-[#111113]' : ''}`}
+      className={`${className} ${kare ? 'rounded-[22%]' : 'rounded-full'} inline-flex items-center justify-center font-bold tracking-[-0.02em] flex-shrink-0 ${secili ? 'ring-[3px] ring-offset-2 ring-offset-[#f7f7f5] dark:ring-offset-[#111113]' : ''}`}
       style={{ background: `${renk}1f`, color: renk, ...(secili ? { ['--tw-ring-color' as string]: renk } : {}) }}
     >
       {basHarfler(ad)}
@@ -271,11 +271,12 @@ export function SofraRozet({ ad, className = 'w-6 h-6 text-[10px]', secili = fal
   )
 }
 
-// Influencer avatari: profil fotografi varsa o, yoksa bas harfli yuvarlak
+// Influencer avatari: kare (yuvarlatilmis kose) — kanal/profil gorseli butun gorunsun; yoksa bas harfler
 export function KisiAvatar({ ad, foto, className = 'w-12 h-12 text-[16px]' }: { ad: string; foto?: string; className?: string }) {
   const [hata, setHata] = useState(false)
-  if (foto && !hata) return <img src={foto} alt="" onError={() => setHata(true)} className={`${className} rounded-full object-cover flex-shrink-0`} />
-  return <SofraRozet ad={ad} className={className} />
+  if (foto && !hata)
+    return <img src={foto} alt="" onError={() => setHata(true)} className={`${className} rounded-[22%] object-cover flex-shrink-0 border border-black/5`} />
+  return <SofraRozet ad={ad} className={className} kare />
 }
 
 // Uygulama amblemi: gulumseyen tencere (buharli). Simgeyle ayni cizim.

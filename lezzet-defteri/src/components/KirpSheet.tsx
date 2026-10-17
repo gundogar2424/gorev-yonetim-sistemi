@@ -3,8 +3,8 @@ import { Sheet, T_SOLUK } from './ui'
 
 const S = 280 // kirpma alani (px)
 
-// YUVARLAK KIRPMA: secilen resim (ör. ekran goruntusu) parmakla kaydirilir, cubukla yakinlastirilir;
-// yuvarlagin icindeki kisim 400x400 olarak kaydedilir.
+// KARE KIRPMA: secilen resim (ör. ekran goruntusu) parmakla kaydirilir, cubukla yakinlastirilir;
+// cercevenin icindeki kisim 400x400 olarak kaydedilir.
 export default function KirpSheet({ src, onClose, onKaydet }: { src: string; onClose: () => void; onKaydet: (dataUrl: string) => void }) {
   const [img, setImg] = useState<HTMLImageElement>()
   const [z, setZ] = useState(1)
@@ -63,11 +63,10 @@ export default function KirpSheet({ src, onClose, onKaydet }: { src: string; onC
           onPointerUp={() => (surukle.current = null)}
         >
           {img && <img src={src} alt="" draggable={false} className="absolute max-w-none" style={{ left: pos.x, top: pos.y, width: dw, height: dh }} />}
-          {/* Yuvarlak pencere: disi karartilir */}
-          <div className="absolute inset-0 pointer-events-none rounded-full" style={{ boxShadow: '0 0 0 999px rgba(0,0,0,0.55)' }} />
-          <div className="absolute inset-0 pointer-events-none rounded-full border-2 border-white/80" />
+          {/* Kare cerceve (avatarla ayni koseler) */}
+          <div className="absolute inset-0 pointer-events-none rounded-[22%] border-2 border-white/90" style={{ boxShadow: '0 0 0 999px rgba(0,0,0,0.35)' }} />
         </div>
-        <p className={`text-center text-[12.5px] ${T_SOLUK}`}>Parmağınla kaydır, yüzü yuvarlağın içine getir</p>
+        <p className={`text-center text-[12.5px] ${T_SOLUK}`}>Parmağınla kaydır, görünmesini istediğin kısmı çerçeveye getir</p>
         <label className="flex items-center gap-3 px-2">
           <span className={`text-[13px] ${T_SOLUK}`}>Yakınlaştır</span>
           <input type="range" min={1} max={5} step={0.05} value={z} onChange={(e) => yakinlas(Number(e.target.value))} className="flex-1 accent-[#d93d20]" />
