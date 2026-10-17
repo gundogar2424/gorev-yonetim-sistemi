@@ -6,7 +6,7 @@ import { apiAnahtari } from '../lib/ai'
 import { SiraRozeti, SiraSeridi } from './Sira'
 import { YakinMekanSeridi } from './Mekanlar'
 import type { LzRecipe, LzTable } from '../types'
-import { Header, Icon, Logo, PlatformLabel, Sheet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
+import { Header, Icon, Logo, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
 
 const SOFRA_EMOJI = ['👩', '👨', '👧', '👦', '👵', '👴', '💑', '👶', '🎉', '🥗', '🏠', '🍽️']
 const YENI_GUN = 7
@@ -103,13 +103,7 @@ export default function Recipes() {
                 const on = sofra === t.id
                 return (
                   <button key={t.id} onClick={() => setSofra(on ? 0 : t.id!)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16">
-                    <span
-                      className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition ${
-                        on ? 'bg-lz-600 ring-4 ring-lz-100 dark:ring-lz-900' : 'bg-white dark:bg-[#1c1c1f]'
-                      }`}
-                    >
-                      {t.emoji}
-                    </span>
+                    <SofraRozet ad={t.name} className="w-14 h-14 text-[18px]" secili={on} />
                     <span className={`text-[11.5px] truncate w-full text-center ${on ? 'text-lz-600 font-semibold' : T_SOLUK}`}>{t.name}</span>
                   </button>
                 )
@@ -258,12 +252,10 @@ function SofraListesi({
                     <Thumb key={r.id} src={r.photo} className="w-11 h-11 rounded-full ring-2 ring-white dark:ring-[#1c1c1f] text-lg" />
                   ))}
                   {icindekiler.length === 0 && (
-                    <span className="w-11 h-11 rounded-full bg-[#f1f1ef] dark:bg-[#26262a] flex items-center justify-center text-xl">{t.emoji}</span>
+                    <SofraRozet ad={t.name} className="w-11 h-11 text-[15px]" />
                   )}
                 </div>
-                <div className={`font-semibold truncate ${T_BASLIK}`}>
-                  {t.emoji} {t.name}
-                </div>
+                <div className={`font-semibold truncate ${T_BASLIK}`}>{t.name}</div>
                 <div className={`text-[12px] ${T_SOLUK}`}>{icindekiler.length} tarif</div>
                 {t.notes && <div className={`text-[11.5px] mt-1 line-clamp-2 ${T_SOLUK}`}>{t.notes}</div>}
               </button>
@@ -324,17 +316,11 @@ export function YeniSofra({
     <Sheet open={open} onClose={onClose} title={duzenle ? 'Sofrayı düzenle' : 'Yeni sofra'}>
       <div className="space-y-4">
         <input className="lz-input" placeholder="Örn. Kocam, Canım Kızım, Misafir" value={ad} onChange={(e) => setAd(e.target.value)} />
-        <div className="grid grid-cols-6 gap-2">
-          {SOFRA_EMOJI.map((e) => (
-            <button
-              key={e}
-              onClick={() => setEmoji(e)}
-              className={`h-12 rounded-2xl text-2xl ${emoji === e ? 'bg-lz-100 dark:bg-lz-900 ring-2 ring-lz-500' : 'bg-white dark:bg-[#1c1c1f]'}`}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
+        {ad.trim() && (
+          <div className={`flex items-center gap-3 text-[13px] ${T_SOLUK}`}>
+            <SofraRozet ad={ad} className="w-12 h-12 text-[16px]" /> Sofrada böyle görünecek
+          </div>
+        )}
         <label className="block">
           <span className="lz-label block mb-1.5 px-1">Sevmedikleri, alerjileri, beslenme biçimi</span>
           <textarea

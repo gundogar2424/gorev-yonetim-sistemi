@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft, LzTable } from '../types'
-import { Header, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
+import { Header, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { DuzenlemeSohbeti } from '../components/TarifSohbet'
 import { ETIKETLER, aiTarifDegistir, profilMetni, type TarifDegisikligi } from '../lib/ai'
 import { fotoOku } from '../lib/image'
@@ -245,7 +245,7 @@ export default function EditRecipe() {
                   onClick={() => setSecili(on ? secili.filter((x) => x !== t.id) : [...secili, t.id!])}
                   className={`lz-chip ${on ? 'lz-chip-on' : ''}`}
                 >
-                  {t.emoji} {t.name}
+                  <SofraRozet ad={t.name} className="w-5 h-5 text-[9px]" /> {t.name}
                 </button>
               )
             })}

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addPlan, addToShopping, deleteRecipe, lzDb, toggleFavorite, updateRecipe } from '../db'
 import type { LzMeal, LzTable } from '../types'
-import { Icon, type IconName, PlatformLabel, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
+import { Icon, type IconName, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
 import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
@@ -286,7 +286,7 @@ export default function RecipeDetail() {
             <div className="flex flex-wrap gap-2">
               {sofralar.map((t) => (
                 <button key={t.id} onClick={() => void sofraDegis(t.id!)} className={`lz-chip ${r.tableIds.includes(t.id!) ? 'lz-chip-on' : ''}`}>
-                  {t.emoji} {t.name}
+                  <SofraRozet ad={t.name} className="w-5 h-5 text-[9px]" /> {t.name}
                 </button>
               ))}
             </div>
@@ -394,7 +394,7 @@ export function PlanSec({ open, onClose, onSec }: { open: boolean; onClose: () =
       <div className="flex gap-2 mb-4">
         {OGUNLER.map((o) => (
           <button key={o.id} onClick={() => setOgun(o.id)} className={`lz-chip flex-1 justify-center ${ogun === o.id ? 'lz-chip-on' : ''}`}>
-            {o.emoji} {o.ad}
+            {o.ad}
           </button>
         ))}
       </div>

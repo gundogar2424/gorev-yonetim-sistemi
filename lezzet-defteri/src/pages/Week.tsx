@@ -90,7 +90,7 @@ export default function Week() {
                   return (
                     <div key={o.id} className="flex items-start gap-2">
                       <span className={`w-[78px] flex-shrink-0 whitespace-nowrap text-[12px] pt-2 ${T_SOLUK}`}>
-                        {o.emoji} {o.ad}
+                        {o.ad}
                       </span>
                       <div className="flex-1 min-w-0 flex flex-wrap gap-1.5">
                         {bu.map((p) => {
@@ -235,7 +235,7 @@ function SihirliMenu({
                     onClick={() => setOgunler(on ? ogunler.filter((x) => x !== o.id) : [...ogunler, o.id])}
                     className={`lz-chip flex-1 justify-center ${on ? 'lz-chip-on' : ''}`}
                   >
-                    {o.emoji} {o.ad}
+                    {o.ad}
                   </button>
                 )
               })}

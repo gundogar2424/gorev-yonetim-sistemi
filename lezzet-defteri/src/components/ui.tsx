@@ -244,6 +244,26 @@ export function Header({ title, subtitle, back, right }: { title: ReactNode; sub
   )
 }
 
+// Sofra (kisi) rozeti: emoji yerine adin bas harfleri, ada gore sabit renkli yuvarlak
+const ROZET_RENK = ['#d93d20', '#2563eb', '#059669', '#7c3aed', '#db2777', '#d97706', '#0891b2', '#4f46e5']
+export function basHarfler(ad: string): string {
+  const k = ad.trim().split(/\s+/).filter(Boolean)
+  return ((k[0]?.[0] ?? '') + (k.length > 1 ? k[1][0] : '')).toLocaleUpperCase('tr') || '?'
+}
+export function SofraRozet({ ad, className = 'w-6 h-6 text-[10px]', secili = false }: { ad: string; className?: string; secili?: boolean }) {
+  let h = 0
+  for (const ch of ad) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  const renk = ROZET_RENK[h % ROZET_RENK.length]
+  return (
+    <span
+      className={`${className} rounded-full inline-flex items-center justify-center font-bold tracking-[-0.02em] flex-shrink-0 ${secili ? 'ring-[3px] ring-offset-2 ring-offset-[#f7f7f5] dark:ring-offset-[#111113]' : ''}`}
+      style={{ background: `${renk}1f`, color: renk, ...(secili ? { ['--tw-ring-color' as string]: renk } : {}) }}
+    >
+      {basHarfler(ad)}
+    </span>
+  )
+}
+
 // Uygulama amblemi: gulumseyen tencere (buharli). Simgeyle ayni cizim.
 export function Logo({ className = 'w-8 h-8' }: { className?: string }) {
   return (

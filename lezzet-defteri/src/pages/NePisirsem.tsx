@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzDraft, LzTable } from '../types'
-import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { Header, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { BesinSatiri } from './Diyetim'
 import { aiTarifUret, apiAnahtari, profilMetni } from '../lib/ai'
 
@@ -135,7 +135,7 @@ export default function NePisirsem() {
                     onClick={() => setKimler(on ? secili.filter((x) => x !== s.id) : [...secili, s.id!])}
                     className={`lz-chip ${on ? 'lz-chip-on' : ''}`}
                   >
-                    {s.emoji} {s.name}
+                    <SofraRozet ad={s.name} className="w-5 h-5 text-[9px]" /> {s.name}
                   </button>
                 )
               })}
