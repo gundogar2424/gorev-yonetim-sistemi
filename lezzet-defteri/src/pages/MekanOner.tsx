@@ -56,6 +56,8 @@ type Yemek = { ad: string }
 type Arama = { istek: string; hesap: string; diyet: string; yemek?: Yemek }
 const YARICAPLAR = [1, 3, 5, 10, 0] // 0: sinirsiz
 const KEY_KM = 'lz-oneri-km'
+const KEY_SEKME = 'lz-oneri-sekme'
+type Sekme = 'oner' | 'yemek' | 'hesap' | 'diyet'
 const HYPE = 'Şu an sosyal medyada (Instagram, TikTok) çok konuşulan, hype olan, gitmeye değer yeme-içme mekanları'
 
 function hesaplariYaz(h: string[]): void {
@@ -90,6 +92,21 @@ export default function MekanOner() {
       return 5
     }
   })
+  const [sekme, setSekme] = useState<Sekme>(() => {
+    try {
+      return (localStorage.getItem(KEY_SEKME) as Sekme) || 'oner'
+    } catch {
+      return 'oner'
+    }
+  })
+  const sekmeSec = (x: Sekme) => {
+    setSekme(x)
+    try {
+      localStorage.setItem(KEY_SEKME, x)
+    } catch {
+      /* yok */
+    }
+  }
   const kmSec = (x: number) => {
     setKm(x)
     try {
@@ -127,7 +144,14 @@ export default function MekanOner() {
         }
       }
       // Konum ~1 km'ye yuvarlanir: ayni yerde ayni arama icin token harcanmaz
-      const anahtar = [istekMetni.trim(), hesap, diyet, yemek ? yemek.ad.toLocaleLowerCase('tr') : '', km, k ? `${k.lat.toFixed(2)},${k.lon.toFixed(2)}` : yer.toLocaleLowerCase('tr')].join('|')
+      const anahtar = [
+        istekMetni.trim(),
+        hesap,
+        diyet,
+        yemek ? yemek.ad.toLocaleLowerCase('tr') : '',
+        km,
+        k ? `${k.lat.toFixed(2)},${k.lon.toFixed(2)}` : yer.toLocaleLowerCase('tr')
+      ].join('|')
       const eski = yenile ? undefined : onbellekOku()[anahtar]
       let liste: MekanOnerisi[]
       if (eski) {
@@ -135,20 +159,38 @@ export default function MekanOner() {
         setOnbellekten(eski.t)
       } else {
         setDurum(`${yemek ? yemek.ad : 'Mekanlar'} ${km ? `${km} km içinde` : `${yer} çevresinde`} araştırılıyor…`)
-        liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap, diyet, yemek, km)
+        liste = await aiMekanOner(
+          istekMetni.trim(),
+          yer,
+          kayitli.map((m) => m.ad),
+          hesap,
+          diyet,
+          yemek,
+          km
+        )
         if (liste.length) onbellekYaz(anahtar, liste)
       }
       const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
       const sonuc: Sonuc[] = liste.map((o) => {
         const kayit = kayitli.find((m) => ad(m.ad) === ad(o.ad))
-        const hedef = o.enlem || o.boylam ? { lat: o.enlem, lon: o.boylam } : kayit?.lat !== undefined ? { lat: kayit.lat, lon: kayit.lon! } : undefined
+        const hedef =
+          o.enlem || o.boylam ? { lat: o.enlem, lon: o.boylam } : kayit?.lat !== undefined ? { lat: kayit.lat, lon: kayit.lon! } : undefined
         return { ...o, kayitliId: kayit?.id, km: k && hedef ? mesafeKm(k, hedef) : undefined }
       })
       // Secilen mesafenin disindakileri at; yemek aramasinda en iyi puanlidan, digerlerinde yakindan sirala
       const icerde = km ? sonuc.filter((o) => o.km === undefined || o.km <= km + 0.5) : sonuc
-      setSonuclar(yemek ? icerde.sort((a, b) => (b.puan || 0) - (a.puan || 0) || (a.km ?? 999) - (b.km ?? 999)) : icerde.sort((a, b) => (a.km ?? 999) - (b.km ?? 999)))
+      setSonuclar(
+        yemek
+          ? icerde.sort((a, b) => (b.puan || 0) - (a.puan || 0) || (a.km ?? 999) - (b.km ?? 999))
+          : icerde.sort((a, b) => (a.km ?? 999) - (b.km ?? 999))
+      )
       if (sonuc.length && !icerde.length) setHata(`${km} km içinde uygun yer bulunamadı; mesafeyi büyütmeyi dene.`)
-      else if (!sonuc.length) setHata(hesap ? `${hesap.includes(',') ? 'Takip ettiğin hesapların' : `${hesap} hesabının`} yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
+      else if (!sonuc.length)
+        setHata(
+          hesap
+            ? `${hesap.includes(',') ? 'Takip ettiğin hesapların' : `${hesap} hesabının`} yakınında tanıttığı mekan bulunamadı.`
+            : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.'
+        )
     } catch (e) {
       setHata((e as Error).message)
     }
@@ -182,15 +224,20 @@ export default function MekanOner() {
   }
 
   const yolTarifi = (o: Sonuc) =>
-    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.enlem || o.boylam ? `${o.enlem},${o.boylam}` : [o.ad, o.adres || o.ilce, o.sehir].filter(Boolean).join(', '))}`
-  const haritada = (o: Sonuc) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([o.ad, o.adres || o.ilce, o.sehir].filter(Boolean).join(' '))}`
+    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+      o.enlem || o.boylam ? `${o.enlem},${o.boylam}` : [o.ad, o.adres || o.ilce, o.sehir].filter(Boolean).join(', ')
+    )}`
+  const haritada = (o: Sonuc) =>
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([o.ad, o.adres || o.ilce, o.sehir].filter(Boolean).join(' '))}`
 
   return (
     <div>
       <Header title="Bana mekan öner" subtitle="Canın ne çekiyor?" back />
       <div className="px-4 space-y-3 pb-8">
         <div className="lz-card p-3 space-y-2">
-          <div className={`text-[13px] font-semibold ${T_BASLIK}`}>📍 Ne kadar uzağa gidebilirim? <span className={`font-normal ${T_SOLUK}`}>(tüm aramalar için)</span></div>
+          <div className={`text-[13px] font-semibold ${T_BASLIK}`}>
+            📍 Ne kadar uzağa gidebilirim? <span className={`font-normal ${T_SOLUK}`}>(tüm aramalar için)</span>
+          </div>
           <div className="flex gap-1.5">
             {YARICAPLAR.map((x) => (
               <button key={x} className={`lz-chip text-[13px] flex-1 !px-1 ${km === x ? 'lz-chip-on' : ''}`} onClick={() => kmSec(x)}>
@@ -198,57 +245,105 @@ export default function MekanOner() {
               </button>
             ))}
           </div>
-        </div>
-        <div className="lz-card p-4 space-y-2.5">
-          <textarea
-            className="lz-input min-h-[80px] text-[15px]"
-            placeholder="Ör. Bu akşam iyi bir lahmacun yemek istiyorum, fiyat-performans olsun"
-            value={istek}
-            onChange={(e) => setIstek(e.target.value)}
+          <input
+            className="lz-input py-2 text-[14px]"
+            placeholder="Semt yaz ya da boş bırak (konumun)"
+            value={semt}
+            onChange={(e) => setSemt(e.target.value)}
           />
-          <div className="flex flex-wrap gap-1.5">
-            {ORNEKLER.map((o) => (
-              <button key={o} className="lz-chip text-[12.5px] !whitespace-normal text-left" onClick={() => setIstek(o)}>
-                {o}
-              </button>
-            ))}
+        </div>
+        <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#f0e6da] dark:bg-[#2a2420] p-1">
+          {(
+            [
+              ['oner', '✨', 'Öner'],
+              ['yemek', '🍽️', 'Yemek'],
+              ['hesap', '📱', 'Hesaplar'],
+              ['diyet', '🥗', 'Diyet']
+            ] as const
+          ).map(([k, i, ad]) => (
+            <button
+              key={k}
+              className={`rounded-xl py-1.5 text-[12.5px] font-semibold leading-tight ${
+                sekme === k ? 'bg-white dark:bg-[#3a312b] text-lz-600 shadow-sm' : T_SOLUK
+              }`}
+              onClick={() => sekmeSec(k)}
+            >
+              <span className="block text-[16px]">{i}</span>
+              {ad}
+            </button>
+          ))}
+        </div>
+        {!aiVar && (
+          <p className="text-[12.5px] text-rose-600 dark:text-rose-300">
+            Bunun için{' '}
+            <Link to="/ayarlar" className="underline font-semibold">
+              Ayarlar
+            </Link>
+            ’dan Gemini anahtarı gerekli.
+          </p>
+        )}
+        {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
+        {sekme === 'oner' && (
+          <div className="lz-card p-4 space-y-2.5">
+            <textarea
+              className="lz-input min-h-[80px] text-[15px]"
+              placeholder="Ör. Bu akşam iyi bir lahmacun yemek istiyorum, fiyat-performans olsun"
+              value={istek}
+              onChange={(e) => setIstek(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {ORNEKLER.map((o) => (
+                <button key={o} className="lz-chip text-[12.5px] !whitespace-normal text-left" onClick={() => setIstek(o)}>
+                  {o}
+                </button>
+              ))}
+            </div>
+            <button className="lz-btn-primary w-full" disabled={!aiVar || !istek.trim() || !!durum} onClick={() => void ara()}>
+              {durum || '✨ Öner'}
+            </button>
+            <button className="lz-btn-soft w-full" disabled={!aiVar || !!durum} onClick={() => void ara(HYPE)}>
+              🔥 {km ? `${km} km içinde` : 'Yakınımda'} şu an hype olanlar
+            </button>
           </div>
-          <input className="lz-input py-2 text-[14px]" placeholder="Nerede? Boş bırakırsan konumun kullanılır (ya da semt yaz)" value={semt} onChange={(e) => setSemt(e.target.value)} />
-          <button className="lz-btn-primary w-full" disabled={!aiVar || !istek.trim() || !!durum} onClick={() => void ara()}>
-            {durum || '✨ Öner'}
-          </button>
-          <button
-            className="lz-btn-soft w-full"
-            disabled={!aiVar || !!durum}
-            onClick={() => void ara(HYPE)}
-          >
-            🔥 {km ? `${km} km içinde` : 'Yakınımda'} şu an hype olanlar
-          </button>
-          {!aiVar && (
-            <p className="text-[12.5px] text-rose-600 dark:text-rose-300">
-              Bunun için <Link to="/ayarlar" className="underline font-semibold">Ayarlar</Link>’dan Gemini anahtarı gerekli.
+        )}
+
+        {sekme === 'yemek' && (
+          <div className="lz-card p-4 space-y-2.5">
+            <div className={`font-semibold ${T_BASLIK}`}>🍽️ Canım şu yemeği çekiyor</div>
+            <p className={`text-[12.5px] ${T_SOLUK}`}>
+              Yemeği yaz (mesafe yukarıdan): o yemeği en iyi yapan yakın yerler, yemeğin oradaki fiyatıyla listelenir.
             </p>
-          )}
-          {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
-        </div>
+            <input
+              className="lz-input py-2 text-[14px]"
+              placeholder="Ör. Tavuk şinitzel"
+              value={yemekAd}
+              onChange={(e) => setYemekAd(e.target.value)}
+            />
+            <button
+              className="lz-btn-primary w-full"
+              disabled={!aiVar || !yemekAd.trim() || !!durum}
+              onClick={() => void ara(`Bana yakın, en iyi yorum almış ${yemekAd.trim()} yapan yerler`, '', '', { ad: yemekAd.trim() })}
+            >
+              {durum && aktifYemek ? durum : `🍽️ ${km ? `${km} km içinde` : ''} en iyisini bul`}
+            </button>
+          </div>
+        )}
 
-        <div className="lz-card p-4 space-y-2.5">
-          <div className={`font-semibold ${T_BASLIK}`}>🍽️ Canım şu yemeği çekiyor</div>
-          <p className={`text-[12.5px] ${T_SOLUK}`}>Yemeği yaz (mesafe yukarıdan): o yemeği en iyi yapan yakın yerler, yemeğin oradaki fiyatıyla listelenir.</p>
-          <input className="lz-input py-2 text-[14px]" placeholder="Ör. Tavuk şinitzel" value={yemekAd} onChange={(e) => setYemekAd(e.target.value)} />
-          <button
-            className="lz-btn-primary w-full"
-            disabled={!aiVar || !yemekAd.trim() || !!durum}
-            onClick={() => void ara(`Bana yakın, en iyi yorum almış ${yemekAd.trim()} yapan yerler`, '', '', { ad: yemekAd.trim() })}
-          >
-            {durum && aktifYemek ? durum : `🍽️ ${km ? `${km} km içinde` : ''} en iyisini bul`}
-          </button>
-        </div>
-
-        {plan && plan.ogunler.length > 0 && (
+        {sekme === 'diyet' && !plan?.ogunler.length && (
+          <div className={`lz-card p-4 text-[13.5px] ${T_GOVDE}`}>
+            Önce{' '}
+            <Link to="/diyet" className="text-lz-600 font-semibold underline">
+              Diyetim
+            </Link>
+            ’e diyet listeni yükle; sonra burada öğününe uygun yakın restoranlar çıkar.
+          </div>
+        )}
+        {sekme === 'diyet' && plan && plan.ogunler.length > 0 && (
           <div className="lz-card p-4 space-y-2.5">
             <div className={`font-semibold ${T_BASLIK}`}>🥗 Diyetime uygun yakın restoran</div>
-            <p className={`text-[12.5px] ${T_SOLUK}`}>Öğünü seç: menüsünde diyetine uyan yemek olan yakın restoranlar ve ne sipariş edeceğin listelenir.</p>
+            <p className={`text-[12.5px] ${T_SOLUK}`}>
+              Öğünü seç: menüsünde diyetine uyan yemek olan yakın restoranlar ve ne sipariş edeceğin listelenir.
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {plan.ogunler.map((o, i) => (
                 <button
@@ -259,8 +354,11 @@ export default function MekanOner() {
                     void ara(
                       `${o.ad} için diyetime uygun yemek yiyebileceğim restoran`,
                       '',
-                      `Öğün: ${o.ad}\nDiyetisyenin bu öğün için yazdığı: ${o.icerik}\nHedef: ~${Math.round(o.hedef.kalori)} kcal, protein ${Math.round(o.hedef.protein)} g, karbonhidrat ${Math.round(o.hedef.karb)} g, yağ ${Math.round(o.hedef.yag)} g` +
-                        (plan.notlar ? `\nPlanın genel kuralları: ${plan.notlar.slice(0, 800)}` : '')
+                      `Öğün: ${o.ad}\nDiyetisyenin bu öğün için yazdığı: ${o.icerik}\nHedef: ~${Math.round(
+                        o.hedef.kalori
+                      )} kcal, protein ${Math.round(o.hedef.protein)} g, karbonhidrat ${Math.round(o.hedef.karb)} g, yağ ${Math.round(
+                        o.hedef.yag
+                      )} g` + (plan.notlar ? `\nPlanın genel kuralları: ${plan.notlar.slice(0, 800)}` : '')
                     )
                   }
                 >
@@ -271,68 +369,79 @@ export default function MekanOner() {
           </div>
         )}
 
-        <div className="lz-card p-4 space-y-2.5">
-          <div className={`font-semibold ${T_BASLIK}`}>📱 Takip ettiğim yemek hesapları</div>
-          <p className={`text-[12.5px] ${T_SOLUK}`}>Hesaba dokun: o hesabın tanıttığı mekanlardan sana yakın olanlar önerilir.</p>
-          <div className="flex flex-wrap gap-1.5">
-            {hesaplar.map((h) => (
-              <span key={h} className="inline-flex items-center">
-                <button className="lz-chip text-[13px]" disabled={!aiVar || !!durum} onClick={() => void ara(`${h} hesabının önerdiği mekanlar`, h)}>
-                  {h}
-                </button>
-                <button
-                  className={`ml-0.5 text-[13px] px-1 ${T_SOLUK}`}
-                  aria-label={`${h} sil`}
-                  onClick={() => {
-                    const y = hesaplar.filter((x) => x !== h)
+        {sekme === 'hesap' && (
+          <div className="lz-card p-4 space-y-2.5">
+            <div className={`font-semibold ${T_BASLIK}`}>📱 Takip ettiğim yemek hesapları</div>
+            <p className={`text-[12.5px] ${T_SOLUK}`}>Hesaba dokun: o hesabın tanıttığı mekanlardan sana yakın olanlar önerilir.</p>
+            <div className="flex flex-wrap gap-1.5">
+              {hesaplar.map((h) => (
+                <span key={h} className="inline-flex items-center">
+                  <button
+                    className="lz-chip text-[13px]"
+                    disabled={!aiVar || !!durum}
+                    onClick={() => void ara(`${h} hesabının önerdiği mekanlar`, h)}
+                  >
+                    {h}
+                  </button>
+                  <button
+                    className={`ml-0.5 text-[13px] px-1 ${T_SOLUK}`}
+                    aria-label={`${h} sil`}
+                    onClick={() => {
+                      const y = hesaplar.filter((x) => x !== h)
+                      setHesaplar(y)
+                      hesaplariYaz(y)
+                    }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+            {hesaplar.length > 1 && (
+              <button
+                className="lz-btn-primary w-full text-[14px]"
+                disabled={!aiVar || !!durum}
+                onClick={() => void ara('Takip ettiğim hesapların tanıttığı mekanlar', hesaplar.join(', '))}
+              >
+                📍 Hepsinin buraya yakın önerdikleri ({hesaplar.length} hesap)
+              </button>
+            )}
+            {hesaplar.length > 0 && (
+              <button
+                className="lz-btn-soft w-full text-[14px]"
+                disabled={!aiVar || !!durum}
+                onClick={() => void ara(`${HYPE}. Takip ettiğim hesapların tanıttıkları arasından şu an en çok konuşulanlar`, hesaplar.join(', '))}
+              >
+                🔥 Takip ettiklerimin hype mekanları {km ? `(${km} km)` : ''}
+              </button>
+            )}
+            <div className="flex gap-2">
+              <input
+                className="lz-input py-2 text-[14px] min-w-0"
+                placeholder="Meşhur hesap: @hesapadi ya da profil linki"
+                value={yeniHesap}
+                onChange={(e) => setYeniHesap(e.target.value)}
+              />
+              <button
+                className="lz-btn-soft px-3 text-sm"
+                disabled={!yeniHesap.trim()}
+                onClick={() => {
+                  const t = yeniHesap.trim()
+                  const ad = t.match(/(?:instagram|tiktok)\.com\/@?([\w.]+)/i)?.[1] ?? t.replace(/^@/, '')
+                  const h = `@${ad}`
+                  if (!hesaplar.includes(h)) {
+                    const y = [...hesaplar, h]
                     setHesaplar(y)
                     hesaplariYaz(y)
-                  }}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
+                  }
+                  setYeniHesap('')
+                }}
+              >
+                Ekle
+              </button>
+            </div>
           </div>
-          {hesaplar.length > 1 && (
-            <button
-              className="lz-btn-primary w-full text-[14px]"
-              disabled={!aiVar || !!durum}
-              onClick={() => void ara('Takip ettiğim hesapların tanıttığı mekanlar', hesaplar.join(', '))}
-            >
-              📍 Hepsinin buraya yakın önerdikleri ({hesaplar.length} hesap)
-            </button>
-          )}
-          {hesaplar.length > 0 && (
-            <button
-              className="lz-btn-soft w-full text-[14px]"
-              disabled={!aiVar || !!durum}
-              onClick={() => void ara(`${HYPE}. Takip ettiğim hesapların tanıttıkları arasından şu an en çok konuşulanlar`, hesaplar.join(', '))}
-            >
-              🔥 Takip ettiklerimin hype mekanları {km ? `(${km} km)` : ''}
-            </button>
-          )}
-          <div className="flex gap-2">
-            <input className="lz-input py-2 text-[14px] min-w-0" placeholder="Meşhur hesap: @hesapadi ya da profil linki" value={yeniHesap} onChange={(e) => setYeniHesap(e.target.value)} />
-            <button
-              className="lz-btn-soft px-3 text-sm"
-              disabled={!yeniHesap.trim()}
-              onClick={() => {
-                const t = yeniHesap.trim()
-                const ad = t.match(/(?:instagram|tiktok)\.com\/@?([\w.]+)/i)?.[1] ?? t.replace(/^@/, '')
-                const h = `@${ad}`
-                if (!hesaplar.includes(h)) {
-                  const y = [...hesaplar, h]
-                  setHesaplar(y)
-                  hesaplariYaz(y)
-                }
-                setYeniHesap('')
-              }}
-            >
-              Ekle
-            </button>
-          </div>
-        </div>
+        )}
 
         {sonuclar.length > 0 && (
           <div className={`flex items-center gap-2 px-1 text-[12.5px] ${T_SOLUK}`}>
@@ -342,13 +451,21 @@ export default function MekanOner() {
               {onbellekten ? ` · ${Math.max(1, Math.round((Date.now() - onbellekten) / 60000))} dk önceki arama (kredi harcanmadı)` : ''}
             </span>
             {onbellekten > 0 && sonArama && (
-              <button className="lz-chip text-[12px]" disabled={!!durum} onClick={() => void ara(sonArama.istek, sonArama.hesap, sonArama.diyet, sonArama.yemek, true)}>
+              <button
+                className="lz-chip text-[12px]"
+                disabled={!!durum}
+                onClick={() => void ara(sonArama.istek, sonArama.hesap, sonArama.diyet, sonArama.yemek, true)}
+              >
                 ↻ Yeniden ara
               </button>
             )}
           </div>
         )}
-        {aktifHesap && sonuclar.length > 0 && <div className={`text-[13px] px-1 font-semibold ${T_GOVDE}`}>{aktifHesap.includes(',') ? 'Takip ettiğin hesapların' : `${aktifHesap} hesabının`} önerdikleri:</div>}
+        {aktifHesap && sonuclar.length > 0 && (
+          <div className={`text-[13px] px-1 font-semibold ${T_GOVDE}`}>
+            {aktifHesap.includes(',') ? 'Takip ettiğin hesapların' : `${aktifHesap} hesabının`} önerdikleri:
+          </div>
+        )}
         {sonuclar.map((o, i) => (
           <div key={i} className="lz-card p-4 space-y-1.5">
             <div className="flex items-start gap-2">
@@ -359,7 +476,12 @@ export default function MekanOner() {
               {o.km !== undefined && <div className="text-[13px] font-semibold text-lz-600 whitespace-nowrap">{mesafeYaz(o.km)}</div>}
             </div>
             <div className={`text-[13px] ${T_GOVDE}`}>
-              {o.puan ? <b className="text-amber-600 dark:text-amber-300">⭐ {o.puan.toFixed(1).replace('.', ',')}{o.yorumSayisi ? ` (${o.yorumSayisi.toLocaleString('tr')})` : ''}</b> : null}
+              {o.puan ? (
+                <b className="text-amber-600 dark:text-amber-300">
+                  ⭐ {o.puan.toFixed(1).replace('.', ',')}
+                  {o.yorumSayisi ? ` (${o.yorumSayisi.toLocaleString('tr')})` : ''}
+                </b>
+              ) : null}
               {o.puan && o.fiyat ? ' · ' : ''}
               {o.fiyat}
             </div>
@@ -370,7 +492,12 @@ export default function MekanOner() {
             )}
             {aktifYemek && o.yemek_yorumu && <p className={`text-[13px] ${T_GOVDE}`}>💬 {o.yemek_yorumu}</p>}
             <p className={`text-[13.5px] ${T_GOVDE}`}>{o.neden}</p>
-            {o.ne_yenir.length > 0 && <p className={`text-[13px] ${T_GOVDE}`}>{diyetModu ? '🥗 Sipariş: ' : '😋 '}{o.ne_yenir.slice(0, 4).join(', ')}</p>}
+            {o.ne_yenir.length > 0 && (
+              <p className={`text-[13px] ${T_GOVDE}`}>
+                {diyetModu ? '🥗 Sipariş: ' : '😋 '}
+                {o.ne_yenir.slice(0, 4).join(', ')}
+              </p>
+            )}
             {o.populerlik && <p className={`text-[12.5px] ${T_SOLUK}`}>📱 {o.populerlik}</p>}
             {o.link && (
               <a href={o.link} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
