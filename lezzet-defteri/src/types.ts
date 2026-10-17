@@ -148,6 +148,7 @@ export interface LzMekan {
   yorumSayisi?: number
   yorumOzeti?: string // Yorumlarda one cikanlar (artı/eksi)
   puanZamani?: number
+  hype?: { var: boolean; not: string; zaman: number } // son "sosyal medyada konusuluyor mu" kontrolu
   googleId?: string // Google Haritalar kaydi (Places)
   paylasan?: string // Paylasimi yapan hesap (@…)
   kampanya?: { ozet: string; gecerlilik: string; kaynak: string; zaman: number } // son kontrolde bulunan kampanya

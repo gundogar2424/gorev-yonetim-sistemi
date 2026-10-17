@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
@@ -71,6 +71,7 @@ function hesaplariYaz(h: string[]): void {
 // MEKAN ONERISI: "canim su an … istiyor" — bulundugun yere gore Google'da arastirilip
 // puan, fiyat ve sosyal medyadaki son durumuyla mekan onerilir.
 export default function MekanOner() {
+  const navigate = useNavigate()
   const kayitli = useLiveQuery(() => lzDb.mekanlar.toArray(), [], [] as LzMekan[]) ?? []
   const [istek, setIstek] = useState('')
   const [semt, setSemt] = useState('')
@@ -197,7 +198,8 @@ export default function MekanOner() {
     setDurum('')
   }
 
-  const kaydet = async (o: Sonuc) => {
+  const kaydet = async (o: Sonuc): Promise<number> => {
+    if (o.kayitliId) return o.kayitliId
     const id = await lzDb.mekanlar.add({
       ad: o.ad,
       tur: o.tur,
@@ -221,7 +223,10 @@ export default function MekanOner() {
       puanZamani: o.puan ? Date.now() : undefined
     })
     setSonuclar((s) => s.map((x) => (x === o ? { ...x, kayitliId: id } : x)))
+    return id
   }
+  // Gittim: kayitli degilse kaydedip ziyaret formunu acar
+  const gittim = async (o: Sonuc) => navigate(`/mekan/${await kaydet(o)}`, { state: { gittim: true, yedim: aktifYemek?.ad ?? '' } })
 
   const yolTarifi = (o: Sonuc) =>
     `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
@@ -504,7 +509,7 @@ export default function MekanOner() {
                 ▶ Tanıtım paylaşımını aç
               </a>
             )}
-            <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-2 pt-1">
               <a href={yolTarifi(o)} target="_blank" rel="noreferrer" className="lz-btn-primary text-[12.5px] px-2">
                 🧭 Git
               </a>
@@ -520,6 +525,9 @@ export default function MekanOner() {
                   ＋ Kaydet
                 </button>
               )}
+              <button className="lz-btn-soft text-[12.5px] px-2" onClick={() => void gittim(o)}>
+                ✅ Gittim
+              </button>
             </div>
           </div>
         ))}

@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
-import { apiAnahtari } from '../lib/ai'
+import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { linkAyikla } from '../lib/importer'
 import {
@@ -38,6 +38,8 @@ export default function Mekanlar() {
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
   const [etiket, setEtiket] = useState('')
   const [sadeceFavori, setSadeceFavori] = useState(false)
+  const [sadeceHype, setSadeceHype] = useState(false)
+  const [hypeDurum, setHypeDurum] = useState('')
   const [yaricap, setYaricap] = useState(0) // 0 = hepsi
   const [siralama, setSiralama] = useState<'mesafe' | 'puan'>('mesafe')
   const aiVar = !!apiAnahtari()
@@ -95,6 +97,7 @@ export default function Mekanlar() {
       (!sadeceGidilmedi || !m.gidildi) &&
       (!etiket || m.etiketler.includes(etiket)) &&
       (!sadeceFavori || m.favori) &&
+      (!sadeceHype || m.hype?.var) &&
       (!yaricap || (konum && m.lat !== undefined && m.lon !== undefined && mesafeKm(konum, { lat: m.lat, lon: m.lon }) <= yaricap)) &&
       (!q || `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')}`.toLocaleLowerCase('tr').includes(q))
   )
@@ -105,6 +108,27 @@ export default function Mekanlar() {
       : konum
       ? [...suzulmus].sort((a, b) => (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
       : suzulmus
+  // HYPE: listedeki mekanlardan hangileri su an sosyal medyada konusuluyor? Tek aramada en fazla 25 mekan;
+  // son 7 gunde bakilanlara tekrar bakilmaz (kredi harcamamak icin)
+  const hypeKontrol = async () => {
+    if (sadeceHype) return setSadeceHype(false)
+    setSadeceHype(true)
+    const hafta = Date.now() - 7 * 24 * 3600 * 1000
+    const bakilacak = sirali.filter((m) => !m.hype || m.hype.zaman < hafta).slice(0, 25)
+    if (!bakilacak.length || !aiVar) return
+    setHypeDurum(`🔥 ${bakilacak.length} mekan sosyal medyada araştırılıyor…`)
+    try {
+      const sonuc = await aiMekanHype(bakilacak.map((m) => ({ ad: m.ad, yer: [m.ilce, m.sehir].filter(Boolean).join(', ') })))
+      const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
+      for (const m of bakilacak) {
+        const s = sonuc.find((x) => ad(x.ad) === ad(m.ad))
+        await lzDb.mekanlar.update(m.id!, { hype: { var: !!s?.hype, not: s?.not ?? '', zaman: Date.now() } })
+      }
+      setHypeDurum('')
+    } catch (e) {
+      setHypeDurum(`⚠️ ${(e as Error).message}`)
+    }
+  }
   const yakinlar = konum ? sirali.filter((m) => (mesafe(m) ?? 1e9) <= YAKIN_KM) : []
 
   return (
@@ -207,9 +231,12 @@ export default function Mekanlar() {
                 value={arama}
                 onChange={(e) => setArama(e.target.value)}
               />
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
                 <button className={`lz-chip whitespace-nowrap ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
                   ❤️ Favoriler
+                </button>
+                <button className={`lz-chip whitespace-nowrap ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.startsWith('🔥')} onClick={() => void hypeKontrol()}>
+                  🔥 Hype
                 </button>
                 <button
                   className={`lz-chip whitespace-nowrap ${sadeceGidilmedi ? 'lz-chip-on' : ''}`}
@@ -222,6 +249,10 @@ export default function Mekanlar() {
                 </button>
               </div>
             </div>
+            {hypeDurum && <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>{hypeDurum}</p>}
+            {sadeceHype && !hypeDurum && sirali.length === 0 && (
+              <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu listede şu an sosyal medyada çok konuşulan mekan yok.</div>
+            )}
             {tumEtiketler.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4">
                 {tumEtiketler.map(([e, n]) => (
@@ -279,6 +310,7 @@ export default function Mekanlar() {
                       {m.puan ? <b className="text-amber-600 dark:text-amber-300 font-semibold">{puanYaz(m)} · </b> : null}
                       {[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}
                     </div>
+                    {m.hype?.var && <div className="text-[12.5px] text-lz-600 font-semibold truncate">🔥 {m.hype.not || 'Şu an sosyal medyada konuşuluyor'}</div>}
                     {m.oneriler.length > 0 && <div className={`text-[12.5px] truncate ${T_GOVDE}`}>😋 {m.oneriler.slice(0, 3).join(', ')}</div>}
                     {m.etiketler.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">

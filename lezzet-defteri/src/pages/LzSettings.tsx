@@ -358,7 +358,10 @@ function HarcamaKarti() {
   const bin = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace('.', ',')} milyon` : n >= 1000 ? `${Math.round(n / 1000)} bin` : String(n))
   const satir = (ad: string, b: typeof k.bugun) => (
     <div className={`text-[13px] ${T_GOVDE}`}>
-      <b>{ad}:</b> {b.istek} istek · {bin(b.girdi)} girdi + {bin(b.cikti)} çıktı birimi{b.arama ? ` · ${b.arama} Google araması` : ''}
+      <b>{ad}:</b> {b.istek} istek · ≈ {(b.tl ?? 0) < 1 && b.istek ? '1 TL’den az' : `${Math.round(b.tl ?? 0)} TL`}
+      <span className={`block text-[11.5px] ${T_SOLUK}`}>
+        {bin(b.girdi)} girdi + {bin(b.cikti)} çıktı birimi{b.arama ? ` · ${b.arama} Google araması` : ''}
+      </span>
     </div>
   )
   return (
@@ -401,7 +404,7 @@ function HarcamaKarti() {
         {satir('Bu ay', k.buAy)}
       </div>
       <p className={`text-[12px] ${T_SOLUK}`}>
-        En çok harcayan: videolu tarifler ve Google aramaları (mekan, puan, kampanya). Kesin tutar için{' '}
+        TL tutarı yaklaşıktır (1 $ ≈ 42 TL); harcama önce 2.940 TL’lik ücretsiz krediden düşer. En çok harcayan: videolu tarifler ve Google aramaları (mekan, puan, kampanya). Kesin tutar için{' '}
         <a href="https://aistudio.google.com/usage" target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
           AI Studio kullanım sayfası
         </a>

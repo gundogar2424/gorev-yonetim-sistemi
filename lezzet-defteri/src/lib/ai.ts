@@ -278,8 +278,18 @@ type KullanimVerisi = { promptTokenCount?: number; candidatesTokenCount?: number
 export interface Kullanim {
   gun: string
   ay: string
-  bugun: { istek: number; girdi: number; cikti: number; arama: number }
-  buAy: { istek: number; girdi: number; cikti: number; arama: number }
+  bugun: { istek: number; girdi: number; cikti: number; arama: number; tl?: number }
+  buAy: { istek: number; girdi: number; cikti: number; arama: number; tl?: number }
+}
+// Yaklasik tutar: Google'in 1 milyon birim (token) fiyatlari (USD, girdi/cikti) ve dolar kuru.
+// Kesin tutar degil; Google aramasinin ayrica ucreti (ucretsiz kotayi asinca) dahil degil.
+const DOLAR_TL = 42
+function birimFiyat(model: string): [number, number] {
+  if (/lite/.test(model)) return [0.1, 0.4]
+  if (/pro/.test(model)) return [2, 12]
+  if (/2\.0/.test(model)) return [0.1, 0.4]
+  if (/2\.5/.test(model)) return [0.3, 2.5]
+  return [0.5, 3] // gemini-flash-latest / 3.x flash
 }
 function bugunAnahtari(): { gun: string; ay: string } {
   const d = new Date()
@@ -300,11 +310,14 @@ export function kullanimOku(): Kullanim {
   if (k.gun !== gun) k = { ...k, gun, bugun: { ...bos } }
   return k
 }
-function kullanimEkle(u: KullanimVerisi | undefined, arama: boolean): void {
+function kullanimEkle(u: KullanimVerisi | undefined, arama: boolean, model: string): void {
   const k = kullanimOku()
   const girdi = u?.promptTokenCount ?? 0
   const cikti = (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0)
+  const [fg, fc] = birimFiyat(model)
+  const tl = ((girdi * fg + cikti * fc) / 1e6) * DOLAR_TL
   for (const b of [k.bugun, k.buAy]) {
+    b.tl = (b.tl ?? 0) + tl
     b.istek++
     b.girdi += girdi
     b.cikti += cikti
@@ -432,7 +445,7 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   } catch {
     throw new Error('Yapay zekadan anlaşılmayan bir yanıt geldi.')
   }
-  kullanimEkle((json as { usageMetadata?: KullanimVerisi }).usageMetadata, arama)
+  kullanimEkle((json as { usageMetadata?: KullanimVerisi }).usageMetadata, arama, model)
   const aday = json.candidates?.[0]
   if (!aday) throw new Error(json.promptFeedback?.blockReason ? 'Gemini bu içeriği işlemeyi reddetti.' : 'Gemini boş yanıt verdi.')
   const text = (aday.content?.parts ?? []).filter((p) => !p.thought).map((p) => p.text ?? '').join('')
@@ -1197,6 +1210,36 @@ export async function aiMekanKampanya(
     true
   )
   return { var: !!v.kampanya_var && !!String(v.ozet ?? '').trim(), ozet: String(v.ozet ?? '').trim(), gecerlilik: String(v.gecerlilik ?? '').trim(), kaynak: String(v.kaynak ?? '').trim() }
+}
+
+// Kayitli mekanlardan hangileri su an sosyal medyada cok konusuluyor (tek Google aramali cagri)
+export async function aiMekanHype(liste: { ad: string; yer: string }[]): Promise<{ ad: string; hype: boolean; not: string }[]> {
+  const v = await jsonCagri<{ mekanlar: { ad: string; hype: boolean; not: string }[] }>(
+    'Sen bir yeme-içme trend takipçisisin. Verilen her mekan için Google’da son 3 ayda Instagram, TikTok ve YouTube’da ne kadar ' +
+      'paylaşıldığını/konuşulduğunu araştır. hype: son dönemde çok paylaşılıyor, viral oldu ya da ünlü yemek hesapları yeni tanıttıysa true; ' +
+      'az konuşuluyorsa ya da emin değilsen false. not: kısa sebep (ör. "Eylülde TikTok’ta viral oldu", "@hesap yeni tanıttı"); false ise boş. ' +
+      'Her mekanı listede verilen adıyla aynen döndür. UYDURMA. Türkçe.',
+    liste.map((m, i) => `${i + 1}. ${m.ad} — ${m.yer}`).join('\n'),
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['mekanlar'],
+      properties: {
+        mekanlar: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['ad', 'hype', 'not'],
+            properties: { ad: { type: 'string' }, hype: { type: 'boolean' }, not: { type: 'string' } }
+          }
+        }
+      }
+    },
+    2500,
+    true
+  )
+  return (v.mekanlar ?? []).map((x) => ({ ad: String(x.ad ?? '').trim(), hype: !!x.hype, not: String(x.not ?? '').trim() }))
 }
 
 // Mekanin guncel menu fiyatlari: resmi site, menu sayfasi, siparis uygulamalari (Google aramasiyla)

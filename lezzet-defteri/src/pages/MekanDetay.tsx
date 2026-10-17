@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
@@ -22,7 +22,8 @@ const KAYNAK: Record<string, string> = {
 export default function MekanDetay() {
   const id = Number(useParams().id)
   const navigate = useNavigate()
-  const zatenVar = (useLocation().state as { zatenVar?: boolean } | null)?.zatenVar
+  const durumu = useLocation().state as { zatenVar?: boolean; gittim?: boolean; yedim?: string } | null
+  const zatenVar = durumu?.zatenVar
   const m = useLiveQuery(() => lzDb.mekanlar.get(id), [id])
   const [duzenle, setDuzenle] = useState(false)
   const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '', etiketler: [] as string[] })
@@ -295,7 +296,7 @@ export default function MekanDetay() {
         >
           {m.favori ? '❤️ Favori mekanım' : '🤍 Favorilere ekle'}
         </button>
-        <ZiyaretKarti m={m} goster={goster} />
+        <ZiyaretKarti m={m} goster={goster} otoAc={durumu?.gittim ? { yedim: durumu.yedim ?? '' } : undefined} />
         <UnluKarti m={m} goster={goster} />
         {!duzenle && (
           <button className="lz-btn-soft w-full text-sm" onClick={duzenlemeyiAc}>
@@ -402,7 +403,7 @@ function Yildiz({ puan, degis }: { puan: number; degis?: (p: number) => void }) 
 }
 
 // ZIYARET DEFTERI: gittigim tarih, verdigim puan, ne yedim, notum, "bir daha gelirsem bunu yerim"
-function ZiyaretKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
+function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) => void; otoAc?: { yedim: string } }) {
   const [acik, setAcik] = useState(false)
   const [duzenlenen, setDuzenlenen] = useState(-1)
   const [z, setZ] = useState<LzZiyaret>({ tarih: bugun(), puan: 0, yedim: '', not: '', tekrar: '' })
@@ -416,6 +417,13 @@ function ZiyaretKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }
     setDuzenlenen(-1)
     setAcik(true)
   }
+  // Oneri sayfasindaki "Gittim" ile gelindiyse form hemen acilir
+  useEffect(() => {
+    if (!otoAc) return
+    setZ({ tarih: bugun(), puan: 0, yedim: otoAc.yedim, not: '', tekrar: '' })
+    setDuzenlenen(-1)
+    setAcik(true)
+  }, [])
   const kaydet = async () => {
     const yeniListe = duzenlenen >= 0 ? liste.map((x, i) => (i === duzenlenen ? z : x)) : [...liste, z]
     await lzDb.mekanlar.update(m.id!, { ziyaretler: yeniListe, gidildi: true })
