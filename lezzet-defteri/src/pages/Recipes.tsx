@@ -43,7 +43,7 @@ export default function Recipes() {
       <Header
         title={
           <span className="flex items-center gap-2 min-w-0">
-            <Logo className="w-8 h-8 flex-shrink-0" /> <span className="truncate text-[23px]">Lezzet Defteri</span>
+            <Logo className="w-8 h-8 flex-shrink-0" /> <span className="truncate text-[23px]">Lezzet Rotası</span>
           </span>
         }
       />

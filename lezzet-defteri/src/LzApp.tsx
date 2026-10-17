@@ -49,7 +49,7 @@ export default function LzApp() {
   useEffect(() => {
     const w = window as unknown as { __lzPaylasim?: (t: string, tur?: string) => void }
     // Paylasimlar siraya girer: art arda gelenler tek tek islenir.
-    // Paylas menusunde "Lezzet: Mekan" secildiyse tur = 'mekan'
+    // Paylas menusunde "Lezzet Rotası: Mekan" secildiyse tur = 'mekan'
     w.__lzPaylasim = (t: string, tur?: string) => {
       void siraEkle(t, tur === 'mekan' ? 'mekan' : tur === 'tarif' ? 'tarif' : undefined)
       navigate('/sira')

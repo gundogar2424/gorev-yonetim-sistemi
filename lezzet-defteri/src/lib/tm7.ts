@@ -125,7 +125,7 @@ export function termomiksKodu(r: LzRecipe): string {
       warnings: tm.warnings,
       photo: r.photo || '',
       video: /^https:\/\//i.test(r.sourceUrl) && r.platform === 'youtube' ? r.sourceUrl : '',
-      source: r.sourceUrl || r.author || 'Lezzet Defteri'
+      source: r.sourceUrl || r.author || 'Lezzet Rotası'
     },
     null,
     1

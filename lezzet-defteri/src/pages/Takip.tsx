@@ -158,7 +158,7 @@ export default function Takip() {
       <div className="px-4 space-y-3 pb-8">
         <div className="lz-card p-4 space-y-2.5">
           <p className={`text-[12.5px] ${T_SOLUK}`}>
-            Bir fenomenin mekan videosunu <b>Paylaş → Lezzet Defteri</b> ile eklediğinde sana “takip edilsin mi?” diye sorulur. Elle de ekleyebilirsin.
+            Bir fenomenin mekan videosunu <b>Paylaş → Lezzet Rotası</b> ile eklediğinde sana “takip edilsin mi?” diye sorulur. Elle de ekleyebilirsin.
           </p>
           <div className="flex gap-2">
             <input className="lz-input py-2 text-[14px] min-w-0" placeholder="@kullaniciadi, profil linki ya da adı" value={yeni} onChange={(e) => setYeni(e.target.value)} />

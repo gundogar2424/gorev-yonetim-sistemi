@@ -67,9 +67,9 @@ jobs:
           grep -q 'SiraServisi' "$f" || sed -i 's#</application>#    <service android:name=".SiraServisi" android:exported="false" android:foregroundServiceType="dataSync" />\n    </application>#' "$f"
           grep -q 'FOREGROUND_SERVICE_DATA_SYNC' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
           grep -q 'ACCESS_COARSE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>#' "$f"
-          grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter android:label="Lezzet: Tarif">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
+          grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter android:label="Lezzet Rotası: Tarif">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
           # Paylas menusunde ikinci secenek: "Lezzet: Mekan" (ayni uygulama, mekan olarak kaydeder)
-          grep -q 'MekanPaylas' "$f" || sed -i 's#</application>#    <activity-alias android:name=".MekanPaylas" android:targetActivity=".MainActivity" android:exported="true" android:label="Lezzet: Mekan" android:icon="@mipmap/ic_launcher">\n            <intent-filter android:label="Lezzet: Mekan">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity-alias>\n    </application>#' "$f"
+          grep -q 'MekanPaylas' "$f" || sed -i 's#</application>#    <activity-alias android:name=".MekanPaylas" android:targetActivity=".MainActivity" android:exported="true" android:label="Lezzet Rotası: Mekan" android:icon="@mipmap/ic_launcher">\n            <intent-filter android:label="Lezzet Rotası: Mekan">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity-alias>\n    </application>#' "$f"
           grep -n -A4 "action.SEND" "$f"
           # 2) Paylasilan metni web katmanina ver (sayfa hazir olana kadar tekrar dener)
           d=android/app/src/main/java/com/lezzet/defteri
@@ -158,7 +158,7 @@ jobs:
                   PendingIntent pi = PendingIntent.getActivity(c, 0, ac, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
                   return new NotificationCompat.Builder(c, KANAL)
                       .setSmallIcon(android.R.drawable.stat_sys_download)
-                      .setContentTitle("Lezzet Defteri")
+                      .setContentTitle("Lezzet Rotası")
                       .setContentText(metin == null || metin.isEmpty() ? "Paylaşımlar işleniyor…" : metin)
                       .setOngoing(true)
                       .setOnlyAlertOnce(true)
@@ -254,7 +254,7 @@ jobs:
               @PluginMethod
               public void bildir(PluginCall call) {
                   try {
-                      Bildirim.goster(getContext(), call.getString("baslik", "Lezzet Defteri"), call.getString("metin", ""), call.getInt("no", 5000));
+                      Bildirim.goster(getContext(), call.getString("baslik", "Lezzet Rotası"), call.getString("metin", ""), call.getInt("no", 5000));
                   } catch (Exception e) {
                       // izin yoksa sessizce gec
                   }
@@ -355,7 +355,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: lezzet-latest
-          name: Lezzet Defteri APK
+          name: Lezzet Rotası APK
           body: |
             Instagram, TikTok, YouTube ya da tarif sitelerinden tarif kaydet;
             haftalık menü ve alışveriş listesi.
@@ -370,7 +370,7 @@ jobs:
         with:
           tag_name: lezzet-deneme
           target_commitish: ${{ github.sha }}
-          name: Lezzet Defteri APK (deneme)
+          name: Lezzet Rotası APK (deneme)
           prerelease: true
           body: |
             Geliştirme dalından derlenen deneme sürümü (derleme ${{ github.run_number }}).

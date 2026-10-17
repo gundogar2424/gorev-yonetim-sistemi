@@ -50,7 +50,7 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
     throw new Error('Dosya okunamadı. Geçerli bir yedek dosyası seç.')
   }
   if (data?.app !== 'lezzet-defteri' || !Array.isArray(data.recipes)) {
-    throw new Error('Bu dosya Lezzet Defteri yedeği değil.')
+    throw new Error('Bu dosya Lezzet Rotası yedeği değil.')
   }
 
   let eklendi = 0

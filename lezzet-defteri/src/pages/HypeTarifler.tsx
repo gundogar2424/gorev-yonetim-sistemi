@@ -126,7 +126,7 @@ export default function HypeTarifler() {
         ))}
         {liste.length > 0 && (
           <p className={`text-[11.5px] text-center px-2 ${T_SOLUK}`}>
-            Liste yapay zekanın Google araması. Videosunu açıp beğendiğini Paylaş → Lezzet Defteri ile de ekleyebilirsin.
+            Liste yapay zekanın Google araması. Videosunu açıp beğendiğini Paylaş → Lezzet Rotası ile de ekleyebilirsin.
           </p>
         )}
       </div>

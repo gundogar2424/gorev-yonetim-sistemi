@@ -109,7 +109,7 @@ ${r.tags.length ? `<div style="margin-top:8px">${r.tags.map((t) => `<span class=
 
 function alt(r: LzRecipe): string {
   return `<div class="alt">${r.sourceUrl ? `Kaynak: <a href="${k(r.sourceUrl)}">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a><br>` : ''}
-🍲 Lezzet Defteri ile paylaşıldı${'' /* uygulama sahibi ise: Tarif ekle → Dosyadan ile deftere alinir */}</div>`
+🍲 Lezzet Rotası ile paylaşıldı${'' /* uygulama sahibi ise: Tarif ekle → Dosyadan ile deftere alinir */}</div>`
 }
 
 function sayfa(baslik: string, govde: string, gomulu: string, betik = ''): string {
@@ -232,8 +232,8 @@ export function paylasilanTarifOku(icerik: string): Partial<LzRecipe> {
   try {
     v = JSON.parse(ham)
   } catch {
-    throw new Error('Bu dosyada Lezzet Defteri tarifi bulunamadı.')
+    throw new Error('Bu dosyada Lezzet Rotası tarifi bulunamadı.')
   }
-  if (v.app !== 'lezzet-defteri-tarif' || !v.tarif?.title) throw new Error('Bu dosyada Lezzet Defteri tarifi bulunamadı.')
+  if (v.app !== 'lezzet-defteri-tarif' || !v.tarif?.title) throw new Error('Bu dosyada Lezzet Rotası tarifi bulunamadı.')
   return v.tarif
 }

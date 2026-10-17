@@ -338,7 +338,7 @@ export default function RecipeDetail() {
             ikon="pot"
           />
           <p className={`text-[11.5px] px-1 pt-1 ${T_SOLUK}`}>
-            Karşı tarafta Lezzet Defteri varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
+            Karşı tarafta Lezzet Rotası varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
           </p>
         </div>
       </Sheet>

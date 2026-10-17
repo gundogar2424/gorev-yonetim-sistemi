@@ -245,7 +245,7 @@ export default function Mekanlar() {
           <div className={`font-semibold ${T_BASLIK}`}>Mekan ekle</div>
           <p className={`text-[12.5px] ${T_SOLUK}`}>
             Instagram, TikTok, YouTube ya da Google Haritalar linkini yapıştır; ya da sadece adını ve semtini yaz (“Karaköy Lokantası, İstanbul”).
-            Konum yazmasa da yapay zeka Google’da araştırıp yerini kendisi bulur. En kolayı: Instagram’da Paylaş → Lezzet Defteri; hiçbir şey yazmana
+            Konum yazmasa da yapay zeka Google’da araştırıp yerini kendisi bulur. En kolayı: Instagram’da Paylaş → Lezzet Rotası; hiçbir şey yazmana
             gerek yok.
           </p>
           <textarea

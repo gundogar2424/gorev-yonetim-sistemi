@@ -202,7 +202,7 @@ export async function mekanLinktenEkle(
       : ''
     const neden = String(b.bulunamadi_neden ?? '').trim()
     throw new Error(
-      ['Mekan bulunamadı.', durum, neden && `Yapay zeka: ${neden}.`, 'Çözüm: mekanı Google Haritalar’da açıp oradan “Paylaş → Lezzet: Mekan” de ya da Mekanlarım’a adını yaz.']
+      ['Mekan bulunamadı.', durum, neden && `Yapay zeka: ${neden}.`, 'Çözüm: mekanı Google Haritalar’da açıp oradan “Paylaş → Lezzet Rotası: Mekan” de ya da Mekanlarım’a adını yaz.']
         .filter(Boolean)
         .join(' ')
     )

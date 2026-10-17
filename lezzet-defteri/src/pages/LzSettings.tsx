@@ -257,7 +257,7 @@ export default function LzSettings() {
 
         <div className="flex flex-col items-center gap-1 pt-2">
           <Logo className="w-10 h-10" />
-          <div className={`font-semibold ${T_BASLIK}`}>Lezzet Defteri</div>
+          <div className={`font-semibold ${T_BASLIK}`}>Lezzet Rotası</div>
           <div className={`text-[12px] ${T_SOLUK}`}>Sürüm 1.0.{__APP_BUILD__} · Hesap yok, veriler telefonda</div>
         </div>
       </div>

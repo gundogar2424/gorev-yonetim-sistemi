@@ -20,7 +20,7 @@ export default function Sira() {
       <Header title="Tarif sırası" subtitle={bekleyen ? `${bekleyen} tarif işleniyor / sırada` : 'Sıra boş'} back />
       <div className="px-4 space-y-2.5 pb-8">
         <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>
-          Instagram, TikTok ya da YouTube’dan art arda “Paylaş → Lezzet Defteri” diyebilirsin; tarifler sırayla işlenip deftere kendiliğinden
+          Instagram, TikTok ya da YouTube’dan art arda “Paylaş → Lezzet Rotası” diyebilirsin; tarifler sırayla işlenip deftere kendiliğinden
           eklenir. Uygulama kapanırsa sıra kaybolmaz, açınca devam eder.
         </p>
         {hatali.length > 1 && (

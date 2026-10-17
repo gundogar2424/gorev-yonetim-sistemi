@@ -224,7 +224,7 @@ export default function AddRecipe() {
           <div className="lz-card p-4 space-y-3">
             <div className={`font-semibold ${T_BASLIK}`}>Sosyal medyadan tarif ekle</div>
             <p className={`text-[13px] ${T_SOLUK}`}>
-              Instagram, TikTok, YouTube, Pinterest paylaşımında “Paylaş → Lezzet Defteri”ni seç ya da bağlantıyı kopyalayıp buraya yapıştır.
+              Instagram, TikTok, YouTube, Pinterest paylaşımında “Paylaş → Lezzet Rotası”ni seç ya da bağlantıyı kopyalayıp buraya yapıştır.
               Açıklamada tarif yazmıyorsa video da incelenir: söylenenler ve ekrandaki yazılar okunur.
             </p>
             <div className="flex gap-2">
