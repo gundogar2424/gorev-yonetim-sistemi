@@ -1099,6 +1099,14 @@ export interface MekanBilgisi {
   yorum_ozeti: string
   bulunamadi_neden: string
   diger_mekanlar: DigerMekan[]
+  paylasan_yorumu: PaylasanYorumu
+}
+// Paylasimi yapan kisinin (influencer) mekan hakkindaki kendi sozleri
+export interface PaylasanYorumu {
+  yedi: string
+  begendi: string
+  begenmedi: string
+  karar: string
 }
 // Ayni paylasimda gezilen diger mekanlar (ör. "bir gunde 6 mekan" videolari)
 export interface DigerMekan {
@@ -1113,6 +1121,7 @@ export interface DigerMekan {
   fiyat: string
   google_puan: number
   yorum_sayisi: number
+  yorum: string // paylasanin bu mekan icin dedigi, 1 cumle
 }
 
 const PUAN_SEMA = {
@@ -1147,7 +1156,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
   const schema = {
     type: 'object',
     additionalProperties: false,
-    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden', 'diger_mekanlar'],
+    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden', 'diger_mekanlar', 'paylasan_yorumu'],
     properties: {
       mekan_mi: { type: 'boolean', description: 'Paylaşımda belirli bir yeme-içme mekanı tanıtılıyor/öneriliyor mu' },
       diger_mekanlar: {
@@ -1156,7 +1165,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'google_puan', 'yorum_sayisi'],
+          required: ['ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'google_puan', 'yorum_sayisi', 'yorum'],
           properties: {
             ad: { type: 'string' },
             tur: { type: 'string' },
@@ -1168,8 +1177,21 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
             oneriler: { type: 'array', items: { type: 'string' } },
             fiyat: { type: 'string' },
             google_puan: { type: 'number' },
-            yorum_sayisi: { type: 'integer' }
+            yorum_sayisi: { type: 'integer' },
+            yorum: { type: 'string', description: 'Paylaşanın bu mekan için dediği, 1 cümle (ne yedi, beğendi mi); yoksa boş' }
           }
+        }
+      },
+      paylasan_yorumu: {
+        type: 'object',
+        additionalProperties: false,
+        description: 'Paylaşımı yapan kişinin (ör. yemek yazarı/influencer) ANA mekan hakkındaki KENDİ sözleri; altyazıdan, konuşmadan, açıklamadan',
+        required: ['yedi', 'begendi', 'begenmedi', 'karar'],
+        properties: {
+          yedi: { type: 'string', description: 'Ne yedi/içti (ör. "Kuzu tandır, künefe")' },
+          begendi: { type: 'string', description: 'Neyi beğendi, 1-2 cümle' },
+          begenmedi: { type: 'string', description: 'Neyi beğenmedi/eleştirdi; yoksa boş' },
+          karar: { type: 'string', description: 'Genel kararı/puanı (ör. "Kesinlikle gidilmeli", "10 üzerinden 8")' }
         }
       },
       bulunamadi_neden: { type: 'string', description: 'Mekanın adını ya da yerini bulamadıysan kısa sebebi (ör. "videoda ve açıklamada mekan adı geçmiyor"); bulduysan boş' },
@@ -1216,6 +1238,8 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
       'BİRDEN ÇOK MEKAN: Paylaşımda (ör. "bir günde 6 mekan", "Kadıköy’de gezilecek 5 yer") birden çok mekan geziliyorsa İLK/en çok ' +
       'öne çıkanı ana alanlara, diğerlerini sırayla diger_mekanlar’a yaz; her birinin adını, semtini, orada yenenleri ve bulabildiğin ' +
       'adres/puanı ekle. Tek mekansa diger_mekanlar boş. ' +
+      'PAYLAŞAN NE DEDİ: paylaşımı yapan kişinin mekan hakkındaki KENDİ yorumlarını (altyazı, videoda söylenenler, açıklama) ' +
+      'paylasan_yorumu alanına özetle; diğer mekanlar için yorum alanına 1 cümle yaz. Söylemediği şeyi UYDURMA; yoksa boş bırak. ' +
       'Paylaşımda bir yeme-içme yeri gösteriliyor ya da öneriliyorsa mekan_mi true; yalnızca evde yapılan tarifse ya da hiç mekan yoksa false. Türkçe yaz.',
     parcalar,
     schema,
@@ -1235,6 +1259,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
         enlem: Number(d.enlem) || 0,
         boylam: Number(d.boylam) || 0,
         fiyat: String(d.fiyat ?? '').trim(),
+        yorum: String(d.yorum ?? '').trim(),
         oneriler: (d.oneriler ?? []).map((x) => String(x).trim()).filter(Boolean)
       }))
       .filter((d) => d.ad)

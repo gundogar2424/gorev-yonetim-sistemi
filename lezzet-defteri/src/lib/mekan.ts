@@ -3,7 +3,7 @@
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type VideoParcalari } from './ai'
+import { aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type PaylasanYorumu, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
 import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } from './places'
 import { linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
@@ -253,10 +253,17 @@ export async function mekanLinktenEkle(
     puan: puanTemizle(b.google_puan) || undefined,
     yorumSayisi: b.yorum_sayisi > 0 ? Math.round(b.yorum_sayisi) : undefined,
     yorumOzeti: String(b.yorum_ozeti ?? '').trim() || undefined,
+    paylasanYorumu: yorumTemizle(b.paylasan_yorumu),
     puanZamani: puanTemizle(b.google_puan) ? Date.now() : undefined
   }
   if (g) googleIleBirlestir(kayit, g)
   return { id: await lzDb.mekanlar.add(kayit), yeni: true, digerleri }
+}
+
+function yorumTemizle(y: Partial<PaylasanYorumu> | undefined): LzMekan['paylasanYorumu'] {
+  const t = (x: unknown) => String(x ?? '').trim()
+  const v = { yedi: t(y?.yedi), begendi: t(y?.begendi), begenmedi: t(y?.begenmedi), karar: t(y?.karar) }
+  return v.yedi || v.begendi || v.begenmedi || v.karar ? v : undefined
 }
 
 // Cok mekanli videodaki ikincil mekan: yapay zekanin buldugu bilgilerle kaydedilir (yeri OSM/Places ile)
@@ -284,7 +291,8 @@ async function digerMekaniKaydet(d: DigerMekan, o: { foto: string; url?: string;
     createdAt: Date.now(),
     puan: puanTemizle(d.google_puan) || undefined,
     yorumSayisi: d.yorum_sayisi > 0 ? Math.round(d.yorum_sayisi) : undefined,
-    puanZamani: puanTemizle(d.google_puan) ? Date.now() : undefined
+    puanZamani: puanTemizle(d.google_puan) ? Date.now() : undefined,
+    paylasanYorumu: d.yorum ? { yedi: d.oneriler.join(', '), begendi: '', begenmedi: '', karar: d.yorum } : undefined
   }
   if (placesAnahtari()) {
     try {

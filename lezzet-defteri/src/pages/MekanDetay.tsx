@@ -329,6 +329,15 @@ export default function MekanDetay() {
         >
           {m.favori ? '❤️ Favori mekanım' : '🤍 Favorilere ekle'}
         </button>
+        {m.paylasanYorumu && (
+          <div className="lz-card p-4 space-y-1.5">
+            <div className={`font-semibold ${T_BASLIK}`}>🎙️ {m.paylasan || 'Paylaşan'} ne dedi?</div>
+            {m.paylasanYorumu.yedi && <p className={`text-[13.5px] ${T_GOVDE}`}>🍽️ <b>Yedi:</b> {m.paylasanYorumu.yedi}</p>}
+            {m.paylasanYorumu.begendi && <p className={`text-[13.5px] ${T_GOVDE}`}>👍 {m.paylasanYorumu.begendi}</p>}
+            {m.paylasanYorumu.begenmedi && <p className={`text-[13.5px] ${T_GOVDE}`}>👎 {m.paylasanYorumu.begenmedi}</p>}
+            {m.paylasanYorumu.karar && <p className="text-[13.5px] font-semibold text-lz-600">⭐ {m.paylasanYorumu.karar}</p>}
+          </div>
+        )}
         <ZiyaretKarti m={m} goster={goster} otoAc={durumu?.gittim ? { yedim: durumu.yedim ?? '' } : undefined} />
         {ayniVideo.length > 0 && (
           <div className="lz-card p-4 space-y-2">
