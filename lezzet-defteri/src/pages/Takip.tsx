@@ -27,7 +27,7 @@ export function YeniListe({ liste, mekanlar, goster }: { liste: MekanOnerisi[]; 
         return (
           <div key={i} className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1">
             <div className={`font-semibold text-[14.5px] ${T_BASLIK}`}>
-              <span className="text-[10.5px] font-bold tracking-wide text-lz-600 mr-1.5">YENİ</span>
+              {!k && <span className="text-[10.5px] font-bold tracking-wide text-lz-600 mr-1.5">YENİ</span>}
               {o.ad}
             </div>
             <div className={`text-[12px] ${T_SOLUK}`}>{[o.tur, o.ilce, o.sehir].filter(Boolean).join(' · ')}</div>

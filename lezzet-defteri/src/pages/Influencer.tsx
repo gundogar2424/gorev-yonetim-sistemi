@@ -5,6 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
+import { konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
 import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal } from '../lib/hesaplar'
 import { YeniListe, adNormal, hesapParca, onunMekanlari } from './Takip'
 
@@ -34,24 +35,83 @@ export default function Influencer() {
   const onun = onunMekanlari(mekanlar, h)
   const gidilen = onun.filter((m) => m.gidildi).length
 
-  const yeniAra = async () => {
+  // AYRINTILI ARAMA: zaman, yer, tur ve "en cok ovdukleri" secilerek tek istekte; 24 saat onbellek
+  const [zaman, setZaman] = useState<'son' | 'tum'>('tum')
+  const [yerSecim, setYerSecim] = useState<'her' | 'yakin' | 'sehir'>('her')
+  const [sehir, setSehir] = useState('')
+  const [km, setKm] = useState(10)
+  const [tur, setTur] = useState('Hepsi')
+  const [ovdu, setOvdu] = useState(false)
+  const [baslik, setBaslik] = useState('')
+
+  const ara = async (hizli?: 'yeni') => {
     setHata('')
-    setDurum(`${ad} son paylaşımları araştırılıyor…`)
+    setYeniler(null)
+    const z = hizli === 'yeni' ? 'son' : zaman
     try {
-      const l = await aiMekanOner(
-        'Bu hesabın SON 60 GÜNDE paylaştığı/gittiği mekanlar, en yeniden eskiye. populerlik alanına paylaşım tarihini ve ne dediğini yaz. Bulunduğum yere yakınlık şart değil.',
-        'Türkiye',
-        mekanlar.map((m) => m.ad),
-        h
+      let yer = 'Türkiye'
+      let mesafe = 0
+      let k: Konum | undefined
+      if (!hizli && yerSecim === 'yakin') {
+        setDurum('Konumun alınıyor…')
+        k = await telefonKonumu(10000).catch(() => {
+          throw new Error('Konum alınamadı; konumu aç ya da “Şehir” seç.')
+        })
+        yer = (await konumdanAdres(k)) || `${k.lat.toFixed(3)}, ${k.lon.toFixed(3)}`
+        mesafe = km
+      } else if (!hizli && yerSecim === 'sehir' && sehir.trim()) yer = sehir.trim()
+      const t = hizli ? 'Hepsi' : tur
+      const istek = [
+        z === 'son' ? 'Bu hesabın SON 60 GÜNDE paylaştığı/gittiği mekanlar, en yeniden eskiye.' : 'Bu hesabın bugüne kadar paylaştığı/tanıttığı mekanlar.',
+        t !== 'Hepsi' && `Yalnızca ${t} mekanları.`,
+        !hizli && ovdu && 'YALNIZCA en çok övdüğü, "kesinlikle gidin" dediği ya da yüksek puan verdiği yerler; en beğendiğinden başla.',
+        !hizli && yerSecim === 'sehir' && sehir.trim() && `Yalnızca ${sehir.trim()} içindekiler.`,
+        'populerlik alanına paylaşım tarihini ve mekan hakkında ne dediğini yaz.',
+        hizli || yerSecim !== 'yakin' ? 'Bulunduğum yere yakınlık şart değil.' : ''
+      ]
+        .filter(Boolean)
+        .join(' ')
+      const anahtar = `lz-inf|${h}|${istek}|${mesafe}|${k ? `${k.lat.toFixed(2)},${k.lon.toFixed(2)}` : yer}`
+      let l: MekanOnerisi[] | undefined
+      try {
+        const o = JSON.parse(localStorage.getItem(anahtar) || 'null') as { t: number; l: MekanOnerisi[] } | null
+        if (o && Date.now() - o.t < 24 * 3600 * 1000) l = o.l
+      } catch {
+        /* yok */
+      }
+      if (!l) {
+        setDurum(`${ad} paylaşımları araştırılıyor…`)
+        l = await aiMekanOner(istek, yer, mekanlar.map((m) => m.ad), h, '', undefined, mesafe)
+        try {
+          localStorage.setItem(anahtar, JSON.stringify({ t: Date.now(), l }))
+        } catch {
+          /* yok */
+        }
+      }
+      // Yakindaysa mesafe hesaplanip disindakiler atilir
+      const sonuc = k
+        ? l.filter((o) => !(o.enlem || o.boylam) || mesafeKm(k!, { lat: o.enlem, lon: o.boylam }) <= mesafe + 0.5)
+        : l
+      const liste = hizli ? sonuc.filter((o) => !mekanlar.some((m) => adNormal(m.ad) === adNormal(o.ad))) : sonuc
+      setYeniler(liste)
+      setBaslik(
+        hizli
+          ? 'Son gittiği yeni yerler'
+          : [z === 'son' ? 'Son 2 ay' : 'Tüm zamanlar', t !== 'Hepsi' && t, ovdu && 'en çok övdükleri', yerSecim === 'yakin' ? `${mesafe} km içinde` : yerSecim === 'sehir' && sehir.trim()]
+              .filter(Boolean)
+              .join(' · ')
       )
-      const yeni = l.filter((o) => !mekanlar.some((m) => adNormal(m.ad) === adNormal(o.ad)))
-      setYeniler(yeni)
-      if (!yeni.length) goster(l.length ? 'Gittiği yerlerin hepsi zaten kayıtlı' : 'Son paylaşımlarında mekan bulunamadı')
+      if (!liste.length) goster(hizli && l.length ? 'Gittiği yerlerin hepsi zaten kayıtlı' : 'Bu seçime uyan mekan bulunamadı')
     } catch (e) {
       setHata((e as Error).message)
     }
     setDurum('')
   }
+  const Secim = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: string }) => (
+    <button className={`lz-chip text-[12.5px] ${on ? 'lz-chip-on' : ''}`} onClick={onClick}>
+      {children}
+    </button>
+  )
 
   return (
     <div>
@@ -78,8 +138,58 @@ export default function Influencer() {
           <a href={profilLinki(h)} target="_blank" rel="noreferrer" className="lz-btn-soft text-[14px]">
             Profilini aç
           </a>
-          <button className="lz-btn-primary text-[14px]" disabled={!apiAnahtari() || !!durum} onClick={() => void yeniAra()}>
+          <button className="lz-btn-primary text-[14px]" disabled={!apiAnahtari() || !!durum} onClick={() => void ara('yeni')}>
             Yeni gittiği yerler
+          </button>
+        </div>
+
+        <div className="lz-card p-4 space-y-3">
+          <div className={`font-semibold ${T_BASLIK}`}>Gittiği yerlerde ara</div>
+          <div className="space-y-1.5">
+            <div className="lz-label">Ne zaman</div>
+            <div className="flex flex-wrap gap-1.5">
+              <Secim on={zaman === 'tum'} onClick={() => setZaman('tum')}>Tüm zamanlar</Secim>
+              <Secim on={zaman === 'son'} onClick={() => setZaman('son')}>Son 2 ay</Secim>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="lz-label">Nerede</div>
+            <div className="flex flex-wrap gap-1.5">
+              <Secim on={yerSecim === 'her'} onClick={() => setYerSecim('her')}>Her yer</Secim>
+              <Secim on={yerSecim === 'yakin'} onClick={() => setYerSecim('yakin')}>Yakınımda</Secim>
+              <Secim on={yerSecim === 'sehir'} onClick={() => setYerSecim('sehir')}>Şehir / semt</Secim>
+            </div>
+            {yerSecim === 'yakin' && (
+              <div className="flex gap-1.5">
+                {[3, 5, 10, 25].map((x) => (
+                  <button key={x} className={`lz-chip justify-center flex-1 text-[12.5px] ${km === x ? 'lz-chip-on' : ''}`} onClick={() => setKm(x)}>
+                    {x} km
+                  </button>
+                ))}
+              </div>
+            )}
+            {yerSecim === 'sehir' && <input className="lz-input py-2 text-[14px]" placeholder="Ör. Bursa, Kadıköy, İzmir Alsancak" value={sehir} onChange={(e) => setSehir(e.target.value)} />}
+          </div>
+          <div className="space-y-1.5">
+            <div className="lz-label">Ne yemek</div>
+            <div className="flex flex-wrap gap-1.5">
+              {['Hepsi', 'Kahvaltı', 'Kebap / et', 'Balık', 'Tatlı / pastane', 'Sokak lezzeti', 'Esnaf lokantası', 'Fine dining', 'Kahve'].map((x) => (
+                <Secim key={x} on={tur === x} onClick={() => setTur(x)}>
+                  {x}
+                </Secim>
+              ))}
+            </div>
+          </div>
+          <label className={`flex items-center gap-2.5 text-[13.5px] ${T_GOVDE}`}>
+            <input type="checkbox" className="w-4 h-4" checked={ovdu} onChange={(e) => setOvdu(e.target.checked)} />
+            Sadece en çok övdüğü yerler
+          </label>
+          <button
+            className="lz-btn-primary w-full"
+            disabled={!apiAnahtari() || !!durum || (yerSecim === 'sehir' && !sehir.trim())}
+            onClick={() => void ara()}
+          >
+            Ara
           </button>
         </div>
         {durum && (
@@ -91,7 +201,7 @@ export default function Influencer() {
         {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
         {yeniler && yeniler.length > 0 && (
           <div className="lz-card p-4 space-y-2">
-            <div className={`font-semibold ${T_BASLIK}`}>Son gittiği yeni yerler</div>
+            <div className={`font-semibold ${T_BASLIK}`}>{baslik}</div>
             <YeniListe liste={yeniler} mekanlar={mekanlar} goster={goster} />
           </div>
         )}
