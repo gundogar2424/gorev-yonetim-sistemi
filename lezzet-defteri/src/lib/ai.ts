@@ -115,9 +115,9 @@ const SEMA = {
 export type Parca =
   | { type: 'text'; text: string }
   | { type: 'image'; mime: string; data: string } // base64
-  | { type: 'video'; mime: string; data: string } // yalnizca Gemini
+  | { type: 'video'; mime: string; data: string; dusuk?: boolean } // yalnizca Gemini; dusuk: dusuk cozunurluk (≈3 kat ucuz)
   | { type: 'audio'; mime: string; data: string } // yalnizca Gemini
-  | { type: 'youtube'; url: string } // yalnizca Gemini
+  | { type: 'youtube'; url: string; dusuk?: boolean } // yalnizca Gemini
 
 function hataMetni(status: number, govde: string): string {
   const ad = aiAdi()
@@ -346,6 +346,8 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   // arama: Google aramasiyla desteklenen cevap (mekan adresi bulmak gibi); bu
   // durumda JSON modu kullanilamaz, sema metinle tarif edilir.
   let dusunmeKis = true
+  // Mekan bulmak icin videoyu dusuk cozunurlukte izlemek yeter (tabela/ad okunur, ≈3 kat az birim)
+  let dusukCozunurluk = parcalar.some((p) => (p.type === 'video' || p.type === 'youtube') && p.dusuk)
   const govde = (semaIle0: boolean) => {
     const semaIle = semaIle0 && !arama
     return {
@@ -359,6 +361,7 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
         // MALIYET: modelin cevaptan once "dusunmesi" en pahali kalemdir (cikti olarak ucretlenir);
         // bu isler (tarif ayiklama, eslestirme) icin dusunme kapatilir / en aza indirilir.
         ...(dusunmeKis ? { thinkingConfig: dusunmeAyari(model) } : {}),
+        ...(dusukCozunurluk ? { mediaResolution: 'MEDIA_RESOLUTION_LOW' } : {}),
         ...(arama ? {} : { responseMimeType: 'application/json' }),
         ...(semaIle ? { responseJsonSchema: schema } : {})
       }
@@ -380,6 +383,10 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
   // Model dusunme ayarini kabul etmezse ayarsiz tekrar dene
   if (r.status === 400 && /thinking/i.test(r.govde) && !anahtarHatasi(r)) {
     dusunmeKis = false
+    r = await cagir(true)
+  }
+  if (r.status === 400 && /resolution/i.test(r.govde) && !anahtarHatasi(r)) {
+    dusukCozunurluk = false
     r = await cagir(true)
   }
   // "Su an yogun" (503/500/429-kaynak tukendi): biraz bekleyip tekrar dene,
@@ -1091,6 +1098,21 @@ export interface MekanBilgisi {
   yorum_sayisi: number
   yorum_ozeti: string
   bulunamadi_neden: string
+  diger_mekanlar: DigerMekan[]
+}
+// Ayni paylasimda gezilen diger mekanlar (ör. "bir gunde 6 mekan" videolari)
+export interface DigerMekan {
+  ad: string
+  tur: string
+  sehir: string
+  ilce: string
+  adres: string
+  enlem: number
+  boylam: number
+  oneriler: string[]
+  fiyat: string
+  google_puan: number
+  yorum_sayisi: number
 }
 
 const PUAN_SEMA = {
@@ -1125,9 +1147,31 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
   const schema = {
     type: 'object',
     additionalProperties: false,
-    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden'],
+    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden', 'diger_mekanlar'],
     properties: {
       mekan_mi: { type: 'boolean', description: 'Paylaşımda belirli bir yeme-içme mekanı tanıtılıyor/öneriliyor mu' },
+      diger_mekanlar: {
+        type: 'array',
+        description: 'Paylaşımda BİRDEN ÇOK mekan geziliyorsa ana alanlara yazdığın dışındaki diğerleri (en fazla 9); tek mekansa boş liste',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'google_puan', 'yorum_sayisi'],
+          properties: {
+            ad: { type: 'string' },
+            tur: { type: 'string' },
+            sehir: { type: 'string' },
+            ilce: { type: 'string' },
+            adres: { type: 'string' },
+            enlem: { type: 'number' },
+            boylam: { type: 'number' },
+            oneriler: { type: 'array', items: { type: 'string' } },
+            fiyat: { type: 'string' },
+            google_puan: { type: 'number' },
+            yorum_sayisi: { type: 'integer' }
+          }
+        }
+      },
       bulunamadi_neden: { type: 'string', description: 'Mekanın adını ya da yerini bulamadıysan kısa sebebi (ör. "videoda ve açıklamada mekan adı geçmiyor"); bulduysan boş' },
       ad: { type: 'string', description: 'Mekanın tam adı' },
       tur: { type: 'string', description: 'Restoran, Kafe, Pastane, Kebapçı, Balıkçı, Fırın, Dondurmacı, Bar…' },
@@ -1146,8 +1190,8 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
   const parcalar: Parca[] = []
   const gemini = saglayici() === 'gemini'
   // Videodaki tabela, ekrandaki yazi, soylenen ad ve konum etiketi icin video da verilir
-  if (gemini && video?.video) parcalar.push({ type: 'video', mime: video.video.mime, data: video.video.data })
-  if (gemini && video?.youtube) parcalar.push({ type: 'youtube', url: video.youtube })
+  if (gemini && video?.video) parcalar.push({ type: 'video', mime: video.video.mime, data: video.video.data, dusuk: true })
+  if (gemini && video?.youtube) parcalar.push({ type: 'youtube', url: video.youtube, dusuk: true })
   if (gemini && video?.ses) parcalar.push({ type: 'audio', mime: video.ses.mime, data: video.ses.data })
   for (const k of [foto, ...(video?.kareler ?? []).slice(0, 8)]) {
     const m = k.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
@@ -1169,14 +1213,32 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
       PUAN_KURALI +
       'ETİKETLER: mekanın özelliğine göre 3-7 etiket seç; mümkünse şu listeden: ' + MEKAN_ETIKETLERI.join(', ') + '. ' +
       'Fiyat seviyesini paylaşımdan ya da araştırmandan çıkar (₺ uygun, ₺₺ orta, ₺₺₺ pahalı); emin değilsen fiyat etiketi koyma. ' +
+      'BİRDEN ÇOK MEKAN: Paylaşımda (ör. "bir günde 6 mekan", "Kadıköy’de gezilecek 5 yer") birden çok mekan geziliyorsa İLK/en çok ' +
+      'öne çıkanı ana alanlara, diğerlerini sırayla diger_mekanlar’a yaz; her birinin adını, semtini, orada yenenleri ve bulabildiğin ' +
+      'adres/puanı ekle. Tek mekansa diger_mekanlar boş. ' +
       'Paylaşımda bir yeme-içme yeri gösteriliyor ya da öneriliyorsa mekan_mi true; yalnızca evde yapılan tarifse ya da hiç mekan yoksa false. Türkçe yaz.',
     parcalar,
     schema,
-    2500,
+    5000,
     true
   )
   return {
     ...v,
+    diger_mekanlar: (Array.isArray(v.diger_mekanlar) ? v.diger_mekanlar : [])
+      .map((d) => ({
+        ...d,
+        ad: String(d.ad ?? '').trim(),
+        tur: String(d.tur ?? '').trim(),
+        sehir: String(d.sehir ?? '').trim(),
+        ilce: String(d.ilce ?? '').trim(),
+        adres: String(d.adres ?? '').trim(),
+        enlem: Number(d.enlem) || 0,
+        boylam: Number(d.boylam) || 0,
+        fiyat: String(d.fiyat ?? '').trim(),
+        oneriler: (d.oneriler ?? []).map((x) => String(x).trim()).filter(Boolean)
+      }))
+      .filter((d) => d.ad)
+      .slice(0, 9),
     ad: String(v.ad ?? '').trim(),
     oneriler: (v.oneriler ?? []).map((x) => String(x).trim()).filter(Boolean),
     etiketler: (v.etiketler ?? []).map((x) => String(x).trim()).filter(Boolean)

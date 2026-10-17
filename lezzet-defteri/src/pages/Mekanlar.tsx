@@ -76,11 +76,9 @@ export default function Mekanlar() {
   const ekle = async () => {
     setHata('')
     try {
-      const { id, yeni } = await mekanLinktenEkle(link.trim(), setEkleniyor)
+      const { id, yeni, digerleri } = await mekanLinktenEkle(link.trim(), setEkleniyor)
       setLink('')
-      navigate(`/mekan/${id}`, {
-        state: yeni ? undefined : { zatenVar: true }
-      })
+      navigate(`/mekan/${id}`, { state: { zatenVar: !yeni, digerleri } })
     } catch (e) {
       setHata((e as Error).message)
     }

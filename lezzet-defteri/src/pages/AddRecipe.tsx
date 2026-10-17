@@ -60,8 +60,8 @@ export default function AddRecipe() {
       // Tarif degil de bir mekan paylasildiysa Mekanlarim'a kaydedilir
       if (e instanceof TarifYokHatasi) {
         try {
-          const { id, yeni } = await mekanLinktenEkle(girdi, setYukleniyor, { parca: e.parca, kapak: e.kapak })
-          navigate(`/mekan/${id}`, { state: yeni ? undefined : { zatenVar: true } })
+          const { id, yeni, digerleri } = await mekanLinktenEkle(girdi, setYukleniyor, { parca: e.parca, kapak: e.kapak })
+          navigate(`/mekan/${id}`, { state: { zatenVar: !yeni, digerleri } })
           return
         } catch (e2) {
           setHata((e2 as Error).message)

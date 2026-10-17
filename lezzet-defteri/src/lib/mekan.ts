@@ -3,7 +3,7 @@
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type VideoParcalari } from './ai'
+import { aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
 import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } from './places'
 import { linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
@@ -140,12 +140,12 @@ export async function mekanLinktenEkle(
   girdi: string,
   ilerleme: (m: string) => void = () => {},
   hazir?: { parca?: VideoParcalari; kapak?: string }
-): Promise<{ id: number; yeni: boolean }> {
+): Promise<{ id: number; yeni: boolean; digerleri: number }> {
   if (!apiAnahtari()) throw new Error('Mekanı tanımak için Ayarlar’dan Gemini anahtarı gir.')
   const url = linkAyikla(girdi)
   if (url) {
     const var_ = await ayniMekan({ ad: '', sehir: '', sourceUrl: url })
-    if (var_) return { id: var_.id!, yeni: false }
+    if (var_) return { id: var_.id!, yeni: false, digerleri: 0 }
   }
   ilerleme('Mekan paylaşımı okunuyor…')
   let metin = girdi
@@ -195,8 +195,15 @@ export async function mekanLinktenEkle(
         .join(' ')
     )
   }
+  // Ayni videoda gezilen diger mekanlar da (ayri ayri) kaydedilir; ek yapay zeka cagrisi yapilmaz
+  const ortak = { foto, url, paylasan, hepsi: [b.ad, ...b.diger_mekanlar.map((d) => d.ad)] }
+  let digerleri = 0
+  for (const d of b.diger_mekanlar) {
+    ilerleme(`Videodaki diğer mekanlar kaydediliyor: ${d.ad}…`)
+    if (await digerMekaniKaydet(d, ortak)) digerleri++
+  }
   const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir })
-  if (ayni) return { id: ayni.id!, yeni: false }
+  if (ayni) return { id: ayni.id!, yeni: false, digerleri }
   ilerleme('Mekanın haritadaki yeri bulunuyor…')
   const yer = koord ? { k: koord, kaynak: 'harita' as const } : await yerBul(b, { lat: b.enlem || 0, lon: b.boylam || 0 })
   // Google Haritalar anahtari varsa mekanin kesin kaydi oradan alinir
@@ -210,7 +217,7 @@ export async function mekanLinktenEkle(
     }
     if (g) {
       const var_ = (await lzDb.mekanlar.toArray()).find((x) => x.googleId === g!.id)
-      if (var_) return { id: var_.id!, yeni: false }
+      if (var_) return { id: var_.id!, yeni: false, digerleri }
     }
   }
   const kayit: LzMekan = {
@@ -224,7 +231,7 @@ export async function mekanLinktenEkle(
     konumKaynak: yer.kaynak,
     oneriler: b.oneriler,
     fiyat: b.fiyat,
-    notlar: b.notlar,
+    notlar: [b.notlar, ortak.hepsi.length > 1 && `Aynı videoda: ${ortak.hepsi.filter((x) => x !== b.ad).join(', ')}`].filter(Boolean).join('\n'),
     etiketler: b.etiketler,
     foto,
     sourceUrl: url,
@@ -238,11 +245,53 @@ export async function mekanLinktenEkle(
     puanZamani: puanTemizle(b.google_puan) ? Date.now() : undefined
   }
   if (g) googleIleBirlestir(kayit, g)
-  return { id: await lzDb.mekanlar.add(kayit), yeni: true }
+  return { id: await lzDb.mekanlar.add(kayit), yeni: true, digerleri }
+}
+
+// Cok mekanli videodaki ikincil mekan: yapay zekanin buldugu bilgilerle kaydedilir (yeri OSM/Places ile)
+async function digerMekaniKaydet(d: DigerMekan, o: { foto: string; url?: string; paylasan: string; hepsi: string[] }): Promise<boolean> {
+  if (await ayniMekan({ ad: d.ad, sehir: d.sehir })) return false
+  const yer = await yerBul(d, { lat: d.enlem || 0, lon: d.boylam || 0 }).catch(() => ({ k: undefined, kaynak: '' as const }))
+  const kayit: LzMekan = {
+    ad: d.ad,
+    tur: d.tur,
+    adres: d.adres,
+    ilce: d.ilce,
+    sehir: d.sehir,
+    lat: yer.k?.lat,
+    lon: yer.k?.lon,
+    konumKaynak: yer.kaynak,
+    oneriler: d.oneriler,
+    fiyat: d.fiyat,
+    notlar: `Aynı videoda: ${o.hepsi.filter((x) => x !== d.ad).join(', ')}`,
+    etiketler: [],
+    foto: o.foto,
+    sourceUrl: o.url ?? '',
+    paylasan: o.paylasan || undefined,
+    platform: o.url ? platformBul(o.url) : 'manual',
+    gidildi: false,
+    createdAt: Date.now(),
+    puan: puanTemizle(d.google_puan) || undefined,
+    yorumSayisi: d.yorum_sayisi > 0 ? Math.round(d.yorum_sayisi) : undefined,
+    puanZamani: puanTemizle(d.google_puan) ? Date.now() : undefined
+  }
+  if (placesAnahtari()) {
+    try {
+      const g = await googleMekanAra([d.ad, d.adres || d.ilce, d.sehir].filter(Boolean).join(' '), yer.k)
+      if (g) {
+        if ((await lzDb.mekanlar.toArray()).some((x) => x.googleId === g.id)) return false
+        googleIleBirlestir(kayit, g)
+      }
+    } catch {
+      /* yapay zeka sonucuyla devam */
+    }
+  }
+  await lzDb.mekanlar.add(kayit)
+  return true
 }
 
 // Elle (ad + semt) eklenen mekan da arastirilir
-export async function mekanAdlaEkle(ad: string, bolge: string): Promise<{ id: number; yeni: boolean }> {
+export async function mekanAdlaEkle(ad: string, bolge: string): Promise<{ id: number; yeni: boolean; digerleri: number }> {
   return mekanLinktenEkle(`${ad}${bolge ? ` — ${bolge}` : ''}`)
 }
 

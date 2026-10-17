@@ -150,7 +150,7 @@ async function birIsle(is: LzSira, g: (patch: Partial<LzSira>) => Promise<void>,
       const mk = await lzDb.mekanlar.get(sonuc.id)
       await g({
         durum: 'bitti',
-        mesaj: sonuc.yeni ? '📍 Mekanlarım’a kaydedildi.' : '📍 Bu mekan zaten kayıtlı.',
+        mesaj: (sonuc.yeni ? '📍 Mekanlarım’a kaydedildi.' : '📍 Bu mekan zaten kayıtlı.') + (sonuc.digerleri ? ` Videodaki ${sonuc.digerleri} mekan daha eklendi.` : ''),
         recipeId: 0,
         mekanId: sonuc.id,
         baslik: mk?.ad ?? is.baslik
@@ -200,7 +200,9 @@ async function birIsle(is: LzSira, g: (patch: Partial<LzSira>) => Promise<void>,
         const mk = await lzDb.mekanlar.get(sonuc.id)
         await g({
           durum: 'bitti',
-          mesaj: sonuc.yeni ? '📍 Mekan olarak Mekanlarım’a kaydedildi.' : '📍 Bu mekan zaten kayıtlı.',
+          mesaj:
+            (sonuc.yeni ? '📍 Mekan olarak Mekanlarım’a kaydedildi.' : '📍 Bu mekan zaten kayıtlı.') +
+            (sonuc.digerleri ? ` Videodaki ${sonuc.digerleri} mekan daha eklendi.` : ''),
           recipeId: 0,
           mekanId: sonuc.id,
           baslik: mk?.ad ?? is.baslik

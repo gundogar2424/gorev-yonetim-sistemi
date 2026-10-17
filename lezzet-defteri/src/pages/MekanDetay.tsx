@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan, LzZiyaret } from '../types'
@@ -7,6 +7,7 @@ import { Header, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } fro
 import { fiyatlariGuncelle, haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { mekanKampanyasi } from '../lib/kampanya'
+import { temelLink } from '../lib/kopya'
 
 const PLATFORM: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', pinterest: 'Pinterest' }
 
@@ -22,9 +23,17 @@ const KAYNAK: Record<string, string> = {
 export default function MekanDetay() {
   const id = Number(useParams().id)
   const navigate = useNavigate()
-  const durumu = useLocation().state as { zatenVar?: boolean; gittim?: boolean; yedim?: string } | null
+  const durumu = useLocation().state as { zatenVar?: boolean; gittim?: boolean; yedim?: string; digerleri?: number } | null
   const zatenVar = durumu?.zatenVar
   const m = useLiveQuery(() => lzDb.mekanlar.get(id), [id])
+  // Ayni videoda gezilen diger kayitli mekanlar
+  const ayniVideo =
+    useLiveQuery(async () => {
+      const bu = await lzDb.mekanlar.get(id)
+      if (!bu?.sourceUrl) return []
+      const t = temelLink(bu.sourceUrl)
+      return (await lzDb.mekanlar.toArray()).filter((x) => x.id !== id && x.sourceUrl && temelLink(x.sourceUrl) === t)
+    }, [id]) ?? []
   const [duzenle, setDuzenle] = useState(false)
   const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '', etiketler: [] as string[] })
   const [toast, goster] = useToast()
@@ -68,6 +77,11 @@ export default function MekanDetay() {
         {zatenVar && (
           <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-900 dark:text-amber-200 text-[13.5px] p-3.5">
             Bu mekan zaten kayıtlıydı; ikinci kez eklenmedi.
+          </div>
+        )}
+        {!!durumu?.digerleri && (
+          <div className="rounded-2xl bg-emerald-50 dark:bg-[#15291f] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3.5">
+            🎬 Bu videoda {durumu.digerleri} mekan daha vardı; onlar da Mekanlarım’a kaydedildi (aşağıda).
           </div>
         )}
         {m.sourceUrl ? (
@@ -297,6 +311,20 @@ export default function MekanDetay() {
           {m.favori ? '❤️ Favori mekanım' : '🤍 Favorilere ekle'}
         </button>
         <ZiyaretKarti m={m} goster={goster} otoAc={durumu?.gittim ? { yedim: durumu.yedim ?? '' } : undefined} />
+        {ayniVideo.length > 0 && (
+          <div className="lz-card p-4 space-y-2">
+            <div className={`font-semibold ${T_BASLIK}`}>🎬 Aynı videodaki diğer mekanlar</div>
+            {ayniVideo.map((x) => (
+              <Link key={x.id} to={`/mekan/${x.id}`} replace className={`flex items-center gap-2 rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] px-3 py-2 text-[14px] ${T_GOVDE}`}>
+                <span className="flex-1 min-w-0">
+                  <span className="font-semibold">{x.ad}</span>
+                  <span className={`block text-[12px] ${T_SOLUK}`}>{[x.tur, x.ilce].filter(Boolean).join(' · ')}</span>
+                </span>
+                <span className="text-lz-600">›</span>
+              </Link>
+            ))}
+          </div>
+        )}
         <UnluKarti m={m} goster={goster} />
         {!duzenle && (
           <button className="lz-btn-soft w-full text-sm" onClick={duzenlemeyiAc}>
