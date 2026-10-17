@@ -147,6 +147,22 @@ export async function instagramProfilFoto(kullanici: string): Promise<string> {
   }
 }
 
+// YouTube kanal fotografi: kanal aramasindaki ilk kanalin resmi (yalnizca telefonda; tarayici CORS'a takilir)
+export async function youtubeKanalFoto(ad: string): Promise<string> {
+  try {
+    const { metinIndir } = await import('./importer')
+    const html = await metinIndir(
+      `https://www.youtube.com/results?search_query=${encodeURIComponent(ad)}&sp=EgIQAg%253D%253D`,
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
+    )
+    const i = html.indexOf('"channelRenderer"')
+    const m = (i >= 0 ? html.slice(i, i + 4000) : '').match(/"(?:https:)?(\/\/yt3\.(?:ggpht|googleusercontent)\.com\/[^"]+)"/)
+    return m ? `https:${m[1].replace(/=s\d+[^"]*$/, '=s240-c-k-c0x00ffffff-no-rj')}` : ''
+  } catch {
+    return ''
+  }
+}
+
 // --- YouTube ----------------------------------------------------------------
 
 export interface YoutubeBilgi {

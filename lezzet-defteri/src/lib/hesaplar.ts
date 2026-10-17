@@ -95,15 +95,27 @@ export async function hesapFotoGetir(h: string, adres = ''): Promise<string> {
   if (f[k]?.foto) return f[k].foto
   if (!adres && f[k] && Date.now() - f[k].t < 24 * 3600 * 1000) return ''
   try {
-    const { instagramProfilFoto } = await import('./video')
+    const { instagramProfilFoto, youtubeKanalFoto } = await import('./video')
     const { uzaktanFotoIndir } = await import('./image')
-    const url = adres || (h.trim().startsWith('@') ? await instagramProfilFoto(h.trim().slice(1)) : '')
+    const t = h.trim()
+    const url =
+      adres ||
+      (t.startsWith('@')
+        ? await instagramProfilFoto(t.slice(1))
+        : /\(youtube\)$/i.test(t)
+          ? await youtubeKanalFoto(t.replace(/\s*\([^)]*\)$/, ''))
+          : '')
     const foto = url ? await uzaktanFotoIndir(url).catch(() => '') : ''
     yaz(KEY_FOTO, JSON.stringify({ ...fotolar(), [k]: { foto, t: Date.now() } }))
     return foto
   } catch {
     return ''
   }
+}
+
+// Kullanicinin galeriden sectigi fotograf
+export function hesapFotoKaydet(h: string, foto: string): void {
+  yaz(KEY_FOTO, JSON.stringify({ ...fotolar(), [hesapNormal(h)]: { foto, t: Date.now() } }))
 }
 
 export function otoKontrol(): boolean {

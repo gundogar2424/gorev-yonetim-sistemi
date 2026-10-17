@@ -3,10 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
+import { Header, Icon, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adrestenKonum, konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
-import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal } from '../lib/hesaplar'
+import { hesapBirak, hesapFoto, hesapFotoGetir, hesapFotoKaydet, hesapNormal } from '../lib/hesaplar'
+import { fotoOku } from '../lib/image'
 import { ReklamRozeti, BEGENI_KURALI, YeniListe, adNormal, guvenSkoru, hesapParca, onunMekanlari } from './Takip'
 
 // Fenomenin profili: sosyal medya hesabi; youtube kanalinda arama, @ad ise Instagram profili
@@ -129,7 +130,27 @@ export default function Influencer() {
       <Header title={ad} subtitle={platform || 'Influencer'} back />
       <div className="px-4 space-y-3 pb-8">
         <div className="lz-card p-4 flex items-center gap-4">
-          <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-16 h-16 text-[22px]" />
+          {/* Fotografa dokun: galeriden sec (otomatik bulunamadiysa ya da degistirmek icin) */}
+          <label className="relative flex-shrink-0 cursor-pointer" aria-label="Profil fotoğrafını değiştir">
+            <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-16 h-16 text-[22px]" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white dark:bg-[#26262a] border border-[#e4e3e0] dark:border-[#3a3a40] flex items-center justify-center text-[#52525b] dark:text-[#d4d4d8]">
+              <Icon name="edit" className="w-3.5 h-3.5" />
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                if (!f) return
+                const d = await fotoOku(f, 400).catch(() => '')
+                if (!d) return goster('Fotoğraf açılamadı')
+                hesapFotoKaydet(h, d)
+                setFoto(d)
+                goster('Profil fotoğrafı kaydedildi')
+              }}
+            />
+          </label>
           <div className="flex-1 grid grid-cols-3 text-center">
             {(
               [
