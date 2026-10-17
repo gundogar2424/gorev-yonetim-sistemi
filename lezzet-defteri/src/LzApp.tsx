@@ -24,6 +24,7 @@ import { bekciBaslat, siraBaslat, siraBekci, siraEkle } from './lib/sira'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from './db'
 import { tumOgunleriTara } from './lib/diyetTara'
+import { yeniMekanOtoKontrol } from './lib/hesaplar'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Tariflerim', icon: 'book', end: true },
@@ -67,9 +68,14 @@ export default function LzApp() {
   useEffect(() => {
     void siraBaslat()
     bekciBaslat()
+    // Takip edilen hesaplarin yeni mekanlari (3 gunde bir, tek istek)
+    const yeniT = setTimeout(() => void yeniMekanOtoKontrol(), 20000)
     const gorunur = () => document.visibilityState === 'visible' && void siraBekci()
     document.addEventListener('visibilitychange', gorunur)
-    return () => document.removeEventListener('visibilitychange', gorunur)
+    return () => {
+      clearTimeout(yeniT)
+      document.removeEventListener('visibilitychange', gorunur)
+    }
   }, [])
   return (
     <div className="lz-app min-h-full flex flex-col max-w-xl mx-auto">

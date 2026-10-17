@@ -177,8 +177,19 @@ export async function mekanLinktenEkle(
       }
     }
   }
-  ilerleme('Yapay zeka mekanı araştırıyor…')
-  const b = await aiMekanAyikla(metin, foto, video)
+  // TASARRUF: once yalnizca yazilara (aciklama, altyazi) bakilir — paylasanlar mekan adini cogunlukla
+  // aciklamaya yazar. Bulunamazsa video izlenir.
+  let b: Awaited<ReturnType<typeof aiMekanAyikla>> | undefined
+  const yaziVar = metin.replace(girdi, '').trim().length > 40 || !!video?.altyazi || !!video?.konusma
+  if (video && (video.video || video.youtube || video.ses) && yaziVar) {
+    ilerleme('Önce açıklama okunuyor…')
+    const y = await aiMekanAyikla(metin, foto, { ...video, video: undefined, youtube: undefined, ses: undefined, kareler: [] }).catch(() => undefined)
+    if (y?.mekan_mi && y.ad) b = y
+  }
+  if (!b) {
+    ilerleme(video ? 'Açıklamada yok; yapay zeka videoyu izliyor…' : 'Yapay zeka mekanı araştırıyor…')
+    b = await aiMekanAyikla(metin, foto, video)
+  }
   if (!b.mekan_mi || !b.ad) {
     // Kullanici neden bulunamadigini gorsun: ne okunabildi, ne okunamadi
     const yazi = metin.replace(girdi, '').trim().length > 40

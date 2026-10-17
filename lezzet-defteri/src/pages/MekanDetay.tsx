@@ -8,6 +8,7 @@ import { fiyatlariGuncelle, haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puan
 import { MEKAN_ETIKETLERI, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
+import { hesapTakipEt, takipEdiliyor } from '../lib/hesaplar'
 
 const PLATFORM: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', pinterest: 'Pinterest' }
 
@@ -102,7 +103,25 @@ export default function MekanDetay() {
         ) : (
           m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />
         )}
-        {m.paylasan && <p className={`text-[12.5px] px-1 -mt-1 ${T_SOLUK}`}>Paylaşan: {m.paylasan}</p>}
+        {m.paylasan && (
+          <div className={`flex items-center gap-2 text-[12.5px] px-1 -mt-1 ${T_SOLUK}`}>
+            <span className="flex-1 min-w-0 truncate">Paylaşan: {m.paylasan}</span>
+            {/^@?[\w.]+$/.test(m.paylasan.trim()) &&
+              (takipEdiliyor(m.paylasan) ? (
+                <span className="text-emerald-600 dark:text-emerald-300 font-semibold">✓ Takip ediliyor</span>
+              ) : (
+                <button
+                  className="lz-chip text-[12px] !py-1"
+                  onClick={() => {
+                    hesapTakipEt(m.paylasan!)
+                    goster(`📱 ${m.paylasan} takip ediliyor; yeni mekanları Bana mekan öner › Hesaplar’da`)
+                  }}
+                >
+                  ＋ Takip et
+                </button>
+              ))}
+          </div>
+        )}
         {(() => {
           const son = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih)).find((z) => z.tekrar)
           return son ? (

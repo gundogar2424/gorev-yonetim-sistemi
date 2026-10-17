@@ -6,6 +6,7 @@ import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { platformBul } from '../lib/importer'
+import { hesapAdi, hesaplariOku, hesaplariYaz, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { adrestenKonum, konumdanAdres, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
 
 const ORNEKLER = [
@@ -19,14 +20,6 @@ const ORNEKLER = [
 
 type Sonuc = MekanOnerisi & { km?: number; kayitliId?: number }
 
-const KEY_HESAP = 'lz-yemek-hesaplari'
-function hesaplariOku(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(KEY_HESAP) || '[]') as string[]
-  } catch {
-    return []
-  }
-}
 // Ayni arama 24 saat icinde tekrar yapilirsa yapay zekaya gitmeden onceki sonuc gosterilir (token tasarrufu)
 const KEY_ONBELLEK = 'lz-oneri-onbellek'
 const GUN = 24 * 60 * 60 * 1000
@@ -60,13 +53,6 @@ const KEY_SEKME = 'lz-oneri-sekme'
 type Sekme = 'oner' | 'yemek' | 'hesap' | 'diyet'
 const HYPE = 'Şu an sosyal medyada (Instagram, TikTok) çok konuşulan, hype olan, gitmeye değer yeme-içme mekanları'
 
-function hesaplariYaz(h: string[]): void {
-  try {
-    localStorage.setItem(KEY_HESAP, JSON.stringify(h))
-  } catch {
-    /* yok */
-  }
-}
 
 // MEKAN ONERISI: "canim su an … istiyor" — bulundugun yere gore Google'da arastirilip
 // puan, fiyat ve sosyal medyadaki son durumuyla mekan onerilir.
@@ -119,6 +105,26 @@ export default function MekanOner() {
   const [aktifYemek, setAktifYemek] = useState<Yemek>()
   const [sonArama, setSonArama] = useState<Arama>()
   const [onbellekten, setOnbellekten] = useState(0)
+
+  const [oto, setOto] = useState(otoKontrol())
+  // Takip edilen hesaplarin son tanittigi, kayitli olmayan yeni mekanlar
+  const yeniAra = async () => {
+    setHata('')
+    setSonuclar([])
+    setAktifHesap(hesaplar.join(', '))
+    setAktifYemek(undefined)
+    setDiyetModu(false)
+    setOnbellekten(0)
+    setDurum('Takip ettiklerinin son paylaşımları araştırılıyor…')
+    try {
+      const yeniler = await yeniMekanlariBul(semt.trim() || 'Türkiye')
+      setSonuclar(yeniler)
+      if (!yeniler.length) setHata('Takip ettiklerinin son paylaşımlarında yeni (kaydetmediğin, daha önce gösterilmemiş) mekan bulunamadı.')
+    } catch (e) {
+      setHata((e as Error).message)
+    }
+    setDurum('')
+  }
 
   const ara = async (istekMetni = istek, hesap = '', diyet = '', yemek?: Yemek, yenile = false) => {
     setHata('')
@@ -420,6 +426,28 @@ export default function MekanOner() {
                 🔥 Takip ettiklerimin hype mekanları {km ? `(${km} km)` : ''}
               </button>
             )}
+            {hesaplar.length > 0 && (
+              <button className="lz-btn-soft w-full text-[14px]" disabled={!aiVar || !!durum} onClick={() => void yeniAra()}>
+                🆕 Son gittikleri yeni mekanlar
+              </button>
+            )}
+            {hesaplar.length > 0 && (
+              <label className={`flex items-start gap-2.5 text-[12.5px] ${T_GOVDE}`}>
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 mt-0.5 accent-[#d93d20]"
+                  checked={oto}
+                  onChange={(e) => {
+                    otoKontrolAyarla(e.target.checked)
+                    setOto(e.target.checked)
+                  }}
+                />
+                <span>
+                  Yeni mekan gidince bildirim gelsin <span className={T_SOLUK}>(uygulamayı açınca 3 günde bir tek aramayla bakar)</span>
+                  {sonYeniKontrol().zaman ? <span className={`block ${T_SOLUK}`}>Son bakış: {new Date(sonYeniKontrol().zaman).toLocaleDateString('tr')}</span> : null}
+                </span>
+              </label>
+            )}
             <div className="flex gap-2">
               <input
                 className="lz-input py-2 text-[14px] min-w-0"
@@ -431,10 +459,8 @@ export default function MekanOner() {
                 className="lz-btn-soft px-3 text-sm"
                 disabled={!yeniHesap.trim()}
                 onClick={() => {
-                  const t = yeniHesap.trim()
-                  const ad = t.match(/(?:instagram|tiktok)\.com\/@?([\w.]+)/i)?.[1] ?? t.replace(/^@/, '')
-                  const h = `@${ad}`
-                  if (!hesaplar.includes(h)) {
+                  const h = hesapAdi(yeniHesap)
+                  if (h && !hesaplar.includes(h)) {
                     const y = [...hesaplar, h]
                     setHesaplar(y)
                     hesaplariYaz(y)

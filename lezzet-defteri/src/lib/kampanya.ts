@@ -44,7 +44,7 @@ export async function bildirimIzniIste(): Promise<void> {
   }
 }
 
-async function bildir(baslik: string, metin: string, no: number): Promise<void> {
+export async function bildir(baslik: string, metin: string, no: number): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     try {
       await yerel.bildir({ baslik, metin, no })
