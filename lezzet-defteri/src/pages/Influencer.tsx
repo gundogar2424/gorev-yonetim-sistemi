@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, Icon, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
+import { Header, Icon, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adrestenKonum, konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
 import { hesapBirak, hesapFoto, hesapFotoGetir, hesapFotoKaydet, hesapNormal } from '../lib/hesaplar'
@@ -133,34 +133,40 @@ export default function Influencer() {
       <Header title="" back />
       <div className="px-4 space-y-3 pb-8">
         {/* PROFIL: en ustte buyuk fotograf, ad, platform ve sayilar */}
-        <div className="lz-card p-5 space-y-4">
-          <div className="flex flex-col items-center text-center gap-2">
-            {/* Fotografa dokun: galeriden sec (otomatik bulunamadiysa ya da degistirmek icin) */}
-            <label className="relative flex-shrink-0 cursor-pointer" aria-label="Profil fotoğrafını değiştir">
-              <KisiAvatar ad={hesapNormal(h)} foto={foto} className="w-20 h-20 text-[26px]" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white dark:bg-[#26262a] border border-[#e4e3e0] dark:border-[#3a3a40] flex items-center justify-center text-[#52525b] dark:text-[#d4d4d8]">
-                <Icon name="edit" className="w-3.5 h-3.5" />
+        <div className="lz-card overflow-hidden">
+          {/* KAPAK: genis fotograf en ustte; dokun → galeriden sec (ekran goruntusu da olur) ve kirp */}
+          <label className="relative block cursor-pointer" aria-label="Profil fotoğrafını değiştir">
+            {foto ? (
+              <img src={foto} alt="" className="w-full aspect-[4/3] object-cover bg-[#f3f3f1] dark:bg-[#26262a]" />
+            ) : (
+              <span className="w-full aspect-[4/3] flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-lz-50 to-[#f3f3f1] dark:from-[#3a1d16] dark:to-[#1c1c1f]">
+                <SofraRozet ad={hesapNormal(h)} className="w-20 h-20 text-[28px]" kare />
+                <span className={`text-[12.5px] ${T_SOLUK}`}>Fotoğraf eklemek için dokun</span>
               </span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0]
-                  if (!f) return
-                  e.target.value = ''
-                  // Ekran goruntusu buyuk olabilir: once kucultulur, sonra kirpma ekrani acilir
-                  const d = await fotoOku(f, 1400).catch(() => '')
-                  if (!d) return goster('Fotoğraf açılamadı')
-                  setKirpilacak(d)
-                }}
-              />
-            </label>
-            <div>
+            )}
+            <span className="absolute bottom-2.5 right-2.5 h-8 px-3 rounded-full bg-white/90 dark:bg-[#26262a]/90 backdrop-blur flex items-center gap-1.5 text-[12.5px] font-semibold text-[#27272a] dark:text-[#e4e4e7] shadow-sm">
+              <Icon name="edit" className="w-3.5 h-3.5" /> Değiştir
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                if (!f) return
+                e.target.value = ''
+                // Ekran goruntusu buyuk olabilir: once kucultulur, sonra kirpma ekrani acilir
+                const d = await fotoOku(f, 1600).catch(() => '')
+                if (!d) return goster('Fotoğraf açılamadı')
+                setKirpilacak(d)
+              }}
+            />
+          </label>
+          <div className="p-5 pt-4 space-y-4">
+            <div className="text-center">
               <div className={`text-[22px] font-bold tracking-tight ${T_BASLIK}`}>{ad}</div>
               <div className={`text-[13px] ${T_SOLUK}`}>{platform || 'Influencer'}</div>
             </div>
-          </div>
             <div className="grid grid-cols-3 text-center border-t border-[#efefed] dark:border-[#26262a] pt-3">
               {(
                 [
@@ -182,6 +188,7 @@ export default function Influencer() {
             <button className="lz-btn-primary text-[14px]" disabled={!apiAnahtari() || !!durum} onClick={() => void ara('yeni')}>
               Yeni gittiği yerler
             </button>
+          </div>
           </div>
         </div>
         {durum && (
@@ -297,6 +304,7 @@ export default function Influencer() {
       </div>
       <KirpSheet
         src={kirpilacak}
+        oran={4 / 3}
         onClose={() => setKirpilacak('')}
         onKaydet={(d) => {
           hesapFotoKaydet(h, d)
