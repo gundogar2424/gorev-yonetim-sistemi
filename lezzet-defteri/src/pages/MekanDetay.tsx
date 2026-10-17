@@ -315,7 +315,7 @@ function FiyatKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) 
     setAraniyor(true)
     try {
       const n = await fiyatlariGuncelle(m)
-      goster(n ? `💲 ${n} ürünün fiyatı bulundu` : 'Güncel fiyat bulunamadı')
+      goster(n ? `📋 Menüden ${n} ürün ve fiyatı bulundu` : 'Güncel menü/fiyat bulunamadı')
       setAcik(true)
     } catch (e) {
       goster((e as Error).message.slice(0, 80))
@@ -325,14 +325,14 @@ function FiyatKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) 
   if (!f)
     return (
       <button className="lz-btn-soft w-full text-sm" disabled={araniyor} onClick={() => void ara()}>
-        {araniyor ? 'Fiyatlar aranıyor…' : '💲 Güncel fiyatları bul'}
+        {araniyor ? 'Menü ve fiyatlar aranıyor…' : '📋 Güncel menü ve fiyatlar'}
       </button>
     )
   const gorunen = acik ? f.kalemler : f.kalemler.slice(0, 6)
   return (
     <div className="lz-card p-4 space-y-2">
       <div className="flex items-center gap-2">
-        <div className={`flex-1 font-semibold ${T_GOVDE}`}>💲 Fiyatlar</div>
+        <div className={`flex-1 font-semibold ${T_GOVDE}`}>📋 Menü ve fiyatlar</div>
         <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" disabled={araniyor} onClick={() => void ara()}>
           {araniyor ? 'Aranıyor…' : '↻ Güncelle'}
         </button>
