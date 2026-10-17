@@ -8,6 +8,7 @@ import { bildir } from './kampanya'
 const KEY_HESAP = 'lz-yemek-hesaplari'
 const KEY_YENI = 'lz-hesap-yeni' // { zaman, gorulen: normal adlar, liste: son bulunanlar }
 const KEY_OTO = 'lz-hesap-oto' // '0' ise kendiliginden bakilmaz
+const KEY_CIKAN = 'lz-hesap-cikan' // takipten cikarilanlar: otomatik takip bunlari tekrar eklemez
 const ARALIK = 3 * 24 * 3600 * 1000 // kendiliginden kontrol en fazla 3 gunde bir
 
 function oku(k: string): string {
@@ -44,17 +45,34 @@ export function hesapAdi(girdi: string): string {
   return t.replace(/\s+/g, ' ').slice(0, 60)
 }
 // platform: gorunen adla takip edilirken aramayi kolaylastirir (ör. "Buğra Karaman (YouTube)")
-export function hesapTakipEt(girdi: string, platform = ''): boolean {
+// oto: videosu paylasilinca kendiliginden takip; kullanici takipten ciktiysa eklenmez
+export function hesapTakipEt(girdi: string, platform = '', oto = false): boolean {
   const ad = hesapAdi(girdi)
   const h = ad && !ad.startsWith('@') && platform ? `${ad} (${platform})` : ad
-  const liste = hesaplariOku()
-  if (!h || liste.some((x) => x.toLowerCase() === h.toLowerCase())) return false
-  hesaplariYaz([...liste, h])
+  if (!h || takipEdiliyor(girdi)) return false
+  if (oto && cikanlar().includes(hesapNormal(h))) return false
+  hesaplariYaz([...hesaplariOku(), h])
+  yaz(KEY_CIKAN, JSON.stringify(cikanlar().filter((x) => x !== hesapNormal(h))))
   return true
 }
+export function hesapBirak(h: string): void {
+  hesaplariYaz(hesaplariOku().filter((x) => x !== h))
+  yaz(KEY_CIKAN, JSON.stringify([...cikanlar(), hesapNormal(h)]))
+}
+function cikanlar(): string[] {
+  try {
+    return JSON.parse(oku(KEY_CIKAN) || '[]') as string[]
+  } catch {
+    return []
+  }
+}
+// Karsilastirma icin: "@Ad", "Ad (YouTube)" -> "ad"
+export function hesapNormal(x: string): string {
+  return x.toLocaleLowerCase('tr').replace(/\s*\([^)]*\)$/, '').replace(/^@/, '').trim()
+}
 export function takipEdiliyor(girdi: string): boolean {
-  const h = hesapAdi(girdi).toLocaleLowerCase('tr')
-  return !!h && hesaplariOku().some((x) => x.toLocaleLowerCase('tr').replace(/\s*\([^)]*\)$/, '') === h)
+  const h = hesapNormal(hesapAdi(girdi))
+  return !!h && hesaplariOku().some((x) => hesapNormal(x) === h)
 }
 
 export function otoKontrol(): boolean {

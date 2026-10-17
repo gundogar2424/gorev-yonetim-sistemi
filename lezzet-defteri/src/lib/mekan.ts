@@ -3,12 +3,13 @@
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type PaylasanYorumu, type VideoParcalari } from './ai'
+import { instagramAdi, aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type MekanOnerisi, type PaylasanYorumu, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
 import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } from './places'
-import { linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
+import { PLATFORM_AD, linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
 import { uzaktanFotoIndir } from './image'
 import { temelLink } from './kopya'
+import { hesapTakipEt } from './hesaplar'
 
 export type Konum = { lat: number; lon: number; ad?: string }
 
@@ -213,6 +214,8 @@ export async function mekanLinktenEkle(
     ilerleme(`Videodaki diğer mekanlar kaydediliyor: ${d.ad}…`)
     if (await digerMekaniKaydet(d, ortak)) digerleri++
   }
+  // Videoyu paylasan (influencer) kendiliginden takip edilir (takipten cikarildiysa tekrar eklenmez)
+  if (paylasan) hesapTakipEt(paylasan, url ? PLATFORM_AD[platformBul(url)] : '', true)
   const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir })
   if (ayni) return { id: ayni.id!, yeni: false, digerleri }
   ilerleme('Mekanın haritadaki yeri bulunuyor…')
@@ -254,6 +257,7 @@ export async function mekanLinktenEkle(
     yorumSayisi: b.yorum_sayisi > 0 ? Math.round(b.yorum_sayisi) : undefined,
     yorumOzeti: String(b.yorum_ozeti ?? '').trim() || undefined,
     paylasanYorumu: yorumTemizle(b.paylasan_yorumu),
+    instagram: instagramAdi(b.instagram) || undefined,
     puanZamani: puanTemizle(b.google_puan) ? Date.now() : undefined
   }
   if (g) googleIleBirlestir(kayit, g)
@@ -360,6 +364,41 @@ export function haritadaAcLinki(m: LzMekan): string {
   if (m.haritaUrl) return m.haritaUrl
   const q = m.ad ? [m.ad, m.adres || m.ilce, m.sehir].filter(Boolean).join(' ') : `${m.lat},${m.lon}`
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+}
+
+// Mekanin Instagram sayfasi: kullanici adi biliniyorsa profil, bilinmiyorsa Google'da "ad semt instagram" aramasi
+export function instagramLinki(m: { ad: string; ilce?: string; sehir?: string; instagram?: string }): string {
+  if (m.instagram) return `https://www.instagram.com/${m.instagram}/`
+  return `https://www.google.com/search?q=${encodeURIComponent([m.ad, m.ilce || m.sehir, 'instagram'].filter(Boolean).join(' '))}`
+}
+
+// Oneri sonucunu (yapay zeka aramasi) Mekanlarim'a kaydeder
+export async function oneriKaydet(o: MekanOnerisi): Promise<number> {
+  const var_ = await ayniMekan({ ad: o.ad, sehir: o.sehir })
+  if (var_) return var_.id!
+  return lzDb.mekanlar.add({
+    ad: o.ad,
+    tur: o.tur,
+    adres: o.adres,
+    ilce: o.ilce,
+    sehir: o.sehir,
+    lat: o.enlem || o.boylam ? o.enlem : undefined,
+    lon: o.enlem || o.boylam ? o.boylam : undefined,
+    konumKaynak: o.enlem || o.boylam ? 'arama' : '',
+    oneriler: o.ne_yenir,
+    fiyat: o.fiyat,
+    notlar: [o.neden, o.populerlik].filter(Boolean).join('\n'),
+    etiketler: [],
+    foto: '',
+    sourceUrl: '',
+    platform: 'manual',
+    gidildi: false,
+    createdAt: Date.now(),
+    puan: o.puan || undefined,
+    yorumSayisi: o.yorumSayisi || undefined,
+    puanZamani: o.puan ? Date.now() : undefined,
+    instagram: o.instagram || undefined
+  })
 }
 
 export function yolTarifiLinki(m: LzMekan): string {

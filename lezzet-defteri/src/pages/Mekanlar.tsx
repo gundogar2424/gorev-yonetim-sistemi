@@ -141,6 +141,16 @@ export default function Mekanlar() {
             <Icon name="pin" className="w-[18px] h-[18px]" /> Yemek gezisi
           </Link>
         </div>
+        <Link to="/takip" className="lz-card p-3.5 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
+            <Icon name="users" className="w-[18px] h-[18px]" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Takip ettiklerim</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>Fenomenlerin gittiği yerler · gittin / gitmedin · yeni yerleri</span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
         <KampanyaKarti liste={liste} />
         {/* Nerede oldugun */}
         <div className="lz-card p-4 space-y-2.5">

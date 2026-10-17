@@ -21,6 +21,7 @@ import MekanDetay from './pages/MekanDetay'
 import GeziPlani from './pages/GeziPlani'
 import MekanOner from './pages/MekanOner'
 import HypeTarifler from './pages/HypeTarifler'
+import Takip from './pages/Takip'
 import { bekciBaslat, siraBaslat, siraBekci, siraEkle } from './lib/sira'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from './db'
@@ -98,6 +99,7 @@ export default function LzApp() {
           <Route path="/gezi" element={<GeziPlani />} />
           <Route path="/oner" element={<MekanOner />} />
           <Route path="/hype" element={<HypeTarifler />} />
+          <Route path="/takip" element={<Takip />} />
           <Route path="/tarif/:id/degistir" element={<TarifDegistir />} />
           <Route path="/diyet" element={<Diyetim />} />
           <Route path="/diyet/:i" element={<Diyetim />} />

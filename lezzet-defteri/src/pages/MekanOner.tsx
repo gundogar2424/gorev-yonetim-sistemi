@@ -5,9 +5,8 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
-import { platformBul } from '../lib/importer'
 import { hesapAdi, hesaplariOku, hesaplariYaz, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
-import { adrestenKonum, konumdanAdres, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
+import { adrestenKonum, instagramLinki, konumdanAdres, oneriKaydet, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
 
 const ORNEKLER = [
   'Bu akşam iyi bir lahmacun',
@@ -212,28 +211,7 @@ export default function MekanOner() {
 
   const kaydet = async (o: Sonuc): Promise<number> => {
     if (o.kayitliId) return o.kayitliId
-    const id = await lzDb.mekanlar.add({
-      ad: o.ad,
-      tur: o.tur,
-      adres: o.adres,
-      ilce: o.ilce,
-      sehir: o.sehir,
-      lat: o.enlem || o.boylam ? o.enlem : undefined,
-      lon: o.enlem || o.boylam ? o.boylam : undefined,
-      konumKaynak: o.enlem || o.boylam ? 'arama' : '',
-      oneriler: o.ne_yenir,
-      fiyat: o.fiyat,
-      notlar: [o.neden, o.populerlik].filter(Boolean).join('\n'),
-      etiketler: [],
-      foto: '',
-      sourceUrl: o.link,
-      platform: o.link ? platformBul(o.link) : 'manual',
-      gidildi: false,
-      createdAt: Date.now(),
-      puan: o.puan || undefined,
-      yorumSayisi: o.yorumSayisi || undefined,
-      puanZamani: o.puan ? Date.now() : undefined
-    })
+    const id = await oneriKaydet(o)
     setSonuclar((s) => s.map((x) => (x === o ? { ...x, kayitliId: id } : x)))
     return id
   }
@@ -396,7 +374,12 @@ export default function MekanOner() {
 
         {sekme === 'hesap' && (
           <div className="lz-card p-4 space-y-2.5">
-            <div className={`font-semibold ${T_BASLIK}`}>Takip ettiğim yemek hesapları</div>
+            <div className="flex items-center gap-2">
+              <div className={`flex-1 font-semibold ${T_BASLIK}`}>Takip ettiğim yemek hesapları</div>
+              <Link to="/takip" className="text-[12.5px] text-lz-600 font-semibold">
+                Listeyi aç ›
+              </Link>
+            </div>
             <p className={`text-[12.5px] ${T_SOLUK}`}>Hesaba dokun: o hesabın tanıttığı mekanlardan sana yakın olanlar önerilir.</p>
             <div className="flex flex-wrap gap-1.5">
               {hesaplar.map((h) => (
@@ -544,11 +527,9 @@ export default function MekanOner() {
               </p>
             )}
             {o.populerlik && <p className={`text-[12.5px] ${T_SOLUK}`}>{o.populerlik}</p>}
-            {o.link && (
-              <a href={o.link} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
-                ▶ Tanıtım paylaşımını aç
+            <a href={instagramLinki(o)} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
+                {o.instagram ? `Instagram: @${o.instagram}` : 'Instagram sayfasını bul'}
               </a>
-            )}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <a href={yolTarifi(o)} target="_blank" rel="noreferrer" className="lz-btn-primary text-[12.5px] px-2">
                 Git

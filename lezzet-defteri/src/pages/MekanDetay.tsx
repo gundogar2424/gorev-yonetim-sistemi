@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan, LzZiyaret } from '../types'
 import { Header, Icon, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
-import { fiyatlariGuncelle, haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
+import { fiyatlariGuncelle, haritadaAcLinki, instagramLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
@@ -165,12 +165,15 @@ export default function MekanDetay() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <button className="lz-btn-primary text-sm" onClick={() => ac(yolTarifiLinki(m))}>
+        <div className="grid grid-cols-3 gap-2">
+          <button className="lz-btn-primary text-sm px-2" onClick={() => ac(yolTarifiLinki(m))}>
             Yol tarifi
           </button>
-          <button className="lz-btn-soft text-sm" onClick={() => ac(haritadaAcLinki(m))}>
+          <button className="lz-btn-soft text-sm px-2" onClick={() => ac(haritadaAcLinki(m))}>
             Haritada aç
+          </button>
+          <button className="lz-btn-soft text-sm px-2" onClick={() => ac(instagramLinki(m))}>
+            Instagram
           </button>
         </div>
 
