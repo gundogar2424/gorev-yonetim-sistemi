@@ -3,7 +3,7 @@
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { aiMekanAyikla, aiMekanPuan, apiAnahtari, puanTemizle, type VideoParcalari } from './ai'
+import { aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
 import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } from './places'
 import { linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
@@ -332,4 +332,32 @@ export function puanYaz(m: Pick<LzMekan, 'puan' | 'yorumSayisi'>): string {
   if (!m.puan) return ''
   const y = m.yorumSayisi ? ` (${m.yorumSayisi.toLocaleString('tr')})` : ''
   return `⭐ ${m.puan.toFixed(1).replace('.', ',')}${y}`
+}
+
+// Guncel menu fiyatlarini arastirir ve mekana yazar; bulunan kalem sayisini doner
+export async function fiyatlariGuncelle(m: LzMekan): Promise<number> {
+  if (!apiAnahtari()) throw new Error('Fiyat araştırması için Ayarlar’dan Gemini anahtarı gir.')
+  const f = await aiMekanFiyatlari(m)
+  await lzDb.mekanlar.update(m.id!, { fiyatlar: { ...f, zaman: Date.now() } })
+  return f.kalemler.length
+}
+
+// Koordinat -> "Mahalle, İlçe, Şehir" (OpenStreetMap; yapay zekaya nerede oldugunu soylemek icin)
+export async function konumdanAdres(k: Konum): Promise<string> {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&accept-language=tr&lat=${k.lat}&lon=${k.lon}`, {
+      headers: { Accept: 'application/json' }
+    })
+    if (!r.ok) return ''
+    const j = (await r.json()) as { address?: Record<string, string>; display_name?: string }
+    const a = j.address ?? {}
+    const parca = [
+      a.neighbourhood || a.suburb || a.quarter || a.village,
+      a.town || a.city_district || a.district || a.county,
+      a.province || a.city || a.state
+    ].filter(Boolean)
+    return Array.from(new Set(parca)).join(', ') || j.display_name || ''
+  } catch {
+    return ''
+  }
 }

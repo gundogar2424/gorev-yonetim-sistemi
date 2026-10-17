@@ -1198,3 +1198,104 @@ export async function aiMekanKampanya(
   )
   return { var: !!v.kampanya_var && !!String(v.ozet ?? '').trim(), ozet: String(v.ozet ?? '').trim(), gecerlilik: String(v.gecerlilik ?? '').trim(), kaynak: String(v.kaynak ?? '').trim() }
 }
+
+// Mekanin guncel menu fiyatlari: resmi site, menu sayfasi, siparis uygulamalari (Google aramasiyla)
+export async function aiMekanFiyatlari(m: { ad: string; ilce: string; sehir: string; adres: string }): Promise<{
+  kalemler: { ad: string; fiyat: string }[]
+  kaynak: string
+  tarih: string
+}> {
+  const v = await jsonCagri<{ kalemler: { ad: string; fiyat: string }[]; kaynak: string; tarih: string }>(
+    'Sen bir yeme-içme mekanı fiyat araştırmacısısın. Google’da mekanın RESMİ web sitesindeki menüyü, QR/online menüsünü, ' +
+      'Yemeksepeti/Getir/Trendyol Yemek gibi sipariş uygulamalarındaki sayfasını ve güncel menü fotoğraflarını ara. ' +
+      'En GÜNCEL kaynağı kullan; bulduğun ürünleri ve fiyatlarını TL olarak yaz (en fazla 25 kalem; önce mekanın bilinen/öne çıkan ürünleri). ' +
+      'Fiyatı bulamadığın ürünü YAZMA, fiyat UYDURMA. kaynak alanına bilginin geldiği yeri (site adı/adresi), tarih alanına ' +
+      'kaynağın tarihini ya da "bilinmiyor" yaz. Hiç fiyat bulamazsan kalemler boş liste. Türkçe.',
+    `Mekan: ${m.ad}\nYer: ${[m.adres, m.ilce, m.sehir].filter(Boolean).join(', ')}`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['kalemler', 'kaynak', 'tarih'],
+      properties: {
+        kalemler: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: false, required: ['ad', 'fiyat'], properties: { ad: { type: 'string' }, fiyat: { type: 'string', description: 'ör. "350 TL"' } } }
+        },
+        kaynak: { type: 'string' },
+        tarih: { type: 'string' }
+      }
+    },
+    2500,
+    true
+  )
+  return {
+    kalemler: (v.kalemler ?? []).map((k) => ({ ad: String(k.ad ?? '').trim(), fiyat: String(k.fiyat ?? '').trim() })).filter((k) => k.ad && /\d/.test(k.fiyat)),
+    kaynak: String(v.kaynak ?? '').trim(),
+    tarih: String(v.tarih ?? '').trim()
+  }
+}
+
+export interface MekanOnerisi {
+  ad: string
+  tur: string
+  ilce: string
+  sehir: string
+  adres: string
+  enlem: number
+  boylam: number
+  neden: string
+  puan: number
+  yorumSayisi: number
+  fiyat: string // ₺ / ₺₺ / ₺₺₺ ya da kisi basi tahmini
+  populerlik: string // sosyal medyadaki son durum
+  ne_yenir: string[]
+}
+
+// Kullanicinin istegine ve bulundugu yere gore Google'da arastirip mekan onerir
+export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: string[]): Promise<MekanOnerisi[]> {
+  const v = await jsonCagri<{ oneriler: MekanOnerisi[] }>(
+    'Sen deneyimli bir yeme-içme rehberisin. Kullanıcının isteğine (canının çektiği yemek, mutfak türü, fiyat-performans, ortam…) ve ' +
+      'BULUNDUĞU YERE göre Google’da güncel bilgilerle araştırıp en uygun 5 mekanı öner. Öncelik: isteğe uygunluk, yakınlık, ' +
+      'Google puanı ve yorum sayısı, fiyat-performans ve son dönemde sosyal medyada (Instagram, TikTok, YouTube) ne kadar konuşulduğu. ' +
+      'Kapanmış mekanları önerme. Puanı/yorum sayısını bulamazsan 0 yaz, UYDURMA. populerlik alanına sosyal medyadaki güncel durumu kısaca ' +
+      'yaz (ör. "Son aylarda TikTok’ta çok paylaşılıyor", "Yerel favori, sosyal medyada az"). neden: neden önerdiğin, 1 cümle. ' +
+      'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı) ve biliniyorsa kişi başı tahmini. Türkçe yaz.',
+    `İstek: ${istek}\nBulunduğum yer: ${yer}${kayitliAdlar.length ? `\nZaten kayıtlı mekanlarım (uygunsa önerebilirsin): ${kayitliAdlar.slice(0, 40).join(', ')}` : ''}`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['oneriler'],
+      properties: {
+        oneriler: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir'],
+            properties: {
+              ad: { type: 'string' },
+              tur: { type: 'string' },
+              ilce: { type: 'string' },
+              sehir: { type: 'string' },
+              adres: { type: 'string' },
+              enlem: { type: 'number' },
+              boylam: { type: 'number' },
+              neden: { type: 'string' },
+              puan: { type: 'number' },
+              yorumSayisi: { type: 'integer' },
+              fiyat: { type: 'string' },
+              populerlik: { type: 'string' },
+              ne_yenir: { type: 'array', items: { type: 'string' } }
+            }
+          }
+        }
+      }
+    },
+    3000,
+    true
+  )
+  return (v.oneriler ?? [])
+    .filter((o) => o?.ad)
+    .slice(0, 6)
+    .map((o) => ({ ...o, puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
+}

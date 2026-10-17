@@ -111,6 +111,14 @@ export default function Mekanlar() {
     <div>
       <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />
       <div className="px-4 space-y-3 pb-8">
+        <div className="grid grid-cols-2 gap-2.5">
+          <Link to="/oner" className="lz-btn-primary text-[14px] px-2">
+            ✨ Bana mekan öner
+          </Link>
+          <Link to="/gezi" className="lz-btn-soft text-[14px] px-2">
+            🗺️ Yemek gezisi
+          </Link>
+        </div>
         <KampanyaKarti liste={liste} />
         {/* Nerede oldugun */}
         <div className="lz-card p-4 space-y-2.5">

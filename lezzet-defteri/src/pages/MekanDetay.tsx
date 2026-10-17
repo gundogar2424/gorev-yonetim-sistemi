@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
+import type { LzMekan } from '../types'
 import { Header, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
-import { haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
+import { fiyatlariGuncelle, haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI } from '../lib/ai'
 import { mekanKampanyasi } from '../lib/kampanya'
 
@@ -102,6 +103,7 @@ export default function MekanDetay() {
         >
           {kampanyaAraniyor ? 'Kampanyalara bakılıyor…' : '🎁 Kampanya var mı?'}
         </button>
+        <FiyatKarti m={m} goster={goster} />
         {m.kampanya && (
           <div className="rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[14px] p-3.5 space-y-1">
             <div className="font-semibold">🎁 Kampanya</div>
@@ -297,6 +299,62 @@ export default function MekanDetay() {
         <p className={`text-[11.5px] text-center ${T_SOLUK}`}>Adres ve öneriler yapay zekanın araştırmasıdır; gitmeden önce kontrol et.</p>
       </div>
       <Toast text={toast} />
+    </div>
+  )
+}
+
+// Guncel fiyatlar: dugmeye basinca arastirilir; kaynak ve tarihiyle gosterilir
+function FiyatKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
+  const [araniyor, setAraniyor] = useState(false)
+  const [acik, setAcik] = useState(false)
+  const f = m.fiyatlar
+  const ara = async () => {
+    setAraniyor(true)
+    try {
+      const n = await fiyatlariGuncelle(m)
+      goster(n ? `💲 ${n} ürünün fiyatı bulundu` : 'Güncel fiyat bulunamadı')
+      setAcik(true)
+    } catch (e) {
+      goster((e as Error).message.slice(0, 80))
+    }
+    setAraniyor(false)
+  }
+  if (!f)
+    return (
+      <button className="lz-btn-soft w-full text-sm" disabled={araniyor} onClick={() => void ara()}>
+        {araniyor ? 'Fiyatlar aranıyor…' : '💲 Güncel fiyatları bul'}
+      </button>
+    )
+  const gorunen = acik ? f.kalemler : f.kalemler.slice(0, 6)
+  return (
+    <div className="lz-card p-4 space-y-2">
+      <div className="flex items-center gap-2">
+        <div className={`flex-1 font-semibold ${T_GOVDE}`}>💲 Fiyatlar</div>
+        <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" disabled={araniyor} onClick={() => void ara()}>
+          {araniyor ? 'Aranıyor…' : '↻ Güncelle'}
+        </button>
+      </div>
+      {f.kalemler.length ? (
+        <ul className="divide-y divide-black/5 dark:divide-white/10">
+          {gorunen.map((k, i) => (
+            <li key={i} className={`flex gap-3 py-1.5 text-[14px] ${T_GOVDE}`}>
+              <span className="flex-1">{k.ad}</span>
+              <span className="font-semibold whitespace-nowrap">{k.fiyat}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={`text-[13px] ${T_SOLUK}`}>Son aramada güncel fiyat bulunamadı.</p>
+      )}
+      {f.kalemler.length > 6 && (
+        <button className="text-[13px] text-lz-600 font-semibold" onClick={() => setAcik(!acik)}>
+          {acik ? 'Daha az göster' : `Tümünü göster (${f.kalemler.length})`}
+        </button>
+      )}
+      <p className={`text-[11.5px] ${T_SOLUK}`}>
+        {f.kaynak ? `Kaynak: ${f.kaynak}` : ''}
+        {f.tarih && f.tarih !== 'bilinmiyor' ? ` (${f.tarih})` : ''} · aranma: {new Date(f.zaman).toLocaleDateString('tr')} — fiyatlar değişmiş olabilir, mekandan teyit et.
+      </p>
     </div>
   )
 }

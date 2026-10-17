@@ -152,5 +152,6 @@ export interface LzMekan {
   paylasan?: string // Paylasimi yapan hesap (@…)
   kampanya?: { ozet: string; gecerlilik: string; kaynak: string; zaman: number } // son kontrolde bulunan kampanya
   kampanyaBakildi?: number
+  fiyatlar?: { kalemler: { ad: string; fiyat: string }[]; kaynak: string; tarih: string; zaman: number } // guncel menu fiyatlari
   haritaUrl?: string // Google Haritalar'daki sayfasi (yorumlar)
 }

@@ -18,6 +18,8 @@ import Sira from './pages/Sira'
 import TarifDegistir from './pages/TarifDegistir'
 import Mekanlar from './pages/Mekanlar'
 import MekanDetay from './pages/MekanDetay'
+import GeziPlani from './pages/GeziPlani'
+import MekanOner from './pages/MekanOner'
 import { bekciBaslat, siraBaslat, siraBekci, siraEkle } from './lib/sira'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from './db'
@@ -86,6 +88,8 @@ export default function LzApp() {
           <Route path="/sira" element={<Sira />} />
           <Route path="/mekanlar" element={<Mekanlar />} />
           <Route path="/mekan/:id" element={<MekanDetay />} />
+          <Route path="/gezi" element={<GeziPlani />} />
+          <Route path="/oner" element={<MekanOner />} />
           <Route path="/tarif/:id/degistir" element={<TarifDegistir />} />
           <Route path="/diyet" element={<Diyetim />} />
           <Route path="/diyet/:i" element={<Diyetim />} />
