@@ -1263,9 +1263,9 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
       'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı) ve biliniyorsa kişi başı tahmini. link: mekanı tanıtan paylaşımın/videonun GERÇEK linki ' +
       '(bulamazsan boş, UYDURMA). Türkçe yaz.' +
       (hesap
-        ? ` ÖNEMLİ: YALNIZCA ${hesap} hesabının (Instagram/TikTok/YouTube) paylaşımlarında tanıttığı ya da önerdiği mekanlardan, bulunduğum yere ` +
-          'makul yakınlıkta (aynı şehir, tercihen ~15 km içi) olanları öner. populerlik alanına bu hesabın mekan hakkında ne dediğini yaz. ' +
-          'Bu hesabın tanıttığı mekanı bulamazsan boş liste döndür; başka mekan ekleme.'
+        ? ` ÖNEMLİ: YALNIZCA şu hesap(lar)ın (Instagram/TikTok/YouTube) paylaşımlarında tanıttığı ya da önerdiği mekanlardan, bulunduğum yere ` +
+          `makul yakınlıkta (aynı şehir, tercihen ~15 km içi) olanları öner: ${hesap}. En fazla 8 mekan. populerlik alanına HANGİ hesabın ` +
+          'mekan hakkında ne dediğini yaz (ör. "@hesap: …"). Bu hesapların tanıttığı mekanı bulamazsan boş liste döndür; başka mekan ekleme.'
         : ''),
     `İstek: ${istek}\nBulunduğum yer: ${yer}${kayitliAdlar.length ? `\nZaten kayıtlı mekanlarım (uygunsa önerebilirsin): ${kayitliAdlar.slice(0, 40).join(', ')}` : ''}`,
     {
@@ -1304,7 +1304,7 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
   )
   return (v.oneriler ?? [])
     .filter((o) => o?.ad)
-    .slice(0, 6)
+    .slice(0, 8)
     .map((o) => ({ ...o, link: /^https?:\/\//.test(String(o.link ?? '')) ? String(o.link) : '', puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
 }
 

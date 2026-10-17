@@ -78,7 +78,7 @@ export default function MekanOner() {
         return { ...o, kayitliId: kayit?.id, km: k && hedef ? mesafeKm(k, hedef) : undefined }
       })
       setSonuclar(sonuc.sort((a, b) => (a.km ?? 999) - (b.km ?? 999)))
-      if (!sonuc.length) setHata(hesap ? `${hesap} hesabının yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
+      if (!sonuc.length) setHata(hesap ? `${hesap.includes(',') ? 'Takip ettiğin hesapların' : `${hesap} hesabının`} yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
     } catch (e) {
       setHata((e as Error).message)
     }
@@ -175,8 +175,17 @@ export default function MekanOner() {
               </span>
             ))}
           </div>
+          {hesaplar.length > 1 && (
+            <button
+              className="lz-btn-primary w-full text-[14px]"
+              disabled={!aiVar || !!durum}
+              onClick={() => void ara('Takip ettiğim hesapların tanıttığı mekanlar', hesaplar.join(', '))}
+            >
+              🔥 Hepsinin buraya yakın önerdikleri ({hesaplar.length} hesap)
+            </button>
+          )}
           <div className="flex gap-2">
-            <input className="lz-input py-2 text-[14px] min-w-0" placeholder="@hesapadi ya da profil linki" value={yeniHesap} onChange={(e) => setYeniHesap(e.target.value)} />
+            <input className="lz-input py-2 text-[14px] min-w-0" placeholder="Meşhur hesap: @hesapadi ya da profil linki" value={yeniHesap} onChange={(e) => setYeniHesap(e.target.value)} />
             <button
               className="lz-btn-soft px-3 text-sm"
               disabled={!yeniHesap.trim()}
@@ -197,7 +206,7 @@ export default function MekanOner() {
           </div>
         </div>
 
-        {aktifHesap && sonuclar.length > 0 && <div className={`text-[13px] px-1 font-semibold ${T_GOVDE}`}>{aktifHesap} hesabının önerdikleri:</div>}
+        {aktifHesap && sonuclar.length > 0 && <div className={`text-[13px] px-1 font-semibold ${T_GOVDE}`}>{aktifHesap.includes(',') ? 'Takip ettiğin hesapların' : `${aktifHesap} hesabının`} önerdikleri:</div>}
         {sonuclar.map((o, i) => (
           <div key={i} className="lz-card p-4 space-y-1.5">
             <div className="flex items-start gap-2">
