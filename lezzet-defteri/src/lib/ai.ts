@@ -1261,7 +1261,8 @@ export async function aiMekanOner(
   kayitliAdlar: string[],
   hesap = '',
   diyet = '',
-  yemek?: { ad: string; km: number }
+  yemek?: { ad: string },
+  km = 0 // 0: mesafe siniri yok
 ): Promise<MekanOnerisi[]> {
   const v = await jsonCagri<{ oneriler: MekanOnerisi[] }>(
     'Sen deneyimli bir yeme-içme rehberisin. Kullanıcının isteğine (canının çektiği yemek, mutfak türü, fiyat-performans, ortam…) ve ' +
@@ -1271,9 +1272,12 @@ export async function aiMekanOner(
       'yaz (ör. "Son aylarda TikTok’ta çok paylaşılıyor", "Yerel favori, sosyal medyada az"). neden: neden önerdiğin, 1 cümle. ' +
       'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı) ve biliniyorsa kişi başı tahmini. link: mekanı tanıtan paylaşımın/videonun GERÇEK linki ' +
       '(bulamazsan boş, UYDURMA). Türkçe yaz.' +
+      (km
+        ? ` MESAFE: YALNIZCA bulunduğum yerden en fazla ${km} km uzaktaki mekanları öner; daha uzaktakileri listeye koyma. enlem/boylamı doğru yaz.`
+        : ' MESAFE: Sınır yok; yakındakilerden başla ama uzaktaki çok iyi/çok konuşulan yerleri de önerebilirsin.') +
       (hesap
         ? ` ÖNEMLİ: YALNIZCA şu hesap(lar)ın (Instagram/TikTok/YouTube) paylaşımlarında tanıttığı ya da önerdiği mekanlardan, bulunduğum yere ` +
-          `makul yakınlıkta (aynı şehir, tercihen ~15 km içi) olanları öner: ${hesap}. En fazla 8 mekan. populerlik alanına HANGİ hesabın ` +
+          `${km ? `en fazla ${km} km uzaklıkta` : 'mesafe gözetmeksizin, yakından uzağa'} olanları öner: ${hesap}. En fazla 8 mekan. populerlik alanına HANGİ hesabın ` +
           'mekan hakkında ne dediğini yaz (ör. "@hesap: …"). Bu hesapların tanıttığı mekanı bulamazsan boş liste döndür; başka mekan ekleme.'
         : '') +
       (diyet
@@ -1283,8 +1287,8 @@ export async function aiMekanOner(
           'neden alanına o siparişin tahmini kalori ve proteinini yaz (ör. "~520 kcal, 40 g protein — öğle hedefine uygun").'
         : '') +
       (yemek
-        ? ` YEMEK ARAMASI: Kullanıcı "${yemek.ad}" yemek istiyor. YALNIZCA bu yemeği yapan ve bu yemeği iyi yorum almış mekanları, bulunduğu ` +
-          `yerden en fazla ${yemek.km} km uzaklıkta olanlardan öner (en iyi yorumlanandan başla, en fazla 8). yemek_fiyati alanına bu yemeğin ` +
+        ? ` YEMEK ARAMASI: Kullanıcı "${yemek.ad}" yemek istiyor. YALNIZCA bu yemeği yapan ve bu yemeği iyi yorum almış mekanları, ` +
+          `mesafe sınırına uyanlardan öner (en iyi yorumlanandan başla, en fazla 8). yemek_fiyati alanına bu yemeğin ` +
           'o mekandaki GÜNCEL fiyatını yaz (menü/sipariş uygulaması; bulamazsan boş, UYDURMA). yemek_yorumu alanına yorumlarda bu yemek ' +
           'hakkında ne denildiğini kısa yaz (ör. "Çıtır, porsiyonu büyük, patatesi taze").'
         : ''),

@@ -52,9 +52,11 @@ function onbellekYaz(anahtar: string, liste: MekanOnerisi[]): void {
   }
 }
 
-type Yemek = { ad: string; km: number }
+type Yemek = { ad: string }
 type Arama = { istek: string; hesap: string; diyet: string; yemek?: Yemek }
-const YARICAPLAR = [3, 5, 10]
+const YARICAPLAR = [1, 3, 5, 10, 0] // 0: sinirsiz
+const KEY_KM = 'lz-oneri-km'
+const HYPE = 'Şu an sosyal medyada (Instagram, TikTok) çok konuşulan, hype olan, gitmeye değer yeme-içme mekanları'
 
 function hesaplariYaz(h: string[]): void {
   try {
@@ -80,7 +82,22 @@ export default function MekanOner() {
   const plan = useLiveQuery(() => lzDb.diyet.get(1), [])
   const [diyetModu, setDiyetModu] = useState(false)
   const [yemekAd, setYemekAd] = useState('')
-  const [yemekKm, setYemekKm] = useState(5)
+  const [km, setKm] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem(KEY_KM)
+      return v === null ? 5 : Number(v)
+    } catch {
+      return 5
+    }
+  })
+  const kmSec = (x: number) => {
+    setKm(x)
+    try {
+      localStorage.setItem(KEY_KM, String(x))
+    } catch {
+      /* yok */
+    }
+  }
   const [aktifYemek, setAktifYemek] = useState<Yemek>()
   const [sonArama, setSonArama] = useState<Arama>()
   const [onbellekten, setOnbellekten] = useState(0)
@@ -110,15 +127,15 @@ export default function MekanOner() {
         }
       }
       // Konum ~1 km'ye yuvarlanir: ayni yerde ayni arama icin token harcanmaz
-      const anahtar = [istekMetni.trim(), hesap, diyet, yemek ? `${yemek.ad.toLocaleLowerCase('tr')}|${yemek.km}` : '', k ? `${k.lat.toFixed(2)},${k.lon.toFixed(2)}` : yer.toLocaleLowerCase('tr')].join('|')
+      const anahtar = [istekMetni.trim(), hesap, diyet, yemek ? yemek.ad.toLocaleLowerCase('tr') : '', km, k ? `${k.lat.toFixed(2)},${k.lon.toFixed(2)}` : yer.toLocaleLowerCase('tr')].join('|')
       const eski = yenile ? undefined : onbellekOku()[anahtar]
       let liste: MekanOnerisi[]
       if (eski) {
         liste = eski.liste
         setOnbellekten(eski.t)
       } else {
-        setDurum(yemek ? `${yemek.ad} için ${yemek.km} km içindeki yerler araştırılıyor…` : `Yapay zeka ${yer} çevresinde araştırıyor…`)
-        liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap, diyet, yemek)
+        setDurum(`${yemek ? yemek.ad : 'Mekanlar'} ${km ? `${km} km içinde` : `${yer} çevresinde`} araştırılıyor…`)
+        liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap, diyet, yemek, km)
         if (liste.length) onbellekYaz(anahtar, liste)
       }
       const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
@@ -127,13 +144,11 @@ export default function MekanOner() {
         const hedef = o.enlem || o.boylam ? { lat: o.enlem, lon: o.boylam } : kayit?.lat !== undefined ? { lat: kayit.lat, lon: kayit.lon! } : undefined
         return { ...o, kayitliId: kayit?.id, km: k && hedef ? mesafeKm(k, hedef) : undefined }
       })
-      if (yemek) {
-        // Yaricap disindakileri at; en iyi puanlidan baslayarak sirala
-        const icerde = sonuc.filter((o) => o.km === undefined || o.km <= yemek.km + 0.5)
-        setSonuclar(icerde.sort((a, b) => (b.puan || 0) - (a.puan || 0) || (a.km ?? 999) - (b.km ?? 999)))
-        if (!icerde.length) setHata(`${yemek.km} km içinde iyi yorum almış ${yemek.ad} yapan yer bulunamadı; yarıçapı büyütmeyi dene.`)
-      } else setSonuclar(sonuc.sort((a, b) => (a.km ?? 999) - (b.km ?? 999)))
-      if (!sonuc.length && !yemek) setHata(hesap ? `${hesap.includes(',') ? 'Takip ettiğin hesapların' : `${hesap} hesabının`} yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
+      // Secilen mesafenin disindakileri at; yemek aramasinda en iyi puanlidan, digerlerinde yakindan sirala
+      const icerde = km ? sonuc.filter((o) => o.km === undefined || o.km <= km + 0.5) : sonuc
+      setSonuclar(yemek ? icerde.sort((a, b) => (b.puan || 0) - (a.puan || 0) || (a.km ?? 999) - (b.km ?? 999)) : icerde.sort((a, b) => (a.km ?? 999) - (b.km ?? 999)))
+      if (sonuc.length && !icerde.length) setHata(`${km} km içinde uygun yer bulunamadı; mesafeyi büyütmeyi dene.`)
+      else if (!sonuc.length) setHata(hesap ? `${hesap.includes(',') ? 'Takip ettiğin hesapların' : `${hesap} hesabının`} yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
     } catch (e) {
       setHata((e as Error).message)
     }
@@ -174,6 +189,16 @@ export default function MekanOner() {
     <div>
       <Header title="Bana mekan öner" subtitle="Canın ne çekiyor?" back />
       <div className="px-4 space-y-3 pb-8">
+        <div className="lz-card p-3 space-y-2">
+          <div className={`text-[13px] font-semibold ${T_BASLIK}`}>📍 Ne kadar uzağa gidebilirim? <span className={`font-normal ${T_SOLUK}`}>(tüm aramalar için)</span></div>
+          <div className="flex gap-1.5">
+            {YARICAPLAR.map((x) => (
+              <button key={x} className={`lz-chip text-[13px] flex-1 !px-1 ${km === x ? 'lz-chip-on' : ''}`} onClick={() => kmSec(x)}>
+                {x ? `${x} km` : 'Sınırsız'}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="lz-card p-4 space-y-2.5">
           <textarea
             className="lz-input min-h-[80px] text-[15px]"
@@ -195,9 +220,9 @@ export default function MekanOner() {
           <button
             className="lz-btn-soft w-full"
             disabled={!aiVar || !!durum}
-            onClick={() => void ara('Şu an sosyal medyada (Instagram, TikTok) çok konuşulan, hype olan, gitmeye değer yeme-içme mekanları')}
+            onClick={() => void ara(HYPE)}
           >
-            🔥 Yakınımda şu an popüler olanlar
+            🔥 {km ? `${km} km içinde` : 'Yakınımda'} şu an hype olanlar
           </button>
           {!aiVar && (
             <p className="text-[12.5px] text-rose-600 dark:text-rose-300">
@@ -209,21 +234,14 @@ export default function MekanOner() {
 
         <div className="lz-card p-4 space-y-2.5">
           <div className={`font-semibold ${T_BASLIK}`}>🍽️ Canım şu yemeği çekiyor</div>
-          <p className={`text-[12.5px] ${T_SOLUK}`}>Yemeği yaz, mesafeyi seç: o yemeği en iyi yapan yakın yerler, yemeğin oradaki fiyatıyla listelenir.</p>
+          <p className={`text-[12.5px] ${T_SOLUK}`}>Yemeği yaz (mesafe yukarıdan): o yemeği en iyi yapan yakın yerler, yemeğin oradaki fiyatıyla listelenir.</p>
           <input className="lz-input py-2 text-[14px]" placeholder="Ör. Tavuk şinitzel" value={yemekAd} onChange={(e) => setYemekAd(e.target.value)} />
-          <div className="flex gap-1.5">
-            {YARICAPLAR.map((km) => (
-              <button key={km} className={`lz-chip text-[13px] flex-1 ${yemekKm === km ? 'lz-chip-on' : ''}`} onClick={() => setYemekKm(km)}>
-                {km} km
-              </button>
-            ))}
-          </div>
           <button
             className="lz-btn-primary w-full"
             disabled={!aiVar || !yemekAd.trim() || !!durum}
-            onClick={() => void ara(`Bana yakın, en iyi yorum almış ${yemekAd.trim()} yapan yerler`, '', '', { ad: yemekAd.trim(), km: yemekKm })}
+            onClick={() => void ara(`Bana yakın, en iyi yorum almış ${yemekAd.trim()} yapan yerler`, '', '', { ad: yemekAd.trim() })}
           >
-            {durum && aktifYemek ? durum : `🍽️ ${yemekKm} km içinde en iyisini bul`}
+            {durum && aktifYemek ? durum : `🍽️ ${km ? `${km} km içinde` : ''} en iyisini bul`}
           </button>
         </div>
 
@@ -282,7 +300,16 @@ export default function MekanOner() {
               disabled={!aiVar || !!durum}
               onClick={() => void ara('Takip ettiğim hesapların tanıttığı mekanlar', hesaplar.join(', '))}
             >
-              🔥 Hepsinin buraya yakın önerdikleri ({hesaplar.length} hesap)
+              📍 Hepsinin buraya yakın önerdikleri ({hesaplar.length} hesap)
+            </button>
+          )}
+          {hesaplar.length > 0 && (
+            <button
+              className="lz-btn-soft w-full text-[14px]"
+              disabled={!aiVar || !!durum}
+              onClick={() => void ara(`${HYPE}. Takip ettiğim hesapların tanıttıkları arasından şu an en çok konuşulanlar`, hesaplar.join(', '))}
+            >
+              🔥 Takip ettiklerimin hype mekanları {km ? `(${km} km)` : ''}
             </button>
           )}
           <div className="flex gap-2">
@@ -310,7 +337,8 @@ export default function MekanOner() {
         {sonuclar.length > 0 && (
           <div className={`flex items-center gap-2 px-1 text-[12.5px] ${T_SOLUK}`}>
             <span className="flex-1">
-              {aktifYemek ? `${aktifYemek.ad}: ${aktifYemek.km} km içinde, en yüksek puanlıdan` : `${sonuclar.length} öneri`}
+              {aktifYemek ? `${aktifYemek.ad}: en yüksek puanlıdan` : `${sonuclar.length} öneri, yakından uzağa`}
+              {km ? ` · ${km} km içinde` : ''}
               {onbellekten ? ` · ${Math.max(1, Math.round((Date.now() - onbellekten) / 60000))} dk önceki arama (kredi harcanmadı)` : ''}
             </span>
             {onbellekten > 0 && sonArama && (
