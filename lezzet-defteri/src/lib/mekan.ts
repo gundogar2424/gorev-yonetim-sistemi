@@ -379,10 +379,15 @@ export function instagramLinki(m: { ad: string; ilce?: string; sehir?: string; i
 }
 
 // Oneri sonucunu (yapay zeka aramasi) Mekanlarim'a kaydeder
-export async function oneriKaydet(o: MekanOnerisi): Promise<number> {
+// istek: "Gitmek istediğim yerler" listesine de ekle
+export async function oneriKaydet(o: MekanOnerisi, istek = false): Promise<number> {
   const var_ = await ayniMekan({ ad: o.ad, sehir: o.sehir })
-  if (var_) return var_.id!
+  if (var_) {
+    if (istek && !var_.gitmekIstiyorum) await lzDb.mekanlar.update(var_.id!, { gitmekIstiyorum: true })
+    return var_.id!
+  }
   return lzDb.mekanlar.add({
+    gitmekIstiyorum: istek || undefined,
     ad: o.ad,
     tur: o.tur,
     adres: o.adres,

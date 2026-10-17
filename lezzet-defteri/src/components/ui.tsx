@@ -33,6 +33,7 @@ export type IconName =
   | 'leaf'
   | 'sparkle'
   | 'heart'
+  | 'bookmark'
   | 'file'
 
 export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; className?: string }) {
@@ -200,6 +201,12 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
       return (
         <svg {...c}>
           <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" />
+        </svg>
+      )
+    case 'bookmark':
+      return (
+        <svg {...c}>
+          <path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.2L5.5 21V4.5a1 1 0 0 1 1-1z" />
         </svg>
       )
     case 'file':

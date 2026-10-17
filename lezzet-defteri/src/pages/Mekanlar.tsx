@@ -38,6 +38,7 @@ export default function Mekanlar() {
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
   const [etiket, setEtiket] = useState('')
   const [sadeceFavori, setSadeceFavori] = useState(false)
+  const [sadeceIstek, setSadeceIstek] = useState(false)
   const [sadeceHype, setSadeceHype] = useState(false)
   const [hypeDurum, setHypeDurum] = useState('')
   const [yaricap, setYaricap] = useState(0) // 0 = hepsi
@@ -95,6 +96,7 @@ export default function Mekanlar() {
       (!sadeceGidilmedi || !m.gidildi) &&
       (!etiket || m.etiketler.includes(etiket)) &&
       (!sadeceFavori || m.favori) &&
+      (!sadeceIstek || m.gitmekIstiyorum) &&
       (!sadeceHype || m.hype?.var) &&
       (!yaricap || (konum && m.lat !== undefined && m.lon !== undefined && mesafeKm(konum, { lat: m.lat, lon: m.lon }) <= yaricap)) &&
       (!q || `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')}`.toLocaleLowerCase('tr').includes(q))
@@ -151,6 +153,24 @@ export default function Mekanlar() {
           </span>
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
         </Link>
+        <button
+          className="lz-card p-3.5 flex items-center gap-3 w-full text-left"
+          onClick={() => {
+            setSadeceIstek(true)
+            setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 80)
+          }}
+        >
+          <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
+            <Icon name="bookmark" className="w-[18px] h-[18px]" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Gitmek istediğim yerler</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>
+              {liste.filter((m) => m.gitmekIstiyorum).length ? `${liste.filter((m) => m.gitmekIstiyorum).length} yer · yakından uzağa` : 'Mekanlardaki işaret simgesiyle ekle'}
+            </span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </button>
         <KampanyaKarti liste={liste} />
         {/* Nerede oldugun */}
         <div className="lz-card p-4 space-y-2.5">
@@ -240,6 +260,9 @@ export default function Mekanlar() {
                 onChange={(e) => setArama(e.target.value)}
               />
               <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+                <button className={`lz-chip whitespace-nowrap ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
+                  Gitmek istediklerim
+                </button>
                 <button className={`lz-chip whitespace-nowrap ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
                   Favoriler
                 </button>
@@ -298,9 +321,20 @@ export default function Mekanlar() {
                   >
                     <Icon name="heart" className={`w-5 h-5 ${m.favori ? 'text-lz-600 fill-current' : 'text-[#a1a1aa]'}`} />
                   </button>
+                  <button
+                    className="absolute top-2 right-10 w-8 h-8 rounded-full flex items-center justify-center"
+                    aria-label={m.gitmekIstiyorum ? 'Gitmek istediklerimden çıkar' : 'Gitmek istiyorum'}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      void lzDb.mekanlar.update(m.id!, { gitmekIstiyorum: !m.gitmekIstiyorum })
+                    }}
+                  >
+                    <Icon name="bookmark" className={`w-5 h-5 ${m.gitmekIstiyorum ? 'text-lz-600 fill-current' : 'text-[#a1a1aa]'}`} />
+                  </button>
                   <Thumb src={m.foto} className="w-16 h-16 rounded-2xl" emoji="" />
                   <div className="flex-1 min-w-0">
-                    <div className={`font-semibold leading-snug pr-7 ${T_BASLIK}`}>
+                    <div className={`font-semibold leading-snug pr-16 ${T_BASLIK}`}>
                       {m.ad} {m.gidildi && <span className="text-[12px] text-emerald-600">✓</span>}
                       {(() => {
                         const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))

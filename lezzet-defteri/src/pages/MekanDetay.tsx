@@ -333,15 +333,27 @@ export default function MekanDetay() {
           </div>
         )}
 
-        <button
-          className={`w-full text-[15px] ${m.favori ? 'lz-btn-primary' : 'lz-btn-soft'}`}
-          onClick={async () => {
-            await lzDb.mekanlar.update(m.id!, { favori: !m.favori })
-            goster(m.favori ? 'Favorilerden çıkarıldı' : 'Favorilere eklendi')
-          }}
-        >
-          <Icon name="heart" className={`w-[18px] h-[18px] ${m.favori ? 'text-lz-600 fill-current' : ''}`} /> {m.favori ? 'Favori mekanım' : 'Favorilere ekle'}
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            className="lz-btn-soft text-[14px] px-2"
+            onClick={async () => {
+              await lzDb.mekanlar.update(m.id!, { gitmekIstiyorum: !m.gitmekIstiyorum })
+              goster(m.gitmekIstiyorum ? 'Listeden çıkarıldı' : 'Gitmek istediğin yerlere eklendi')
+            }}
+          >
+            <Icon name="bookmark" className={`w-[18px] h-[18px] ${m.gitmekIstiyorum ? 'text-lz-600 fill-current' : ''}`} />
+            {m.gitmekIstiyorum ? 'Listemde' : 'Gitmek istiyorum'}
+          </button>
+          <button
+            className="lz-btn-soft text-[14px] px-2"
+            onClick={async () => {
+              await lzDb.mekanlar.update(m.id!, { favori: !m.favori })
+              goster(m.favori ? 'Favorilerden çıkarıldı' : 'Favorilere eklendi')
+            }}
+          >
+            <Icon name="heart" className={`w-[18px] h-[18px] ${m.favori ? 'text-lz-600 fill-current' : ''}`} /> {m.favori ? 'Favorim' : 'Favorilere ekle'}
+          </button>
+        </div>
         {m.paylasanYorumu && (
           <div className="lz-card p-4 space-y-1.5">
             <div className={`font-semibold ${T_BASLIK}`}>{m.paylasan || 'Paylaşan'} ne dedi?</div>
@@ -495,7 +507,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
   }, [])
   const kaydet = async () => {
     const yeniListe = duzenlenen >= 0 ? liste.map((x, i) => (i === duzenlenen ? z : x)) : [...liste, z]
-    await lzDb.mekanlar.update(m.id!, { ziyaretler: yeniListe, gidildi: true })
+    await lzDb.mekanlar.update(m.id!, { ziyaretler: yeniListe, gidildi: true, gitmekIstiyorum: false })
     setAcik(false)
     goster('Ziyaret kaydedildi')
   }

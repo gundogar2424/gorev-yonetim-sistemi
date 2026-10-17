@@ -211,7 +211,7 @@ export default function MekanOner() {
 
   const kaydet = async (o: Sonuc): Promise<number> => {
     if (o.kayitliId) return o.kayitliId
-    const id = await oneriKaydet(o)
+    const id = await oneriKaydet(o, true)
     setSonuclar((s) => s.map((x) => (x === o ? { ...x, kayitliId: id } : x)))
     return id
   }
@@ -543,7 +543,7 @@ export default function MekanOner() {
                 </Link>
               ) : (
                 <button className="lz-btn-soft text-[12.5px] px-2" onClick={() => void kaydet(o)}>
-                  ＋ Kaydet
+                  ＋ Gitmek istiyorum
                 </button>
               )}
               <button className="lz-btn-soft text-[12.5px] px-2" onClick={() => void gittim(o)}>

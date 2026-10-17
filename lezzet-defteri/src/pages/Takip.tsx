@@ -41,11 +41,11 @@ export function YeniListe({ liste, mekanlar, goster }: { liste: MekanOnerisi[]; 
                 <button
                   className="lz-btn-primary text-[12.5px] px-3 py-1.5"
                   onClick={async () => {
-                    await oneriKaydet(o)
-                    goster(`${o.ad} Mekanlarım’a kaydedildi`)
+                    await oneriKaydet(o, true)
+                    goster(`${o.ad} gitmek istediğin yerlere eklendi`)
                   }}
                 >
-                  ＋ Kaydet
+                  ＋ Gitmek istiyorum
                 </button>
               )}
               <a href={instagramLinki(o)} target="_blank" rel="noreferrer" className="lz-btn-soft text-[12.5px] px-3 py-1.5">
