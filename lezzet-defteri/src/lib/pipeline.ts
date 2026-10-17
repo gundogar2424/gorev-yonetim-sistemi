@@ -172,7 +172,18 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
 }
 
 
-export async function linktenTaslak(girdi: string, ilerleme: Ilerleme = () => {}): Promise<Taslak> {
+// Aciklama tarifin TAMAMINI yaziyor mu? (olculu en az 4 malzeme satiri + yapilis bolumu ya da numarali adimlar)
+// Yapay zekasiz, yerel kontrol; evetse video izlenmeden yalnizca yazidan cikarilir (kredi tasarrufu).
+const OLCU = /(\d+([.,/]\d+)?|yarım|bir|iki|üç|dört|beş)\s*(g|gr|gram|kg|ml|lt|litre|su bardağı|bardak|yemek kaşığı|yk|tatlı kaşığı|tk|çay kaşığı|çk|adet|diş|demet|paket|tutam|fincan|kase|dilim|avuç|cup|tbsp|tsp)(?!\p{L})/u
+export function tamTarifMi(metin: string): boolean {
+  const satirlar = metin.toLocaleLowerCase('tr').split('\n').map((x) => x.trim())
+  const olculu = satirlar.filter((x) => x.length < 120 && OLCU.test(x)).length
+  const numarali = satirlar.filter((x) => /^(\d+[.)-]|\d+\s*[-–]|adım)/.test(x) && x.length > 15).length
+  const yapilis = satirlar.some((x) => /(yapılış|hazırlanış|yapımı|nasıl yapılır|tarifi:|adımlar)/.test(x))
+  return olculu >= 4 && (yapilis || numarali >= 2)
+}
+
+export async function linktenTaslak(girdi: string, ilerleme: Ilerleme = () => {}, videoZorla = false): Promise<Taslak> {
   const url = linkAyikla(girdi)
   if (!url) throw new Error('Geçerli bir link yapıştır (https://…).')
   ilerleme('Paylaşım okunuyor…')
@@ -188,6 +199,25 @@ export async function linktenTaslak(girdi: string, ilerleme: Ilerleme = () => {}
 
     if (apiAnahtari() && videoPlatformu && (s.html || s.hamMetin)) {
       const { parca, kapak, notlar } = await videoTopla(url, s, ilerleme)
+      // TASARRUF: aciklamada tarif tam yaziyorsa video izlenmez; yazidan cikan tarif eksikse video yine izlenir
+      const yazi = [parca.aciklama, s.hamMetin].filter(Boolean).join('\n')
+      if (!videoZorla && (parca.video || parca.youtube || parca.ses) && tamTarifMi(yazi)) {
+        ilerleme('Tarif açıklamada tam yazıyor; video izlenmeden çıkarılıyor…')
+        try {
+          const ai = await aiVideodan({ ...parca, aciklama: parca.aciklama || s.hamMetin, video: undefined, youtube: undefined, ses: undefined, kareler: [] })
+          if ((ai.ingredients?.length ?? 0) >= 3 && (ai.steps?.length ?? 0) >= 2) {
+            return await taslakHazirla(
+              { ...s.draft, ...ai, title: ai.title || s.draft.title },
+              'Tarif açıklamada tam yazıyordu; kredi harcamamak için video izlenmedi. Kontrol edip kaydet.',
+              kapak,
+              ilerleme
+            )
+          }
+        } catch {
+          /* yazidan cikmadi: asagida video izlenir */
+        }
+        ilerleme('Açıklama yetmedi; video izleniyor…')
+      }
       if (parca.altyazi || parca.konusma || parca.kareler.length || parca.aciklama || parca.video || parca.youtube) {
         ilerleme(`${aiAdi()} tarifi hazırlıyor…`)
         try {

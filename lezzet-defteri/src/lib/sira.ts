@@ -169,7 +169,7 @@ async function birIsle(is: LzSira, g: (patch: Partial<LzSira>) => Promise<void>,
     const ilerleme = (m: string) => void g({ mesaj: m })
     let t: { draft: LzDraft; not: string }
     if (url) {
-      t = await linktenTaslak(is.girdi, ilerleme)
+      t = await linktenTaslak(is.girdi, ilerleme, !!is.zorla)
     } else {
       // Linksiz paylasim (aciklama metni)
       const bos: LzDraft = { title: '', photo: '', sourceUrl: '', platform: 'manual', author: '', servings: 0, minutes: 0, ingredients: [], steps: [], notes: '', tags: [] }
