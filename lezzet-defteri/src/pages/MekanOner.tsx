@@ -269,6 +269,9 @@ export default function MekanOner() {
             onChange={(e) => setSemt(e.target.value)}
           />
         </div>
+        <button className="lz-btn-primary w-full" disabled={!aiVar || !!durum} onClick={() => void ara(HYPE)}>
+          <Icon name="star" className="w-[18px] h-[18px]" /> Çevremde şu an hype olanlar {km ? `(${km} km)` : '(sınırsız)'}
+        </button>
         <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#ececea] dark:bg-[#26262a] p-1">
           {(
             [
@@ -324,9 +327,6 @@ export default function MekanOner() {
             </div>
             <button className="lz-btn-primary w-full" disabled={!aiVar || !istek.trim() || !!durum} onClick={() => void ara()}>
               {durum || 'Öner'}
-            </button>
-            <button className="lz-btn-soft w-full" disabled={!aiVar || !!durum} onClick={() => void ara(HYPE)}>
-              {km ? `${km} km içinde` : 'Yakınımda'} şu an hype olanlar
             </button>
           </div>
         )}

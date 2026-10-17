@@ -49,10 +49,11 @@ export default function Recipes() {
 
       <div className="px-4 space-y-3">
         {/* Hizli erisim: emojisiz, ayni boyda simgeli kutular */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-1.5">
           {(
             [
               ['/ne-pisirsem', 'sparkle', 'Ne pişirsem'],
+              ['/hype', 'star', 'Hype'],
               ['/mekanlar', 'pin', 'Mekanlar'],
               ['/diyet', 'leaf', 'Diyetim'],
               ['/sira', 'inbox', 'Sıra']
@@ -66,7 +67,7 @@ export default function Recipes() {
               <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center">
                 <Icon name={ikon} className="w-[19px] h-[19px]" />
               </span>
-              <span className={`text-[12px] font-semibold tracking-[-0.01em] ${T_BASLIK}`}>{ad}</span>
+              <span className={`text-[11px] font-semibold tracking-[-0.015em] whitespace-nowrap ${T_BASLIK}`}>{ad}</span>
               {to === '/sira' && <SiraRozeti />}
             </Link>
           ))}

@@ -1431,6 +1431,55 @@ export interface MekanOnerisi {
   yemek_yorumu: string // aranan yemek hakkinda yorumlarda ne deniyor
 }
 
+// HYPE TARIFLER: son haftalarda sosyal medyada (Instagram, TikTok, YouTube) viral olan ev tarifleri (tek Google aramali istek)
+export interface HypeTarif {
+  ad: string
+  neden: string // neden viral oldu / ne konusuluyor
+  hesap: string // paylasan hesap ya da kanal
+  platform: string
+  link: string // paylasimin GERCEK linki; bulunamazsa bos
+  malzemeler: string // kisa ana malzemeler
+}
+export async function aiHypeTarifler(filtre = ''): Promise<HypeTarif[]> {
+  const v = await jsonCagri<{ tarifler: HypeTarif[] }>(
+    'Sen bir yemek trendi takipçisisin. Google’da araştırarak Türkiye’de SON 2-4 HAFTADA Instagram, TikTok ve YouTube’da çok paylaşılan, ' +
+      'viral/hype olan EV YEMEĞİ ve tatlı tariflerini bul (ör. "Dubai çikolatası", "TikTok makarnası" gibi). En fazla 8 tarif, en çok konuşulandan başla. ' +
+      'neden: neden hype oldu, 1 cümle. hesap: tarifi yayan/bilinen hesap ya da kanal. link: o tarifin paylaşımının GERÇEK linki; ' +
+      'emin değilsen boş bırak, UYDURMA. malzemeler: ana malzemeler kısaca. Restoran/mekan değil, evde yapılan tarifler. Türkçe.',
+    `Bugün: ${new Date().toLocaleDateString('tr')}${filtre ? `\nİstenen tür: ${filtre}` : ''}`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['tarifler'],
+      properties: {
+        tarifler: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['ad', 'neden', 'hesap', 'platform', 'link', 'malzemeler'],
+            properties: {
+              ad: { type: 'string' },
+              neden: { type: 'string' },
+              hesap: { type: 'string' },
+              platform: { type: 'string' },
+              link: { type: 'string' },
+              malzemeler: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    2500,
+    true
+  )
+  const t = (x: unknown) => String(x ?? '').trim()
+  return (v.tarifler ?? [])
+    .map((x) => ({ ad: t(x.ad), neden: t(x.neden), hesap: t(x.hesap), platform: t(x.platform), link: /^https?:\/\//.test(t(x.link)) ? t(x.link) : '', malzemeler: t(x.malzemeler) }))
+    .filter((x) => x.ad)
+    .slice(0, 8)
+}
+
 // Kullanicinin istegine ve bulundugu yere gore Google'da arastirip mekan onerir
 export async function aiMekanOner(
   istek: string,
