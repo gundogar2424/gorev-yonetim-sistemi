@@ -35,22 +35,26 @@ export function hesaplariOku(): string[] {
 export function hesaplariYaz(h: string[]): void {
   yaz(KEY_HESAP, JSON.stringify(h))
 }
-// "@ad", "ad" ya da profil linki -> "@ad"
+// "@ad", "ad" ya da profil linki -> "@ad"; "Buğra Karaman" gibi gorunen ad oldugu gibi kalir
 export function hesapAdi(girdi: string): string {
   const t = girdi.trim()
-  const ad = t.match(/(?:instagram|tiktok|youtube)\.com\/@?([\w.]+)/i)?.[1] ?? t.replace(/^@/, '').split(/\s/)[0]
-  return ad ? `@${ad}` : ''
+  const link = t.match(/(?:instagram|tiktok|youtube)\.com\/@?([\w.]+)/i)?.[1]
+  if (link) return `@${link}`
+  if (/^@?[\w.]+$/.test(t)) return `@${t.replace(/^@/, '')}`
+  return t.replace(/\s+/g, ' ').slice(0, 60)
 }
-export function hesapTakipEt(girdi: string): boolean {
-  const h = hesapAdi(girdi)
+// platform: gorunen adla takip edilirken aramayi kolaylastirir (ör. "Buğra Karaman (YouTube)")
+export function hesapTakipEt(girdi: string, platform = ''): boolean {
+  const ad = hesapAdi(girdi)
+  const h = ad && !ad.startsWith('@') && platform ? `${ad} (${platform})` : ad
   const liste = hesaplariOku()
   if (!h || liste.some((x) => x.toLowerCase() === h.toLowerCase())) return false
   hesaplariYaz([...liste, h])
   return true
 }
 export function takipEdiliyor(girdi: string): boolean {
-  const h = hesapAdi(girdi).toLowerCase()
-  return !!h && hesaplariOku().some((x) => x.toLowerCase() === h)
+  const h = hesapAdi(girdi).toLocaleLowerCase('tr')
+  return !!h && hesaplariOku().some((x) => x.toLocaleLowerCase('tr').replace(/\s*\([^)]*\)$/, '') === h)
 }
 
 export function otoKontrol(): boolean {

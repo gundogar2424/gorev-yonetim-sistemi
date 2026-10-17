@@ -3,11 +3,12 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan, LzZiyaret } from '../types'
-import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
+import { Header, Icon, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { fiyatlariGuncelle, haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
+import { PLATFORM_AD } from '../lib/importer'
 import { hesapTakipEt, takipEdiliyor } from '../lib/hesaplar'
 
 const PLATFORM: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', pinterest: 'Pinterest' }
@@ -38,6 +39,7 @@ export default function MekanDetay() {
   const [duzenle, setDuzenle] = useState(false)
   const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '', etiketler: [] as string[] })
   const [toast, goster] = useToast()
+  const [, setTakipSayac] = useState(0) // takip edilince dugme yenilensin
   const [puanAraniyor, setPuanAraniyor] = useState(false)
   const [kampanyaAraniyor, setKampanyaAraniyor] = useState(false)
 
@@ -104,22 +106,26 @@ export default function MekanDetay() {
           m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="" />
         )}
         {m.paylasan && (
-          <div className={`flex items-center gap-2 text-[12.5px] px-1 -mt-1 ${T_SOLUK}`}>
-            <span className="flex-1 min-w-0 truncate">Paylaşan: {m.paylasan}</span>
-            {/^@?[\w.]+$/.test(m.paylasan.trim()) &&
-              (takipEdiliyor(m.paylasan) ? (
-                <span className="text-emerald-600 dark:text-emerald-300 font-semibold">✓ Takip ediliyor</span>
-              ) : (
-                <button
-                  className="lz-chip text-[12px] !py-1"
-                  onClick={() => {
-                    hesapTakipEt(m.paylasan!)
-                    goster(`${m.paylasan} takip ediliyor; yeni mekanları Bana mekan öner › Hesaplar’da`)
-                  }}
-                >
-                  ＋ Takip et
-                </button>
-              ))}
+          <div className="lz-card p-3 flex items-center gap-3">
+            <SofraRozet ad={m.paylasan.replace(/^@/, '')} className="w-10 h-10 text-[14px]" />
+            <span className="flex-1 min-w-0">
+              <span className={`block text-[11.5px] ${T_SOLUK}`}>Paylaşan</span>
+              <span className={`block font-semibold truncate ${T_BASLIK}`}>{m.paylasan}</span>
+            </span>
+            {takipEdiliyor(m.paylasan) ? (
+              <span className="text-[13px] text-emerald-600 dark:text-emerald-300 font-semibold">✓ Takip ediliyor</span>
+            ) : (
+              <button
+                className="lz-btn-primary px-4 py-2 text-[13.5px]"
+                onClick={() => {
+                  hesapTakipEt(m.paylasan!, PLATFORM_AD[m.platform] ?? '')
+                  setTakipSayac((x) => x + 1)
+                  goster(`${m.paylasan} takip ediliyor; yeni mekanları Bana mekan öner › Hesaplar’da`)
+                }}
+              >
+                Takip et
+              </button>
+            )}
           </div>
         )}
         {(() => {
