@@ -193,7 +193,8 @@ function instagramAciklama(s: string): string {
 
 function yazarBul(baslik: string, aciklama: string, platform: LzPlatform): string {
   if (platform === 'instagram') {
-    const m = aciklama.match(/-\s*([\w.]+)\s+(?:on|tarihinde|,)/i) || baslik.match(/\(@([\w.]+)\)/)
+    // "… yorum - vedatmilor, 12 Ekim 2025: …" / "… comments - user on June 1, 2025: …" / "Ad (@user) • Instagram"
+    const m = aciklama.match(/-\s*([\w.]+)\s*(?:\bon\b|tarihinde|,)/i) || baslik.match(/\(@([\w.]+)\)/) || baslik.match(/^([\w.]+)\s+(?:on Instagram|Instagram'da)/i)
     if (m) return '@' + m[1].replace(/^@/, '')
   }
   return ''

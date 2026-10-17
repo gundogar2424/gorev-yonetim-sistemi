@@ -37,7 +37,7 @@ export default function MekanDetay() {
       return (await lzDb.mekanlar.toArray()).filter((x) => x.id !== id && x.sourceUrl && temelLink(x.sourceUrl) === t)
     }, [id]) ?? []
   const [duzenle, setDuzenle] = useState(false)
-  const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', oneriler: '', notlar: '', etiketler: [] as string[] })
+  const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', paylasan: '', oneriler: '', notlar: '', etiketler: [] as string[] })
   const [toast, goster] = useToast()
   const [, setTakipSayac] = useState(0) // takip edilince dugme yenilensin
   const [puanAraniyor, setPuanAraniyor] = useState(false)
@@ -49,7 +49,7 @@ export default function MekanDetay() {
   const ac = (url: string) => window.open(url, '_blank')
 
   const duzenlemeyiAc = () => {
-    setForm({ ad: m.ad, adres: m.adres, ilce: m.ilce, sehir: m.sehir, oneriler: m.oneriler.join('\n'), notlar: m.notlar, etiketler: m.etiketler })
+    setForm({ ad: m.ad, adres: m.adres, ilce: m.ilce, sehir: m.sehir, paylasan: m.paylasan ?? '', oneriler: m.oneriler.join('\n'), notlar: m.notlar, etiketler: m.etiketler })
     setDuzenle(true)
   }
   const kaydet = async () => {
@@ -59,6 +59,7 @@ export default function MekanDetay() {
       adres: form.adres.trim(),
       ilce: form.ilce.trim(),
       sehir: form.sehir.trim(),
+      paylasan: form.paylasan.trim() || undefined,
       oneriler: form.oneriler
         .split('\n')
         .map((x) => x.trim())
@@ -67,6 +68,8 @@ export default function MekanDetay() {
       etiketler: form.etiketler
     })
     setDuzenle(false)
+    // Elle yazilan paylasan da Influencer'lara eklenir
+    if (form.paylasan.trim() && form.paylasan.trim() !== m.paylasan) hesapTakipEt(form.paylasan, PLATFORM_AD[m.platform] ?? '')
     if (yerDegisti) {
       const yeni = await lzDb.mekanlar.get(m.id!)
       goster((await mekanYeriniBul(yeni!)) ? 'Kaydedildi, yeri güncellendi' : 'Kaydedildi; yeni adres haritada bulunamadı')
@@ -281,7 +284,8 @@ export default function MekanDetay() {
                 ['ad', 'Mekan adı'],
                 ['adres', 'Açık adres'],
                 ['ilce', 'İlçe / semt'],
-                ['sehir', 'Şehir']
+                ['sehir', 'Şehir'],
+                ['paylasan', 'Paylaşan influencer (@ad ya da isim)']
               ] as const
             ).map(([k, etiket]) => (
               <label key={k} className="block">

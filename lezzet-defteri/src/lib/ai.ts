@@ -618,6 +618,7 @@ export interface VideoParcalari {
   ses?: { mime: string; data: string } // Buyuk videolarda yalnizca ses (yalnizca Gemini dinler)
   youtube?: string // YouTube adresi (yalnizca Gemini videoyu dogrudan izleyebilir)
   galeri?: boolean // kareler kaydirmali gonderinin sayfalari (video karesi degil)
+  yazar?: string // paylasan hesap (@ad), bulunabildiyse
 }
 export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
   const icerik: Parca[] = []
@@ -1148,6 +1149,7 @@ export interface MekanBilgisi {
   diger_mekanlar: DigerMekan[]
   paylasan_yorumu: PaylasanYorumu
   instagram: string
+  paylasan_hesap: string
 }
 // Paylasimi yapan kisinin (influencer) mekan hakkindaki kendi sozleri
 export interface PaylasanYorumu {
@@ -1204,7 +1206,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
   const schema = {
     type: 'object',
     additionalProperties: false,
-    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden', 'diger_mekanlar', 'paylasan_yorumu', 'instagram'],
+    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden', 'diger_mekanlar', 'paylasan_yorumu', 'instagram', 'paylasan_hesap'],
     properties: {
       mekan_mi: { type: 'boolean', description: 'Paylaşımda belirli bir yeme-içme mekanı tanıtılıyor/öneriliyor mu' },
       diger_mekanlar: {
@@ -1231,6 +1233,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
         }
       },
       instagram: { type: 'string', description: 'Mekanın RESMİ Instagram kullanıcı adı (@ olmadan); emin değilsen boş' },
+      paylasan_hesap: { type: 'string', description: 'Paylaşımı YAPAN kişinin/hesabın adı ya da @kullanıcı adı (mekanın değil); paylaşımda görünmüyorsa boş' },
       paylasan_yorumu: {
         type: 'object',
         additionalProperties: false,

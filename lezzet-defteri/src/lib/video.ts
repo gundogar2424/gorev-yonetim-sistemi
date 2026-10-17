@@ -77,8 +77,8 @@ export function videoAdresiBul(html: string, platform: LzPlatform): string {
 // --- Instagram herkese acik veri servisi ----------------------------------------
 // Sayfa ve gomme sayfasi video adresini vermezse Instagram'in web sitesinin
 // kendi kullandigi GraphQL sorgusu denenir (girissiz, herkese acik gonderiler).
-export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string; galeri: string[] }> {
-  const bos = { videoUrl: '', aciklama: '', kapak: '', galeri: [] as string[] }
+export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string; galeri: string[]; yazar: string }> {
+  const bos = { videoUrl: '', aciklama: '', kapak: '', galeri: [] as string[], yazar: '' }
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
   if (!Capacitor.isNativePlatform()) return bos
   const lsd = 'AVqbxe3J_YA'
@@ -109,6 +109,7 @@ export async function instagramVeri(kod: string): Promise<{ videoUrl: string; ac
           display_url?: string
           edge_media_to_caption?: { edges?: { node?: { text?: string } }[] }
           edge_sidecar_to_children?: { edges?: { node?: { display_url?: string; is_video?: boolean } }[] } // kaydirmali gonderi
+          owner?: { username?: string } // paylasan hesap
         }
       }
     }
@@ -118,7 +119,8 @@ export async function instagramVeri(kod: string): Promise<{ videoUrl: string; ac
       videoUrl: m.video_url ?? '',
       aciklama: m.edge_media_to_caption?.edges?.[0]?.node?.text ?? '',
       kapak: m.display_url ?? '',
-      galeri: (m.edge_sidecar_to_children?.edges ?? []).map((e) => e.node?.display_url ?? '').filter(Boolean)
+      galeri: (m.edge_sidecar_to_children?.edges ?? []).map((e) => e.node?.display_url ?? '').filter(Boolean),
+      yazar: m.owner?.username ? `@${m.owner.username}` : ''
     }
   } catch {
     return bos

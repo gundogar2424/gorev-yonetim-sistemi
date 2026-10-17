@@ -9,7 +9,7 @@ import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } fr
 import { PLATFORM_AD, linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
 import { uzaktanFotoIndir } from './image'
 import { temelLink } from './kopya'
-import { hesapTakipEt } from './hesaplar'
+import { hesapAdi, hesapTakipEt } from './hesaplar'
 
 export type Konum = { lat: number; lon: number; ad?: string }
 
@@ -214,6 +214,9 @@ export async function mekanLinktenEkle(
     ilerleme(`Videodaki diğer mekanlar kaydediliyor: ${d.ad}…`)
     if (await digerMekaniKaydet(d, ortak)) digerleri++
   }
+  // Paylasan: sayfa > Instagram verisi > yapay zekanin paylasimda gordugu hesap
+  if (!paylasan) paylasan = video?.yazar || String(b.paylasan_hesap ?? '').trim()
+  if (paylasan && instagramAdi(b.instagram) && hesapAdi(paylasan) === `@${instagramAdi(b.instagram)}`) paylasan = '' // mekanin kendi hesabi
   // Videoyu paylasan (influencer) kendiliginden takip edilir (takipten cikarildiysa tekrar eklenmez)
   if (paylasan) hesapTakipEt(paylasan, url ? PLATFORM_AD[platformBul(url)] : '', true)
   const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir })

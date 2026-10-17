@@ -120,6 +120,9 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
     try {
       const gomme = await metinIndir(`https://www.instagram.com/p/${kod}/embed/captioned/`, ua)
       videoUrl = videoAdresiBul(gomme, 'instagram')
+      // Gomme sayfasinda paylasan hesabin adi da yazar
+      const yazar = gomme.match(/class="UsernameText"[^>]*>\s*([\w.]+)/)?.[1] ?? gomme.match(/"owner":\{[^}]*"username":"([\w.]+)"/)?.[1]
+      if (yazar) parca.yazar = `@${yazar}`
       if (!parca.aciklama) {
         const c = gomme.match(/class="Caption"[^>]*>([\s\S]*?)<div class="CaptionComments"/)
         if (c) parca.aciklama = c[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').trim()
@@ -134,6 +137,7 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
     videoUrl = v.videoUrl
     if (v.aciklama.length > parca.aciklama.length) parca.aciklama = v.aciklama
     if (v.kapak) kapak = v.kapak
+    if (v.yazar) parca.yazar = v.yazar
     // KAYDIRMALI GONDERI: videosu yoksa sayfa gorselleri indirilir; tarif cogunlukla gorsellerin uzerinde yazar
     if (!videoUrl && v.galeri.length) {
       ilerleme(`Kaydırmalı gönderi: ${v.galeri.length} görsel alınıyor…`)
