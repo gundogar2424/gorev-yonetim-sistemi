@@ -7,7 +7,8 @@ import { tlYaz, tutarOku } from '../lib/harcama'
 import type { LzMekan, LzZiyaret } from '../types'
 import { Header, Icon, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { fiyatlariGuncelle, haritadaAcLinki, instagramLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
-import { MEKAN_ETIKETLERI, aiMekanUnluler, apiAnahtari } from '../lib/ai'
+import { MEKAN_ETIKETLERI, aiFisTutar, aiMekanUnluler, apiAnahtari } from '../lib/ai'
+import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
@@ -499,6 +500,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
   const puanlilar = liste.filter((x) => x.puan)
   const odenen = liste.reduce((t, x) => t + (x.tutar || 0), 0)
   const [tutarYazi, setTutarYazi] = useState('')
+  const [fisOkunuyor, setFisOkunuyor] = useState(false)
   const ortalama = puanlilar.length ? puanlilar.reduce((t, x) => t + x.puan, 0) / puanlilar.length : 0
 
   const yeni = () => {
@@ -580,8 +582,36 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
             <span className="lz-label">Notum</span>
             <textarea className="lz-input mt-1 min-h-[70px]" placeholder="Ör. İskender çok iyiydi, künefe biraz şekerliydi; servis hızlı" value={z.not} onChange={(e) => setZ({ ...z, not: e.target.value })} />
           </label>
-          <label className="block">
-            <span className="lz-label">Hesabı ben ödediysem (TL)</span>
+          <div className="block">
+            <span className="flex items-center gap-2">
+              <span className="lz-label flex-1">Hesabı ben ödediysem (TL)</span>
+              <label className="text-[12.5px] font-semibold text-lz-600 cursor-pointer">
+                {fisOkunuyor ? 'Fiş okunuyor…' : 'Fişten oku'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={fisOkunuyor || !apiAnahtari()}
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0]
+                    e.target.value = ''
+                    if (!f) return
+                    setFisOkunuyor(true)
+                    try {
+                      const n = await aiFisTutar(await fotoOku(f, 1600, 0.85))
+                      if (n) {
+                        setZ((v) => ({ ...v, tutar: n }))
+                        setTutarYazi(String(n).replace('.', ','))
+                        goster(`Fişteki toplam: ${tlYaz(n)}`)
+                      } else goster('Fişteki toplam okunamadı; elle yaz')
+                    } catch (er) {
+                      goster((er as Error).message)
+                    }
+                    setFisOkunuyor(false)
+                  }}
+                />
+              </label>
+            </span>
             <input
               className="lz-input mt-1"
               inputMode="decimal"
@@ -592,7 +622,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
                 setZ({ ...z, tutar: tutarOku(e.target.value) })
               }}
             />
-          </label>
+          </div>
           <label className="block">
             <span className="lz-label">Bir daha gelirsem…</span>
             <input className="lz-input mt-1" placeholder="Ör. Kuzu tandır denenecek, künefe yerine sütlaç" value={z.tekrar} onChange={(e) => setZ({ ...z, tekrar: e.target.value })} />

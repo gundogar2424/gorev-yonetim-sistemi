@@ -8,6 +8,7 @@ import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adrestenKonum, konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
 import { hesapBirak, hesapFoto, hesapFotoGetir, hesapFotoKaydet, hesapNormal } from '../lib/hesaplar'
 import { fotoOku } from '../lib/image'
+import KirpSheet from '../components/KirpSheet'
 import { ReklamRozeti, BEGENI_KURALI, YeniListe, adNormal, guvenSkoru, hesapParca, onunMekanlari } from './Takip'
 
 // Fenomenin profili: sosyal medya hesabi; youtube kanalinda arama, @ad ise Instagram profili
@@ -30,6 +31,7 @@ export default function Influencer() {
   const { ad, platform } = hesapParca(h)
   // Profil fotografi: kayitli degilse Instagram'dan bir kez getirilir
   const [foto, setFoto] = useState(hesapFoto(h))
+  const [kirpilacak, setKirpilacak] = useState('')
   useEffect(() => {
     if (!foto) void hesapFotoGetir(h).then((f) => f && setFoto(f))
   }, [h])
@@ -143,11 +145,11 @@ export default function Influencer() {
               onChange={async (e) => {
                 const f = e.target.files?.[0]
                 if (!f) return
-                const d = await fotoOku(f, 400).catch(() => '')
+                e.target.value = ''
+                // Ekran goruntusu buyuk olabilir: once kucultulur, sonra kirpma ekrani acilir
+                const d = await fotoOku(f, 1400).catch(() => '')
                 if (!d) return goster('Fotoğraf açılamadı')
-                hesapFotoKaydet(h, d)
-                setFoto(d)
-                goster('Profil fotoğrafı kaydedildi')
+                setKirpilacak(d)
               }}
             />
           </label>
@@ -276,6 +278,16 @@ export default function Influencer() {
           Takipten çık
         </button>
       </div>
+      <KirpSheet
+        src={kirpilacak}
+        onClose={() => setKirpilacak('')}
+        onKaydet={(d) => {
+          hesapFotoKaydet(h, d)
+          setFoto(d)
+          setKirpilacak('')
+          goster('Profil fotoğrafı kaydedildi')
+        }}
+      />
       <Toast text={toast} />
     </div>
   )

@@ -1441,6 +1441,24 @@ export interface MekanOnerisi {
   reklam: boolean // tanitim reklam / is birligi olarak isaretli
 }
 
+// HESAP FISI: fotograftaki odenecek toplam tutar (TL); okunamazsa 0
+export async function aiFisTutar(foto: string): Promise<number> {
+  const m = foto.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
+  if (!m) return 0
+  const v = await jsonCagri<{ toplam: number }>(
+    'Restoran/kafe hesap fişi ya da adisyon fotoğrafından ÖDENECEK GENEL TOPLAMI (KDV ve servis dahil, indirim düşülmüş) TL olarak oku. ' +
+      'Ara toplamı ya da tek kalemi değil, en sondaki genel toplamı yaz. Okuyamıyorsan 0.',
+    [
+      { type: 'image', mime: m[1], data: m[2] },
+      { type: 'text', text: 'Bu fişin genel toplamı kaç TL?' }
+    ],
+    { type: 'object', additionalProperties: false, required: ['toplam'], properties: { toplam: { type: 'number' } } },
+    300
+  )
+  const n = Number(v.toplam)
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0
+}
+
 // HYPE TARIFLER: son haftalarda sosyal medyada (Instagram, TikTok, YouTube) viral olan ev tarifleri (tek Google aramali istek)
 export interface HypeTarif {
   ad: string
