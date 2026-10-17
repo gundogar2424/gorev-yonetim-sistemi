@@ -49,12 +49,13 @@ export default function Recipes() {
 
       <div className="px-4 space-y-3">
         {/* Hizli erisim: emojisiz, ayni boyda simgeli kutular */}
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-3 gap-2">
           {(
             [
               ['/ne-pisirsem', 'sparkle', 'Ne pişirsem'],
-              ['/hype', 'star', 'Hype'],
+              ['/hype', 'star', 'Hype tarifler'],
               ['/mekanlar', 'pin', 'Mekanlar'],
+              ['/takip', 'users', 'Influencer'],
               ['/diyet', 'leaf', 'Diyetim'],
               ['/sira', 'inbox', 'Sıra']
             ] as const
@@ -62,12 +63,12 @@ export default function Recipes() {
             <Link
               key={to}
               to={to}
-              className="lz-card relative flex flex-col items-center justify-center gap-1.5 py-3 active:scale-[0.97] transition"
+              className="lz-card relative flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.97] transition"
             >
-              <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center">
-                <Icon name={ikon} className="w-[19px] h-[19px]" />
+              <span className="w-8 h-8 rounded-lg bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center flex-shrink-0">
+                <Icon name={ikon} className="w-[17px] h-[17px]" />
               </span>
-              <span className={`text-[11px] font-semibold tracking-[-0.015em] whitespace-nowrap ${T_BASLIK}`}>{ad}</span>
+              <span className={`text-[12px] font-semibold leading-tight tracking-[-0.015em] ${T_BASLIK}`}>{ad}</span>
               {to === '/sira' && <SiraRozeti />}
             </Link>
           ))}

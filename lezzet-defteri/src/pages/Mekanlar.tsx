@@ -146,7 +146,7 @@ export default function Mekanlar() {
             <Icon name="users" className="w-[18px] h-[18px]" />
           </span>
           <span className="flex-1 min-w-0">
-            <span className={`block font-semibold ${T_BASLIK}`}>Takip ettiklerim</span>
+            <span className={`block font-semibold ${T_BASLIK}`}>Influencer’lar</span>
             <span className={`block text-[12.5px] ${T_SOLUK}`}>Fenomenlerin gittiği yerler · gittin / gitmedin · yeni yerleri</span>
           </span>
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
