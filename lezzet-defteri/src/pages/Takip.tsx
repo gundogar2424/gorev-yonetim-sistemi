@@ -5,7 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
-import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
+import { adayReddet, adaylar, hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { instagramLinki, oneriKaydet } from '../lib/mekan'
 import { PLATFORM_AD } from '../lib/importer'
 
@@ -96,12 +96,19 @@ export default function Takip() {
   const [toast, goster] = useToast()
   const aiVar = !!apiAnahtari()
 
-  // Daha once videosu kaydedilmis fenomenler de takibe alinir (takipten cikilanlar haric)
+  // Videosu kaydedilmis ama takip edilmeyen kisiler "takip edilsin mi?" listesine girer (reddedilenler haric)
+  const [adayListe, setAdayListe] = useState(adaylar())
   useEffect(() => {
-    let degisti = false
-    for (const m of mekanlar) if (m.paylasan && hesapTakipEt(m.paylasan, PLATFORM_AD[m.platform] ?? '', true)) degisti = true
-    if (degisti) setHesaplar(hesaplariOku())
+    for (const m of mekanlar) if (m.paylasan) hesapTakipEt(m.paylasan, PLATFORM_AD[m.platform] ?? '', true)
+    setAdayListe(adaylar())
   }, [mekanlar])
+  const adayKarar = (h: string, evet: boolean) => {
+    if (evet) hesapTakipEt(h)
+    else adayReddet(h)
+    setAdayListe(adaylar())
+    setHesaplar(hesaplariOku())
+    goster(evet ? `${h.replace(/\s*\([^)]*\)$/, '')} takip ediliyor` : 'Takip edilmeyecek, bir daha sorulmayacak')
+  }
 
   // Profil fotografi olmayan @hesaplarin fotografi sirayla getirilir (her biri gunde en fazla bir deneme)
   const [, setFotoSayac] = useState(0)
@@ -151,7 +158,7 @@ export default function Takip() {
       <div className="px-4 space-y-3 pb-8">
         <div className="lz-card p-4 space-y-2.5">
           <p className={`text-[12.5px] ${T_SOLUK}`}>
-            Bir fenomenin mekan videosunu <b>Paylaş → Lezzet Defteri</b> ile eklediğinde kendiliğinden buraya gelir. Elle de ekleyebilirsin.
+            Bir fenomenin mekan videosunu <b>Paylaş → Lezzet Defteri</b> ile eklediğinde sana “takip edilsin mi?” diye sorulur. Elle de ekleyebilirsin.
           </p>
           <div className="flex gap-2">
             <input className="lz-input py-2 text-[14px] min-w-0" placeholder="@kullaniciadi, profil linki ya da adı" value={yeni} onChange={(e) => setYeni(e.target.value)} />
@@ -193,6 +200,31 @@ export default function Takip() {
             </>
           )}
         </div>
+        {adayListe.length > 0 && (
+          <div className="lz-card p-4 space-y-2.5 ring-2 ring-lz-500/40">
+            <div className={`font-semibold ${T_BASLIK}`}>Takip edilsin mi?</div>
+            <p className={`text-[12.5px] ${T_SOLUK}`}>Bu kişilerin videosundan mekan kaydettin. Takip edersen yeni gittiği yerler sana önerilir.</p>
+            {adayListe.map((h) => {
+              const { ad, platform } = hesapParca(h)
+              const n = onunMekanlari(mekanlar, h).length
+              return (
+                <div key={h} className="flex items-center gap-3">
+                  <KisiAvatar ad={hesapNormal(h)} foto={hesapFoto(h)} className="w-11 h-11 text-[15px]" />
+                  <span className="flex-1 min-w-0">
+                    <span className={`block font-semibold text-[14.5px] truncate ${T_BASLIK}`}>{ad}</span>
+                    <span className={`block text-[12px] ${T_SOLUK}`}>{[platform, n ? `${n} mekan kaydettin` : ''].filter(Boolean).join(' · ')}</span>
+                  </span>
+                  <button className="lz-btn-soft text-[12.5px] px-3 py-1.5" onClick={() => adayKarar(h, false)}>
+                    Hayır
+                  </button>
+                  <button className="lz-btn-primary text-[12.5px] px-3 py-1.5" onClick={() => adayKarar(h, true)}>
+                    Takip et
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
         {durum && (
           <div className="lz-card p-3.5 flex items-center gap-3">
             <span className="w-5 h-5 rounded-full border-[2.5px] border-lz-600 border-t-transparent animate-spin flex-shrink-0" />

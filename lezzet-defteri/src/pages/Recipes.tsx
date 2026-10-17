@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { adaylar } from '../lib/hesaplar'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
 import { SiraRozeti, SiraSeridi } from './Sira'
@@ -70,6 +71,11 @@ export default function Recipes() {
               </span>
               <span className={`text-[12px] font-semibold leading-tight tracking-[-0.015em] ${T_BASLIK}`}>{ad}</span>
               {to === '/sira' && <SiraRozeti />}
+              {to === '/takip' && adaylar().length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-lz-600 text-white text-[11px] font-bold flex items-center justify-center">
+                  {adaylar().length}
+                </span>
+              )}
             </Link>
           ))}
         </div>

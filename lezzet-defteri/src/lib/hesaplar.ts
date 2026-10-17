@@ -9,6 +9,7 @@ const KEY_HESAP = 'lz-yemek-hesaplari'
 const KEY_YENI = 'lz-hesap-yeni' // { zaman, gorulen: normal adlar, liste: son bulunanlar }
 const KEY_OTO = 'lz-hesap-oto' // '0' ise kendiliginden bakilmaz
 const KEY_CIKAN = 'lz-hesap-cikan' // takipten cikarilanlar: otomatik takip bunlari tekrar eklemez
+const KEY_ADAY = 'lz-hesap-aday' // videosu paylasilan, takip edilip edilmeyecegi sorulacak kisiler
 const KEY_FOTO = 'lz-hesap-foto' // { normalAd: { foto: dataURL, t: deneme zamani } }
 const ARALIK = 3 * 24 * 3600 * 1000 // kendiliginden kontrol en fazla 3 gunde bir
 
@@ -51,10 +52,27 @@ export function hesapTakipEt(girdi: string, platform = '', oto = false): boolean
   const ad = hesapAdi(girdi)
   const h = ad && !ad.startsWith('@') && platform ? `${ad} (${platform})` : ad
   if (!h || takipEdiliyor(girdi)) return false
-  if (oto && cikanlar().includes(hesapNormal(h))) return false
+  if (oto) {
+    // Kendiliginden takip edilmez: kullaniciya "takip edilsin mi?" diye sorulur (reddedilenler bir daha sorulmaz)
+    if (!cikanlar().includes(hesapNormal(h)) && !adaylar().some((x) => hesapNormal(x) === hesapNormal(h))) yaz(KEY_ADAY, JSON.stringify([...adaylar(), h]))
+    return false
+  }
+  yaz(KEY_ADAY, JSON.stringify(adaylar().filter((x) => hesapNormal(x) !== hesapNormal(h))))
   hesaplariYaz([...hesaplariOku(), h])
   yaz(KEY_CIKAN, JSON.stringify(cikanlar().filter((x) => x !== hesapNormal(h))))
   return true
+}
+export function adaylar(): string[] {
+  try {
+    return JSON.parse(oku(KEY_ADAY) || '[]') as string[]
+  } catch {
+    return []
+  }
+}
+// "Hayir, takip etme": bir daha sorulmaz
+export function adayReddet(h: string): void {
+  yaz(KEY_ADAY, JSON.stringify(adaylar().filter((x) => x !== h)))
+  yaz(KEY_CIKAN, JSON.stringify([...cikanlar(), hesapNormal(h)]))
 }
 export function hesapBirak(h: string): void {
   hesaplariYaz(hesaplariOku().filter((x) => x !== h))
