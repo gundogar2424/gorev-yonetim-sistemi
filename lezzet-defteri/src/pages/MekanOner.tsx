@@ -5,6 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
+import { platformBul } from '../lib/importer'
 import { adrestenKonum, konumdanAdres, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
 
 const ORNEKLER = [
@@ -18,6 +19,22 @@ const ORNEKLER = [
 
 type Sonuc = MekanOnerisi & { km?: number; kayitliId?: number }
 
+const KEY_HESAP = 'lz-yemek-hesaplari'
+function hesaplariOku(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_HESAP) || '[]') as string[]
+  } catch {
+    return []
+  }
+}
+function hesaplariYaz(h: string[]): void {
+  try {
+    localStorage.setItem(KEY_HESAP, JSON.stringify(h))
+  } catch {
+    /* yok */
+  }
+}
+
 // MEKAN ONERISI: "canim su an … istiyor" — bulundugun yere gore Google'da arastirilip
 // puan, fiyat ve sosyal medyadaki son durumuyla mekan onerilir.
 export default function MekanOner() {
@@ -28,10 +45,14 @@ export default function MekanOner() {
   const [hata, setHata] = useState('')
   const [sonuclar, setSonuclar] = useState<Sonuc[]>([])
   const aiVar = !!apiAnahtari()
+  const [hesaplar, setHesaplar] = useState<string[]>(hesaplariOku())
+  const [yeniHesap, setYeniHesap] = useState('')
+  const [aktifHesap, setAktifHesap] = useState('')
 
-  const ara = async () => {
+  const ara = async (istekMetni = istek, hesap = '') => {
     setHata('')
     setSonuclar([])
+    setAktifHesap(hesap)
     try {
       // Nerede oldugum: yazilan semt ya da telefon konumu
       let yer = semt.trim()
@@ -49,7 +70,7 @@ export default function MekanOner() {
         }
       }
       setDurum(`Yapay zeka ${yer} çevresinde araştırıyor…`)
-      const liste = await aiMekanOner(istek.trim(), yer, kayitli.map((m) => m.ad))
+      const liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap)
       const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
       const sonuc: Sonuc[] = liste.map((o) => {
         const kayit = kayitli.find((m) => ad(m.ad) === ad(o.ad))
@@ -57,7 +78,7 @@ export default function MekanOner() {
         return { ...o, kayitliId: kayit?.id, km: k && hedef ? mesafeKm(k, hedef) : undefined }
       })
       setSonuclar(sonuc.sort((a, b) => (a.km ?? 999) - (b.km ?? 999)))
-      if (!sonuc.length) setHata('Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
+      if (!sonuc.length) setHata(hesap ? `${hesap} hesabının yakınında tanıttığı mekan bulunamadı.` : 'Uygun mekan bulunamadı; isteği biraz değiştirip tekrar dene.')
     } catch (e) {
       setHata((e as Error).message)
     }
@@ -79,8 +100,8 @@ export default function MekanOner() {
       notlar: [o.neden, o.populerlik].filter(Boolean).join('\n'),
       etiketler: [],
       foto: '',
-      sourceUrl: '',
-      platform: 'manual',
+      sourceUrl: o.link,
+      platform: o.link ? platformBul(o.link) : 'manual',
       gidildi: false,
       createdAt: Date.now(),
       puan: o.puan || undefined,
@@ -116,6 +137,13 @@ export default function MekanOner() {
           <button className="lz-btn-primary w-full" disabled={!aiVar || !istek.trim() || !!durum} onClick={() => void ara()}>
             {durum || '✨ Öner'}
           </button>
+          <button
+            className="lz-btn-soft w-full"
+            disabled={!aiVar || !!durum}
+            onClick={() => void ara('Şu an sosyal medyada (Instagram, TikTok) çok konuşulan, hype olan, gitmeye değer yeme-içme mekanları')}
+          >
+            🔥 Yakınımda şu an popüler olanlar
+          </button>
           {!aiVar && (
             <p className="text-[12.5px] text-rose-600 dark:text-rose-300">
               Bunun için <Link to="/ayarlar" className="underline font-semibold">Ayarlar</Link>’dan Gemini anahtarı gerekli.
@@ -124,6 +152,52 @@ export default function MekanOner() {
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
         </div>
 
+        <div className="lz-card p-4 space-y-2.5">
+          <div className={`font-semibold ${T_BASLIK}`}>📱 Takip ettiğim yemek hesapları</div>
+          <p className={`text-[12.5px] ${T_SOLUK}`}>Hesaba dokun: o hesabın tanıttığı mekanlardan sana yakın olanlar önerilir.</p>
+          <div className="flex flex-wrap gap-1.5">
+            {hesaplar.map((h) => (
+              <span key={h} className="inline-flex items-center">
+                <button className="lz-chip text-[13px]" disabled={!aiVar || !!durum} onClick={() => void ara(`${h} hesabının önerdiği mekanlar`, h)}>
+                  {h}
+                </button>
+                <button
+                  className={`ml-0.5 text-[13px] px-1 ${T_SOLUK}`}
+                  aria-label={`${h} sil`}
+                  onClick={() => {
+                    const y = hesaplar.filter((x) => x !== h)
+                    setHesaplar(y)
+                    hesaplariYaz(y)
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input className="lz-input py-2 text-[14px] min-w-0" placeholder="@hesapadi ya da profil linki" value={yeniHesap} onChange={(e) => setYeniHesap(e.target.value)} />
+            <button
+              className="lz-btn-soft px-3 text-sm"
+              disabled={!yeniHesap.trim()}
+              onClick={() => {
+                const t = yeniHesap.trim()
+                const ad = t.match(/(?:instagram|tiktok)\.com\/@?([\w.]+)/i)?.[1] ?? t.replace(/^@/, '')
+                const h = `@${ad}`
+                if (!hesaplar.includes(h)) {
+                  const y = [...hesaplar, h]
+                  setHesaplar(y)
+                  hesaplariYaz(y)
+                }
+                setYeniHesap('')
+              }}
+            >
+              Ekle
+            </button>
+          </div>
+        </div>
+
+        {aktifHesap && sonuclar.length > 0 && <div className={`text-[13px] px-1 font-semibold ${T_GOVDE}`}>{aktifHesap} hesabının önerdikleri:</div>}
         {sonuclar.map((o, i) => (
           <div key={i} className="lz-card p-4 space-y-1.5">
             <div className="flex items-start gap-2">
@@ -141,6 +215,11 @@ export default function MekanOner() {
             <p className={`text-[13.5px] ${T_GOVDE}`}>{o.neden}</p>
             {o.ne_yenir.length > 0 && <p className={`text-[13px] ${T_GOVDE}`}>😋 {o.ne_yenir.slice(0, 4).join(', ')}</p>}
             {o.populerlik && <p className={`text-[12.5px] ${T_SOLUK}`}>📱 {o.populerlik}</p>}
+            {o.link && (
+              <a href={o.link} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
+                ▶ Tanıtım paylaşımını aç
+              </a>
+            )}
             <div className="grid grid-cols-3 gap-2 pt-1">
               <a href={yolTarifi(o)} target="_blank" rel="noreferrer" className="lz-btn-primary text-[12.5px] px-2">
                 🧭 Git

@@ -1249,17 +1249,24 @@ export interface MekanOnerisi {
   fiyat: string // ₺ / ₺₺ / ₺₺₺ ya da kisi basi tahmini
   populerlik: string // sosyal medyadaki son durum
   ne_yenir: string[]
+  link: string // varsa tanitan paylasimin linki
 }
 
 // Kullanicinin istegine ve bulundugu yere gore Google'da arastirip mekan onerir
-export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: string[]): Promise<MekanOnerisi[]> {
+export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: string[], hesap = ''): Promise<MekanOnerisi[]> {
   const v = await jsonCagri<{ oneriler: MekanOnerisi[] }>(
     'Sen deneyimli bir yeme-içme rehberisin. Kullanıcının isteğine (canının çektiği yemek, mutfak türü, fiyat-performans, ortam…) ve ' +
       'BULUNDUĞU YERE göre Google’da güncel bilgilerle araştırıp en uygun 5 mekanı öner. Öncelik: isteğe uygunluk, yakınlık, ' +
       'Google puanı ve yorum sayısı, fiyat-performans ve son dönemde sosyal medyada (Instagram, TikTok, YouTube) ne kadar konuşulduğu. ' +
       'Kapanmış mekanları önerme. Puanı/yorum sayısını bulamazsan 0 yaz, UYDURMA. populerlik alanına sosyal medyadaki güncel durumu kısaca ' +
       'yaz (ör. "Son aylarda TikTok’ta çok paylaşılıyor", "Yerel favori, sosyal medyada az"). neden: neden önerdiğin, 1 cümle. ' +
-      'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı) ve biliniyorsa kişi başı tahmini. Türkçe yaz.',
+      'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı) ve biliniyorsa kişi başı tahmini. link: mekanı tanıtan paylaşımın/videonun GERÇEK linki ' +
+      '(bulamazsan boş, UYDURMA). Türkçe yaz.' +
+      (hesap
+        ? ` ÖNEMLİ: YALNIZCA ${hesap} hesabının (Instagram/TikTok/YouTube) paylaşımlarında tanıttığı ya da önerdiği mekanlardan, bulunduğum yere ` +
+          'makul yakınlıkta (aynı şehir, tercihen ~15 km içi) olanları öner. populerlik alanına bu hesabın mekan hakkında ne dediğini yaz. ' +
+          'Bu hesabın tanıttığı mekanı bulamazsan boş liste döndür; başka mekan ekleme.'
+        : ''),
     `İstek: ${istek}\nBulunduğum yer: ${yer}${kayitliAdlar.length ? `\nZaten kayıtlı mekanlarım (uygunsa önerebilirsin): ${kayitliAdlar.slice(0, 40).join(', ')}` : ''}`,
     {
       type: 'object',
@@ -1271,7 +1278,7 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
           items: {
             type: 'object',
             additionalProperties: false,
-            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir'],
+            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'link'],
             properties: {
               ad: { type: 'string' },
               tur: { type: 'string' },
@@ -1285,7 +1292,8 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
               yorumSayisi: { type: 'integer' },
               fiyat: { type: 'string' },
               populerlik: { type: 'string' },
-              ne_yenir: { type: 'array', items: { type: 'string' } }
+              ne_yenir: { type: 'array', items: { type: 'string' } },
+              link: { type: 'string' }
             }
           }
         }
@@ -1297,7 +1305,7 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
   return (v.oneriler ?? [])
     .filter((o) => o?.ad)
     .slice(0, 6)
-    .map((o) => ({ ...o, puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
+    .map((o) => ({ ...o, link: /^https?:\/\//.test(String(o.link ?? '')) ? String(o.link) : '', puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
 }
 
 // Mekana giden unluler: kim, ne dedi, paylasiminin linki (Google aramasiyla)
