@@ -162,8 +162,21 @@ export default function MekanDetay() {
             </button>
           </div>
           {m.yorumOzeti && <p className={`text-[13.5px] ${T_GOVDE}`}>💬 {m.yorumOzeti}</p>}
-          <button className="lz-btn-soft w-full text-sm" onClick={() => ac(yorumlarLinki(m))}>
-            Google yorumlarını oku
+          <button
+            className="lz-btn-soft w-full text-sm"
+            onClick={() => {
+              ac(yorumlarLinki(m))
+              // Yorumlara bakarken puan da tazelensin (bugun zaten guncellendiyse tekrar aranmaz, token harcanmaz)
+              const bugunGuncel = m.puanZamani && new Date(m.puanZamani).toDateString() === new Date().toDateString()
+              if (!bugunGuncel && !puanAraniyor) {
+                setPuanAraniyor(true)
+                void puaniGuncelle(m)
+                  .catch(() => false)
+                  .finally(() => setPuanAraniyor(false))
+              }
+            }}
+          >
+            Google yorumlarını oku{puanAraniyor ? ' · puan güncelleniyor…' : ''}
           </button>
           {m.puanZamani && (
             <p className={`text-[11px] ${T_SOLUK}`}>
