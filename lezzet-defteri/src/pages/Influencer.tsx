@@ -7,7 +7,7 @@ import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from 
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adrestenKonum, konumdanAdres, mesafeKm, telefonKonumu, type Konum } from '../lib/mekan'
 import { hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal } from '../lib/hesaplar'
-import { BEGENI_KURALI, YeniListe, adNormal, guvenSkoru, hesapParca, onunMekanlari } from './Takip'
+import { ReklamRozeti, BEGENI_KURALI, YeniListe, adNormal, guvenSkoru, hesapParca, onunMekanlari } from './Takip'
 
 // Fenomenin profili: sosyal medya hesabi; youtube kanalinda arama, @ad ise Instagram profili
 function profilLinki(h: string): string {
@@ -231,7 +231,10 @@ export default function Influencer() {
             <Link key={m.id} to={`/mekan/${m.id}`} className="flex items-start gap-2.5 py-2 border-b last:border-0 border-[#efefed] dark:border-[#26262a]">
               <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${m.gidildi ? 'bg-emerald-500' : 'bg-[#d4d4d8]'}`} />
               <span className="flex-1 min-w-0">
-                <span className={`block font-semibold text-[14.5px] ${T_BASLIK}`}>{m.ad}</span>
+                <span className={`block font-semibold text-[14.5px] ${T_BASLIK}`}>
+                  {m.ad}
+                  {m.reklam && <ReklamRozeti />}
+                </span>
                 <span className={`block text-[12px] ${T_SOLUK}`}>{[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}</span>
                 {(m.paylasanYorumu?.karar || m.paylasanYorumu?.begendi) && (
                   <span className={`block text-[12.5px] mt-0.5 ${T_GOVDE}`}>“{m.paylasanYorumu.karar || m.paylasanYorumu.begendi}”</span>

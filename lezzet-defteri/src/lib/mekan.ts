@@ -3,7 +3,7 @@
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { instagramAdi, aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type MekanOnerisi, type PaylasanYorumu, type VideoParcalari } from './ai'
+import { instagramAdi, reklamMetni, aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type MekanOnerisi, type PaylasanYorumu, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
 import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } from './places'
 import { PLATFORM_AD, linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
@@ -264,6 +264,7 @@ export async function mekanLinktenEkle(
     yorumOzeti: String(b.yorum_ozeti ?? '').trim() || undefined,
     paylasanYorumu: yorumTemizle(b.paylasan_yorumu),
     instagram: instagramAdi(b.instagram) || undefined,
+    reklam: b.reklam === true || reklamMetni(metin) || undefined,
     puanZamani: puanTemizle(b.google_puan) ? Date.now() : undefined
   }
   if (g) googleIleBirlestir(kayit, g)

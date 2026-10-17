@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
+import { ReklamRozeti } from './Takip'
 import type { LzMekan, LzZiyaret } from '../types'
 import { Header, Icon, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { fiyatlariGuncelle, haritadaAcLinki, instagramLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
@@ -113,7 +114,11 @@ export default function MekanDetay() {
             <SofraRozet ad={m.paylasan.replace(/^@/, '')} className="w-10 h-10 text-[14px]" />
             <span className="flex-1 min-w-0">
               <span className={`block text-[11.5px] ${T_SOLUK}`}>Paylaşan</span>
-              <span className={`block font-semibold truncate ${T_BASLIK}`}>{m.paylasan}</span>
+              <span className={`block font-semibold truncate ${T_BASLIK}`}>
+                {m.paylasan}
+                {m.reklam && <ReklamRozeti />}
+              </span>
+              {m.reklam && <span className="block text-[11.5px] text-amber-700 dark:text-amber-300">Bu paylaşım reklam / iş birliği olarak işaretli</span>}
             </span>
             {takipEdiliyor(m.paylasan) ? (
               <span className="text-[13px] text-emerald-600 dark:text-emerald-300 font-semibold">✓ Takip ediliyor</span>

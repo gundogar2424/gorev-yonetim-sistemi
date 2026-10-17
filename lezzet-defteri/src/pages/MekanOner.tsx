@@ -5,6 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
+import { ReklamRozeti } from './Takip'
 import { hesapAdi, hesaplariOku, hesaplariYaz, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { adrestenKonum, instagramLinki, konumdanAdres, oneriKaydet, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
 
@@ -498,7 +499,10 @@ export default function MekanOner() {
           <div key={i} className="lz-card p-4 space-y-1.5">
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
-                <div className={`font-bold text-[16px] leading-snug ${T_BASLIK}`}>{o.ad}</div>
+                <div className={`font-bold text-[16px] leading-snug ${T_BASLIK}`}>
+                  {o.ad}
+                  {o.reklam && <ReklamRozeti />}
+                </div>
                 <div className={`text-[12.5px] ${T_SOLUK}`}>{[o.tur, o.ilce, o.sehir].filter(Boolean).join(' · ')}</div>
               </div>
               {o.km !== undefined && <div className="text-[13px] font-semibold text-lz-600 whitespace-nowrap">{mesafeYaz(o.km)}</div>}

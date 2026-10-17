@@ -149,6 +149,7 @@ export interface LzMekan {
   yorumOzeti?: string // Yorumlarda one cikanlar (artı/eksi)
   puanZamani?: number
   instagram?: string // mekanin resmi Instagram kullanici adi
+  reklam?: boolean // paylasim reklam / is birligi olarak isaretli
   gitmekIstiyorum?: boolean // "Gitmek istediğim yerler" listesinde (ziyaret eklenince duser)
   paylasanYorumu?: { yedi: string; begendi: string; begenmedi: string; karar: string } // paylasan (influencer) ne dedi
   hype?: { var: boolean; not: string; zaman: number } // son "sosyal medyada konusuluyor mu" kontrolu

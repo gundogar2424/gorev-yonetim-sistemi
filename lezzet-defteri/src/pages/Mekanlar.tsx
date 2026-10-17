@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
+import { ReklamRozeti } from './Takip'
 import type { LzMekan } from '../types'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
@@ -336,6 +337,7 @@ export default function Mekanlar() {
                   <div className="flex-1 min-w-0">
                     <div className={`font-semibold leading-snug pr-16 ${T_BASLIK}`}>
                       {m.ad} {m.gidildi && <span className="text-[12px] text-emerald-600">✓</span>}
+                      {m.reklam && <ReklamRozeti />}
                       {(() => {
                         const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))
                         const p = z.filter((x) => x.puan)

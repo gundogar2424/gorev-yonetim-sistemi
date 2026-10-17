@@ -1151,6 +1151,7 @@ export interface MekanBilgisi {
   paylasan_yorumu: PaylasanYorumu
   instagram: string
   paylasan_hesap: string
+  reklam: boolean
 }
 // Paylasimi yapan kisinin (influencer) mekan hakkindaki kendi sozleri
 export interface PaylasanYorumu {
@@ -1207,7 +1208,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
   const schema = {
     type: 'object',
     additionalProperties: false,
-    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden', 'diger_mekanlar', 'paylasan_yorumu', 'instagram', 'paylasan_hesap'],
+    required: ['mekan_mi', 'ad', 'tur', 'sehir', 'ilce', 'adres', 'enlem', 'boylam', 'oneriler', 'fiyat', 'notlar', 'etiketler', 'google_puan', 'yorum_sayisi', 'yorum_ozeti', 'bulunamadi_neden', 'diger_mekanlar', 'paylasan_yorumu', 'instagram', 'paylasan_hesap', 'reklam'],
     properties: {
       mekan_mi: { type: 'boolean', description: 'Paylaşımda belirli bir yeme-içme mekanı tanıtılıyor/öneriliyor mu' },
       diger_mekanlar: {
@@ -1234,6 +1235,7 @@ export async function aiMekanAyikla(metin: string, foto = '', video?: VideoParca
         }
       },
       instagram: { type: 'string', description: 'Mekanın RESMİ Instagram kullanıcı adı (@ olmadan); emin değilsen boş' },
+      reklam: { type: 'boolean', description: 'Paylaşım reklam/iş birliği/sponsorlu/davet olarak işaretliyse true; emin değilsen false' },
       paylasan_hesap: { type: 'string', description: 'Paylaşımı YAPAN kişinin/hesabın adı ya da @kullanıcı adı (mekanın değil); paylaşımda görünmüyorsa boş' },
       paylasan_yorumu: {
         type: 'object',
@@ -1436,6 +1438,7 @@ export interface MekanOnerisi {
   instagram: string // mekanin resmi Instagram kullanici adi (@ olmadan); bilinmiyorsa bos
   yemek_fiyati: string // aranan yemegin bu mekandaki fiyati
   yemek_yorumu: string // aranan yemek hakkinda yorumlarda ne deniyor
+  reklam: boolean // tanitim reklam / is birligi olarak isaretli
 }
 
 // HYPE TARIFLER: son haftalarda sosyal medyada (Instagram, TikTok, YouTube) viral olan ev tarifleri (tek Google aramali istek)
@@ -1488,6 +1491,11 @@ export async function aiHypeTarifler(filtre = ''): Promise<HypeTarif[]> {
 }
 
 // "@ad", "ad" ya da profil linki -> "ad"; gecersizse bos
+// Aciklamada acik reklam isareti var mi? (yapay zekasiz kesin kontrol)
+export function reklamMetni(metin: string): boolean {
+  return /#(işbirliği|isbirligi|iş_birliği|reklam|sponsor|sponsorlu|ad|ads|sponsored|paidpartnership|ortaklık|gifted|davet)\b|ücretli ortaklık|paid partnership|reklam içerir|iş birliği ile|davetlisi olarak|davetli olarak/i.test(metin)
+}
+
 export function instagramAdi(x: unknown): string {
   const t = String(x ?? '').trim()
   const h = t.match(/instagram\.com\/([\w.]+)/i)?.[1] ?? t.replace(/^@/, '')
@@ -1510,7 +1518,8 @@ export async function aiMekanOner(
       'Google puanı ve yorum sayısı, fiyat-performans ve son dönemde sosyal medyada (Instagram, TikTok, YouTube) ne kadar konuşulduğu. ' +
       'Kapanmış mekanları önerme. Puanı/yorum sayısını bulamazsan 0 yaz, UYDURMA. populerlik alanına sosyal medyadaki güncel durumu kısaca ' +
       'yaz (ör. "Son aylarda TikTok’ta çok paylaşılıyor", "Yerel favori, sosyal medyada az"). neden: neden önerdiğin, 1 cümle. ' +
-      'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı) ve biliniyorsa kişi başı tahmini. instagram: mekanın RESMİ Instagram kullanıcı adı (@ olmadan, ör. "mielcoffee"); emin değilsen boş, UYDURMA ' +
+      'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı) ve biliniyorsa kişi başı tahmini. instagram: mekanın RESMİ Instagram kullanıcı adı (@ olmadan, ör. "mielcoffee"); emin değilsen boş, UYDURMA. ' +
+      'reklam: paylaşım #işbirliği, #reklam, #sponsorlu, “ücretli ortaklık/paid partnership”, “davetliydim”, “hediye edildi” gibi işaretliyse ya da açıkça ücretli tanıtımsa true; emin değilsen false. ' +
       '(bulamazsan boş, UYDURMA). Türkçe yaz.' +
       (km
         ? ` MESAFE: YALNIZCA bulunduğum yerden en fazla ${km} km uzaktaki mekanları öner; daha uzaktakileri listeye koyma. enlem/boylamı doğru yaz.`
@@ -1543,7 +1552,7 @@ export async function aiMekanOner(
           items: {
             type: 'object',
             additionalProperties: false,
-            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'instagram', 'yemek_fiyati', 'yemek_yorumu'],
+            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'instagram', 'yemek_fiyati', 'yemek_yorumu', 'reklam'],
             properties: {
               ad: { type: 'string' },
               tur: { type: 'string' },
@@ -1559,6 +1568,7 @@ export async function aiMekanOner(
               populerlik: { type: 'string' },
               ne_yenir: { type: 'array', items: { type: 'string' } },
               instagram: { type: 'string' },
+              reklam: { type: 'boolean' },
               yemek_fiyati: { type: 'string' },
               yemek_yorumu: { type: 'string' }
             }
@@ -1572,7 +1582,7 @@ export async function aiMekanOner(
   return (v.oneriler ?? [])
     .filter((o) => o?.ad)
     .slice(0, 8)
-    .map((o) => ({ ...o, yemek_fiyati: String(o.yemek_fiyati ?? '').trim(), yemek_yorumu: String(o.yemek_yorumu ?? '').trim(), link: '', instagram: instagramAdi(o.instagram), puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
+    .map((o) => ({ ...o, yemek_fiyati: String(o.yemek_fiyati ?? '').trim(), yemek_yorumu: String(o.yemek_yorumu ?? '').trim(), link: '', instagram: instagramAdi(o.instagram), reklam: o.reklam === true, puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
 }
 
 // Mekana giden unluler: kim, ne dedi, paylasiminin linki (Google aramasiyla)

@@ -16,8 +16,16 @@ export const BEGENI_KURALI =
   'alanlarına Google değerlerini yaz (bulamazsan 0, UYDURMA). populerlik alanına paylaşımın beğeni/yorum durumunu ve hem takipçi yorumlarının ' +
   'hem Google yorumlarının genel havasını kısa yaz (ör. "Paylaşım 48 bin beğeni; takipçiler ve Google yorumları lezzeti övüyor").'
 // Google puani ve yorum sayisina gore guven skoru (cok yorumlu 4,6 > az yorumlu 4,9)
-export function guvenSkoru(o: { puan: number; yorumSayisi: number }): number {
-  return (o.puan || 0) * Math.log10(10 + (o.yorumSayisi || 0))
+// Reklam/is birligi paylasimi biraz geriye duser
+export function guvenSkoru(o: { puan: number; yorumSayisi: number; reklam?: boolean }): number {
+  return (o.puan || 0) * Math.log10(10 + (o.yorumSayisi || 0)) * (o.reklam ? 0.85 : 1)
+}
+export function ReklamRozeti() {
+  return (
+    <span className="inline-block align-middle ml-1.5 rounded-md bg-amber-100 dark:bg-[#2a2113] text-amber-800 dark:text-amber-300 text-[10.5px] font-bold px-1.5 py-0.5">
+      Reklam
+    </span>
+  )
 }
 
 export const adNormal = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
@@ -40,6 +48,7 @@ export function YeniListe({ liste, mekanlar, goster }: { liste: MekanOnerisi[]; 
             <div className={`font-semibold text-[14.5px] ${T_BASLIK}`}>
               {!k && <span className="text-[10.5px] font-bold tracking-wide text-lz-600 mr-1.5">YENİ</span>}
               {o.ad}
+              {o.reklam && <ReklamRozeti />}
             </div>
             <div className={`text-[12px] ${T_SOLUK}`}>
               {o.puan ? <b className="text-amber-600 dark:text-amber-300">★ {o.puan.toFixed(1).replace('.', ',')}{o.yorumSayisi ? ` (${o.yorumSayisi.toLocaleString('tr')})` : ''} · </b> : null}
