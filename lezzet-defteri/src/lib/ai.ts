@@ -111,6 +111,32 @@ const SEMA = {
   }
 }
 
+// Tek paylasimda birden cok tarif (ör. "5 proteinli tatli" kaydirmali gonderi): ilki ana alanlarda, digerleri burada
+const SEMA_COKLU = {
+  ...SEMA,
+  required: [...SEMA.required, 'diger_tarifler'],
+  properties: {
+    ...SEMA.properties,
+    diger_tarifler: {
+      type: 'array',
+      description: 'Paylaşımda BİRDEN ÇOK AYRI tarif varsa ana alanlara yazdığın dışındakiler (en fazla 9); tek tarifse boş liste',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['title', 'servings', 'minutes', 'ingredients', 'steps', 'notes'],
+        properties: {
+          title: { type: 'string' },
+          servings: { type: 'integer' },
+          minutes: { type: 'integer' },
+          ingredients: { type: 'array', items: { type: 'string' } },
+          steps: { type: 'array', items: { type: 'string' } },
+          notes: { type: 'string' }
+        }
+      }
+    }
+  }
+}
+
 // Icerik parcalari saglayicidan bagimsiz tutulur, gonderirken cevrilir.
 export type Parca =
   | { type: 'text'; text: string }
@@ -491,6 +517,7 @@ interface TarifJson {
   steps: string[]
   notes: string
   tags: string[]
+  diger_tarifler?: { title: string; servings: number; minutes: number; ingredients: string[]; steps: string[]; notes: string }[]
 }
 
 // Paylasimda tarif yoksa (ör. bir mekan tanitimi) bu hata atilir; cagiran mekan olarak dener.
@@ -504,10 +531,24 @@ export class TarifYokHatasi extends Error {
   }
 }
 
-function tarifeCevir(v: TarifJson): Partial<LzDraft> {
+// Ayni paylasimdaki diger tarifler (yalnizca malzemesi ve yapilisi olanlar)
+export type EkTarif = Pick<LzDraft, 'title' | 'servings' | 'minutes' | 'ingredients' | 'steps' | 'notes'>
+function tarifeCevir(v: TarifJson): Partial<LzDraft> & { ekler?: EkTarif[] } {
   // Tarif degil (ör. mekan tanitimi): yapilis adimi yoksa ya da malzeme yok denecek kadar azsa
   if (!v.is_recipe && (!v.ingredients?.length || !v.steps?.length)) throw new TarifYokHatasi()
+  const ekler = (Array.isArray(v.diger_tarifler) ? v.diger_tarifler : [])
+    .map((d) => ({
+      title: String(d.title ?? '').trim(),
+      servings: Number(d.servings) || 0,
+      minutes: Number(d.minutes) || 0,
+      ingredients: (d.ingredients ?? []).map((x) => String(x).trim()).filter(Boolean),
+      steps: (d.steps ?? []).map((x) => String(x).trim()).filter(Boolean),
+      notes: String(d.notes ?? '').trim()
+    }))
+    .filter((d) => d.title && d.ingredients.length && d.steps.length)
+    .slice(0, 9)
   return {
+    ...(ekler.length ? { ekler } : {}),
     title: v.title,
     servings: v.servings || 0,
     minutes: v.minutes || 0,
@@ -524,6 +565,8 @@ const MEKAN_KURALI =
 
 const AYIKLA_SISTEM =
   MEKAN_KURALI +
+  'BİRDEN ÇOK TARİF: Paylaşımda (özellikle kaydırmalı gönderilerde her görselde ayrı bir tarif) birden çok AYRI tarif varsa ilkini ana alanlara, ' +
+  'diğerlerini diger_tarifler’e kendi malzeme ve yapılışlarıyla yaz; tek tarifse diger_tarifler boş. ' +
   'Sen bir tarif editörüsün. Sosyal medya paylaşımı, web sayfası ya da fotoğraftan gelen dağınık içerikten ' +
   'yemek tarifini çıkarıp düzenli Türkçe tarif olarak döndürürsün. İçerikte olmayan malzeme UYDURMA ve ' +
   'yemeğin adından yola çıkarak "genelde konur" diye malzeme EKLEME; yalnızca içerikte geçenleri yaz. ' +
@@ -544,7 +587,7 @@ export async function aiIleAyikla(metin: string, ipucuBaslik = ''): Promise<Part
   const v = await jsonCagri<TarifJson>(
     AYIKLA_SISTEM,
     `${ipucuBaslik ? `Paylaşım başlığı: ${ipucuBaslik}\n\n` : ''}Metin:\n"""\n${metin.slice(0, 12000)}\n"""`,
-    SEMA
+    SEMA_COKLU
   )
   return tarifeCevir(v)
 }
@@ -559,7 +602,7 @@ export async function aiFotograftan(dataUri: string): Promise<Partial<LzDraft>> 
       { type: 'image', mime: m[1], data: m[2] },
       { type: 'text', text: 'Bu fotoğraftaki tarifi çıkar. Fotoğrafta yalnızca bir yemek görünüyorsa (yazı yoksa), o yemeğin makul bir tarifini yaz.' }
     ],
-    SEMA
+    SEMA_COKLU
   )
   return tarifeCevir(v)
 }
@@ -574,6 +617,7 @@ export interface VideoParcalari {
   video?: { mime: string; data: string } // Videonun kendisi (yalnizca Gemini; sesi ve goruntuyu birlikte anlar)
   ses?: { mime: string; data: string } // Buyuk videolarda yalnizca ses (yalnizca Gemini dinler)
   youtube?: string // YouTube adresi (yalnizca Gemini videoyu dogrudan izleyebilir)
+  galeri?: boolean // kareler kaydirmali gonderinin sayfalari (video karesi degil)
 }
 export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
   const icerik: Parca[] = []
@@ -592,7 +636,10 @@ export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
     p.konusma && `Videoda söylenenler (otomatik yazıya çevrildi, hatalı kelimeler olabilir):\n"""\n${p.konusma.slice(0, 15000)}\n"""`,
     gemini && (p.video || p.youtube) && 'Ekteki video tarif videosunun kendisidir: söylenenleri dinle, ekrandaki yazıları ve malzemeleri izle.',
     gemini && p.ses && 'Ekteki ses kaydı tarif videosunun sesidir: söylenen malzeme ve ölçüleri dikkatle dinle.',
-    p.kareler.length && `Yukarıdaki ${Math.min(10, p.kareler.length)} görsel videodan eşit aralıklarla alınmış karelerdir; ekrandaki yazılar (malzeme listesi, ölçüler) ve görünen malzemeler için bunlara bak.`
+    p.kareler.length &&
+      (p.galeri
+        ? `Yukarıdaki ${Math.min(10, p.kareler.length)} görsel kaydırmalı gönderinin sırasıyla sayfalarıdır; tarifler (malzeme, ölçü, yapılış) çoğunlukla bu görsellerin üzerinde YAZILIDIR, dikkatle oku.`
+        : `Yukarıdaki ${Math.min(10, p.kareler.length)} görsel videodan eşit aralıklarla alınmış karelerdir; ekrandaki yazılar (malzeme listesi, ölçüler) ve görünen malzemeler için bunlara bak.`)
   ].filter(Boolean)
   icerik.push({
     type: 'text',
@@ -604,7 +651,7 @@ export async function aiVideodan(p: VideoParcalari): Promise<Partial<LzDraft>> {
       'yola çıkarak malzeme TAHMİN ETME, benzer bir tarif UYDURMA (ör. başlık "köfte" diye kıyma ekleme). Kaynaklarda malzeme ' +
       'yoksa ingredients listesini boş bırak ve notes alanına "Videoda malzemeler anlaşılamadı." yaz.'
   })
-  const v = await jsonCagri<TarifJson>(AYIKLA_SISTEM, icerik, SEMA, 5000)
+  const v = await jsonCagri<TarifJson>(AYIKLA_SISTEM, icerik, SEMA_COKLU, 9000)
   return tarifeCevir(v)
 }
 

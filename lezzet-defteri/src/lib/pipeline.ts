@@ -4,20 +4,25 @@
 // geri cagirimla bildirilir.
 import { linkAyikla, linktenTarif, metinIndir, type LinkSonucu, youtubeId } from './importer'
 import { metniAyristir } from './parse'
-import { aiAdi, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type VideoParcalari, TarifYokHatasi } from './ai'
+import { aiAdi, aiIleAyikla, aiVideodan, apiAnahtari, saglayici, type EkTarif, type VideoParcalari, TarifYokHatasi } from './ai'
 import { GEMINI_DOGRUDAN_MAX, instagramVeri, kareler, sesWavBase64, konusmayiYaziyaCevir, sesModeli, videoAdresiBul, videoIndir, youtubeBilgi } from './video'
 import { uzaktanFotoIndir } from './image'
 import type { LzDraft } from '../types'
+import { addRecipe, updateRecipe } from '../db'
+import { benzerTarif } from './kopya'
 
 export type Ilerleme = (mesaj: string) => void
 export interface Taslak {
   draft: LzDraft
   not: string
+  ekler?: EkTarif[] // ayni paylasimdaki diger tarifler (kaydirmali gonderi)
 }
 
 // Taslagi son haline getirir: kapak bir https adresiyse bir kez indirilir
 // (sosyal medya gorsel adresleri zamanla gecersiz olur), malzeme yoksa uyari eklenir.
-export async function taslakHazirla(d: LzDraft, not = '', yedekKapak = '', ilerleme: Ilerleme = () => {}): Promise<Taslak> {
+export async function taslakHazirla(d0: LzDraft, not = '', yedekKapak = '', ilerleme: Ilerleme = () => {}): Promise<Taslak> {
+  // Ayni paylasimdaki diger tarifler taslaktan ayrilir (deftere ayrica eklenir)
+  const { ekler, ...d } = d0 as LzDraft & { ekler?: EkTarif[] }
   if (/^https:\/\//i.test(d.photo)) {
     ilerleme('Fotoğraf alınıyor…')
     try {
@@ -30,7 +35,7 @@ export async function taslakHazirla(d: LzDraft, not = '', yedekKapak = '', ilerl
   if (!d.ingredients.filter((x) => x.trim()).length) {
     not = `⚠️ Malzemeler bulunamadı, listeyi kendin yaz. ${not}`.trim()
   }
-  return { draft: d, not }
+  return { draft: d, not, ...(ekler?.length ? { ekler } : {}) }
 }
 
 
@@ -129,6 +134,19 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
     videoUrl = v.videoUrl
     if (v.aciklama.length > parca.aciklama.length) parca.aciklama = v.aciklama
     if (v.kapak) kapak = v.kapak
+    // KAYDIRMALI GONDERI: videosu yoksa sayfa gorselleri indirilir; tarif cogunlukla gorsellerin uzerinde yazar
+    if (!videoUrl && v.galeri.length) {
+      ilerleme(`Kaydırmalı gönderi: ${v.galeri.length} görsel alınıyor…`)
+      for (const g of v.galeri.slice(0, 10)) {
+        const d = await uzaktanFotoIndir(g).catch(() => '')
+        if (d) parca.kareler.push(d)
+      }
+      if (parca.kareler.length) {
+        parca.galeri = true
+        kapak = parca.kareler[0]
+        return { parca, kapak, notlar }
+      }
+    }
   }
   if (!videoUrl) {
     notlar.push('video dosyasına ulaşılamadı (Instagram izin vermedi ya da paylaşım gizli)')
@@ -171,6 +189,18 @@ async function videoTopla(url: string, s: LinkSonucu, ilerleme: Ilerleme): Promi
   return { parca, kapak, notlar }
 }
 
+
+// Kaydirmali gonderideki diger tarifleri deftere ekler (ana tarifle ayni kaynak ve kapak); eklenen sayisini dondurur
+export async function ekleriKaydet(t: Taslak): Promise<number> {
+  let n = 0
+  for (const [i, e] of (t.ekler ?? []).entries()) {
+    if (await benzerTarif({ title: e.title, ingredients: e.ingredients })) continue
+    const id = await addRecipe({ ...t.draft, ...e, tags: t.draft.tags })
+    await updateRecipe(id, { kontrol: `Aynı gönderideki ${i + 2}. tarif (${t.draft.title}); kontrol et.` })
+    n++
+  }
+  return n
+}
 
 // Aciklama tarifin TAMAMINI yaziyor mu? (olculu en az 4 malzeme satiri + yapilis bolumu ya da numarali adimlar)
 // Yapay zekasiz, yerel kontrol; evetse video izlenmeden yalnizca yazidan cikarilir (kredi tasarrufu).

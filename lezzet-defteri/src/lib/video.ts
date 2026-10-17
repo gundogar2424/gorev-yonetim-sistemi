@@ -77,8 +77,8 @@ export function videoAdresiBul(html: string, platform: LzPlatform): string {
 // --- Instagram herkese acik veri servisi ----------------------------------------
 // Sayfa ve gomme sayfasi video adresini vermezse Instagram'in web sitesinin
 // kendi kullandigi GraphQL sorgusu denenir (girissiz, herkese acik gonderiler).
-export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string }> {
-  const bos = { videoUrl: '', aciklama: '', kapak: '' }
+export async function instagramVeri(kod: string): Promise<{ videoUrl: string; aciklama: string; kapak: string; galeri: string[] }> {
+  const bos = { videoUrl: '', aciklama: '', kapak: '', galeri: [] as string[] }
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
   if (!Capacitor.isNativePlatform()) return bos
   const lsd = 'AVqbxe3J_YA'
@@ -103,14 +103,22 @@ export async function instagramVeri(kod: string): Promise<{ videoUrl: string; ac
       data: form
     })
     const j = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as {
-      data?: { xdt_shortcode_media?: { video_url?: string; display_url?: string; edge_media_to_caption?: { edges?: { node?: { text?: string } }[] } } }
+      data?: {
+        xdt_shortcode_media?: {
+          video_url?: string
+          display_url?: string
+          edge_media_to_caption?: { edges?: { node?: { text?: string } }[] }
+          edge_sidecar_to_children?: { edges?: { node?: { display_url?: string; is_video?: boolean } }[] } // kaydirmali gonderi
+        }
+      }
     }
     const m = j?.data?.xdt_shortcode_media
     if (!m) return bos
     return {
       videoUrl: m.video_url ?? '',
       aciklama: m.edge_media_to_caption?.edges?.[0]?.node?.text ?? '',
-      kapak: m.display_url ?? ''
+      kapak: m.display_url ?? '',
+      galeri: (m.edge_sidecar_to_children?.edges ?? []).map((e) => e.node?.display_url ?? '').filter(Boolean)
     }
   } catch {
     return bos

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { linkAyikla, platformBul } from '../lib/importer'
-import { geminiyeHazirla, linktenTaslak, taslakHazirla, yapilandir } from '../lib/pipeline'
+import { ekleriKaydet, geminiyeHazirla, linktenTaslak, taslakHazirla, yapilandir } from '../lib/pipeline'
 import { TarifYokHatasi, aiAdi, aiFotograftan, aiVideodan, apiAnahtari, saglayici, type VideoParcalari } from '../lib/ai'
 import { mekanLinktenEkle } from '../lib/mekan'
 import { kareler, konusmayiYaziyaCevir, sesModeli } from '../lib/video'
@@ -55,7 +55,9 @@ export default function AddRecipe() {
     setYukleniyor('Paylaşım okunuyor…')
     try {
       const t = await linktenTaslak(girdi, setYukleniyor)
-      navigate('/yeni', { state: t })
+      // Kaydirmali gonderide birden cok tarif varsa digerleri dogrudan deftere eklenir
+      const ek = await ekleriKaydet(t)
+      navigate('/yeni', { state: ek ? { ...t, not: `${t.not} Aynı gönderideki ${ek} tarif daha deftere eklendi.`.trim() } : t })
     } catch (e) {
       // Tarif degil de bir mekan paylasildiysa Mekanlarim'a kaydedilir
       if (e instanceof TarifYokHatasi) {

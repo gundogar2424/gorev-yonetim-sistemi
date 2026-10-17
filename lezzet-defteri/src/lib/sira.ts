@@ -10,7 +10,7 @@ import { linkAyikla, platformBul } from './importer'
 import { ayniLinkliTarif, benzerTarif } from './kopya'
 import { TarifYokHatasi } from './ai'
 import { mekanLinktenEkle } from './mekan'
-import { linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
+import { ekleriKaydet, linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
 
 
 export async function siraEkle(girdi: string, tur?: 'tarif' | 'mekan', zorla = false): Promise<void> {
@@ -190,7 +190,13 @@ async function birIsle(is: LzSira, g: (patch: Partial<LzSira>) => Promise<void>,
     const id = await addRecipe(t.draft)
     await updateRecipe(id, { kontrol: t.not || 'Otomatik eklendi; kontrol et.' })
     const uyari = t.not.startsWith('⚠️')
-    await g({ durum: 'bitti', mesaj: uyari ? t.not : 'Deftere eklendi.', recipeId: id, baslik: t.draft.title || is.baslik })
+    const ek = await ekleriKaydet(t)
+    await g({
+      durum: 'bitti',
+      mesaj: (uyari ? t.not : 'Deftere eklendi.') + (ek ? ` Aynı gönderideki ${ek} tarif daha eklendi.` : ''),
+      recipeId: id,
+      baslik: t.draft.title || is.baslik
+    })
   } catch (e) {
     // Tarif degil de bir yeme-icme mekani paylasildiysa Mekanlarim'a kaydedilir
     if (e instanceof TarifYokHatasi) {
