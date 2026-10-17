@@ -75,6 +75,9 @@ export async function siraIsle(): Promise<void> {
   }
 }
 
+// Islenen isler: bekci ya da kullanici takilan isi durdurabilsin diye
+const islenen = new Map<number, { iptal: { v: boolean }; durdur: () => void }>()
+
 async function isci(): Promise<void> {
   aktif++
   try {
@@ -88,22 +91,54 @@ async function isci(): Promise<void> {
         if (!iptal.v) await lzDb.sira.update(is.id!, { ...patch, updatedAt: Date.now() })
       }
       let zaman: number | undefined
-      const sure = new Promise<'sure'>((res) => {
+      let durdur: () => void = () => {}
+      const sure = new Promise<'sure' | 'durdu'>((res) => {
         zaman = window.setTimeout(() => res('sure'), EN_UZUN_DK * 60 * 1000)
+        durdur = () => res('durdu')
       })
+      islenen.set(is.id!, { iptal, durdur })
       const sonuc = await Promise.race([birIsle(is, g, iptal).then(() => 'tamam' as const), sure])
       window.clearTimeout(zaman)
+      islenen.delete(is.id!)
       if (sonuc === 'sure') {
         await g({ durum: 'hata', mesaj: `${EN_UZUN_DK} dakikada bitmedi (bağlantı yavaş ya da video çok büyük). Tekrar dene.` })
         iptal.v = true
       }
     }
   } finally {
-    aktif--
+    aktif = Math.max(0, aktif - 1)
     if (aktif === 0) {
       servis((e) => e.bitir())
     }
   }
+}
+
+// Takilan isi durdurur (hata olarak isaretler; gec gelen sonuc yazilmaz) ve siraya devam eder
+export async function siraDurdur(id: number, mesaj = 'Durduruldu. Tekrar dene.'): Promise<void> {
+  const x = islenen.get(id)
+  if (x) {
+    x.iptal.v = true
+    x.durdur()
+    islenen.delete(id)
+  }
+  await lzDb.sira.update(id, { durum: 'hata', mesaj, updatedAt: Date.now() })
+  void siraIsle()
+}
+
+// BEKCI: 10 dakikadir hic ilerlemeyen (ör. uygulama arka planda donunca kalan) isleri
+// hataya cevirir ki sira kilitlenmesin. Acilista, one gelince ve dakikada bir calisir.
+const TAKILMA_DK = 10
+export async function siraBekci(): Promise<void> {
+  const simdi = Date.now()
+  const takili = (await lzDb.sira.where('durum').equals('isleniyor').toArray()).filter((x) => simdi - (x.updatedAt ?? 0) > TAKILMA_DK * 60 * 1000)
+  for (const x of takili) await siraDurdur(x.id!, 'Takıldı (uzun süre ilerlemedi). Tekrar dene.')
+  if (!takili.length) void siraIsle()
+}
+let bekciKuruldu = false
+export function bekciBaslat(): void {
+  if (bekciKuruldu) return
+  bekciKuruldu = true
+  window.setInterval(() => void siraBekci(), 60 * 1000)
 }
 
 async function birIsle(is: LzSira, g: (patch: Partial<LzSira>) => Promise<void>, iptal: { v: boolean }): Promise<void> {

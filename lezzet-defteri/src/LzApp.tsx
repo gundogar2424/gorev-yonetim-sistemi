@@ -18,7 +18,7 @@ import Sira from './pages/Sira'
 import TarifDegistir from './pages/TarifDegistir'
 import Mekanlar from './pages/Mekanlar'
 import MekanDetay from './pages/MekanDetay'
-import { siraBaslat, siraEkle, siraIsle } from './lib/sira'
+import { bekciBaslat, siraBaslat, siraBekci, siraEkle } from './lib/sira'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from './db'
 import { tumOgunleriTara } from './lib/diyetTara'
@@ -64,7 +64,8 @@ export default function LzApp() {
 
   useEffect(() => {
     void siraBaslat()
-    const gorunur = () => document.visibilityState === 'visible' && void siraIsle()
+    bekciBaslat()
+    const gorunur = () => document.visibilityState === 'visible' && void siraBekci()
     document.addEventListener('visibilitychange', gorunur)
     return () => document.removeEventListener('visibilitychange', gorunur)
   }, [])
