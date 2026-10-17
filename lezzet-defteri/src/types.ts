@@ -152,6 +152,16 @@ export interface LzMekan {
   paylasan?: string // Paylasimi yapan hesap (@…)
   kampanya?: { ozet: string; gecerlilik: string; kaynak: string; zaman: number } // son kontrolde bulunan kampanya
   kampanyaBakildi?: number
+  ziyaretler?: LzZiyaret[] // gittigim tarihler, puanim, ne yedim, notlarim
+  unluler?: { liste: { kisi: string; ozet: string; link: string }[]; zaman: number }
   fiyatlar?: { kalemler: { ad: string; fiyat: string }[]; kaynak: string; tarih: string; zaman: number } // guncel menu fiyatlari
   haritaUrl?: string // Google Haritalar'daki sayfasi (yorumlar)
+}
+
+export interface LzZiyaret {
+  tarih: string // YYYY-AA-GG
+  puan: number // 1-5 (0 = puan verilmedi)
+  yedim: string // ne yedim / ne ictim
+  not: string
+  tekrar: string // bir daha gelirsem bunu yerim
 }

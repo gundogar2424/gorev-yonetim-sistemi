@@ -263,6 +263,16 @@ export default function Mekanlar() {
                   <div className="flex-1 min-w-0">
                     <div className={`font-semibold leading-snug pr-7 ${T_BASLIK}`}>
                       {m.ad} {m.gidildi && <span className="text-[12px]">✅</span>}
+                      {(() => {
+                        const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))
+                        const p = z.filter((x) => x.puan)
+                        return z.length ? (
+                          <span className={`block text-[11.5px] font-normal ${T_SOLUK}`}>
+                            Son gidiş {z[0].tarih.split('-').reverse().join('.')}
+                            {p.length ? ` · puanım ★ ${(p.reduce((t, x) => t + x.puan, 0) / p.length).toFixed(1).replace('.', ',')}` : ''}
+                          </span>
+                        ) : null
+                      })()}
                       {m.sourceUrl && <span className="text-[11px] ml-1 opacity-60">▶</span>}
                     </div>
                     <div className={`text-[12.5px] ${T_SOLUK}`}>

@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
-import type { LzMekan } from '../types'
-import { Header, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
+import type { LzMekan, LzZiyaret } from '../types'
+import { Header, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { fiyatlariGuncelle, haritadaAcLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
-import { MEKAN_ETIKETLERI } from '../lib/ai'
+import { MEKAN_ETIKETLERI, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { mekanKampanyasi } from '../lib/kampanya'
 
 const PLATFORM: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', pinterest: 'Pinterest' }
@@ -88,6 +88,15 @@ export default function MekanDetay() {
           m.foto && <Thumb src={m.foto} className="w-full h-56 rounded-3xl" emoji="🍽️" />
         )}
         {m.paylasan && <p className={`text-[12.5px] px-1 -mt-1 ${T_SOLUK}`}>Paylaşan: {m.paylasan}</p>}
+        {(() => {
+          const son = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih)).find((z) => z.tekrar)
+          return son ? (
+            <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-900 dark:text-amber-200 text-[14px] p-3.5">
+              📝 <b>Bir dahaki sefere:</b> {son.tekrar}
+              <span className="block text-[11.5px] opacity-70 mt-0.5">{tarihYaz(son.tarih)} ziyaretinde not etmiştin</span>
+            </div>
+          ) : null
+        })()}
         <button
           className="lz-btn-soft w-full text-sm"
           disabled={kampanyaAraniyor}
@@ -273,19 +282,13 @@ export default function MekanDetay() {
         >
           {m.favori ? '❤️ Favori mekanım' : '🤍 Favorilere ekle'}
         </button>
-        <div className="grid grid-cols-2 gap-2.5">
-          <button
-            className={`text-sm ${m.gidildi ? 'lz-btn-primary' : 'lz-btn-soft'}`}
-            onClick={() => void lzDb.mekanlar.update(m.id!, { gidildi: !m.gidildi })}
-          >
-            {m.gidildi ? '✅ Gittim' : 'Gittim olarak işaretle'}
+        <ZiyaretKarti m={m} goster={goster} />
+        <UnluKarti m={m} goster={goster} />
+        {!duzenle && (
+          <button className="lz-btn-soft w-full text-sm" onClick={duzenlemeyiAc}>
+            ✏️ Düzenle
           </button>
-          {!duzenle && (
-            <button className="lz-btn-soft text-sm" onClick={duzenlemeyiAc}>
-              ✏️ Düzenle
-            </button>
-          )}
-        </div>
+        )}
         <button
           className={`text-[13px] w-full py-2 ${T_SOLUK}`}
           onClick={async () => {
@@ -355,6 +358,176 @@ function FiyatKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) 
         {f.kaynak ? `Kaynak: ${f.kaynak}` : ''}
         {f.tarih && f.tarih !== 'bilinmiyor' ? ` (${f.tarih})` : ''} · aranma: {new Date(f.zaman).toLocaleDateString('tr')} — fiyatlar değişmiş olabilir, mekandan teyit et.
       </p>
+    </div>
+  )
+}
+
+function bugun(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function tarihYaz(t: string): string {
+  const [y, a, g] = t.split('-').map(Number)
+  return y ? new Date(y, a - 1, g).toLocaleDateString('tr', { day: 'numeric', month: 'long', year: 'numeric' }) : t
+}
+function Yildiz({ puan, degis }: { puan: number; degis?: (p: number) => void }) {
+  return (
+    <span className="inline-flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) =>
+        degis ? (
+          <button key={i} type="button" className="text-[26px] leading-none" onClick={() => degis(i === puan ? 0 : i)} aria-label={`${i} yıldız`}>
+            {i <= puan ? '★' : '☆'}
+          </button>
+        ) : (
+          <span key={i} className="text-[15px] text-amber-500">
+            {i <= puan ? '★' : '☆'}
+          </span>
+        )
+      )}
+    </span>
+  )
+}
+
+// ZIYARET DEFTERI: gittigim tarih, verdigim puan, ne yedim, notum, "bir daha gelirsem bunu yerim"
+function ZiyaretKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
+  const [acik, setAcik] = useState(false)
+  const [duzenlenen, setDuzenlenen] = useState(-1)
+  const [z, setZ] = useState<LzZiyaret>({ tarih: bugun(), puan: 0, yedim: '', not: '', tekrar: '' })
+  const liste = m.ziyaretler ?? []
+  const sirali = liste.map((x, i) => ({ x, i })).sort((a, b) => b.x.tarih.localeCompare(a.x.tarih))
+  const puanlilar = liste.filter((x) => x.puan)
+  const ortalama = puanlilar.length ? puanlilar.reduce((t, x) => t + x.puan, 0) / puanlilar.length : 0
+
+  const yeni = () => {
+    setZ({ tarih: bugun(), puan: 0, yedim: '', not: '', tekrar: '' })
+    setDuzenlenen(-1)
+    setAcik(true)
+  }
+  const kaydet = async () => {
+    const yeniListe = duzenlenen >= 0 ? liste.map((x, i) => (i === duzenlenen ? z : x)) : [...liste, z]
+    await lzDb.mekanlar.update(m.id!, { ziyaretler: yeniListe, gidildi: true })
+    setAcik(false)
+    goster('✅ Ziyaret kaydedildi')
+  }
+  const sil = async () => {
+    if (duzenlenen < 0 || !confirm('Bu ziyaret silinsin mi?')) return
+    const yeniListe = liste.filter((_, i) => i !== duzenlenen)
+    await lzDb.mekanlar.update(m.id!, { ziyaretler: yeniListe, gidildi: yeniListe.length > 0 })
+    setAcik(false)
+  }
+
+  return (
+    <div className="lz-card p-4 space-y-2.5">
+      <div className="flex items-center gap-2">
+        <div className={`flex-1 font-semibold ${T_BASLIK}`}>
+          ✅ Ziyaretlerim{liste.length ? ` (${liste.length})` : ''}
+          {ortalama ? <span className="ml-2 text-[13px] font-normal text-amber-600 dark:text-amber-300">puanım ★ {ortalama.toFixed(1).replace('.', ',')}</span> : null}
+        </div>
+      </div>
+      {sirali.map(({ x, i }) => (
+        <button
+          key={i}
+          className="w-full text-left rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-0.5"
+          onClick={() => {
+            setZ(x)
+            setDuzenlenen(i)
+            setAcik(true)
+          }}
+        >
+          <div className={`text-[13.5px] font-semibold ${T_GOVDE}`}>
+            {tarihYaz(x.tarih)} {x.puan ? <Yildiz puan={x.puan} /> : null}
+          </div>
+          {x.yedim && <div className={`text-[13px] ${T_GOVDE}`}>🍽️ {x.yedim}</div>}
+          {x.not && <div className={`text-[13px] ${T_SOLUK}`}>{x.not}</div>}
+          {x.tekrar && <div className="text-[13px] text-amber-700 dark:text-amber-300">📝 Bir dahaki sefere: {x.tekrar}</div>}
+        </button>
+      ))}
+      <button className={`w-full text-sm ${liste.length ? 'lz-btn-soft' : 'lz-btn-primary'}`} onClick={yeni}>
+        {liste.length ? '＋ Yeni ziyaret ekle' : '✅ Buraya gittim — not ekle'}
+      </button>
+      <Sheet open={acik} onClose={() => setAcik(false)} title={duzenlenen >= 0 ? 'Ziyareti düzenle' : 'Buraya gittim'}>
+        <div className={`space-y-3 ${T_GOVDE}`}>
+          <label className="block">
+            <span className="lz-label">Ne zaman?</span>
+            <input type="date" className="lz-input mt-1" value={z.tarih} onChange={(e) => setZ({ ...z, tarih: e.target.value })} />
+          </label>
+          <div>
+            <span className="lz-label">Puanım</span>
+            <div className="mt-1 text-amber-500">
+              <Yildiz puan={z.puan} degis={(p) => setZ({ ...z, puan: p })} />
+            </div>
+          </div>
+          <label className="block">
+            <span className="lz-label">Ne yedim / içtim?</span>
+            <input className="lz-input mt-1" placeholder="Ör. İskender, künefe, ayran" value={z.yedim} onChange={(e) => setZ({ ...z, yedim: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="lz-label">Notum</span>
+            <textarea className="lz-input mt-1 min-h-[70px]" placeholder="Ör. İskender çok iyiydi, künefe biraz şekerliydi; servis hızlı" value={z.not} onChange={(e) => setZ({ ...z, not: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="lz-label">Bir daha gelirsem…</span>
+            <input className="lz-input mt-1" placeholder="Ör. Kuzu tandır denenecek, künefe yerine sütlaç" value={z.tekrar} onChange={(e) => setZ({ ...z, tekrar: e.target.value })} />
+          </label>
+          <button className="lz-btn-primary w-full" onClick={() => void kaydet()}>
+            Kaydet
+          </button>
+          {duzenlenen >= 0 && (
+            <button className={`text-[13px] w-full ${T_SOLUK}`} onClick={() => void sil()}>
+              Bu ziyareti sil
+            </button>
+          )}
+        </div>
+      </Sheet>
+    </div>
+  )
+}
+
+// UNLULER: bu mekana giden unluler, ne dedikleri ve paylasimlarinin linki
+function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
+  const [araniyor, setAraniyor] = useState(false)
+  const u = m.unluler
+  const ara = async () => {
+    if (!apiAnahtari()) return goster('Ayarlar’dan Gemini anahtarı gir.')
+    setAraniyor(true)
+    try {
+      const liste = await aiMekanUnluler(m)
+      await lzDb.mekanlar.update(m.id!, { unluler: { liste, zaman: Date.now() } })
+      goster(liste.length ? `⭐ ${liste.length} ünlü bulundu` : 'Bu mekana giden ünlü bulunamadı')
+    } catch (e) {
+      goster((e as Error).message.slice(0, 80))
+    }
+    setAraniyor(false)
+  }
+  const aramaLinki = (kisi: string) => `https://www.google.com/search?q=${encodeURIComponent(`${kisi} ${m.ad} ${m.sehir}`)}`
+  if (!u)
+    return (
+      <button className="lz-btn-soft w-full text-sm" disabled={araniyor} onClick={() => void ara()}>
+        {araniyor ? 'Ünlüler aranıyor…' : '⭐ Ünlüler gitti mi?'}
+      </button>
+    )
+  return (
+    <div className="lz-card p-4 space-y-2">
+      <div className="flex items-center gap-2">
+        <div className={`flex-1 font-semibold ${T_BASLIK}`}>⭐ Giden ünlüler</div>
+        <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" disabled={araniyor} onClick={() => void ara()}>
+          {araniyor ? 'Aranıyor…' : '↻ Güncelle'}
+        </button>
+      </div>
+      {u.liste.length ? (
+        u.liste.map((x, i) => (
+          <div key={i} className="rounded-2xl bg-[#f6efe7] dark:bg-[#2a2420] p-3 space-y-1">
+            <div className={`font-semibold text-[14px] ${T_GOVDE}`}>{x.kisi}</div>
+            {x.ozet && <div className={`text-[13px] ${T_GOVDE}`}>“{x.ozet}”</div>}
+            <a href={x.link || aramaLinki(x.kisi)} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
+              {x.link ? '▶ Paylaşımı aç' : '🔎 Paylaşımı ara'}
+            </a>
+          </div>
+        ))
+      ) : (
+        <p className={`text-[13px] ${T_SOLUK}`}>Son aramada bu mekana giden ünlü bulunamadı.</p>
+      )}
+      <p className={`text-[11.5px] ${T_SOLUK}`}>Yapay zekanın Google araması · {new Date(u.zaman).toLocaleDateString('tr')} — paylaşımı açıp kontrol et.</p>
     </div>
   )
 }
