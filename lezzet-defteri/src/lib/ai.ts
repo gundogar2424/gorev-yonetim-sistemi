@@ -1253,7 +1253,7 @@ export interface MekanOnerisi {
 }
 
 // Kullanicinin istegine ve bulundugu yere gore Google'da arastirip mekan onerir
-export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: string[], hesap = ''): Promise<MekanOnerisi[]> {
+export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: string[], hesap = '', diyet = ''): Promise<MekanOnerisi[]> {
   const v = await jsonCagri<{ oneriler: MekanOnerisi[] }>(
     'Sen deneyimli bir yeme-içme rehberisin. Kullanıcının isteğine (canının çektiği yemek, mutfak türü, fiyat-performans, ortam…) ve ' +
       'BULUNDUĞU YERE göre Google’da güncel bilgilerle araştırıp en uygun 5 mekanı öner. Öncelik: isteğe uygunluk, yakınlık, ' +
@@ -1266,8 +1266,14 @@ export async function aiMekanOner(istek: string, yer: string, kayitliAdlar: stri
         ? ` ÖNEMLİ: YALNIZCA şu hesap(lar)ın (Instagram/TikTok/YouTube) paylaşımlarında tanıttığı ya da önerdiği mekanlardan, bulunduğum yere ` +
           `makul yakınlıkta (aynı şehir, tercihen ~15 km içi) olanları öner: ${hesap}. En fazla 8 mekan. populerlik alanına HANGİ hesabın ` +
           'mekan hakkında ne dediğini yaz (ör. "@hesap: …"). Bu hesapların tanıttığı mekanı bulamazsan boş liste döndür; başka mekan ekleme.'
+        : '') +
+      (diyet
+        ? ' DİYET: Kullanıcı diyetisyeninin planına uyuyor; bilgisi aşağıda. YALNIZCA menüsünde bu öğün hedefine uyan yemek olan ' +
+          '(ızgara, haşlama, buharda, salata, çorba, yoğurtlu, tam tahıllı vb.) restoranları öner; en yakından başla. ne_yenir alanına bu ' +
+          'hedefe uyacak SOMUT sipariş önerisini yaz (yemek + porsiyon + değişiklik, ör. "Izgara tavuk, pilav yerine salata, sos ayrı"). ' +
+          'neden alanına o siparişin tahmini kalori ve proteinini yaz (ör. "~520 kcal, 40 g protein — öğle hedefine uygun").'
         : ''),
-    `İstek: ${istek}\nBulunduğum yer: ${yer}${kayitliAdlar.length ? `\nZaten kayıtlı mekanlarım (uygunsa önerebilirsin): ${kayitliAdlar.slice(0, 40).join(', ')}` : ''}`,
+    `İstek: ${istek}\nBulunduğum yer: ${yer}${diyet ? `\nDiyet bilgisi:\n${diyet}` : ''}${kayitliAdlar.length ? `\nZaten kayıtlı mekanlarım (uygunsa önerebilirsin): ${kayitliAdlar.slice(0, 40).join(', ')}` : ''}`,
     {
       type: 'object',
       additionalProperties: false,

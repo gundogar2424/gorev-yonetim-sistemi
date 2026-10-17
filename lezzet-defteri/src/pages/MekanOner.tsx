@@ -48,11 +48,14 @@ export default function MekanOner() {
   const [hesaplar, setHesaplar] = useState<string[]>(hesaplariOku())
   const [yeniHesap, setYeniHesap] = useState('')
   const [aktifHesap, setAktifHesap] = useState('')
+  const plan = useLiveQuery(() => lzDb.diyet.get(1), [])
+  const [diyetModu, setDiyetModu] = useState(false)
 
-  const ara = async (istekMetni = istek, hesap = '') => {
+  const ara = async (istekMetni = istek, hesap = '', diyet = '') => {
     setHata('')
     setSonuclar([])
     setAktifHesap(hesap)
+    setDiyetModu(!!diyet)
     try {
       // Nerede oldugum: yazilan semt ya da telefon konumu
       let yer = semt.trim()
@@ -70,7 +73,7 @@ export default function MekanOner() {
         }
       }
       setDurum(`Yapay zeka ${yer} çevresinde araştırıyor…`)
-      const liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap)
+      const liste = await aiMekanOner(istekMetni.trim(), yer, kayitli.map((m) => m.ad), hesap, diyet)
       const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
       const sonuc: Sonuc[] = liste.map((o) => {
         const kayit = kayitli.find((m) => ad(m.ad) === ad(o.ad))
@@ -152,6 +155,32 @@ export default function MekanOner() {
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">⚠️ {hata}</div>}
         </div>
 
+        {plan && plan.ogunler.length > 0 && (
+          <div className="lz-card p-4 space-y-2.5">
+            <div className={`font-semibold ${T_BASLIK}`}>🥗 Diyetime uygun yakın restoran</div>
+            <p className={`text-[12.5px] ${T_SOLUK}`}>Öğünü seç: menüsünde diyetine uyan yemek olan yakın restoranlar ve ne sipariş edeceğin listelenir.</p>
+            <div className="flex flex-wrap gap-1.5">
+              {plan.ogunler.map((o, i) => (
+                <button
+                  key={i}
+                  className="lz-chip text-[13px]"
+                  disabled={!aiVar || !!durum}
+                  onClick={() =>
+                    void ara(
+                      `${o.ad} için diyetime uygun yemek yiyebileceğim restoran`,
+                      '',
+                      `Öğün: ${o.ad}\nDiyetisyenin bu öğün için yazdığı: ${o.icerik}\nHedef: ~${Math.round(o.hedef.kalori)} kcal, protein ${Math.round(o.hedef.protein)} g, karbonhidrat ${Math.round(o.hedef.karb)} g, yağ ${Math.round(o.hedef.yag)} g` +
+                        (plan.notlar ? `\nPlanın genel kuralları: ${plan.notlar.slice(0, 800)}` : '')
+                    )
+                  }
+                >
+                  🥗 {o.ad}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="lz-card p-4 space-y-2.5">
           <div className={`font-semibold ${T_BASLIK}`}>📱 Takip ettiğim yemek hesapları</div>
           <p className={`text-[12.5px] ${T_SOLUK}`}>Hesaba dokun: o hesabın tanıttığı mekanlardan sana yakın olanlar önerilir.</p>
@@ -222,7 +251,7 @@ export default function MekanOner() {
               {o.fiyat}
             </div>
             <p className={`text-[13.5px] ${T_GOVDE}`}>{o.neden}</p>
-            {o.ne_yenir.length > 0 && <p className={`text-[13px] ${T_GOVDE}`}>😋 {o.ne_yenir.slice(0, 4).join(', ')}</p>}
+            {o.ne_yenir.length > 0 && <p className={`text-[13px] ${T_GOVDE}`}>{diyetModu ? '🥗 Sipariş: ' : '😋 '}{o.ne_yenir.slice(0, 4).join(', ')}</p>}
             {o.populerlik && <p className={`text-[12.5px] ${T_SOLUK}`}>📱 {o.populerlik}</p>}
             {o.link && (
               <a href={o.link} target="_blank" rel="noreferrer" className="text-[13px] text-lz-600 font-semibold underline">
