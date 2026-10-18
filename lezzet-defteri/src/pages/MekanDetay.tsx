@@ -12,7 +12,7 @@ import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
-import { dosyaPaylas, mekanHtml, mekanMetni, yaziPaylas } from '../lib/paylas'
+import { dosyaPaylas, mekanHtml } from '../lib/paylas'
 import { hesapFoto, hesapNormal, hesapTakipEt, hesaplariOku, takipEdiliyor } from '../lib/hesaplar'
 
 // Paylasanin influencer sayfasi anahtari: takip ediliyorsa listedeki kaydi, degilse ad (+ platform)
@@ -61,7 +61,6 @@ export default function MekanDetay() {
   const [, setTakipSayac] = useState(0) // takip edilince dugme yenilensin
   const [puanAraniyor, setPuanAraniyor] = useState(false)
   const [kampanyaAraniyor, setKampanyaAraniyor] = useState(false)
-  const [paylasAc, setPaylasAc] = useState(false)
 
   if (m === undefined) return null
   if (!m)
@@ -112,7 +111,15 @@ export default function MekanDetay() {
           <button
             aria-label="Paylaş"
             className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-[#1c1c1f] border border-[#e4e3e0] dark:border-[#2e2e33] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8] active:scale-95 transition"
-            onClick={() => setPaylasAc(true)}
+            onClick={async () => {
+              // Dogrudan mekan sayfasi (HTML dosyasi) paylasilir
+              try {
+                await dosyaPaylas(m.ad, await mekanHtml(m), '', 'Mekanı paylaş')
+              } catch (e) {
+                const t = String((e as Error)?.message ?? e)
+                if (!/cancel|abort|iptal/i.test(t)) goster('Paylaşılamadı')
+              }
+            }}
           >
             <Icon name="share" />
           </button>
@@ -466,40 +473,6 @@ export default function MekanDetay() {
         <p className={`text-[11.5px] text-center ${T_SOLUK}`}>Adres ve öneriler yapay zekanın araştırmasıdır; gitmeden önce kontrol et.</p>
       </div>
       <Toast text={toast} />
-      <Sheet open={paylasAc} onClose={() => setPaylasAc(false)} title="Mekanı paylaş">
-        <div className="space-y-2">
-          {(
-            [
-              ['sayfa', 'Mekan sayfası (dosya)', 'Fotoğraflı sayfa; arkadaşın tarayıcıda açar. Yol tarifi, harita, yorumlar ve video düğmeleri var', 'file'],
-              ['yazi', 'Mesaj olarak', 'Kısa yazı + harita linki (WhatsApp’ta direkt okunur)', 'share']
-            ] as const
-          ).map(([tur, baslik, alt, ikon]) => (
-            <button
-              key={tur}
-              className="lz-card p-3.5 w-full flex items-center gap-3 text-left active:scale-[0.99] transition"
-              onClick={async () => {
-                setPaylasAc(false)
-                try {
-                  if (tur === 'sayfa') await dosyaPaylas(m.ad, await mekanHtml(m), '', 'Mekanı paylaş')
-                  else if ((await yaziPaylas(m.ad, mekanMetni(m), 'Mekanı paylaş')) === 'kopyalandi') goster('Mekan bilgisi kopyalandı; mesaja yapıştırabilirsin')
-                } catch (e) {
-                  const t = String((e as Error)?.message ?? e)
-                  if (!/cancel|abort|iptal/i.test(t)) goster('Paylaşılamadı')
-                }
-              }}
-            >
-              <span className="w-10 h-10 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center flex-shrink-0">
-                <Icon name={ikon} className="w-5 h-5" />
-              </span>
-              <span className="flex-1">
-                <span className={`block font-semibold ${T_BASLIK}`}>{baslik}</span>
-                <span className={`block text-[12.5px] ${T_SOLUK}`}>{alt}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </Sheet>
-
     </div>
   )
 }
