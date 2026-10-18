@@ -8,12 +8,12 @@ import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { instagramLinki, konumdanAdres, mesafeKm, mesafeYaz, oneriKaydet, telefonKonumu, type Konum } from '../lib/mekan'
 
 const SINIRSIZ = /sınırsız|limitsiz|açık büfe|doyasıya|bitirdikçe|yenileyebilir/i
-// Serpme / acik bufe kahvalti sinirsiz yemek sayilmaz
-const KAHVALTI = /kahvalt|serpme|brunch/i
+// Serpme kahvalti sinirsiz yemek sayilmaz (acik bufe kahvalti sayilir)
+const serpme = (t: string) => /serpme/i.test(t) && !/açık büfe/i.test(t)
 // Mekanin sinirsiz teklifi: once kampanya, sonra notlar / onerilenler
 export function sinirsizTeklif(m: LzMekan): string {
   for (const p of [m.kampanya?.ozet ?? '', m.notlar, ...m.oneriler, m.paylasanYorumu?.begendi ?? '', m.paylasanYorumu?.yedi ?? '']) {
-    const c = p ? p.split(/(?<=[.!?\n])\s*/).find((x) => SINIRSIZ.test(x) && !KAHVALTI.test(x)) : ''
+    const c = p ? p.split(/(?<=[.!?\n])\s*/).find((x) => SINIRSIZ.test(x) && !serpme(x)) : ''
     if (c) return c.trim().slice(0, 160)
   }
   return ''
@@ -44,7 +44,7 @@ export default function Sinirsiz() {
       setDurum('Sınırsız yemek veren yerler araştırılıyor…')
       const l = await aiMekanOner(
         'SINIRSIZ / LİMİTSİZ yemek sunan mekanlar: sınırsız pizza, köfte, kanat, çiğ köfte, makarna, döner, tatlı, açık büfe restoran gibi. ' +
-          'KAHVALTI YERLERİNİ (serpme, açık büfe ya da sınırsız çaylı kahvaltı, brunch) KESİNLİKLE ALMA. YALNIZCA şu an böyle bir teklifi olduğu güncel kaynaklarla anlaşılan yerler. neden alanına teklifin ' +
+          'açık büfe kahvaltı da olur; ama SERPME KAHVALTIYI KESİNLİKLE ALMA. YALNIZCA şu an böyle bir teklifi olduğu güncel kaynaklarla anlaşılan yerler. neden alanına teklifin ' +
           'kendisini, FİYATINI ve geçerli gün/saatleri yaz (ör. "390 TL’ye sınırsız pizza, her gün 13:00–17:30").',
         yer,
         mekanlar.map((m) => m.ad),
@@ -56,7 +56,7 @@ export default function Sinirsiz() {
       const r = l
         .map((o) => ({ ...o, km: o.enlem || o.boylam ? mesafeKm(k, { lat: o.enlem, lon: o.boylam }) : undefined }))
         .filter((o) => !km || o.km === undefined || o.km <= km + 0.5)
-        .filter((o) => !KAHVALTI.test(`${o.ad} ${o.tur} ${o.neden}`))
+        .filter((o) => !serpme(`${o.ad} ${o.tur} ${o.neden}`))
         .sort((a, b) => (a.km ?? 999) - (b.km ?? 999))
       setSonuc(r)
       if (!r.length) setHata(`${km ? `${km} km içinde` : 'Yakınında'} sınırsız teklif bulunamadı; mesafeyi büyütmeyi dene.`)
