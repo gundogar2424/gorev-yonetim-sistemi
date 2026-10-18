@@ -5,7 +5,7 @@
 // Her HTML dosyasinin icine tarifin verisi (JSON) gomulur; karsi tarafta
 // Lezzet Defteri varsa "Tarif ekle → Dosyadan" ile deftere tek dokunusla alinir.
 import type { LzMekan, LzRecipe } from '../types'
-import { haritadaAcLinki } from './mekan'
+import { haritadaAcLinki, yolTarifiLinki, yorumlarLinki } from './mekan'
 import { youtubeId } from './importer'
 import { adimOzeti, hizAdi, modAdi, sicaklikAdi, sureAdi, type TmSurum } from './tm7'
 
@@ -198,14 +198,14 @@ function dosyaAdi(baslik: string, ek: string): string {
 
 // Telefonun paylasim menusu: APK'da dosya olarak (WhatsApp, e-posta, Drive…);
 // tarayicida Web Share ya da indirme.
-export async function dosyaPaylas(baslik: string, html: string, ek = ''): Promise<void> {
+export async function dosyaPaylas(baslik: string, html: string, ek = '', pencere = 'Tarifi paylaş'): Promise<void> {
   const ad = dosyaAdi(baslik, ek)
   const { Capacitor } = await import('@capacitor/core')
   if (Capacitor.isNativePlatform()) {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
     const { Share } = await import('@capacitor/share')
     const yaz = await Filesystem.writeFile({ path: ad, data: html, directory: Directory.Cache, encoding: Encoding.UTF8 })
-    await Share.share({ title: baslik, dialogTitle: 'Tarifi paylaş', files: [yaz.uri] })
+    await Share.share({ title: baslik, dialogTitle: pencere, files: [yaz.uri] })
     return
   }
   const dosya = new File([html], ad, { type: 'text/html' })
@@ -237,6 +237,42 @@ export function paylasilanTarifOku(icerik: string): Partial<LzRecipe> {
   }
   if (v.app !== 'lezzet-defteri-tarif' || !v.tarif?.title) throw new Error('Bu dosyada Lezzet Rotası tarifi bulunamadı.')
   return v.tarif
+}
+
+// MEKAN SAYFASI: tek dosyalik, fotografli HTML; karsi tarafta uygulama gerekmez.
+// Harita / yol tarifi / Google yorumlari / video linkleri tiklanir.
+export async function mekanHtml(m: LzMekan): Promise<string> {
+  const foto = await kucukFoto(m.foto)
+  const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))
+  const puanlar = z.filter((x) => x.puan > 0)
+  const benim = puanlar.length ? puanlar.reduce((t, x) => t + x.puan, 0) / puanlar.length : 0
+  const yedim = z.map((x) => x.yedim).filter(Boolean)
+  const tekrar = z.map((x) => x.tekrar).filter(Boolean)[0]
+  const notum = z.map((x) => x.not).filter(Boolean)[0]
+  const yt = youtubeId(m.sourceUrl || '')
+  const pAd = yt ? 'YouTube' : PLATFORM_ADI[m.platform] || ''
+  const resim = foto || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : '')
+  const gorsel =
+    m.sourceUrl && /^https?:\/\//.test(m.sourceUrl) && pAd
+      ? `<a class="vid" href="${k(m.sourceUrl)}" target="_blank" rel="noopener">${resim ? `<img class="foto" src="${k(resim)}" alt="">` : '<div class="foto bos"></div>'}<span class="oynat">▶</span><span class="vyazi">${k(pAd)}’da videoyu izle</span></a>`
+      : resim
+        ? `<img class="foto" src="${k(resim)}" alt="">`
+        : ''
+  const py = m.paylasanYorumu
+  const satir = (b: string, d: string) => (d ? `<li><label><b>${k(b)}:</b> ${k(d)}</label></li>` : '')
+  const govde = `${gorsel}
+<h1>${k(m.ad)}</h1><div class="meta">${k([m.tur, m.ilce, m.sehir].filter(Boolean).join(' · '))}${m.fiyat ? ` · ${k(m.fiyat)}` : ''}</div>
+<div style="margin-top:8px">${m.puan ? `<span class="pill">Google ★ ${m.puan.toFixed(1).replace('.', ',')}${m.yorumSayisi ? ` (${m.yorumSayisi.toLocaleString('tr')})` : ''}</span>` : ''}${benim ? `<span class="pill">Benim puanım ${benim.toFixed(1).replace('.', ',')} / 5</span>` : ''}</div>
+<div class="kart" style="display:grid;gap:8px"><a class="btn" href="${k(yolTarifiLinki(m))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Yol tarifi</a>
+<a class="btn y" href="${k(haritadaAcLinki(m))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Haritada aç</a>
+<a class="btn y" href="${k(yorumlarLinki(m))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Google yorumları</a>
+${m.instagram ? `<a class="btn y" href="https://www.instagram.com/${k(m.instagram)}/" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Instagram</a>` : ''}</div>
+${yedim.length || tekrar || notum ? `<div class="kart"><h2>Ben gittim</h2><ul class="m">${satir('Ne yedim', yedim.slice(0, 3).join(', '))}${satir('Bir dahakine', tekrar ?? '')}${satir('Notum', notum ?? '')}</ul></div>` : ''}
+${m.oneriler.length ? `<div class="kart"><h2>Ne yenir</h2><ul class="m">${m.oneriler.slice(0, 8).map((o) => `<li><label>${k(o)}</label></li>`).join('')}</ul></div>` : ''}
+${m.paylasan && py && (py.begendi || py.karar || py.yedi) ? `<div class="kart"><h2>${k(m.paylasan)} ne dedi</h2><ul class="m">${satir('Yedi', py.yedi)}${satir('Beğendi', py.begendi)}${satir('Beğenmedi', py.begenmedi)}${satir('Kararı', py.karar)}</ul></div>` : ''}
+${m.adres ? `<div class="kart"><h2>Adres</h2><div class="not">${k(m.adres)}</div></div>` : ''}
+<div class="alt">Lezzet Rotası ile paylaşıldı</div>`
+  return sayfa(m.ad, govde, '{}')
 }
 
 // MEKAN PAYLASIMI: arkadasa duz yazi (WhatsApp vb.); uygulama gerekmez.
