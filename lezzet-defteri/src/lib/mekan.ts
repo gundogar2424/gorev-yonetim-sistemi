@@ -208,15 +208,15 @@ export async function mekanLinktenEkle(
     )
   }
   // Ayni videoda gezilen diger mekanlar da (ayri ayri) kaydedilir; ek yapay zeka cagrisi yapilmaz
+  // Paylasan: sayfa > Instagram verisi > yapay zekanin paylasimda gordugu hesap (diger mekanlardan ONCE bulunur)
+  if (!paylasan) paylasan = video?.yazar || String(b.paylasan_hesap ?? '').trim()
+  if (paylasan && instagramAdi(b.instagram) && hesapAdi(paylasan) === `@${instagramAdi(b.instagram)}`) paylasan = '' // mekanin kendi hesabi
   const ortak = { foto, url, paylasan, hepsi: [b.ad, ...b.diger_mekanlar.map((d) => d.ad)] }
   let digerleri = 0
   for (const d of b.diger_mekanlar) {
     ilerleme(`Videodaki diğer mekanlar kaydediliyor: ${d.ad}…`)
     if (await digerMekaniKaydet(d, ortak)) digerleri++
   }
-  // Paylasan: sayfa > Instagram verisi > yapay zekanin paylasimda gordugu hesap
-  if (!paylasan) paylasan = video?.yazar || String(b.paylasan_hesap ?? '').trim()
-  if (paylasan && instagramAdi(b.instagram) && hesapAdi(paylasan) === `@${instagramAdi(b.instagram)}`) paylasan = '' // mekanin kendi hesabi
   // Videoyu paylasan (influencer) kendiliginden takip edilir (takipten cikarildiysa tekrar eklenmez)
   if (paylasan) {
     hesapTakipEt(paylasan, url ? PLATFORM_AD[platformBul(url)] : '', true)
@@ -478,5 +478,17 @@ export async function konumdanAdres(k: Konum): Promise<string> {
     return Array.from(new Set(parca)).join(', ') || j.display_name || ''
   } catch {
     return ''
+  }
+}
+
+// Eski kayitlar: ayni videodan kaydedilip paylasani bos kalan mekanlara, kardes mekandaki paylasan yazilir
+export async function paylasanTamamla(): Promise<void> {
+  const hepsi = await lzDb.mekanlar.toArray()
+  const linkPaylasan = new Map<string, string>()
+  for (const m of hepsi) if (m.sourceUrl && m.paylasan) linkPaylasan.set(temelLink(m.sourceUrl), m.paylasan)
+  for (const m of hepsi) {
+    if (m.paylasan || !m.sourceUrl) continue
+    const p = linkPaylasan.get(temelLink(m.sourceUrl))
+    if (p) await lzDb.mekanlar.update(m.id!, { paylasan: p })
   }
 }

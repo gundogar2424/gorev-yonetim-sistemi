@@ -30,6 +30,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from './db'
 import { tumOgunleriTara } from './lib/diyetTara'
 import { yeniMekanOtoKontrol } from './lib/hesaplar'
+import { paylasanTamamla } from './lib/mekan'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
   { to: '/', label: 'Tariflerim', icon: 'book', end: true },
@@ -75,6 +76,8 @@ export default function LzApp() {
     bekciBaslat()
     // Takip edilen hesaplarin yeni mekanlari (3 gunde bir, tek istek)
     const yeniT = setTimeout(() => void yeniMekanOtoKontrol(), 20000)
+    // Ayni videodan kaydedilip paylasani bos kalan mekanlar tamamlanir (yapay zekasiz)
+    void paylasanTamamla()
     const gorunur = () => document.visibilityState === 'visible' && void siraBekci()
     document.addEventListener('visibilitychange', gorunur)
     return () => {
