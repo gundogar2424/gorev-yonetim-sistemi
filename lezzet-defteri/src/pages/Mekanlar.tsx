@@ -173,6 +173,20 @@ export default function Mekanlar() {
           </span>
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
         </button>
+        <Link to="/gittiklerim" className="lz-card p-3.5 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-[#10261e] text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
+            <Icon name="check" className="w-[18px] h-[18px]" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Gittiğim yerler</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>
+              {liste.filter((m) => m.gidildi).length
+                ? `${liste.filter((m) => m.gidildi).length} mekan · şehir ve semte göre, puanıma göre sıralı`
+                : 'Şehir ve semte göre, verdiğin puana göre sıralı'}
+            </span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
         <Link to="/harcamalarim" className="lz-card p-3.5 flex items-center gap-3">
           <span className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-[#10261e] text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-[15px] font-bold">
             ₺
