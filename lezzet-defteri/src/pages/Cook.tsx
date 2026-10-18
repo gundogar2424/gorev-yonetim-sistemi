@@ -74,7 +74,7 @@ export default function Cook() {
       setBolumluyor('Ayrılamadı; tekrar dene')
     }
   }
-  const sureSn = sure ? Number(sure[1]) * (/^sa/i.test(sure[2]) ? 3600 : /^s(an|n)/i.test(sure[2]) ? 1 : 60) : 0
+  const sureSn = sure ? Number(sure[1]) * (/^s(an|n)/i.test(sure[2]) ? 1 : /^sa/i.test(sure[2]) ? 3600 : 60) : 0
 
   const ileri = async () => {
     if (son) {

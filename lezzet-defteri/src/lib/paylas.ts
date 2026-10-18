@@ -127,7 +127,31 @@ export async function tarifHtml(r: LzRecipe): Promise<string> {
     .join('')}</ul></div>
 <div class="kart"><h2>Yapılışı</h2><ol class="a">${r.steps.map((s) => `<li><span>${k(s)}</span></li>`).join('')}</ol></div>
 ${r.notes ? `<div class="kart"><h2>Notlar</h2><div class="not">${k(r.notes)}</div></div>` : ''}${alt(r)}`
-  return sayfa(r.title, govde, gomuluVeri(r, foto))
+  if (!r.steps.length) return sayfa(r.title, govde, gomuluVeri(r, foto))
+  // Uygulamadaki pisirme modu: adim adim, buyuk yazi, sureli adimda sayac
+  const adimlar = r.steps.map((t) => {
+    const m = t.match(/(\d+)\s*(?:-\s*\d+\s*)?(dakika|dk|saat|sa\b|saniye|sn)/i)
+    const sn = m ? Number(m[1]) * (/^s(an|n)/i.test(m[2]) ? 1 : /^sa/i.test(m[2]) ? 3600 : 60) : 0
+    return { t, sn }
+  })
+  const pisir = `<div id="genel">${govde.replace(/(<h1>)/, '$1').replace(/(<div class="kart"><h2>Malzemeler)/, '<button class="btn" style="margin:14px 0 2px" onclick="basla()">Adım adım pişir</button>$1')}</div>
+<div id="pisir" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px"><button class="btn y" style="width:auto;padding:10px 16px" onclick="kapat()">✕</button><div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k(r.title)}</b><span class="meta" id="sayi"></span></div></div>
+<div style="height:6px;background:#f1f1ef;border-radius:9px;overflow:hidden"><div id="bar" style="height:100%;background:#d93d20;width:0"></div></div>
+<p id="adim" style="font-size:24px;line-height:1.45;font-weight:500;margin:22px 0"></p>
+<div id="sure" class="kart" style="display:none;align-items:center;gap:14px"><b id="kalan" style="font-size:34px;flex:1"></b><button class="btn" style="width:auto;padding:12px 18px" id="sbtn" onclick="sayacBas()">Sayacı başlat</button></div>
+<div class="kart"><h2 style="font-size:14px;color:#86868f">Malzemeler</h2><ul class="m">${r.ingredients.map((m) => `<li><label>${k(m)}</label></li>`).join('')}</ul></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 30px"><button class="btn y" onclick="git(-1)">‹ Geri</button><button class="btn" id="ileri" onclick="git(1)">Sonraki ›</button></div></div>`
+  const betik = `var A=${JSON.stringify(adimlar).replace(/</g, '\\u003c')},i=0,t=null,kalan=0,kilit=null;
+function $(x){return document.getElementById(x)}
+function basla(){$('genel').style.display='none';$('pisir').style.display='block';i=0;goster();try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(function(l){kilit=l}).catch(function(){})}catch(e){}window.scrollTo(0,0)}
+function kapat(){dur();$('pisir').style.display='none';$('genel').style.display='block';try{kilit&&kilit.release()}catch(e){}}
+function yaz(s){var h=Math.floor(s/3600),d=Math.floor(s%3600/60),x=s%60;return(h?h+':'+(d<10?'0':''):'')+d+':'+(x<10?'0':'')+x}
+function goster(){dur();var a=A[i];$('sayi').textContent='Adım '+(i+1)+' / '+A.length;$('bar').style.width=((i+1)/A.length*100)+'%';$('adim').textContent=a.t;kalan=a.sn;$('sure').style.display=a.sn?'flex':'none';$('kalan').textContent=yaz(kalan);$('sbtn').textContent='Sayacı başlat';$('ileri').textContent=i==A.length-1?'Afiyet olsun ✓':'Sonraki ›';window.scrollTo(0,0)}
+function git(n){if(i+n>=A.length){kapat();return}i=Math.max(0,i+n);goster()}
+function dur(){if(t){clearInterval(t);t=null}}
+function sayacBas(){if(t){dur();$('sbtn').textContent='Devam';return}$('sbtn').textContent='Durdur';t=setInterval(function(){kalan--;$('kalan').textContent=yaz(Math.max(0,kalan));if(kalan<=0){dur();$('sbtn').textContent='Tekrar';kalan=A[i].sn;uyar();setTimeout(function(){$('kalan').textContent=yaz(kalan)},1500)}},1000)}
+function uyar(){try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}try{var c=new(window.AudioContext||window.webkitAudioContext)();for(var n=0;n<3;n++){var o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);var s=c.currentTime+n*.45;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.4,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+.35);o.start(s);o.stop(s+.36)}}catch(e){}}`
+  return sayfa(r.title, pisir, gomuluVeri(r, foto), betik)
 }
 
 // Thermomix pisirme modu: genel bakis + tam ekran adim adim pisirme (sayacli)
