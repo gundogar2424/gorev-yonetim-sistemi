@@ -9,7 +9,7 @@ import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
-import { dosyaPaylas, kartPaylas, tarifHtml, tarifKarti, tarifMetni, tmHtml } from '../lib/paylas'
+import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
 
 export default function RecipeDetail() {
@@ -21,7 +21,6 @@ export default function RecipeDetail() {
   const [isaretli, setIsaretli] = useState<Set<number>>(new Set())
   const [planAc, setPlanAc] = useState(false)
   const [paylasAc, setPaylasAc] = useState(false)
-  const [sayfaSor, setSayfaSor] = useState(false) // kart gittikten sonra tarif sayfasini da gondermeyi sor
   const [toast, goster] = useToast()
   const [besinHesap, setBesinHesap] = useState(false)
 
@@ -48,7 +47,7 @@ export default function RecipeDetail() {
     goster(n ? `${n} malzeme alışveriş listesine eklendi` : 'Hepsi zaten listede')
   }
 
-  const paylasYap = async (tur: 'html' | 'tm' | 'kart') => {
+  const paylasYap = async (tur: 'html' | 'tm') => {
     setPaylasAc(false)
     if (tur === 'tm' && !r.tm) {
       // Once Thermomix onizlemesi (uyarlama) yapilir, oradan paylasilir
@@ -56,10 +55,7 @@ export default function RecipeDetail() {
       return
     }
     try {
-      if (tur === 'kart') {
-        if ((await kartPaylas(tarifKarti(r), tarifMetni(r), 'Tarifi paylaş')) === 'kopyalandi') goster('Kart indirildi, yazı kopyalandı')
-        setSayfaSor(true)
-      } else if (tur === 'html') {
+      if (tur === 'html') {
         goster('Tarif sayfası hazırlanıyor…')
         await dosyaPaylas(r.title, await tarifHtml(r))
       } else {
@@ -347,12 +343,6 @@ export default function RecipeDetail() {
       <Sheet open={paylasAc} onClose={() => setPaylasAc(false)} title="Tarifi paylaş">
         <div className="space-y-2">
           <PaylasSecenek
-            baslik="Fotoğraflı kart"
-            alt="Fotoğraf gibi görünür; altında malzemeler. Ardından istersen tarif sayfası"
-            onClick={() => void paylasYap('kart')}
-            ikon="share"
-          />
-          <PaylasSecenek
             baslik="Tarif sayfası (dosya)"
             alt="Fotoğraflı sayfa; videoya tıklayınca kaynak video açılır. Uygulama gerekmez"
             onClick={() => void paylasYap('html')}
@@ -371,25 +361,6 @@ export default function RecipeDetail() {
           <p className={`text-[11.5px] px-1 pt-1 ${T_SOLUK}`}>
             Karşı tarafta Lezzet Rotası varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
           </p>
-        </div>
-      </Sheet>
-      <Sheet open={sayfaSor} onClose={() => setSayfaSor(false)} title="Tarif sayfasını da gönder">
-        <div className="space-y-2">
-          <p className={`text-[13.5px] ${T_GOVDE}`}>
-            WhatsApp resimle dosyayı birlikte göndermiyor. İstersen şimdi aynı kişiye tarif sayfasını da (adım adım pişirme, sayaç) gönder.
-          </p>
-          <button
-            className="lz-btn-primary w-full"
-            onClick={() => {
-              setSayfaSor(false)
-              void paylasYap('html')
-            }}
-          >
-            Tarif sayfasını gönder
-          </button>
-          <button className="lz-btn-soft w-full" onClick={() => setSayfaSor(false)}>
-            Gerek yok
-          </button>
         </div>
       </Sheet>
 

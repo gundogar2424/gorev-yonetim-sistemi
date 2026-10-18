@@ -403,3 +403,19 @@ export function mekanKarti(m: LzMekan): KartBilgi {
     foto: m.foto
   }
 }
+
+// Duz yazi paylasimi (WhatsApp vb.); tarayicida yoksa panoya kopyalanir
+export async function yaziPaylas(baslik: string, metin: string, pencere: string): Promise<'paylasildi' | 'kopyalandi'> {
+  const { Capacitor } = await import('@capacitor/core')
+  if (Capacitor.isNativePlatform()) {
+    const { Share } = await import('@capacitor/share')
+    await Share.share({ title: baslik, text: metin, dialogTitle: pencere })
+    return 'paylasildi'
+  }
+  if (navigator.share) {
+    await navigator.share({ title: baslik, text: metin })
+    return 'paylasildi'
+  }
+  await navigator.clipboard.writeText(metin)
+  return 'kopyalandi'
+}

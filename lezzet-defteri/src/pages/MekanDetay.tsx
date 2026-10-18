@@ -12,7 +12,7 @@ import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
-import { dosyaPaylas, kartPaylas, mekanHtml, mekanKarti, mekanKartMetni } from '../lib/paylas'
+import { dosyaPaylas, mekanHtml, mekanMetni, yaziPaylas } from '../lib/paylas'
 import { hesapFoto, hesapNormal, hesapTakipEt, hesaplariOku, takipEdiliyor } from '../lib/hesaplar'
 
 // Paylasanin influencer sayfasi anahtari: takip ediliyorsa listedeki kaydi, degilse ad (+ platform)
@@ -62,7 +62,6 @@ export default function MekanDetay() {
   const [puanAraniyor, setPuanAraniyor] = useState(false)
   const [kampanyaAraniyor, setKampanyaAraniyor] = useState(false)
   const [paylasAc, setPaylasAc] = useState(false)
-  const [sayfaSor, setSayfaSor] = useState(false) // kart gittikten sonra sayfa dosyasini da gondermeyi sor
 
   if (m === undefined) return null
   if (!m)
@@ -471,8 +470,8 @@ export default function MekanDetay() {
         <div className="space-y-2">
           {(
             [
-              ['kart', 'Fotoğraflı kart', 'Fotoğraf gibi görünür; altında harita ve video linkleri. Ardından istersen sayfa dosyası', 'share'],
-              ['sayfa', 'Mekan sayfası (dosya)', 'Tarayıcıda açılan sayfa: yol tarifi, harita, yorumlar ve video düğmeleri', 'file']
+              ['sayfa', 'Mekan sayfası (dosya)', 'Fotoğraflı sayfa; arkadaşın tarayıcıda açar. Yol tarifi, harita, yorumlar ve video düğmeleri var', 'file'],
+              ['yazi', 'Mesaj olarak', 'Kısa yazı + harita linki (WhatsApp’ta direkt okunur)', 'share']
             ] as const
           ).map(([tur, baslik, alt, ikon]) => (
             <button
@@ -482,10 +481,7 @@ export default function MekanDetay() {
                 setPaylasAc(false)
                 try {
                   if (tur === 'sayfa') await dosyaPaylas(m.ad, await mekanHtml(m), '', 'Mekanı paylaş')
-                  else {
-                    if ((await kartPaylas(mekanKarti(m), mekanKartMetni(m), 'Mekanı paylaş')) === 'kopyalandi') goster('Kart indirildi, yazı kopyalandı')
-                    setSayfaSor(true)
-                  }
+                  else if ((await yaziPaylas(m.ad, mekanMetni(m), 'Mekanı paylaş')) === 'kopyalandi') goster('Mekan bilgisi kopyalandı; mesaja yapıştırabilirsin')
                 } catch (e) {
                   const t = String((e as Error)?.message ?? e)
                   if (!/cancel|abort|iptal/i.test(t)) goster('Paylaşılamadı')
@@ -501,29 +497,6 @@ export default function MekanDetay() {
               </span>
             </button>
           ))}
-        </div>
-      </Sheet>
-      <Sheet open={sayfaSor} onClose={() => setSayfaSor(false)} title="Sayfayı da gönder">
-        <div className="space-y-2">
-          <p className={`text-[13.5px] ${T_GOVDE}`}>
-            WhatsApp resimle dosyayı birlikte göndermiyor. İstersen şimdi aynı kişiye mekan sayfasını da (yol tarifi, harita, yorumlar düğmeli) gönder.
-          </p>
-          <button
-            className="lz-btn-primary w-full"
-            onClick={async () => {
-              setSayfaSor(false)
-              try {
-                await dosyaPaylas(m.ad, await mekanHtml(m), '', 'Mekanı paylaş')
-              } catch {
-                /* vazgecildi */
-              }
-            }}
-          >
-            Sayfa dosyasını gönder
-          </button>
-          <button className="lz-btn-soft w-full" onClick={() => setSayfaSor(false)}>
-            Gerek yok
-          </button>
         </div>
       </Sheet>
 
