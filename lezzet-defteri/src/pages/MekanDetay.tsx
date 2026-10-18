@@ -31,6 +31,10 @@ export default function MekanDetay() {
   const durumu = useLocation().state as { zatenVar?: boolean; gittim?: boolean; yedim?: string; digerleri?: number } | null
   const zatenVar = durumu?.zatenVar
   const m = useLiveQuery(() => lzDb.mekanlar.get(id), [id])
+  // Baska bir mekana gecince (ör. ayni videodaki mekanlar) sayfa en ustten acilsin
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [id])
   // Ayni videoda gezilen diger kayitli mekanlar
   const ayniVideo =
     useLiveQuery(async () => {
@@ -160,7 +164,7 @@ export default function MekanDetay() {
           <div className="lz-card p-4 space-y-2">
             <div className={`font-semibold ${T_BASLIK}`}>Aynı videodaki diğer mekanlar</div>
             {ayniVideo.map((x) => (
-              <Link key={x.id} to={`/mekan/${x.id}`} replace className={`flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2 text-[14px] ${T_GOVDE}`}>
+              <Link key={x.id} to={`/mekan/${x.id}`} className={`flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2 text-[14px] ${T_GOVDE}`}>
                 <span className="flex-1 min-w-0">
                   <span className="font-semibold">{x.ad}</span>
                   <span className={`block text-[12px] ${T_SOLUK}`}>{[x.tur, x.ilce].filter(Boolean).join(' · ')}</span>
