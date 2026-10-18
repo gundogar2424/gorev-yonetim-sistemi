@@ -38,6 +38,16 @@ export default function Influencer() {
   }, [h])
   const onun = onunMekanlari(mekanlar, h)
   const gidilen = onun.filter((m) => m.gidildi).length
+  // Sehir sekmeleri: en cok paylasim olan sehir once
+  const [sehirSekme, setSehirSekme] = useState('')
+  const sehirler = Object.entries(
+    onun.reduce<Record<string, number>>((a, m) => {
+      const k = m.sehir.trim() || 'Diğer'
+      a[k] = (a[k] ?? 0) + 1
+      return a
+    }, {})
+  ).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'tr'))
+  const gorunen = sehirSekme ? onun.filter((m) => (m.sehir.trim() || 'Diğer') === sehirSekme) : onun
 
   // AYRINTILI ARAMA: zaman, yer, tur ve "en cok ovdukleri" secilerek tek istekte; 24 saat onbellek
   const [zaman, setZaman] = useState<'son' | 'tum'>('tum')
@@ -183,7 +193,7 @@ export default function Influencer() {
             </div>
           <div className="grid grid-cols-2 gap-2">
             <a href={profilLinki(h)} target="_blank" rel="noreferrer" className="lz-btn-soft text-[14px]">
-              Profilini aç
+              {ad.startsWith('@') ? 'Instagram’da aç' : /youtube/i.test(platform) ? 'YouTube’da aç' : 'Profilini aç'}
             </a>
             <button className="lz-btn-primary text-[14px]" disabled={!apiAnahtari() || !!durum} onClick={() => void ara('yeni')}>
               Yeni gittiği yerler
@@ -201,14 +211,27 @@ export default function Influencer() {
         {yeniler && yeniler.length > 0 && (
           <div className="lz-card p-4 space-y-2">
             <div className={`font-semibold ${T_BASLIK}`}>{baslik}</div>
-            <YeniListe liste={yeniler} mekanlar={mekanlar} goster={goster} />
+            <YeniListe liste={yeniler} mekanlar={mekanlar} goster={goster} hesap={h} />
           </div>
         )}
 
         <div className="lz-card p-4 space-y-1">
           <div className={`font-semibold mb-1 ${T_BASLIK}`}>Gittiği yerler</div>
           {!onun.length && <p className={`text-[13px] ${T_SOLUK}`}>Bu kişinin videosundan kaydedilmiş mekan yok.</p>}
-          {onun.map((m) => (
+          {sehirler.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
+              {[['', onun.length] as const, ...sehirler].map(([k, n]) => (
+                <button
+                  key={k || 'hepsi'}
+                  onClick={() => setSehirSekme(k)}
+                  className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-semibold ${sehirSekme === k ? 'bg-lz-600 text-white' : 'bg-[#f3f3f1] dark:bg-[#26262a] ' + T_GOVDE}`}
+                >
+                  {k || 'Hepsi'} · {n}
+                </button>
+              ))}
+            </div>
+          )}
+          {gorunen.map((m) => (
             <Link key={m.id} to={`/mekan/${m.id}`} className="flex items-start gap-2.5 py-2 border-b last:border-0 border-[#efefed] dark:border-[#26262a]">
               <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${m.gidildi ? 'bg-emerald-500' : 'bg-[#d4d4d8]'}`} />
               <span className="flex-1 min-w-0">

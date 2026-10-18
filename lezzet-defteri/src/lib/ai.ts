@@ -1458,6 +1458,14 @@ export interface MekanOnerisi {
   yemek_fiyati: string // aranan yemegin bu mekandaki fiyati
   yemek_yorumu: string // aranan yemek hakkinda yorumlarda ne deniyor
   reklam: boolean // tanitim reklam / is birligi olarak isaretli
+  paylasan?: string // (fenomen aramasi) mekani paylasan hesap
+  paylasim?: string // (fenomen aramasi) o paylasimin linki; dogrulanamayan link bos
+}
+
+// Yalnizca gercek bir paylasim adresi bicimindeki linkler (YouTube video/shorts, Instagram gonderi/reel, TikTok video)
+export function paylasimLinki(u: string): string {
+  const x = String(u ?? '').trim()
+  return /^https:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/)[\w-]{6,}|youtu\.be\/[\w-]{6,}|instagram\.com\/(p|reel|reels)\/[\w-]{5,}|tiktok\.com\/@[\w.]+\/video\/\d+)/i.test(x) ? x : ''
 }
 
 // HESAP FISI: fotograftaki odenecek toplam tutar (TL); okunamazsa 0
@@ -1564,7 +1572,8 @@ export async function aiMekanOner(
       (hesap
         ? ` ÖNEMLİ: YALNIZCA şu hesap(lar)ın (Instagram/TikTok/YouTube) paylaşımlarında tanıttığı ya da önerdiği mekanlardan, bulunduğum yere ` +
           `${km ? `en fazla ${km} km uzaklıkta` : 'mesafe gözetmeksizin, yakından uzağa'} olanları öner: ${hesap}. En fazla 8 mekan. populerlik alanına HANGİ hesabın ` +
-          'mekan hakkında ne dediğini yaz (ör. "@hesap: …"). Bu hesapların tanıttığı mekanı bulamazsan boş liste döndür; başka mekan ekleme.'
+          'mekan hakkında ne dediğini yaz (ör. "@hesap: …"). paylasan alanına o hesabın adını, paylasim alanına mekanı anlattığı paylaşımın GERÇEK linkini yaz ' +
+          '(YouTube videosu varsa onu, yoksa Instagram gönderisi/reels; arama sonucunda görmediğin linki UYDURMA, bilmiyorsan boş). Bu hesapların tanıttığı mekanı bulamazsan boş liste döndür; başka mekan ekleme.'
         : '') +
       (diyet
         ? ' DİYET: Kullanıcı diyetisyeninin planına uyuyor; bilgisi aşağıda. YALNIZCA menüsünde bu öğün hedefine uyan yemek olan ' +
@@ -1589,7 +1598,7 @@ export async function aiMekanOner(
           items: {
             type: 'object',
             additionalProperties: false,
-            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'instagram', 'yemek_fiyati', 'yemek_yorumu', 'reklam'],
+            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'instagram', 'yemek_fiyati', 'yemek_yorumu', 'reklam', 'paylasan', 'paylasim'],
             properties: {
               ad: { type: 'string' },
               tur: { type: 'string' },
@@ -1607,7 +1616,9 @@ export async function aiMekanOner(
               instagram: { type: 'string' },
               reklam: { type: 'boolean' },
               yemek_fiyati: { type: 'string' },
-              yemek_yorumu: { type: 'string' }
+              yemek_yorumu: { type: 'string' },
+              paylasan: { type: 'string' },
+              paylasim: { type: 'string' }
             }
           }
         }
@@ -1619,7 +1630,7 @@ export async function aiMekanOner(
   return (v.oneriler ?? [])
     .filter((o) => o?.ad)
     .slice(0, 8)
-    .map((o) => ({ ...o, yemek_fiyati: String(o.yemek_fiyati ?? '').trim(), yemek_yorumu: String(o.yemek_yorumu ?? '').trim(), link: '', instagram: instagramAdi(o.instagram), reklam: o.reklam === true, puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
+    .map((o) => ({ ...o, yemek_fiyati: String(o.yemek_fiyati ?? '').trim(), yemek_yorumu: String(o.yemek_yorumu ?? '').trim(), link: '', instagram: instagramAdi(o.instagram), reklam: o.reklam === true, paylasan: String(o.paylasan ?? '').trim(), paylasim: paylasimLinki(o.paylasim ?? ''), puan: puanTemizle(o.puan), yorumSayisi: Math.max(0, Math.round(Number(o.yorumSayisi) || 0)), ne_yenir: (o.ne_yenir ?? []).filter(Boolean) }))
 }
 
 // Mekana giden unluler: kim, ne dedi, paylasiminin linki (Google aramasiyla)

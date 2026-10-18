@@ -6,7 +6,7 @@ import type { LzMekan } from '../types'
 import { Header, KisiAvatar, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adayReddet, adaylar, hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
-import { instagramLinki, oneriKaydet } from '../lib/mekan'
+import { oneriKaydet } from '../lib/mekan'
 import { PLATFORM_AD } from '../lib/importer'
 
 // "En beğenilen + Google onaylı": paylaşımı çok beğeni/olumlu yorum almış VE Google puanı yüksek yerler
@@ -37,12 +37,31 @@ export function onunMekanlari(mekanlar: LzMekan[], h: string): LzMekan[] {
   return mekanlar.filter((m) => m.paylasan && hesapNormal(m.paylasan) === hesapNormal(h)).sort((a, b) => b.createdAt - a.createdAt)
 }
 
+// Onerinin hangi takip edilen hesaptan geldigi: yapay zekanin yazdigi ad ya da populerlik metnindeki ad
+function onerininHesabi(o: MekanOnerisi, hesap: string): string {
+  if (hesap) return hesap
+  const metin = adNormal(`${o.paylasan ?? ''} ${o.populerlik}`)
+  return hesaplariOku().find((x) => {
+    const a = adNormal(hesapParca(x).ad)
+    return a.length > 2 && metin.includes(a)
+  }) ?? ''
+}
+// Fenomenin o mekani anlattigi paylasim: link biliniyorsa o; yoksa YouTube'da / Google'da paylasim aramasi
+function paylasimAc(o: MekanOnerisi, kisi: string): { url: string; etiket: string } {
+  if (o.paylasim) return { url: o.paylasim, etiket: /youtu/.test(o.paylasim) ? 'YouTube’da izle' : /tiktok/.test(o.paylasim) ? 'TikTok’ta izle' : 'Instagram’da aç' }
+  const { ad, platform } = hesapParca(kisi || o.paylasan || '')
+  if (/youtube/i.test(platform)) return { url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${ad} ${o.ad}`)}`, etiket: 'YouTube’da bul' }
+  return { url: `https://www.google.com/search?q=${encodeURIComponent(`${ad} ${o.ad} ${o.sehir} instagram`.trim())}`, etiket: 'Paylaşımı bul' }
+}
+
 // Fenomenin son gittigi, henuz kayitli olmayan yerler
-export function YeniListe({ liste, mekanlar, goster }: { liste: MekanOnerisi[]; mekanlar: LzMekan[]; goster: (s: string) => void }) {
+export function YeniListe({ liste, mekanlar, goster, hesap = '' }: { liste: MekanOnerisi[]; mekanlar: LzMekan[]; goster: (s: string) => void; hesap?: string }) {
   return (
     <div className="space-y-2">
       {liste.map((o, i) => {
         const k = mekanlar.find((m) => adNormal(m.ad) === adNormal(o.ad))
+        const kisi = onerininHesabi(o, hesap)
+        const pay = paylasimAc(o, kisi)
         return (
           <div key={i} className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1">
             <div className={`font-semibold text-[14.5px] ${T_BASLIK}`}>
@@ -71,10 +90,16 @@ export function YeniListe({ liste, mekanlar, goster }: { liste: MekanOnerisi[]; 
                   ＋ Gitmek istiyorum
                 </button>
               )}
-              <a href={instagramLinki(o)} target="_blank" rel="noreferrer" className="lz-btn-soft text-[12.5px] px-3 py-1.5">
-                Instagram
+              <a href={pay.url} target="_blank" rel="noreferrer" className="lz-btn-soft text-[12.5px] px-3 py-1.5">
+                {pay.etiket}
               </a>
             </div>
+            {!hesap && kisi && (
+              <Link to={`/influencer/${encodeURIComponent(kisi)}`} className="flex items-center gap-2 pt-1">
+                <KisiAvatar ad={hesapNormal(kisi)} foto={hesapFoto(kisi)} className="w-6 h-6 text-[10px]" />
+                <span className={`text-[12.5px] font-medium ${T_GOVDE}`}>{hesapParca(kisi).ad} ›</span>
+              </Link>
+            )}
           </div>
         )
       })}
