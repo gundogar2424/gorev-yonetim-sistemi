@@ -210,9 +210,12 @@ export default function MekanOner() {
     setDurum('')
   }
 
+  const hypeArama = !!sonArama?.istek.startsWith(HYPE)
   const kaydet = async (o: Sonuc): Promise<number> => {
     if (o.kayitliId) return o.kayitliId
     const id = await oneriKaydet(o, true)
+    // Hype aramasindan eklenen mekan "Hype" olarak da isaretlenir (Mekanlarim'daki Hype suzgecinde cikar)
+    if (hypeArama) await lzDb.mekanlar.update(id, { hype: { var: true, not: o.populerlik, zaman: Date.now() } })
     setSonuclar((s) => s.map((x) => (x === o ? { ...x, kayitliId: id } : x)))
     return id
   }
@@ -502,6 +505,11 @@ export default function MekanOner() {
                 <div className={`font-bold text-[16px] leading-snug ${T_BASLIK}`}>
                   {o.ad}
                   {o.reklam && <ReklamRozeti />}
+                  {hypeArama && (
+                    <span className="inline-block align-middle ml-1.5 rounded-md bg-lz-50 dark:bg-[#2a1712] text-lz-700 dark:text-lz-300 text-[10.5px] font-bold px-1.5 py-0.5">
+                      Hype
+                    </span>
+                  )}
                 </div>
                 <div className={`text-[12.5px] ${T_SOLUK}`}>{[o.tur, o.ilce, o.sehir].filter(Boolean).join(' · ')}</div>
               </div>
@@ -547,7 +555,7 @@ export default function MekanOner() {
                 </Link>
               ) : (
                 <button className="lz-btn-soft text-[12.5px] px-2 whitespace-nowrap !text-lz-600 font-semibold" onClick={() => void kaydet(o)}>
-                  ＋ Listeme ekle
+                  ＋ Gitmek istiyorum
                 </button>
               )}
               <button className="lz-btn-soft text-[12.5px] px-2" onClick={() => void gittim(o)}>
