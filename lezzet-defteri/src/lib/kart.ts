@@ -62,10 +62,16 @@ export async function kartResmi(b: KartBilgi): Promise<string> {
   // Fotograf: kirpilarak doldurulur; yoksa renkli zemin + bas harfler
   const img = b.foto ? await resimYukle(b.foto) : null
   if (img) {
+    // Yalnizca ust alana kirpilir (dikey fotograf yazilarin ustune tasmasin)
     const o = Math.max(W / img.width, FH / img.height)
     const w = img.width * o
     const h = img.height * o
+    c.save()
+    c.beginPath()
+    c.rect(0, 0, W, FH)
+    c.clip()
     c.drawImage(img, (W - w) / 2, (FH - h) / 2, w, h)
+    c.restore()
   } else {
     const g = c.createLinearGradient(0, 0, W, FH)
     g.addColorStop(0, '#ee4c2e')

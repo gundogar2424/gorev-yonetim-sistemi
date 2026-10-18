@@ -223,29 +223,20 @@ function dosyaAdi(baslik: string, ek: string): string {
 
 // Telefonun paylasim menusu: APK'da dosya olarak (WhatsApp, e-posta, Drive…);
 // tarayicida Web Share ya da indirme.
-// kart: dosyanin yaninda fotograf gibi gorunen kart resmi de gonderilir
-export async function dosyaPaylas(baslik: string, html: string, ek = '', pencere = 'Tarifi paylaş', kart?: KartBilgi): Promise<void> {
+export async function dosyaPaylas(baslik: string, html: string, ek = '', pencere = 'Tarifi paylaş'): Promise<void> {
   const ad = dosyaAdi(baslik, ek)
-  const resim = kart ? await kartResmi(kart).catch(() => '') : ''
   const { Capacitor } = await import('@capacitor/core')
   if (Capacitor.isNativePlatform()) {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
     const { Share } = await import('@capacitor/share')
     const yaz = await Filesystem.writeFile({ path: ad, data: html, directory: Directory.Cache, encoding: Encoding.UTF8 })
-    const dosyalar = [yaz.uri]
-    if (resim) {
-      const r = await Filesystem.writeFile({ path: ad.replace(/\.html$/, '.jpg'), data: resim.split(',')[1], directory: Directory.Cache })
-      dosyalar.unshift(r.uri)
-    }
-    await Share.share({ title: baslik, dialogTitle: pencere, files: dosyalar })
+    await Share.share({ title: baslik, dialogTitle: pencere, files: [yaz.uri] })
     return
   }
   const dosya = new File([html], ad, { type: 'text/html' })
-  const ekler = [dosya]
-  if (resim) ekler.unshift(new File([await (await fetch(resim)).blob()], ad.replace(/\.html$/, '.jpg'), { type: 'image/jpeg' }))
   const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean }
-  if (nav.share && nav.canShare?.({ files: ekler })) {
-    await nav.share({ title: baslik, files: ekler })
+  if (nav.share && nav.canShare?.({ files: [dosya] })) {
+    await nav.share({ title: baslik, files: [dosya] })
     return
   }
   const url = URL.createObjectURL(dosya)
@@ -311,7 +302,7 @@ ${m.adres ? `<div class="kart"><h2>Adres</h2><div class="not">${k(m.adres)}</div
 
 // MEKAN PAYLASIMI: arkadasa duz yazi (WhatsApp vb.); uygulama gerekmez.
 // Ad, tur/semt, Google puani, benim puanim ve ne yedigim, paylasanin videosu, harita linki.
-export async function mekanPaylas(m: LzMekan): Promise<'paylasildi' | 'kopyalandi'> {
+export function mekanMetni(m: LzMekan): string {
   const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))
   const puanlar = z.filter((x) => x.puan > 0)
   const benim = puanlar.length ? puanlar.reduce((t, x) => t + x.puan, 0) / puanlar.length : 0
@@ -330,18 +321,47 @@ export async function mekanPaylas(m: LzMekan): Promise<'paylasildi' | 'kopyaland
   ]
     .filter(Boolean)
     .join('\n')
+  return metin
+}
+
+// KART PAYLASIMI: fotograf gibi kart + altinda yazi (WhatsApp'ta resim aciklamasi olur; linkler tiklanir).
+// Tek resim + yazi tek seferde gider; sayfa dosyasi ayri gonderilir (WhatsApp ikisini birlikte almiyor).
+export async function kartPaylas(kart: KartBilgi, metin: string, pencere: string): Promise<'paylasildi' | 'kopyalandi'> {
+  const resim = await kartResmi(kart)
+  const ad = `${dosyaAdi(kart.baslik, '').replace(/\.html$/, '')}.jpg`
   const { Capacitor } = await import('@capacitor/core')
   if (Capacitor.isNativePlatform()) {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem')
     const { Share } = await import('@capacitor/share')
-    await Share.share({ title: m.ad, text: metin, dialogTitle: 'Mekanı paylaş' })
+    const yaz = await Filesystem.writeFile({ path: ad, data: resim.split(',')[1], directory: Directory.Cache })
+    await Share.share({ title: kart.baslik, text: metin, dialogTitle: pencere, files: [yaz.uri] })
     return 'paylasildi'
   }
-  if (navigator.share) {
-    await navigator.share({ title: m.ad, text: metin })
+  const dosya = new File([await (await fetch(resim)).blob()], ad, { type: 'image/jpeg' })
+  const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean }
+  if (nav.share && nav.canShare?.({ files: [dosya] })) {
+    await nav.share({ title: kart.baslik, text: metin, files: [dosya] })
     return 'paylasildi'
   }
-  await navigator.clipboard.writeText(metin)
+  await navigator.clipboard?.writeText(metin).catch(() => {})
+  const a = document.createElement('a')
+  a.href = resim
+  a.download = ad
+  a.click()
   return 'kopyalandi'
+}
+
+// Tarif kartinin altindaki yazi: kisa ozet + kaynak video
+export function tarifMetni(r: LzRecipe): string {
+  return [
+    r.title,
+    [r.servings ? `${r.servings} kişilik` : '', r.minutes ? `~${r.minutes} dk` : ''].filter(Boolean).join(' · '),
+    r.ingredients.length ? `Malzemeler:\n${r.ingredients.map((m) => `• ${m}`).join('\n')}` : '',
+    r.sourceUrl ? `Video: ${r.sourceUrl}` : '',
+    'Adım adım tarif ve pişirme modu bir sonraki dosyada.'
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 // Paylasim kartlari
@@ -351,7 +371,7 @@ export function tarifKarti(r: LzRecipe): KartBilgi {
     baslik: r.title,
     alt: [r.servings ? `${r.servings} kişilik` : '', r.minutes ? `~${r.minutes} dk` : '', r.author].filter(Boolean).join(' · '),
     satirlar: [r.ingredients.length ? `${r.ingredients.length} malzeme: ${r.ingredients.map((m) => m.replace(/^[^:]{2,30}:\s*/, '').replace(/^([\d.,/½¼¾\s-]+|(yarım|çeyrek|bir)\s+)/i, '').replace(/^(su bardağı|çay bardağı|yemek kaşığı|tatlı kaşığı|çay kaşığı|gr|g|kg|ml|adet|paket)\s+/i, '')).slice(0, 6).join(', ')}` : ''],
-    not: 'Tarifin tamamı ve adım adım pişirme: ekteki dosyayı aç',
+    not: 'Malzemeler mesajda · Adım adım tarif ayrı dosyada',
     foto: r.photo
   }
 }
@@ -368,7 +388,7 @@ export function mekanKarti(m: LzMekan): KartBilgi {
       yedim ? `Ne yedim: ${yedim}` : m.oneriler.length ? `Önerilen: ${m.oneriler.slice(0, 3).join(', ')}` : '',
       m.paylasan ? `${m.paylasan} önermişti` : ''
     ],
-    not: 'Yol tarifi, harita ve yorumlar: ekteki dosyayı aç',
+    not: 'Harita ve yol tarifi linki mesajda',
     foto: m.foto
   }
 }
