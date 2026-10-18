@@ -137,6 +137,8 @@ export default function MekanDetay() {
                 Takip et
               </button>
             )}
+          </div>
+        )}
         {m.sourceUrl && ['instagram', 'tiktok', 'youtube'].includes(m.platform) && apiAnahtari() && (
           <button
             className="lz-btn-soft w-full text-[13.5px]"
@@ -166,8 +168,6 @@ export default function MekanDetay() {
                 <span className="text-lz-600">›</span>
               </Link>
             ))}
-          </div>
-        )}
           </div>
         )}
         {(() => {
