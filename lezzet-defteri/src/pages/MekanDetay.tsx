@@ -39,7 +39,8 @@ export default function MekanDetay() {
   const navigate = useNavigate()
   const durumu = useLocation().state as { zatenVar?: boolean; gittim?: boolean; yedim?: string; digerleri?: number } | null
   const zatenVar = durumu?.zatenVar
-  const m = useLiveQuery(() => lzDb.mekanlar.get(id), [id])
+  // Bulunamazsa null: yuklenirken (undefined) ile karismasin, sayfa bos kalmasin
+  const m = useLiveQuery(async () => (await lzDb.mekanlar.get(id)) ?? null, [id])
   // Baska bir mekana gecince (ör. ayni videodaki mekanlar) sayfa en ustten acilsin
   useEffect(() => {
     window.scrollTo({ top: 0 })
@@ -61,7 +62,13 @@ export default function MekanDetay() {
   const [kampanyaAraniyor, setKampanyaAraniyor] = useState(false)
 
   if (m === undefined) return null
-  if (!m) return <Header title="Mekan bulunamadı" back />
+  if (!m)
+    return (
+      <div>
+        <Header title="Mekan bulunamadı" back />
+        <p className={`px-5 text-[14px] ${T_SOLUK}`}>Bu mekan silinmiş olabilir. Mekanlarım’dan arayabilirsin.</p>
+      </div>
+    )
 
   const ac = (url: string) => window.open(url, '_blank')
 

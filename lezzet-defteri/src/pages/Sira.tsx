@@ -15,6 +15,15 @@ export default function Sira() {
   const bekleyen = liste.filter((x) => x.durum === 'bekliyor' || x.durum === 'isleniyor').length
   const biten = liste.filter((x) => x.durum === 'bitti')
   const hatali = liste.filter((x) => x.durum === 'hata')
+  // Kayitli mekan silinip yeniden eklendiyse eski numara bos kalir: ayni linkten ya da ayni addan bulunur
+  const mekanlar = useLiveQuery(() => lzDb.mekanlar.toArray(), []) ?? []
+  const mekanHedefi = (x: LzSira): number | undefined => {
+    if (!mekanlar.length) return x.mekanId
+    if (mekanlar.some((m) => m.id === x.mekanId)) return x.mekanId
+    const t = temelLink(x.girdi)
+    const ad = x.baslik.toLocaleLowerCase('tr').trim()
+    return (mekanlar.find((m) => m.sourceUrl && temelLink(m.sourceUrl) === t) ?? mekanlar.find((m) => m.ad.toLocaleLowerCase('tr').trim() === ad))?.id
+  }
 
   return (
     <div>
@@ -49,12 +58,12 @@ export default function Sira() {
                 {x.mesaj}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                {x.durum === 'bitti' && !!x.mekanId && (
-                  <Link to={`/mekan/${x.mekanId}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
+                {x.durum === 'bitti' && !!x.mekanId && !!mekanHedefi(x) && (
+                  <Link to={`/mekan/${mekanHedefi(x)}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
                     Mekanı aç
                   </Link>
                 )}
-                {x.durum === 'bitti' && !!x.mekanId && <AyniVideodakiler id={x.mekanId} />}
+                {x.durum === 'bitti' && !!mekanHedefi(x) && <AyniVideodakiler id={mekanHedefi(x)!} />}
                 {x.durum === 'bitti' && x.recipeId > 0 && (
                   <Link to={`/tarif/${x.recipeId}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
                     Tarifi aç
