@@ -1350,8 +1350,10 @@ export async function aiMekanKampanya(
   const v = await jsonCagri<{ kampanya_var: boolean; ozet: string; gecerlilik: string; kaynak: string }>(
     'Sen bir yeme-içme mekanı kampanya takipçisisin. Google’da mekanın resmi Instagram/web sitesi, Google Haritalar, yemek siparişi ' +
       'uygulamaları ve haber/duyuru sayfalarında GÜNCEL kampanya, indirim, happy hour, set menü, 1 alana 1 bedava, özel gün menüsü, canlı müzik ' +
-      'gibi etkinlik duyurularını ara. YALNIZCA verilen tarih aralığında geçerli olduğu açıkça anlaşılan duyuruları kabul et; tarihi belirsiz ' +
-      'ya da eski (geçen ay/yıl) duyuruları kampanya sayma. Emin değilsen kampanya_var false. UYDURMA. Türkçe, kısa yaz.',
+      'gibi etkinlik duyurularını ara. Verilen tarih aralığında geçerli duyuruları kabul et. SÜREKLİ TEKLİFLER de kampanyadır: sınırsız/limitsiz ' +
+      'menü, sınırsız çay/kahve, serpme ya da açık büfe kahvaltı, her gün geçerli happy hour, öğrenci/öğle menüsü gibi bitiş tarihi olmayan ve ' +
+      'şu an hâlâ sunulduğu anlaşılan teklifler; bunlarda gecerlilik "Sürekli" ya da günleri yaz. Bitmiş ya da eski (geçen yıl) duyuruları sayma. ' +
+      'Emin değilsen kampanya_var false. UYDURMA. Türkçe, kısa yaz.',
     `Mekan: ${m.ad}\nYer: ${[m.ilce, m.sehir].filter(Boolean).join(', ')}${m.paylasan ? `\nİlgili hesap: ${m.paylasan}` : ''}\n` +
       `Tarih aralığı: ${aralik.bas} – ${aralik.son} (özellikle hafta sonu)`,
     {

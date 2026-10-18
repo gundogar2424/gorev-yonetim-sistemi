@@ -85,19 +85,44 @@ export function useKampanyaDurumu(): Durum {
   )
 }
 
-// Kontrol edilecek mekanlar: favoriler (yoksa gidilmeyenler, yoksa hepsi)
+// Kaydederken paylasimda gecen surekli teklif (sinirsiz menu vb.) — yapay zekasiz bulunur
+const SUREKLI = /sınırsız|limitsiz|açık büfe|serpme kahvaltı|her şey dahil|happy hour|1 alana 1|bir alana bir|indirim|kampanya/i
+export function yerelKampanya(m: LzMekan): string {
+  const parcalar = [m.notlar, ...m.oneriler, m.fiyat, m.paylasanYorumu?.begendi ?? '', m.paylasanYorumu?.karar ?? '', m.paylasanYorumu?.yedi ?? '', ...m.etiketler]
+  for (const p of parcalar) {
+    if (!p || !SUREKLI.test(p)) continue
+    // Anahtar kelimenin gectigi cumle
+    const cumle = p.split(/(?<=[.!?\n])\s*/).find((c) => SUREKLI.test(c)) ?? p
+    return cumle.trim().slice(0, 140)
+  }
+  return ''
+}
+
+// Kontrol edilecek mekanlar: once paylasiminda kampanya izi olanlar, sonra favoriler, gitmek istediklerin
+// ve en uzun suredir bakilmayanlar (her seferinde en fazla EN_FAZLA mekan)
 async function hedefMekanlar(): Promise<LzMekan[]> {
   const hepsi = await lzDb.mekanlar.toArray()
-  const fav = hepsi.filter((m) => m.favori)
-  const liste = fav.length ? fav : hepsi.filter((m) => !m.gidildi).length ? hepsi.filter((m) => !m.gidildi) : hepsi
-  return liste.sort((a, b) => (a.kampanyaBakildi ?? 0) - (b.kampanyaBakildi ?? 0)).slice(0, EN_FAZLA)
+  const oncelik = (m: LzMekan) => (yerelKampanya(m) ? 0 : m.favori ? 1 : m.gitmekIstiyorum ? 2 : 3)
+  return hepsi.sort((a, b) => oncelik(a) - oncelik(b) || (a.kampanyaBakildi ?? 0) - (b.kampanyaBakildi ?? 0)).slice(0, EN_FAZLA)
+}
+
+// Paylasimda gecen kampanyalar kredi harcamadan isaretlenir
+async function yerelleriIsaretle(): Promise<LzMekan[]> {
+  const bulunan: LzMekan[] = []
+  for (const m of await lzDb.mekanlar.toArray()) {
+    const y = yerelKampanya(m)
+    if (!y || m.kampanya) continue
+    await lzDb.mekanlar.update(m.id!, { kampanya: { ozet: y, gecerlilik: 'Paylaşımda geçiyordu; gitmeden teyit et', kaynak: 'Kaydettiğin paylaşım', zaman: Date.now() } })
+    bulunan.push(m)
+  }
+  return bulunan
 }
 
 export async function kampanyaKontrolEt(): Promise<{ bakilan: number; bulunan: LzMekan[] }> {
   if (durum.calisiyor) return { bakilan: 0, bulunan: [] }
   if (!apiAnahtari()) throw new Error('Kampanya araştırması için Ayarlar’dan Gemini anahtarı gir.')
+  const bulunan: LzMekan[] = await yerelleriIsaretle()
   const liste = await hedefMekanlar()
-  const bulunan: LzMekan[] = []
   durumYaz({ calisiyor: true, mesaj: `${liste.length} mekanın kampanyalarına bakılıyor…` })
   try {
     for (let i = 0; i < liste.length; i++) {
@@ -106,7 +131,7 @@ export async function kampanyaKontrolEt(): Promise<{ bakilan: number; bulunan: L
       try {
         const k = await tekMekan(m)
         if (k.var) {
-          bulunan.push(m)
+          if (!bulunan.some((x) => x.id === m.id)) bulunan.push(m)
           await bildir(`${m.ad}`, `${k.ozet}${k.gecerlilik ? ` (${k.gecerlilik})` : ''}`, 5000 + (m.id ?? 0))
         }
       } catch {
@@ -125,12 +150,16 @@ async function tekMekan(m: LzMekan) {
   const k = await aiMekanKampanya(m, aralik())
   await lzDb.mekanlar.update(m.id!, {
     kampanyaBakildi: Date.now(),
-    kampanya: k.var ? { ozet: k.ozet, gecerlilik: k.gecerlilik, kaynak: k.kaynak, zaman: Date.now() } : undefined
+    kampanya: k.var
+      ? { ozet: k.ozet, gecerlilik: k.gecerlilik, kaynak: k.kaynak, zaman: Date.now() }
+      : yerelKampanya(m) // internette bulunamasa da paylasimda gecen teklif silinmez
+        ? { ozet: yerelKampanya(m), gecerlilik: 'Paylaşımda geçiyordu; gitmeden teyit et', kaynak: 'Kaydettiğin paylaşım', zaman: Date.now() }
+        : undefined
   })
   return k
 }
 
 export async function mekanKampanyasi(m: LzMekan): Promise<boolean> {
   if (!apiAnahtari()) throw new Error('Kampanya araştırması için Ayarlar’dan Gemini anahtarı gir.')
-  return (await tekMekan(m)).var
+  return (await tekMekan(m)).var || !!yerelKampanya(m)
 }

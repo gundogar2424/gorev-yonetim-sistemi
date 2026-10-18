@@ -101,7 +101,10 @@ export default function Mekanlar() {
       (!sadeceIstek || m.gitmekIstiyorum) &&
       (!sadeceHype || m.hype?.var) &&
       (!yaricap || (konum && m.lat !== undefined && m.lon !== undefined && mesafeKm(konum, { lat: m.lat, lon: m.lon }) <= yaricap)) &&
-      (!q || `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')}`.toLocaleLowerCase('tr').includes(q))
+      (!q ||
+        `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')} ${m.notlar} ${m.kampanya?.ozet ?? ''} ${m.paylasanYorumu?.begendi ?? ''} ${m.paylasanYorumu?.yedi ?? ''}`
+          .toLocaleLowerCase('tr')
+          .includes(q))
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
   const sirali =
