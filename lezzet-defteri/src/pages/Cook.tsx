@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, markCooked } from '../db'
 import { Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { aiMalzemeBolumle, apiAnahtari } from '../lib/ai'
 
 // PISIRME MODU: adimlar tek tek, buyuk yazi. Ekran acik kalir. Adimda
 // "10 dakika" gibi bir sure geciyorsa tek dokunusla geri sayim baslatilir.
@@ -14,6 +15,7 @@ export default function Cook() {
   const [kalan, setKalan] = useState(0)
   const [sayac, setSayac] = useState(false)
   const [hepsiAcik, setHepsiAcik] = useState(false)
+  const [bolumluyor, setBolumluyor] = useState('')
   const bitti = useRef(false)
 
   // Ekran uyumasin (destekleyen cihazlarda)
@@ -59,6 +61,19 @@ export default function Cook() {
   const ilgili = adimMalzemeleri(adim, r.ingredients)
   // "Alt katman malzemelerini…" gibi toplu anlatimda tum liste kendiliginden acilir
   const topluAnlatim = /malzeme/i.test(adim) && !ilgili.length
+  const bolumlu = r.ingredients.some((m) => /^[^:]{2,30}:/.test(m))
+  const bolumle = async () => {
+    setBolumluyor('Malzemeler bölümlere ayrılıyor…')
+    try {
+      const yeni = await aiMalzemeBolumle(r.title, r.ingredients, r.steps)
+      if (!yeni.length) throw new Error()
+      await lzDb.recipes.update(r.id!, { ingredients: yeni, updatedAt: Date.now() })
+      setBolumluyor('')
+      setHepsiAcik(false)
+    } catch {
+      setBolumluyor('Ayrılamadı; tekrar dene')
+    }
+  }
   const sureSn = sure ? Number(sure[1]) * (/^sa/i.test(sure[2]) ? 3600 : /^s(an|n)/i.test(sure[2]) ? 1 : 60) : 0
 
   const ileri = async () => {
@@ -112,16 +127,46 @@ export default function Cook() {
           <div>
             <div className="text-lz-600 font-bold text-lg mb-2">{i + 1}.</div>
             <p className={`text-[24px] leading-[1.45] font-medium ${T_BASLIK}`}>{adim}</p>
+            {sureSn > 0 && (
+              <div className="mt-6 lz-card p-4 flex items-center gap-4">
+                <div className={`text-3xl font-bold tabular-nums flex-1 ${T_BASLIK}`}>{saat(kalan || sureSn)}</div>
+                {sayac ? (
+                  <button className="lz-btn-soft" onClick={() => setSayac(false)}>
+                    Durdur
+                  </button>
+                ) : (
+                  <button
+                    className="lz-btn-primary"
+                    onClick={() => {
+                      setKalan(kalan || sureSn)
+                      setSayac(true)
+                    }}
+                  >
+                    <Icon name="clock" className="w-4 h-4" /> Sayacı başlat
+                  </button>
+                )}
+              </div>
+            )}
             {ilgili.length > 0 && (
               <div className="mt-5 lz-card p-4">
                 <div className={`text-[13px] font-semibold mb-1.5 ${T_SOLUK}`}>Bu adımda</div>
                 <ul className="space-y-1">
                   {ilgili.map((m, k) => (
                     <li key={k} className={`text-[17px] leading-snug flex gap-2 ${T_GOVDE}`}>
-                      <span className="text-lz-500">•</span> {m}
+                      <span className="text-lz-500">•</span> {m.replace(/^[^:]{2,30}:\s*/, '')}
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {topluAnlatim && !bolumlu && apiAnahtari() && (
+              <div className="mt-3 rounded-2xl bg-amber-50 dark:bg-[#2a2113] p-3 space-y-2">
+                <p className="text-[13.5px] text-amber-900 dark:text-amber-200">
+                  Bu tarifte hangi malzemenin hangi bölüme (alt / orta katman…) ait olduğu kayıtlı değil. Bir kez ayırırsan her adımda yalnızca o bölümün malzemeleri çıkar.
+                </p>
+                <button className="lz-btn-primary w-full text-[14px]" disabled={!!bolumluyor && !bolumluyor.startsWith('Ayrılamadı')} onClick={() => void bolumle()}>
+                  {bolumluyor || 'Malzemeleri bölümlere ayır (çok az kredi)'}
+                </button>
               </div>
             )}
             {r.ingredients.length > 0 && (
@@ -140,26 +185,6 @@ export default function Cook() {
                 ) : (
                   <button className="lz-btn-soft text-[14px] w-full" onClick={() => setHepsiAcik(true)}>
                     Tüm malzemeleri göster
-                  </button>
-                )}
-              </div>
-            )}
-            {sureSn > 0 && (
-              <div className="mt-6 lz-card p-4 flex items-center gap-4">
-                <div className={`text-3xl font-bold tabular-nums flex-1 ${T_BASLIK}`}>{saat(kalan || sureSn)}</div>
-                {sayac ? (
-                  <button className="lz-btn-soft" onClick={() => setSayac(false)}>
-                    Durdur
-                  </button>
-                ) : (
-                  <button
-                    className="lz-btn-primary"
-                    onClick={() => {
-                      setKalan(kalan || sureSn)
-                      setSayac(true)
-                    }}
-                  >
-                    <Icon name="clock" className="w-4 h-4" /> Sayacı başlat
                   </button>
                 )}
               </div>
@@ -203,11 +228,16 @@ const OLCU = /^(su|çay|tatlı|yemek|kahve|bardağı|bardak|kaşığı|kaşık|g
 function adimMalzemeleri(adim: string, malzemeler: string[]): string[] {
   if (!adim) return []
   const a = adim.toLocaleLowerCase('tr')
+  const bolumu = (m: string) => m.toLocaleLowerCase('tr').match(/^([^:]{2,30}):/)?.[1]?.replace(/\s*için$/, '').trim() ?? ''
+  // Adimda once gecen bolum o adimin bolumudur ("Orta katmani … alt katmanin uzerine ekleyin" -> orta katman)
+  const bolumler = [...new Set(malzemeler.map(bolumu).filter(Boolean))]
+    .map((b) => ({ b, yer: a.indexOf(b) }))
+    .filter((x) => x.yer >= 0)
+    .sort((x, y) => x.yer - y.yer)
+  if (bolumler.length) return malzemeler.filter((m) => bolumu(m) === bolumler[0].b)
   return malzemeler.filter((m) => {
-    const k = m.toLocaleLowerCase('tr')
-    const bolum = k.match(/^([^:]{2,30}):/)?.[1]?.replace(/\s*için$/, '').trim()
-    if (bolum && a.includes(bolum)) return true
-    const kelimeler = k
+    const kelimeler = m
+      .toLocaleLowerCase('tr')
       .replace(/^[^:]{2,30}:/, '')
       .replace(/\([^)]*\)/g, ' ')
       .split(/[^\p{L}]+/u)

@@ -1468,6 +1468,27 @@ export function paylasimLinki(u: string): string {
   return /^https:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/)[\w-]{6,}|youtu\.be\/[\w-]{6,}|instagram\.com\/(p|reel|reels)\/[\w-]{5,}|tiktok\.com\/@[\w.]+\/video\/\d+)/i.test(x) ? x : ''
 }
 
+// MALZEME BOLUMLERI: bolumlu tarifte (alt katman, hamur, sos…) her malzemenin basina bolum adini ekler.
+// Malzemelerin sirasi ve metni degismez; dogrulanamazsa bos liste.
+export async function aiMalzemeBolumle(baslik: string, malzemeler: string[], adimlar: string[]): Promise<string[]> {
+  const v = await jsonCagri<{ bolumler: string[] }>(
+    'Bir tarifin malzeme listesi ve yapılış adımları verilecek. Adımlarda geçen bölümlere (ör. alt katman, orta katman, üst katman, hamur, ' +
+      'iç harç, sos, krema) bakarak HER malzemenin hangi bölüme ait olduğunu bul. bolumler dizisine malzemelerle AYNI SIRADA ve AYNI SAYIDA, ' +
+      'her malzeme için bölüm adını yaz (adımlarda geçtiği gibi, küçük harf, ör. "alt katman"). Malzeme listesi genelde bölüm sırasıyla yazılır; ' +
+      'aynı malzeme iki kez geçiyorsa iki ayrı bölüme aittir. Bölüm yoksa boş yaz.',
+    `Tarif: ${baslik}\n\nMalzemeler:\n${malzemeler.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nAdımlar:\n${adimlar.map((m, i) => `${i + 1}. ${m}`).join('\n')}`,
+    { type: 'object', additionalProperties: false, required: ['bolumler'], properties: { bolumler: { type: 'array', items: { type: 'string' } } } },
+    600
+  )
+  const b = v.bolumler ?? []
+  if (b.length !== malzemeler.length) return []
+  return malzemeler.map((m, i) => {
+    const ad = String(b[i] ?? '').trim().replace(/:$/, '')
+    const sade = m.replace(/^[^:]{2,30}:\s*/, '')
+    return ad ? `${ad.charAt(0).toLocaleUpperCase('tr')}${ad.slice(1)}: ${sade}` : sade
+  })
+}
+
 // HESAP FISI: fotograftaki odenecek toplam tutar (TL); okunamazsa 0
 export async function aiFisTutar(foto: string): Promise<number> {
   const m = foto.match(/^data:(image\/[a-z+]+);base64,(.+)$/)
