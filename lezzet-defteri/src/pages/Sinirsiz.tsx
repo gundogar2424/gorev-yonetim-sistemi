@@ -7,12 +7,14 @@ import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../c
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { instagramLinki, konumdanAdres, mesafeKm, mesafeYaz, oneriKaydet, telefonKonumu, type Konum } from '../lib/mekan'
 
-const SINIRSIZ = /sınırsız|limitsiz|açık büfe|serpme|doyasıya|bitirdikçe|yenileyebilir/i
+const SINIRSIZ = /sınırsız|limitsiz|açık büfe|doyasıya|bitirdikçe|yenileyebilir/i
+// Serpme / acik bufe kahvalti sinirsiz yemek sayilmaz
+const KAHVALTI = /kahvalt|serpme|brunch/i
 // Mekanin sinirsiz teklifi: once kampanya, sonra notlar / onerilenler
 export function sinirsizTeklif(m: LzMekan): string {
   for (const p of [m.kampanya?.ozet ?? '', m.notlar, ...m.oneriler, m.paylasanYorumu?.begendi ?? '', m.paylasanYorumu?.yedi ?? '']) {
-    if (!p || !SINIRSIZ.test(p)) continue
-    return (p.split(/(?<=[.!?\n])\s*/).find((c) => SINIRSIZ.test(c)) ?? p).trim().slice(0, 160)
+    const c = p ? p.split(/(?<=[.!?\n])\s*/).find((x) => SINIRSIZ.test(x) && !KAHVALTI.test(x)) : ''
+    if (c) return c.trim().slice(0, 160)
   }
   return ''
 }
@@ -41,8 +43,8 @@ export default function Sinirsiz() {
       const yer = (await konumdanAdres(k)) || `${k.lat.toFixed(3)}, ${k.lon.toFixed(3)}`
       setDurum('Sınırsız yemek veren yerler araştırılıyor…')
       const l = await aiMekanOner(
-        'SINIRSIZ / LİMİTSİZ yemek sunan mekanlar: sınırsız pizza, köfte, kanat, çiğ köfte, makarna, tatlı, sınırsız çay ile serpme ya da açık büfe ' +
-          'kahvaltı, açık büfe restoran gibi. YALNIZCA şu an böyle bir teklifi olduğu güncel kaynaklarla anlaşılan yerler. neden alanına teklifin ' +
+        'SINIRSIZ / LİMİTSİZ yemek sunan mekanlar: sınırsız pizza, köfte, kanat, çiğ köfte, makarna, döner, tatlı, açık büfe restoran gibi. ' +
+          'KAHVALTI YERLERİNİ (serpme, açık büfe ya da sınırsız çaylı kahvaltı, brunch) KESİNLİKLE ALMA. YALNIZCA şu an böyle bir teklifi olduğu güncel kaynaklarla anlaşılan yerler. neden alanına teklifin ' +
           'kendisini, FİYATINI ve geçerli gün/saatleri yaz (ör. "390 TL’ye sınırsız pizza, her gün 13:00–17:30").',
         yer,
         mekanlar.map((m) => m.ad),
@@ -54,6 +56,7 @@ export default function Sinirsiz() {
       const r = l
         .map((o) => ({ ...o, km: o.enlem || o.boylam ? mesafeKm(k, { lat: o.enlem, lon: o.boylam }) : undefined }))
         .filter((o) => !km || o.km === undefined || o.km <= km + 0.5)
+        .filter((o) => !KAHVALTI.test(`${o.ad} ${o.tur} ${o.neden}`))
         .sort((a, b) => (a.km ?? 999) - (b.km ?? 999))
       setSonuc(r)
       if (!r.length) setHata(`${km ? `${km} km içinde` : 'Yakınında'} sınırsız teklif bulunamadı; mesafeyi büyütmeyi dene.`)
@@ -79,7 +82,7 @@ export default function Sinirsiz() {
           <button className="lz-btn-primary w-full" disabled={!apiAnahtari() || !!durum} onClick={() => void ara()}>
             {durum || 'Sınırsız yemek veren yerleri bul'}
           </button>
-          <p className={`text-[12px] ${T_SOLUK}`}>Tek aramalık kredi harcar (1 TL’nin altında). Teklifler değişebilir; gitmeden mekanın Instagram’ından teyit et.</p>
+          <p className={`text-[12px] ${T_SOLUK}`}>Genel arama: kayıtlı ya da takip ettiğin yerlerle sınırlı değil; senin mekanların aşağıda ayrıca listelenir. Tek aramalık kredi harcar (1 TL’nin altında). Teklifler değişebilir; gitmeden mekanın Instagram’ından teyit et.</p>
         </div>
         {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
         {sonuc?.map((o, i) => {
