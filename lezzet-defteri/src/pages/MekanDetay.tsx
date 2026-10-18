@@ -5,14 +5,23 @@ import { lzDb } from '../db'
 import { ReklamRozeti } from './Takip'
 import { tlYaz, tutarOku } from '../lib/harcama'
 import type { LzMekan, LzZiyaret } from '../types'
-import { Header, Icon, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
+import { Header, Icon, KisiAvatar, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { fiyatlariGuncelle, videodakiMekanlariBul, haritadaAcLinki, instagramLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI, aiFisTutar, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
-import { hesapTakipEt, takipEdiliyor } from '../lib/hesaplar'
+import { hesapFoto, hesapNormal, hesapTakipEt, hesaplariOku, takipEdiliyor } from '../lib/hesaplar'
+
+// Paylasanin influencer sayfasi anahtari: takip ediliyorsa listedeki kaydi, degilse ad (+ platform)
+function influencerAnahtari(m: LzMekan): string {
+  const p = m.paylasan ?? ''
+  const kayitli = hesaplariOku().find((x) => hesapNormal(x) === hesapNormal(p))
+  if (kayitli) return kayitli
+  const pl = PLATFORM_AD[m.platform]
+  return p.startsWith('@') || !pl ? p : `${p} (${pl})`
+}
 
 const PLATFORM: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', pinterest: 'Pinterest' }
 
@@ -118,15 +127,17 @@ export default function MekanDetay() {
         )}
         {m.paylasan && (
           <div className="lz-card p-3 flex items-center gap-3">
-            <SofraRozet ad={m.paylasan.replace(/^@/, '')} className="w-10 h-10 text-[14px]" />
+            <Link to={`/influencer/${encodeURIComponent(influencerAnahtari(m))}`} className="flex items-center gap-3 flex-1 min-w-0">
+            <KisiAvatar ad={hesapNormal(m.paylasan)} foto={hesapFoto(influencerAnahtari(m))} className="w-10 h-10 text-[14px]" />
             <span className="flex-1 min-w-0">
-              <span className={`block text-[11.5px] ${T_SOLUK}`}>Paylaşan</span>
+              <span className={`block text-[11.5px] ${T_SOLUK}`}>Paylaşan · profiline git ›</span>
               <span className={`block font-semibold truncate ${T_BASLIK}`}>
                 {m.paylasan}
                 {m.reklam && <ReklamRozeti />}
               </span>
               {m.reklam && <span className="block text-[11.5px] text-amber-700 dark:text-amber-300">Bu paylaşım reklam / iş birliği olarak işaretli</span>}
             </span>
+            </Link>
             {takipEdiliyor(m.paylasan) ? (
               <span className="text-[13px] text-emerald-600 dark:text-emerald-300 font-semibold">✓ Takip ediliyor</span>
             ) : (
