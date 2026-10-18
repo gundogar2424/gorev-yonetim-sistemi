@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { temelLink } from '../lib/kopya'
 import { lzDb } from '../db'
 import type { LzSira } from '../types'
 import { Header, Icon, T_BASLIK, T_SOLUK } from '../components/ui'
@@ -53,6 +54,7 @@ export default function Sira() {
                     Mekanı aç
                   </Link>
                 )}
+                {x.durum === 'bitti' && !!x.mekanId && <AyniVideodakiler id={x.mekanId} />}
                 {x.durum === 'bitti' && x.recipeId > 0 && (
                   <Link to={`/tarif/${x.recipeId}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
                     Tarifi aç
@@ -129,5 +131,25 @@ export function SiraSeridi() {
       <span className={`flex-1 text-[13.5px] font-medium ${T_BASLIK}`}>{parca.join(' · ')}</span>
       <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
     </Link>
+  )
+}
+
+// Ayni videodan kaydedilen diger mekanlar: her biri dogrudan acilabilsin
+function AyniVideodakiler({ id }: { id: number }) {
+  const liste =
+    useLiveQuery(async () => {
+      const m = await lzDb.mekanlar.get(id)
+      if (!m?.sourceUrl) return []
+      const t = temelLink(m.sourceUrl)
+      return (await lzDb.mekanlar.toArray()).filter((x) => x.id !== id && x.sourceUrl && temelLink(x.sourceUrl) === t)
+    }, [id]) ?? []
+  return (
+    <>
+      {liste.map((m) => (
+        <Link key={m.id} to={`/mekan/${m.id}`} className="lz-btn-soft px-3 py-1.5 text-[12.5px]">
+          {m.ad}
+        </Link>
+      ))}
+    </>
   )
 }

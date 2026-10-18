@@ -136,6 +136,20 @@ export default function MekanDetay() {
                 Takip et
               </button>
             )}
+        {ayniVideo.length > 0 && (
+          <div className="lz-card p-4 space-y-2">
+            <div className={`font-semibold ${T_BASLIK}`}>Aynı videodaki diğer mekanlar</div>
+            {ayniVideo.map((x) => (
+              <Link key={x.id} to={`/mekan/${x.id}`} replace className={`flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2 text-[14px] ${T_GOVDE}`}>
+                <span className="flex-1 min-w-0">
+                  <span className="font-semibold">{x.ad}</span>
+                  <span className={`block text-[12px] ${T_SOLUK}`}>{[x.tur, x.ilce].filter(Boolean).join(' · ')}</span>
+                </span>
+                <span className="text-lz-600">›</span>
+              </Link>
+            ))}
+          </div>
+        )}
           </div>
         )}
         {(() => {
@@ -371,20 +385,6 @@ export default function MekanDetay() {
           </div>
         )}
         <ZiyaretKarti m={m} goster={goster} otoAc={durumu?.gittim ? { yedim: durumu.yedim ?? '' } : undefined} />
-        {ayniVideo.length > 0 && (
-          <div className="lz-card p-4 space-y-2">
-            <div className={`font-semibold ${T_BASLIK}`}>Aynı videodaki diğer mekanlar</div>
-            {ayniVideo.map((x) => (
-              <Link key={x.id} to={`/mekan/${x.id}`} replace className={`flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2 text-[14px] ${T_GOVDE}`}>
-                <span className="flex-1 min-w-0">
-                  <span className="font-semibold">{x.ad}</span>
-                  <span className={`block text-[12px] ${T_SOLUK}`}>{[x.tur, x.ilce].filter(Boolean).join(' · ')}</span>
-                </span>
-                <span className="text-lz-600">›</span>
-              </Link>
-            ))}
-          </div>
-        )}
         <UnluKarti m={m} goster={goster} />
         {!duzenle && (
           <button className="lz-btn-soft w-full text-sm" onClick={duzenlemeyiAc}>
