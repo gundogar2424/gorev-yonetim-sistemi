@@ -5,7 +5,7 @@ import { listRecipes, lzDb } from '../db'
 import type { LzBesin, LzDiyet, LzDiyetOgun, LzRecipe } from '../types'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { aiDiyetOku, apiAnahtari, type OgunUyum } from '../lib/ai'
-import { ogunTara, tumOgunleriTara, useTaramaDurumu, yeniTarifSayisi } from '../lib/diyetTara'
+import { ogunTara, tumOgunleriTara, turUyumsuz, useTaramaDurumu, yeniTarifSayisi } from '../lib/diyetTara'
 import { sayiYaz } from '../lib/qty'
 import { fotoOku } from '../lib/image'
 
@@ -18,6 +18,16 @@ export function BesinSatiri({ b, kucuk }: { b: LzBesin; kucuk?: boolean }) {
       <span className="lz-pill !bg-violet-50 !text-violet-700 dark:!bg-[#231a33] dark:!text-violet-300">Y {Math.round(b.yag)} g</span>
     </div>
   )
+}
+
+// Kayitli eslesmelere ogun turu kontrolu (ara ogune ana yemek vb.) — yeniden taramadan, kredi harcamadan
+function duzelt(o: LzDiyetOgun, sonuc: OgunUyum[], tarifler: LzRecipe[]): OgunUyum[] {
+  const m = new Map(tarifler.map((r) => [r.id!, r]))
+  return sonuc.map((x) => {
+    const r = m.get(x.tarifId)
+    const neden = r && x.durum !== 'uygun_degil' ? turUyumsuz(o, r) : ''
+    return neden ? { ...x, durum: 'uygun_degil' as const, aciklama: neden } : x
+  })
 }
 
 function carp(b: LzBesin, k: number): LzBesin {
@@ -50,7 +60,7 @@ export default function Diyetim() {
         <div ref={sekmeRef} className="flex gap-2 overflow-x-auto px-4 pb-3 -mt-1 no-scrollbar">
           {plan!.ogunler.map((o, i) => {
             const e = plan!.eslesme?.[i]
-            const n = e ? e.sonuc.filter((x) => x.durum !== 'uygun_degil' && tarifler.some((r) => r.id === x.tarifId)).length : 0
+            const n = e ? duzelt(o, e.sonuc, tarifler).filter((x) => x.durum !== 'uygun_degil' && tarifler.some((r) => r.id === x.tarifId)).length : 0
             return (
               <button
                 key={i}
@@ -170,7 +180,7 @@ function OgunSekmesi({ i, plan, tarifler }: { i: number; plan: LzDiyet; tarifler
 
   const tarifMap = new Map(tarifler.map((r) => [r.id!, r]))
   const grup = (x: OgunUyum['durum']) =>
-    (e?.sonuc ?? []).filter((s) => s.durum === x && tarifMap.has(s.tarifId)).sort((a, b) => Math.abs(1 - a.carpan) - Math.abs(1 - b.carpan))
+    duzelt(ogun, e?.sonuc ?? [], tarifler).filter((s) => s.durum === x && tarifMap.has(s.tarifId)).sort((a, b) => Math.abs(1 - a.carpan) - Math.abs(1 - b.carpan))
 
   return (
     <>

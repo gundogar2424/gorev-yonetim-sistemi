@@ -865,7 +865,7 @@ export interface OgunUyum {
 export async function aiOgunEslestir(
   ogun: import('../types').LzDiyetOgun,
   genelNot: string,
-  tarifler: { id: number; baslik: string; porsiyon: number; malzemeler: string[]; bilinen?: import('../types').LzBesin }[]
+  tarifler: { id: number; baslik: string; porsiyon: number; malzemeler: string[]; bilinen?: import('../types').LzBesin; etiketler?: string[] }[]
 ): Promise<OgunUyum[]> {
   const schema = {
     type: 'object',
@@ -892,7 +892,7 @@ export async function aiOgunEslestir(
   const liste = tarifler
     .map(
       (t) =>
-        `#${t.id} ${t.baslik} (${t.porsiyon || '?'} kişilik)${
+        `#${t.id} ${t.baslik} (${t.porsiyon || '?'} kişilik)${t.etiketler?.length ? ` {${t.etiketler.join(', ')}}` : ''}${
           t.bilinen ? ` [1 porsiyon ≈ ${t.bilinen.kalori} kcal, P${t.bilinen.protein} K${t.bilinen.karb} Y${t.bilinen.yag}]` : ''
         }: ${t.malzemeler.join(', ').slice(0, 350)}`
     )
@@ -905,7 +905,11 @@ export async function aiOgunEslestir(
       '(köşeli parantezde bilinen değer verildiyse onu kullan). Sonra öğün hedefine göre önerilen porsiyon katsayısını (carpan) belirle: ' +
       'hedefe ±%15 içinde kalıyorsa durum "uygun"; porsiyonu değiştirerek (0.5–1.5) hedefe yaklaşıyor ve öğünün türüne uyuyorsa "ayarla"; ' +
       'öğünün türüne uymuyorsa (ör. kahvaltıya ağır tatlı), makro dengesi çok farklıysa ya da planın kurallarına aykırıysa "uygun_degil". ' +
-      'Öğün türünü dikkate al (kahvaltıya kahvaltılık, ara öğüne hafif). Açıklama Türkçe, tek kısa cümle. Listede verilen her tarifi değerlendir.',
+      'ÖĞÜN TÜRÜ KALORİDEN ÖNCE GELİR: Ara öğüne YALNIZCA hafif atıştırmalıklar uygundur (yoğurtlu kase, smoothie, meyve, kuruyemişli bar/top, ' +
+      'hafif tatlı, puding, kraker vb.); tavuk/et yemeği, börek, makarna, pilav, taco, pizza, çorba gibi ANA YEMEKLER ara öğüne kalorisi tutsa ' +
+      'ya da porsiyon küçültülse bile "uygun_degil". Kahvaltıya kahvaltılık; öğle/akşama ana yemek, salata, çorba uygundur, tatlı uygun değildir. ' +
+      'Kalabalık bir tarifi (ör. 15 kişilik) küçücük porsiyona bölerek uydurma; porsiyon makul olmalı. Süslü parantezde tarifin etiketleri var. ' +
+      'Açıklama Türkçe, tek kısa cümle. Listede verilen her tarifi değerlendir.',
     `Öğün: ${ogun.ad}\nPlandaki içerik: ${ogun.icerik}\nHedef: ${ogun.hedef.kalori} kcal, protein ${ogun.hedef.protein} g, karbonhidrat ${
       ogun.hedef.karb
     } g, yağ ${ogun.hedef.yag} g${genelNot ? `\nPlanın genel kuralları: ${genelNot.slice(0, 1500)}` : ''}\n\nTarifler:\n${liste}`,

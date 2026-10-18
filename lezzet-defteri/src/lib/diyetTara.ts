@@ -8,6 +8,30 @@ import { aiOgunEslestir, apiAnahtari } from './ai'
 
 const PARTI = 40
 
+// OGUN TURU KONTROLU (yapay zekasiz): ara ogune ana yemek, kahvaltiya aksam yemegi, ana ogune tatli onerilmez.
+// Kalorisi tutsa bile tur uymuyorsa "uygun degil" sayilir; hem yeni taramada hem kayitli sonuclarda uygulanir.
+type OgunTuru = 'ara' | 'kahvalti' | 'ana' | ''
+export function ogunTuru(o: { ad: string; icerik?: string }): OgunTuru {
+  const t = o.ad.toLocaleLowerCase('tr')
+  if (/ara\s*öğün|ara\s*ogun|atıştırma|ikindi|snack|gece/.test(t)) return 'ara'
+  if (/kahvalt/.test(t)) return 'kahvalti'
+  if (/öğle|akşam|ogle|aksam/.test(t)) return 'ana'
+  return ''
+}
+const ANA_YEMEK =
+  /tavuk|(^|\s)(et|etli)(\s|$)|kıyma|köfte|kebap|kebab|börek|makarna|spagetti|pilav|bulgur pilav|taco|pizza|lahmacun|pide|güveç|kavurma|dolma|sarma|mantı|burger|hamburger|lazanya|çorba|yahni|musakka|karnıyarık|tantuni|döner|şnitzel|şinitzel|biftek|pirzola|balık|somon|levrek|hamsi|fajita|wrap|dürüm|kumpir|tost|sandviç|güveç|fırında .*(tavuk|et|köfte|patates)|patlıcan|sebze yemeği|kuru fasulye|nohut yemeği|mercimek yemeği/
+export function turUyumsuz(o: { ad: string; icerik?: string }, r: { title: string; tags?: string[] }): string {
+  const tur = ogunTuru(o)
+  const ad = r.title.toLocaleLowerCase('tr')
+  const tag = new Set(r.tags ?? [])
+  const anaYemek = tag.has('Ana Yemek') || tag.has('Akşam Yemeği') || tag.has('Çorba') || tag.has('Hamur İşi') || tag.has('Zeytinyağlı') || ANA_YEMEK.test(ad)
+  const hafif = tag.has('Tatlı') || tag.has('Aperatif') || tag.has('İçecek') || /smoothie|kase|bowl|yoğurt|puding|bar\b|top\b|toplar|kurabiye|muffin|cheesecake|tiramisu|meyve|kuruyemiş|granola|chia|overnight|milkshake|shake/.test(ad)
+  if (tur === 'ara' && anaYemek && !hafif) return 'Ana yemek; ara öğün için uygun değil.'
+  if (tur === 'kahvalti' && (tag.has('Ana Yemek') || tag.has('Akşam Yemeği') || tag.has('Çorba')) && !tag.has('Kahvaltılık')) return 'Ana yemek; kahvaltılık değil.'
+  if (tur === 'ana' && (tag.has('Tatlı') || tag.has('İçecek')) && !anaYemek) return 'Tatlı/içecek; ana öğün yerine geçmez.'
+  return ''
+}
+
 type Durum = Record<number, { calisiyor: boolean; hata: string }>
 let durum: Durum = {}
 const dinleyiciler = new Set<() => void>()
@@ -45,11 +69,17 @@ export function ogunTara(i: number, bastan = false): Promise<void> {
       let sonuc = onceki.sonuc
       for (let p = 0; p < aday.length; p += PARTI) {
         const parti = aday.slice(p, p + PARTI)
-        const s = await aiOgunEslestir(
-          ogun,
-          plan.notlar,
-          parti.map((r) => ({ id: r.id!, baslik: r.title, porsiyon: r.servings, malzemeler: r.ingredients, bilinen: r.besin }))
-        )
+        const s = (
+          await aiOgunEslestir(
+            ogun,
+            plan.notlar,
+            parti.map((r) => ({ id: r.id!, baslik: r.title, porsiyon: r.servings, malzemeler: r.ingredients, bilinen: r.besin, etiketler: r.tags }))
+          )
+        ).map((x) => {
+          const r = parti.find((t) => t.id === x.tarifId)
+          const neden = r ? turUyumsuz(ogun, r) : ''
+          return neden ? { ...x, durum: 'uygun_degil' as const, aciklama: neden } : x
+        })
         // 1 porsiyonun besin degeri tarife kaydedilir (sonraki taramalarda tekrar hesaplanmaz)
         for (const x of s) {
           const r = parti.find((t) => t.id === x.tarifId)
