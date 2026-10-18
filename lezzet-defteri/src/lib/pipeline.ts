@@ -290,6 +290,8 @@ export async function linktenTaslak(girdi: string, ilerleme: Ilerleme = () => {}
             e.kapak = kapak
             throw e
           }
+          // Gunluk sinir dolduysa yarim tarif kaydedilmez; sirada bekleyip ertesi gun islenir
+          if (/sınırı .*doldu/.test((e as Error).message)) throw e
           // Sessizce gecme: sebep kullaniciya kirmizi uyariyla gosterilir
           if (!s.hamMetin) throw e
           const { d, not } = await yapilandir(s.hamMetin, s.draft, ilerleme)

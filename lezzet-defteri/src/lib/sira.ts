@@ -8,7 +8,7 @@ import { addRecipe, deleteRecipe, lzDb, updateRecipe } from '../db'
 import type { LzDraft, LzSira } from '../types'
 import { linkAyikla, platformBul } from './importer'
 import { ayniLinkliTarif, benzerTarif } from './kopya'
-import { TarifYokHatasi } from './ai'
+import { TarifYokHatasi, gunlukSinir, kullanimOku } from './ai'
 import { mekanLinktenEkle } from './mekan'
 import { ekleriKaydet, linktenTaslak, taslakHazirla, yapilandir } from './pipeline'
 
@@ -219,14 +219,22 @@ async function birIsle(is: LzSira, g: (patch: Partial<LzSira>) => Promise<void>,
         return
       }
     }
-    await g({ durum: 'hata', mesaj: (e as Error).message || 'İşlenemedi.' })
+    const mesaj = (e as Error).message || 'İşlenemedi.'
+    await g({ durum: 'hata', mesaj: SINIR.test(mesaj) ? SINIR_MESAJ : mesaj })
   }
 }
+const SINIR = /sınırı .*doldu/
+const SINIR_MESAJ = 'Bugünkü yapay zeka sınırı doldu; yarın uygulamayı açınca kendiliğinden işlenir.'
 
 // Uygulama acilisinda: yarim kalan (isleniyor) isleri tekrar siraya al ve baslat
 export async function siraBaslat(): Promise<void> {
   const yarim = await lzDb.sira.where('durum').equals('isleniyor').toArray()
   for (const x of yarim) await lzDb.sira.update(x.id!, { durum: 'bekliyor', mesaj: 'Sırada (yeniden)' })
+  // Gunluk sinira takilanlar sinir acildiysa (yeni gun / sinir artirildi) tekrar siraya
+  if (kullanimOku().bugun.istek < gunlukSinir()) {
+    const bekleyen = await lzDb.sira.where('durum').equals('hata').filter((x) => x.mesaj === SINIR_MESAJ).toArray()
+    for (const x of bekleyen) await lzDb.sira.update(x.id!, { durum: 'bekliyor', mesaj: 'Sırada (dünden)' })
+  }
   void siraIsle()
 }
 
