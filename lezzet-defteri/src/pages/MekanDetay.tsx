@@ -12,7 +12,7 @@ import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
-import { dosyaPaylas, mekanHtml, mekanPaylas } from '../lib/paylas'
+import { dosyaPaylas, mekanHtml, mekanKarti, mekanPaylas } from '../lib/paylas'
 import { hesapFoto, hesapNormal, hesapTakipEt, hesaplariOku, takipEdiliyor } from '../lib/hesaplar'
 
 // Paylasanin influencer sayfasi anahtari: takip ediliyorsa listedeki kaydi, degilse ad (+ platform)
@@ -480,7 +480,7 @@ export default function MekanDetay() {
               onClick={async () => {
                 setPaylasAc(false)
                 try {
-                  if (tur === 'sayfa') await dosyaPaylas(m.ad, await mekanHtml(m), '', 'Mekanı paylaş')
+                  if (tur === 'sayfa') await dosyaPaylas(m.ad, await mekanHtml(m), '', 'Mekanı paylaş', mekanKarti(m))
                   else if ((await mekanPaylas(m)) === 'kopyalandi') goster('Mekan bilgisi kopyalandı; mesaja yapıştırabilirsin')
                 } catch (e) {
                   const t = String((e as Error)?.message ?? e)

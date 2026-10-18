@@ -9,7 +9,7 @@ import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
-import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
+import { dosyaPaylas, tarifHtml, tarifKarti, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
 
 export default function RecipeDetail() {
@@ -57,10 +57,10 @@ export default function RecipeDetail() {
     try {
       if (tur === 'html') {
         goster('Tarif sayfası hazırlanıyor…')
-        await dosyaPaylas(r.title, await tarifHtml(r))
+        await dosyaPaylas(r.title, await tarifHtml(r), '', 'Tarifi paylaş', tarifKarti(r))
       } else {
         goster('Pişirme modu hazırlanıyor…')
-        await dosyaPaylas(r.title, await tmHtml(r), '-thermomix')
+        await dosyaPaylas(r.title, await tmHtml(r), '-thermomix', 'Tarifi paylaş', { ...tarifKarti(r), not: 'Thermomix adım adım pişirme: ekteki dosyayı aç' })
       }
     } catch (e) {
       const m = (e as Error).message || ''

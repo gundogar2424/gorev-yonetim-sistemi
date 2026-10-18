@@ -5,6 +5,7 @@
 // Her HTML dosyasinin icine tarifin verisi (JSON) gomulur; karsi tarafta
 // Lezzet Defteri varsa "Tarif ekle → Dosyadan" ile deftere tek dokunusla alinir.
 import type { LzMekan, LzRecipe } from '../types'
+import { kartResmi, type KartBilgi } from './kart'
 import { haritadaAcLinki, yolTarifiLinki, yorumlarLinki } from './mekan'
 import { youtubeId } from './importer'
 import { adimOzeti, hizAdi, modAdi, sicaklikAdi, sureAdi, type TmSurum } from './tm7'
@@ -222,20 +223,29 @@ function dosyaAdi(baslik: string, ek: string): string {
 
 // Telefonun paylasim menusu: APK'da dosya olarak (WhatsApp, e-posta, Drive…);
 // tarayicida Web Share ya da indirme.
-export async function dosyaPaylas(baslik: string, html: string, ek = '', pencere = 'Tarifi paylaş'): Promise<void> {
+// kart: dosyanin yaninda fotograf gibi gorunen kart resmi de gonderilir
+export async function dosyaPaylas(baslik: string, html: string, ek = '', pencere = 'Tarifi paylaş', kart?: KartBilgi): Promise<void> {
   const ad = dosyaAdi(baslik, ek)
+  const resim = kart ? await kartResmi(kart).catch(() => '') : ''
   const { Capacitor } = await import('@capacitor/core')
   if (Capacitor.isNativePlatform()) {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
     const { Share } = await import('@capacitor/share')
     const yaz = await Filesystem.writeFile({ path: ad, data: html, directory: Directory.Cache, encoding: Encoding.UTF8 })
-    await Share.share({ title: baslik, dialogTitle: pencere, files: [yaz.uri] })
+    const dosyalar = [yaz.uri]
+    if (resim) {
+      const r = await Filesystem.writeFile({ path: ad.replace(/\.html$/, '.jpg'), data: resim.split(',')[1], directory: Directory.Cache })
+      dosyalar.unshift(r.uri)
+    }
+    await Share.share({ title: baslik, dialogTitle: pencere, files: dosyalar })
     return
   }
   const dosya = new File([html], ad, { type: 'text/html' })
+  const ekler = [dosya]
+  if (resim) ekler.unshift(new File([await (await fetch(resim)).blob()], ad.replace(/\.html$/, '.jpg'), { type: 'image/jpeg' }))
   const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean }
-  if (nav.share && nav.canShare?.({ files: [dosya] })) {
-    await nav.share({ title: baslik, files: [dosya] })
+  if (nav.share && nav.canShare?.({ files: ekler })) {
+    await nav.share({ title: baslik, files: ekler })
     return
   }
   const url = URL.createObjectURL(dosya)
@@ -332,4 +342,33 @@ export async function mekanPaylas(m: LzMekan): Promise<'paylasildi' | 'kopyaland
   }
   await navigator.clipboard.writeText(metin)
   return 'kopyalandi'
+}
+
+// Paylasim kartlari
+export function tarifKarti(r: LzRecipe): KartBilgi {
+  return {
+    tur: 'Tarif',
+    baslik: r.title,
+    alt: [r.servings ? `${r.servings} kişilik` : '', r.minutes ? `~${r.minutes} dk` : '', r.author].filter(Boolean).join(' · '),
+    satirlar: [r.ingredients.length ? `${r.ingredients.length} malzeme: ${r.ingredients.map((m) => m.replace(/^[^:]{2,30}:\s*/, '').replace(/^([\d.,/½¼¾\s-]+|(yarım|çeyrek|bir)\s+)/i, '').replace(/^(su bardağı|çay bardağı|yemek kaşığı|tatlı kaşığı|çay kaşığı|gr|g|kg|ml|adet|paket)\s+/i, '')).slice(0, 6).join(', ')}` : ''],
+    not: 'Tarifin tamamı ve adım adım pişirme: ekteki dosyayı aç',
+    foto: r.photo
+  }
+}
+export function mekanKarti(m: LzMekan): KartBilgi {
+  const z = (m.ziyaretler ?? []).filter((x) => x.puan > 0)
+  const benim = z.length ? z.reduce((t, x) => t + x.puan, 0) / z.length : 0
+  const yedim = (m.ziyaretler ?? []).map((x) => x.yedim).filter(Boolean)[0]
+  return {
+    tur: 'Mekan',
+    baslik: m.ad,
+    alt: [m.tur, m.ilce, m.sehir].filter(Boolean).join(' · '),
+    satirlar: [
+      [m.puan ? `Google ★ ${m.puan.toFixed(1).replace('.', ',')}${m.yorumSayisi ? ` (${m.yorumSayisi.toLocaleString('tr')})` : ''}` : '', benim ? `Benim puanım ${benim.toFixed(1).replace('.', ',')}/5` : ''].filter(Boolean).join('   ·   '),
+      yedim ? `Ne yedim: ${yedim}` : m.oneriler.length ? `Önerilen: ${m.oneriler.slice(0, 3).join(', ')}` : '',
+      m.paylasan ? `${m.paylasan} önermişti` : ''
+    ],
+    not: 'Yol tarifi, harita ve yorumlar: ekteki dosyayı aç',
+    foto: m.foto
+  }
 }
