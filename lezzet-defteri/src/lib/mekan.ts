@@ -182,7 +182,9 @@ export async function mekanLinktenEkle(
   // aciklamaya yazar. Bulunamazsa video izlenir.
   let b: Awaited<ReturnType<typeof aiMekanAyikla>> | undefined
   const yaziVar = metin.replace(girdi, '').trim().length > 40 || !!video?.altyazi || !!video?.konusma
-  if (video && (video.video || video.youtube || video.ses) && yaziVar) {
+  // Birden cok mekan gezilen videolarda aciklama genelde tek mekan yazar: o zaman dogrudan video izlenir
+  const cokMekanli = /\d+\s*(mekan|yer|durak|adres|lezzet|restoran|dükkan)|en iyi|gezi|\btur\b|rota|nerede (yenir|yemeli)|vlog|semt semt|sokak lezzet/i.test(metin)
+  if (video && (video.video || video.youtube || video.ses) && yaziVar && !cokMekanli) {
     ilerleme('Önce açıklama okunuyor…')
     const y = await aiMekanAyikla(metin, foto, { ...video, video: undefined, youtube: undefined, ses: undefined, kareler: [] }).catch(() => undefined)
     if (y?.mekan_mi && y.ad) b = y
@@ -275,6 +277,38 @@ function yorumTemizle(y: Partial<PaylasanYorumu> | undefined): LzMekan['paylasan
   const t = (x: unknown) => String(x ?? '').trim()
   const v = { yedi: t(y?.yedi), begendi: t(y?.begendi), begenmedi: t(y?.begenmedi), karar: t(y?.karar) }
   return v.yedi || v.begendi || v.begenmedi || v.karar ? v : undefined
+}
+
+// "Videodaki diger mekanlari bul": kayitli bir mekanin videosu bastan izlenir (aciklamaya bakilmaz),
+// videoda gezilen ve henuz kayitli olmayan mekanlar ayni paylasan ve kapakla eklenir. Eklenen sayi doner.
+export async function videodakiMekanlariBul(m: LzMekan, ilerleme: (s: string) => void = () => {}): Promise<number> {
+  if (!m.sourceUrl) return 0
+  ilerleme('Video alınıyor…')
+  const t = await mekanIcinTopla(m.sourceUrl, ilerleme)
+  ilerleme('Yapay zeka videoyu izliyor…')
+  const b = await aiMekanAyikla([t.s.draft.title, t.s.hamMetin].filter(Boolean).join('\n\n'), '', t.parca)
+  const ana: DigerMekan = {
+    ad: b.ad,
+    tur: b.tur,
+    sehir: b.sehir,
+    ilce: b.ilce,
+    adres: b.adres,
+    enlem: b.enlem,
+    boylam: b.boylam,
+    oneriler: b.oneriler,
+    fiyat: b.fiyat,
+    google_puan: b.google_puan,
+    yorum_sayisi: b.yorum_sayisi,
+    yorum: b.paylasan_yorumu?.karar || b.paylasan_yorumu?.begendi || ''
+  }
+  const liste = [ana, ...b.diger_mekanlar].filter((d) => d.ad)
+  const ortak = { foto: m.foto, url: m.sourceUrl, paylasan: m.paylasan ?? '', hepsi: liste.map((d) => d.ad) }
+  let n = 0
+  for (const d of liste) {
+    ilerleme(`Kaydediliyor: ${d.ad}…`)
+    if (await digerMekaniKaydet(d, ortak)) n++
+  }
+  return n
 }
 
 // Cok mekanli videodaki ikincil mekan: yapay zekanin buldugu bilgilerle kaydedilir (yeri OSM/Places ile)

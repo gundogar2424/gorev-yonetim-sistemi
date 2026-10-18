@@ -6,7 +6,7 @@ import { ReklamRozeti } from './Takip'
 import { tlYaz, tutarOku } from '../lib/harcama'
 import type { LzMekan, LzZiyaret } from '../types'
 import { Header, Icon, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
-import { fiyatlariGuncelle, haritadaAcLinki, instagramLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
+import { fiyatlariGuncelle, videodakiMekanlariBul, haritadaAcLinki, instagramLinki, mekanYeriniBul, puaniGuncelle, puanYaz, yolTarifiLinki, yorumlarLinki } from '../lib/mekan'
 import { MEKAN_ETIKETLERI, aiFisTutar, aiMekanUnluler, apiAnahtari } from '../lib/ai'
 import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
@@ -42,6 +42,7 @@ export default function MekanDetay() {
   const [duzenle, setDuzenle] = useState(false)
   const [form, setForm] = useState({ ad: '', adres: '', ilce: '', sehir: '', paylasan: '', oneriler: '', notlar: '', etiketler: [] as string[] })
   const [toast, goster] = useToast()
+  const [videoArama, setVideoArama] = useState('')
   const [, setTakipSayac] = useState(0) // takip edilince dugme yenilensin
   const [puanAraniyor, setPuanAraniyor] = useState(false)
   const [kampanyaAraniyor, setKampanyaAraniyor] = useState(false)
@@ -136,6 +137,23 @@ export default function MekanDetay() {
                 Takip et
               </button>
             )}
+        {m.sourceUrl && ['instagram', 'tiktok', 'youtube'].includes(m.platform) && apiAnahtari() && (
+          <button
+            className="lz-btn-soft w-full text-[13.5px]"
+            disabled={!!videoArama}
+            onClick={async () => {
+              try {
+                const n = await videodakiMekanlariBul(m, setVideoArama)
+                goster(n ? `Videodan ${n} mekan daha eklendi` : 'Videoda yeni mekan bulunamadı')
+              } catch (e) {
+                goster((e as Error).message)
+              }
+              setVideoArama('')
+            }}
+          >
+            {videoArama || 'Videodaki diğer mekanları bul'}
+          </button>
+        )}
         {ayniVideo.length > 0 && (
           <div className="lz-card p-4 space-y-2">
             <div className={`font-semibold ${T_BASLIK}`}>Aynı videodaki diğer mekanlar</div>
