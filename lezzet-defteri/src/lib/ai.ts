@@ -103,9 +103,9 @@ const SEMA = {
     ingredients: {
       type: 'array',
       items: { type: 'string' },
-      description: 'Her malzeme ayrı satır, miktar başta: "2 su bardağı un"'
+      description: 'Her malzeme ayrı satır, miktar başta: "2 su bardağı un". Tarif bölümlüyse (alt katman, hamur, sos, krema…) bölüm adını başa yaz: "Alt katman: 1 su bardağı yulaf"'
     },
-    steps: { type: 'array', items: { type: 'string' }, description: 'Yapılış adımları, her biri tek kısa paragraf' },
+    steps: { type: 'array', items: { type: 'string' }, description: 'Yapılış adımları, her biri tek kısa paragraf. "Alt katman malzemelerini karıştırın" gibi toplu ifade yerine o adımda kullanılan malzemeleri adıyla yaz (ör. "Yulaf, süt ve hurmayı karıştırın")' },
     notes: { type: 'string', description: 'Püf noktaları / servis önerisi; yoksa boş' },
     tags: { type: 'array', items: { type: 'string', enum: ETIKETLER }, description: 'En fazla 3 uygun etiket' }
   }

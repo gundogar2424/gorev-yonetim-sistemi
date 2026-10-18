@@ -13,6 +13,7 @@ export default function Cook() {
   const [i, setI] = useState(-1) // -1 = malzeme kontrolu
   const [kalan, setKalan] = useState(0)
   const [sayac, setSayac] = useState(false)
+  const [hepsiAcik, setHepsiAcik] = useState(false)
   const bitti = useRef(false)
 
   // Ekran uyumasin (destekleyen cihazlarda)
@@ -55,6 +56,9 @@ export default function Cook() {
   const son = i === adimlar.length - 1
   const adim = i >= 0 ? adimlar[i] : ''
   const sure = adim.match(/(\d+)\s*(?:-\s*\d+\s*)?(dakika|dk|saat|sa\b|saniye|sn)/i)
+  const ilgili = adimMalzemeleri(adim, r.ingredients)
+  // "Alt katman malzemelerini…" gibi toplu anlatimda tum liste kendiliginden acilir
+  const topluAnlatim = /malzeme/i.test(adim) && !ilgili.length
   const sureSn = sure ? Number(sure[1]) * (/^sa/i.test(sure[2]) ? 3600 : /^s(an|n)/i.test(sure[2]) ? 1 : 60) : 0
 
   const ileri = async () => {
@@ -108,6 +112,38 @@ export default function Cook() {
           <div>
             <div className="text-lz-600 font-bold text-lg mb-2">{i + 1}.</div>
             <p className={`text-[24px] leading-[1.45] font-medium ${T_BASLIK}`}>{adim}</p>
+            {ilgili.length > 0 && (
+              <div className="mt-5 lz-card p-4">
+                <div className={`text-[13px] font-semibold mb-1.5 ${T_SOLUK}`}>Bu adımda</div>
+                <ul className="space-y-1">
+                  {ilgili.map((m, k) => (
+                    <li key={k} className={`text-[17px] leading-snug flex gap-2 ${T_GOVDE}`}>
+                      <span className="text-lz-500">•</span> {m}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {r.ingredients.length > 0 && (
+              <div className="mt-3">
+                {hepsiAcik || topluAnlatim ? (
+                  <div className="lz-card p-4">
+                    <div className={`text-[13px] font-semibold mb-1.5 ${T_SOLUK}`}>Tüm malzemeler</div>
+                    <ul className="space-y-1">
+                      {r.ingredients.map((m, k) => (
+                        <li key={k} className={`text-[16px] leading-snug flex gap-2 ${T_GOVDE}`}>
+                          <span className="text-lz-500">•</span> {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <button className="lz-btn-soft text-[14px] w-full" onClick={() => setHepsiAcik(true)}>
+                    Tüm malzemeleri göster
+                  </button>
+                )}
+              </div>
+            )}
             {sureSn > 0 && (
               <div className="mt-6 lz-card p-4 flex items-center gap-4">
                 <div className={`text-3xl font-bold tabular-nums flex-1 ${T_BASLIK}`}>{saat(kalan || sureSn)}</div>
@@ -139,6 +175,7 @@ export default function Cook() {
           onClick={() => {
             setSayac(false)
             setKalan(0)
+            setHepsiAcik(false)
             setI(i - 1)
           }}
         >
@@ -150,6 +187,7 @@ export default function Cook() {
           onClick={() => {
             setSayac(false)
             setKalan(0)
+            setHepsiAcik(false)
             void ileri()
           }}
         >
@@ -158,6 +196,25 @@ export default function Cook() {
       </div>
     </div>
   )
+}
+
+// Adimda gecen malzemeler: "Alt katman: …" gibi bolum adi ya da malzemenin adi adimda geciyorsa
+const OLCU = /^(su|çay|tatlı|yemek|kahve|bardağı|bardak|kaşığı|kaşık|gram|gr|adet|paket|tutam|dilim|demet|yarım|çeyrek|bir|iki|üç|dört|beş|büyük|küçük|orta|boy|kase|litre|ml|kg|isteğe|göre|bağlı|için|veya|ya|da|ile|ince|doğranmış|rendelenmiş|kıyılmış)$/
+function adimMalzemeleri(adim: string, malzemeler: string[]): string[] {
+  if (!adim) return []
+  const a = adim.toLocaleLowerCase('tr')
+  return malzemeler.filter((m) => {
+    const k = m.toLocaleLowerCase('tr')
+    const bolum = k.match(/^([^:]{2,30}):/)?.[1]?.replace(/\s*için$/, '').trim()
+    if (bolum && a.includes(bolum)) return true
+    const kelimeler = k
+      .replace(/^[^:]{2,30}:/, '')
+      .replace(/\([^)]*\)/g, ' ')
+      .split(/[^\p{L}]+/u)
+      .filter((w) => w.length >= 3 && !OLCU.test(w))
+    // Turkce ekler icin kelime kokunun ilk 5 harfi (yumurtayı / yumurta)
+    return kelimeler.some((w) => a.includes(w.length > 5 ? w.slice(0, 5) : w))
+  })
 }
 
 function saat(sn: number): string {
