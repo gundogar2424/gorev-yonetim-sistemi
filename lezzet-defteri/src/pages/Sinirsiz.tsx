@@ -70,7 +70,7 @@ export default function Sinirsiz() {
         <div className="lz-card p-4 space-y-2.5">
           <div className={`font-semibold ${T_BASLIK}`}>Yakınımda sınırsız yemek</div>
           <div className="flex gap-1.5">
-            {[3, 5, 10, 25, 0].map((x) => (
+            {[1, 3, 5, 10, 0].map((x) => (
               <button key={x} className={`lz-chip justify-center flex-1 !px-1 text-[12.5px] ${km === x ? 'lz-chip-on' : ''}`} onClick={() => setKm(x)}>
                 {x ? `${x} km` : 'Sınırsız'}
               </button>
