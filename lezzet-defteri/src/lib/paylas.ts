@@ -324,6 +324,17 @@ export function mekanMetni(m: LzMekan): string {
   return metin
 }
 
+// Kartin altindaki kisa yazi: bilgiler zaten kartta; yalnizca dokunulacak kisa linkler
+function kisaHarita(m: LzMekan): string {
+  if (m.googleId) return `https://www.google.com/maps/place/?q=place_id:${m.googleId}`
+  if (m.lat !== undefined && m.lon !== undefined) return `https://maps.google.com/?q=${m.lat.toFixed(6)},${m.lon.toFixed(6)}`
+  return `https://maps.google.com/?q=${encodeURIComponent([m.ad, m.sehir].filter(Boolean).join(' '))}`
+}
+export function mekanKartMetni(m: LzMekan): string {
+  const video = m.sourceUrl ? m.sourceUrl.replace(/[?#].*$/, '') : ''
+  return [`${m.ad} — Haritada aç: ${kisaHarita(m)}`, video ? `${m.paylasan ? `${m.paylasan} videosu` : 'Video'}: ${video}` : ''].filter(Boolean).join('\n')
+}
+
 // KART PAYLASIMI: fotograf gibi kart + altinda yazi (WhatsApp'ta resim aciklamasi olur; linkler tiklanir).
 // Tek resim + yazi tek seferde gider; sayfa dosyasi ayri gonderilir (WhatsApp ikisini birlikte almiyor).
 export async function kartPaylas(kart: KartBilgi, metin: string, pencere: string): Promise<'paylasildi' | 'kopyalandi'> {

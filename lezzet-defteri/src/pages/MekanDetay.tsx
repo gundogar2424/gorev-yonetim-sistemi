@@ -12,7 +12,7 @@ import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
-import { dosyaPaylas, kartPaylas, mekanHtml, mekanKarti, mekanMetni } from '../lib/paylas'
+import { dosyaPaylas, kartPaylas, mekanHtml, mekanKarti, mekanKartMetni } from '../lib/paylas'
 import { hesapFoto, hesapNormal, hesapTakipEt, hesaplariOku, takipEdiliyor } from '../lib/hesaplar'
 
 // Paylasanin influencer sayfasi anahtari: takip ediliyorsa listedeki kaydi, degilse ad (+ platform)
@@ -483,7 +483,7 @@ export default function MekanDetay() {
                 try {
                   if (tur === 'sayfa') await dosyaPaylas(m.ad, await mekanHtml(m), '', 'Mekanı paylaş')
                   else {
-                    if ((await kartPaylas(mekanKarti(m), mekanMetni(m), 'Mekanı paylaş')) === 'kopyalandi') goster('Kart indirildi, yazı kopyalandı')
+                    if ((await kartPaylas(mekanKarti(m), mekanKartMetni(m), 'Mekanı paylaş')) === 'kopyalandi') goster('Kart indirildi, yazı kopyalandı')
                     setSayfaSor(true)
                   }
                 } catch (e) {
