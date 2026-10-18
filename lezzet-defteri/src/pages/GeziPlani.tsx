@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
 
 const KEY = 'lz-gezi'
@@ -73,11 +73,15 @@ export default function GeziPlani() {
   const hepsi = useLiveQuery(() => lzDb.mekanlar.toArray(), [], [] as LzMekan[]) ?? []
   const [kayit, setKayit] = useState<Kayit>(oku())
   const [mesaj, setMesaj] = useState('')
+  // Suzgec: ikisi de seciliyse ikisinden biri olanlar (birlesim) gosterilir
+  const [sadeceIstek, setSadeceIstek] = useState(false)
+  const [sadeceFavori, setSadeceFavori] = useState(false)
   useEffect(() => yaz(kayit), [kayit])
 
   const sehirler = Array.from(new Set(hepsi.map((m) => m.sehir.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'tr'))
   const adaylar = hepsi
     .filter((m) => !kayit.sehir || m.sehir.trim().toLocaleLowerCase('tr') === kayit.sehir.toLocaleLowerCase('tr'))
+    .filter((m) => (!sadeceIstek && !sadeceFavori) || (sadeceIstek && m.gitmekIstiyorum) || (sadeceFavori && m.favori))
     .sort((a, b) => Number(!!b.favori) - Number(!!a.favori) || a.ad.localeCompare(b.ad, 'tr'))
   const harita = new Map(hepsi.map((m) => [m.id!, m]))
   const secili = kayit.ids.map((id) => harita.get(id)).filter((m): m is LzMekan => !!m)
@@ -124,6 +128,17 @@ export default function GeziPlani() {
               </button>
             ))}
           </div>
+          <div className="flex gap-1.5">
+            <button className={`lz-chip text-[13px] ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
+              Gitmek istediklerim
+            </button>
+            <button className={`lz-chip text-[13px] ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
+              Favorilerim
+            </button>
+          </div>
+          {(sadeceIstek || sadeceFavori) && !adaylar.length && (
+            <p className={`text-[13px] ${T_SOLUK}`}>Bu seçimde mekan yok. Mekanlarım’da işaret (gitmek istiyorum) ya da kalp (favori) simgesiyle ekleyebilirsin.</p>
+          )}
           {!hepsi.length && (
             <p className={`text-[13px] ${T_SOLUK}`}>
               Henüz kayıtlı mekan yok. <Link to="/mekanlar" className="text-lz-600 font-semibold underline">Mekanlarım</Link>’dan ekle.
@@ -134,7 +149,8 @@ export default function GeziPlani() {
               <label key={m.id} className={`flex items-center gap-3 py-1.5 text-[14px] ${T_GOVDE}`}>
                 <input type="checkbox" className="w-5 h-5 accent-[#d93d20]" checked={kayit.ids.includes(m.id!)} onChange={() => degis(m.id!)} />
                 <span className="flex-1 min-w-0">
-                  {m.favori ? '' : ''}
+                  {m.favori && <Icon name="heart" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 text-lz-600 fill-current" />}
+                  {m.gitmekIstiyorum && <Icon name="bookmark" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 text-lz-600 fill-current" />}
                   {m.ad}
                   <span className={`block text-[12px] ${T_SOLUK}`}>{[m.tur, m.ilce].filter(Boolean).join(' · ')}</span>
                 </span>
