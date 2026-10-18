@@ -17,6 +17,7 @@ type Filtre = 'hepsi' | 'yeni' | 'favori' | string // string = etiket adi
 export default function Recipes() {
   const navigate = useNavigate()
   const tarifler = useLiveQuery(() => listRecipes(), [], [] as LzRecipe[]) ?? []
+  const mekanSayisi = useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0
   const sofralar = useLiveQuery(() => lzDb.sofralar.orderBy('name').toArray(), [], [] as LzTable[]) ?? []
   const [sekme, setSekme] = useState<'tarifler' | 'sofralar'>('tarifler')
   const [q, setQ] = useState('')
@@ -46,6 +47,7 @@ export default function Recipes() {
             <Logo className="w-8 h-8 flex-shrink-0" /> <span className="truncate text-[23px]">Lezzet Rotası</span>
           </span>
         }
+        subtitle={`${tarifler.length} tarif · ${mekanSayisi} mekan`}
       />
 
       <div className="px-4 space-y-3">
