@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import { ReklamRozeti } from './Takip'
+import { sinirsizTeklif } from './Sinirsiz'
 import { bugunAyYil, odemeler, tlYaz } from '../lib/harcama'
 import type { LzMekan } from '../types'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
@@ -176,6 +177,18 @@ export default function Mekanlar() {
           </span>
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
         </button>
+        <Link to="/sinirsiz" className="lz-card p-3.5 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-[#2a2113] text-amber-600 dark:text-amber-300 flex items-center justify-center text-[18px] font-bold">∞</span>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Sınırsız</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>
+              {liste.filter((m) => sinirsizTeklif(m)).length
+                ? `${liste.filter((m) => sinirsizTeklif(m)).length} kayıtlı mekanda sınırsız teklif · yakında ara`
+                : 'Sınırsız pizza, köfte, açık büfe… yakınında ara'}
+            </span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
         <Link to="/gittiklerim" className="lz-card p-3.5 flex items-center gap-3">
           <span className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-[#10261e] text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
             <Icon name="check" className="w-[18px] h-[18px]" />
