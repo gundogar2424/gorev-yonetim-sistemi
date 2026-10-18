@@ -4,7 +4,8 @@
 //  - Thermomix pisirme modu: adim adim, sayacli, etkilesimli HTML
 // Her HTML dosyasinin icine tarifin verisi (JSON) gomulur; karsi tarafta
 // Lezzet Defteri varsa "Tarif ekle → Dosyadan" ile deftere tek dokunusla alinir.
-import type { LzRecipe } from '../types'
+import type { LzMekan, LzRecipe } from '../types'
+import { haritadaAcLinki } from './mekan'
 import { youtubeId } from './importer'
 import { adimOzeti, hizAdi, modAdi, sicaklikAdi, sureAdi, type TmSurum } from './tm7'
 
@@ -236,4 +237,39 @@ export function paylasilanTarifOku(icerik: string): Partial<LzRecipe> {
   }
   if (v.app !== 'lezzet-defteri-tarif' || !v.tarif?.title) throw new Error('Bu dosyada Lezzet Rotası tarifi bulunamadı.')
   return v.tarif
+}
+
+// MEKAN PAYLASIMI: arkadasa duz yazi (WhatsApp vb.); uygulama gerekmez.
+// Ad, tur/semt, Google puani, benim puanim ve ne yedigim, paylasanin videosu, harita linki.
+export async function mekanPaylas(m: LzMekan): Promise<'paylasildi' | 'kopyalandi'> {
+  const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))
+  const puanlar = z.filter((x) => x.puan > 0)
+  const benim = puanlar.length ? puanlar.reduce((t, x) => t + x.puan, 0) / puanlar.length : 0
+  const yedim = z.map((x) => x.yedim).filter(Boolean)[0]
+  const tekrar = z.map((x) => x.tekrar).filter(Boolean)[0]
+  const metin = [
+    m.ad,
+    [m.tur, m.ilce, m.sehir].filter(Boolean).join(' · '),
+    m.puan ? `Google: ★ ${m.puan.toFixed(1).replace('.', ',')}${m.yorumSayisi ? ` (${m.yorumSayisi.toLocaleString('tr')} yorum)` : ''}` : '',
+    benim ? `Benim puanım: ${benim.toFixed(1).replace('.', ',')} / 5` : '',
+    yedim ? `Ne yedim: ${yedim}` : '',
+    tekrar ? `Bir dahakine: ${tekrar}` : '',
+    !yedim && m.oneriler.length ? `Önerilenler: ${m.oneriler.slice(0, 4).join(', ')}` : '',
+    m.paylasan ? `${m.paylasan} önermişti${m.sourceUrl ? `: ${m.sourceUrl}` : ''}` : m.sourceUrl ? `Video: ${m.sourceUrl}` : '',
+    `Harita: ${haritadaAcLinki(m)}`
+  ]
+    .filter(Boolean)
+    .join('\n')
+  const { Capacitor } = await import('@capacitor/core')
+  if (Capacitor.isNativePlatform()) {
+    const { Share } = await import('@capacitor/share')
+    await Share.share({ title: m.ad, text: metin, dialogTitle: 'Mekanı paylaş' })
+    return 'paylasildi'
+  }
+  if (navigator.share) {
+    await navigator.share({ title: m.ad, text: metin })
+    return 'paylasildi'
+  }
+  await navigator.clipboard.writeText(metin)
+  return 'kopyalandi'
 }

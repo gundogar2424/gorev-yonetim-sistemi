@@ -12,6 +12,7 @@ import { fotoOku } from '../lib/image'
 import { mekanKampanyasi } from '../lib/kampanya'
 import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
+import { mekanPaylas } from '../lib/paylas'
 import { hesapFoto, hesapNormal, hesapTakipEt, hesaplariOku, takipEdiliyor } from '../lib/hesaplar'
 
 // Paylasanin influencer sayfasi anahtari: takip ediliyorsa listedeki kaydi, degilse ad (+ platform)
@@ -102,7 +103,27 @@ export default function MekanDetay() {
 
   return (
     <div>
-      <Header title={m.ad} subtitle={[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')} back />
+      <Header
+        title={m.ad}
+        subtitle={[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}
+        back
+        right={
+          <button
+            aria-label="Paylaş"
+            className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-[#1c1c1f] border border-[#e4e3e0] dark:border-[#2e2e33] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8] active:scale-95 transition"
+            onClick={async () => {
+              try {
+                if ((await mekanPaylas(m)) === 'kopyalandi') goster('Mekan bilgisi kopyalandı; mesaja yapıştırabilirsin')
+              } catch (e) {
+                const t = String((e as Error)?.message ?? e)
+                if (!/cancel|abort|iptal/i.test(t)) goster('Paylaşılamadı')
+              }
+            }}
+          >
+            <Icon name="share" />
+          </button>
+        }
+      />
       <div className="px-4 space-y-3 pb-8">
         {zatenVar && (
           <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-900 dark:text-amber-200 text-[13.5px] p-3.5">
