@@ -36,6 +36,13 @@ export default function Gittiklerim() {
     <div>
       <Header title="Gittiğim yerler" subtitle={gidilen.length ? `${gidilen.length} mekan · ${sehirler.length} şehir` : 'Ziyaret ettiğin mekanlar'} back />
       <div className="px-4 space-y-3 pb-8">
+        <Link to="/google-aktar" className="lz-card p-3.5 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-[#e8f0fe] text-[#1a73e8] flex items-center justify-center font-bold text-[16px]">G</span>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Google’dan aktar</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>Zaman Çizelgesi’nde gittiğin restoran ve kafeleri getir, seç, puanla</span>
+          </span>
+        </Link>
         {!gidilen.length && (
           <div className={`lz-card p-5 text-[13.5px] ${T_GOVDE}`}>
             Henüz gittiğin mekan yok. Bir mekanın sayfasında <b>Buraya gittim</b> deyip puan verdiğinde burada şehir ve semte göre listelenir.
