@@ -546,8 +546,8 @@ export default function MekanOner() {
                   ✓ Kayıtlı
                 </Link>
               ) : (
-                <button className="lz-btn-soft text-[12.5px] px-2" onClick={() => void kaydet(o)}>
-                  ＋ Gitmek istiyorum
+                <button className="lz-btn-soft text-[12.5px] px-2 whitespace-nowrap !text-lz-600 font-semibold" onClick={() => void kaydet(o)}>
+                  ＋ Listeme ekle
                 </button>
               )}
               <button className="lz-btn-soft text-[12.5px] px-2" onClick={() => void gittim(o)}>
