@@ -734,7 +734,7 @@ async function tmCagri(
       'kıyma kavurma 8–10 dk 120 °C ters bıçak devir 1 (öncesinde soğanı kavur); hamur yoğurma mode "hamur" 2–3 dk (seconds 120–180, speed boş); ' +
       'pilav/pirinç mode "pirinc" ya da sepette 100 °C; buharda pişirme mode "buhar", temp "varoma", haznede en az 500 g su (30 dk’ya kadar), daha uzunsa daha fazla su; ' +
       'yoğurt/mayalama mode "ferment" 37 °C; uzun ağır pişirme mode "yavas" (12 saate kadar); vakumlu poşette mode "sousvide". ' +
-      'Malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı su 200 g, yemek kaşığı yağ ~12 g, 1 su bardağı un ~110 g, şeker ~180 g); adet/tutam kalabilir; ' +
+      'Malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı su 200 g, yemek kaşığı yağ ~12 g, 1 su bardağı un ~110 g, şeker ~180 g); adetle sayılan malzemeler (yumurta, soğan, diş sarımsak…) ADETLE kalsın, yanına gramı parantezle yaz: "4 adet yumurta (~200 g)"; tutam kalabilir; ' +
       'malzemeler TM7 tartısıyla doğrudan kaba tartılarak eklenir, her adımda o adımda eklenecek malzemeleri gramla yaz. ' +
       'ÖNCE TM7 İLKESİ: Tarifin TM7’de yapılabilen HER adımını TM7’de yap; orijinal tarif tava, tencere ya da ocak dese bile TM7’de ' +
       'yapılabiliyorsa TM7’ye uyarla. TM7’de YAPILANLAR: KARAMEL (kuru ya da ıslak karamel, karamel sos: mode "karamel" — TM7 Karamelize modu; ' +
