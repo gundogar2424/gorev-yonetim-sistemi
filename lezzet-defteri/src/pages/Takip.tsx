@@ -8,6 +8,7 @@ import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adayReddet, adaylar, hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { oneriKaydet } from '../lib/mekan'
 import { PLATFORM_AD } from '../lib/importer'
+import { youtubeDogrula } from '../lib/video'
 
 // "En beğenilen + Google onaylı": paylaşımı çok beğeni/olumlu yorum almış VE Google puanı yüksek yerler
 export const BEGENI_KURALI =
@@ -46,12 +47,18 @@ function onerininHesabi(o: MekanOnerisi, hesap: string): string {
     return a.length > 2 && metin.includes(a)
   }) ?? ''
 }
-// Fenomenin o mekani anlattigi paylasim: link biliniyorsa o; yoksa YouTube'da / Google'da paylasim aramasi
-function paylasimAc(o: MekanOnerisi, kisi: string): { url: string; etiket: string } {
-  if (o.paylasim) return { url: o.paylasim, etiket: /youtu/.test(o.paylasim) ? 'YouTube’da izle' : /tiktok/.test(o.paylasim) ? 'TikTok’ta izle' : 'Instagram’da aç' }
+// Fenomenin o mekani anlattigi paylasim. Yapay zekanin verdigi linkler cogu zaman uydurma cikiyor:
+// YouTube linki acmadan once dogrulanir; Instagram linki dogrulanamadigi icin fenomenin profili acilir.
+async function paylasimiAc(o: MekanOnerisi, kisi: string): Promise<void> {
   const { ad, platform } = hesapParca(kisi || o.paylasan || '')
-  if (/youtube/i.test(platform)) return { url: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${ad} ${o.ad}`)}`, etiket: 'YouTube’da bul' }
-  return { url: `https://www.google.com/search?q=${encodeURIComponent(`${ad} ${o.ad} ${o.sehir} instagram`.trim())}`, etiket: 'Paylaşımı bul' }
+  const yt = o.paylasim && /youtu/.test(o.paylasim) ? o.paylasim : ''
+  if (yt && (await youtubeDogrula(yt, ad))) return void window.open(yt, '_blank')
+  if (ad.startsWith('@') && !/youtube/i.test(platform)) return void window.open(`https://www.instagram.com/${ad.slice(1)}/`, '_blank')
+  window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(`${ad} ${o.ad}`)}`, '_blank')
+}
+function paylasimEtiketi(o: MekanOnerisi, kisi: string): string {
+  const { ad, platform } = hesapParca(kisi || o.paylasan || '')
+  return ad.startsWith('@') && !/youtube/i.test(platform) ? 'Instagram’ını aç' : 'YouTube’da izle'
 }
 
 // Fenomenin son gittigi, henuz kayitli olmayan yerler
@@ -61,7 +68,6 @@ export function YeniListe({ liste, mekanlar, goster, hesap = '' }: { liste: Meka
       {liste.map((o, i) => {
         const k = mekanlar.find((m) => adNormal(m.ad) === adNormal(o.ad))
         const kisi = onerininHesabi(o, hesap)
-        const pay = paylasimAc(o, kisi)
         return (
           <div key={i} className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1">
             <div className={`font-semibold text-[14.5px] ${T_BASLIK}`}>
@@ -90,9 +96,9 @@ export function YeniListe({ liste, mekanlar, goster, hesap = '' }: { liste: Meka
                   ＋ Gitmek istiyorum
                 </button>
               )}
-              <a href={pay.url} target="_blank" rel="noreferrer" className="lz-btn-soft text-[12.5px] px-3 py-1.5">
-                {pay.etiket}
-              </a>
+              <button className="lz-btn-soft text-[12.5px] px-3 py-1.5" onClick={() => void paylasimiAc(o, kisi)}>
+                {paylasimEtiketi(o, kisi)}
+              </button>
             </div>
             {!hesap && kisi && (
               <Link to={`/influencer/${encodeURIComponent(kisi)}`} className="flex items-center gap-2 pt-1">

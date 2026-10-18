@@ -410,7 +410,8 @@ export function haritadaAcLinki(m: LzMekan): string {
 // Mekanin Instagram sayfasi: kullanici adi biliniyorsa profil, bilinmiyorsa Google'da "ad semt instagram" aramasi
 export function instagramLinki(m: { ad: string; ilce?: string; sehir?: string; instagram?: string }): string {
   if (m.instagram) return `https://www.instagram.com/${m.instagram}/`
-  return `https://www.google.com/search?q=${encodeURIComponent([m.ad, m.ilce || m.sehir, 'instagram'].filter(Boolean).join(' '))}`
+  // Hesabi bilinmiyorsa Google yerine Instagram'in kendi aramasi (telefonda Instagram uygulamasinda acilir)
+  return `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent([m.ad, m.ilce || m.sehir].filter(Boolean).join(' '))}`
 }
 
 // Oneri sonucunu (yapay zeka aramasi) Mekanlarim'a kaydeder

@@ -236,9 +236,16 @@ export default function MekanDetay() {
           <button className="lz-btn-soft text-sm px-2" onClick={() => ac(haritadaAcLinki(m))}>
             Haritada aç
           </button>
-          <button className="lz-btn-soft text-sm px-2" onClick={() => ac(instagramLinki(m))}>
-            Instagram
-          </button>
+          {/* Paylasimdan geldiyse paylasanin o gonderisi; yoksa mekanin Instagram'i */}
+          {m.sourceUrl && PLATFORM[m.platform] ? (
+            <button className="lz-btn-soft text-sm px-2" onClick={() => ac(m.sourceUrl)}>
+              {PLATFORM[m.platform]}{/tiktok|facebook/.test(m.platform) ? '’ta' : '’da'} aç
+            </button>
+          ) : (
+            <button className="lz-btn-soft text-sm px-2" onClick={() => ac(instagramLinki(m))}>
+              Instagram
+            </button>
+          )}
         </div>
 
         <div className="lz-card p-4 space-y-2">

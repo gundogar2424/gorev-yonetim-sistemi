@@ -397,3 +397,27 @@ export async function sesWavBase64(video: Blob, enUzunSn = 5 * 60): Promise<stri
     fr.readAsDataURL(blob)
   })
 }
+
+// YouTube videosu gercekten var mi ve (verildiyse) bu kanalin mi: oEmbed ile, girissiz
+export async function youtubeDogrula(url: string, kanal = ''): Promise<boolean> {
+  const adres = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`
+  try {
+    const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+    let v: { author_name?: string } | undefined
+    if (Capacitor.isNativePlatform()) {
+      const r = await CapacitorHttp.get({ url: adres })
+      if (r.status !== 200) return false
+      v = typeof r.data === 'string' ? JSON.parse(r.data) : r.data
+    } else {
+      const r = await fetch(adres)
+      if (!r.ok) return false
+      v = await r.json()
+    }
+    const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
+    const k = sade(kanal.replace(/^@/, '').replace(/\s*\([^)]*\)$/, ''))
+    const a = sade(v?.author_name ?? '')
+    return !k || !a || a.includes(k) || k.includes(a)
+  } catch {
+    return false
+  }
+}
