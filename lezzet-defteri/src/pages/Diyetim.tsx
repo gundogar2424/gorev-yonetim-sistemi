@@ -55,7 +55,18 @@ export default function Diyetim() {
 
   return (
     <div>
-      <Header title="Diyetim" subtitle={planVar ? `Günlük ~${plan!.gunlukKalori} kcal · ${plan!.ogunler.length} öğün` : 'Diyetisyeninin planı'} back />
+      <Header
+        title="Diyetim"
+        subtitle={planVar ? `Günlük ~${plan!.gunlukKalori} kcal · ${plan!.ogunler.length} öğün` : 'Diyetisyeninin planı'}
+        back
+        right={
+          planVar && !duzenle ? (
+            <button className="lz-btn-primary px-3 py-2 text-[13px] whitespace-nowrap" onClick={() => setDuzenle(true)}>
+              Yeni liste
+            </button>
+          ) : undefined
+        }
+      />
       {planVar && !duzenle && (
         <div ref={sekmeRef} className="flex gap-2 overflow-x-auto px-4 pb-3 -mt-1 no-scrollbar">
           {plan!.ogunler.map((o, i) => {
