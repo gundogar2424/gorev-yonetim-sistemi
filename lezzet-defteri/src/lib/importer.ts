@@ -90,8 +90,8 @@ export async function metinIndir(url: string, ua: string): Promise<string> {
 // Sosyal medya sayfalari tam HTML'i yalnizca "onizleme botlarina" veriyor;
 // normal tarayici kimligiyle giris ekranina yonlendiriliyor. Bu yuzden once
 // bot kimligi, olmazsa telefon tarayicisi denenir.
-const UA_BOT = 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
-const UA_MOBIL =
+export const UA_BOT = 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+export const UA_MOBIL =
   'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
 
 export async function linktenTarif(url: string): Promise<LinkSonucu> {

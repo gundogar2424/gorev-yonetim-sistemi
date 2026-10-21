@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { aiTarifBesin, apiAnahtari } from '../lib/ai'
@@ -9,6 +9,7 @@ import { olcekle } from '../lib/qty'
 import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '../lib/dates'
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
+import { etkilesimEski, etkilesimGetir, kisaSayi } from '../lib/begeni'
 import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
 
@@ -23,6 +24,10 @@ export default function RecipeDetail() {
   const [paylasAc, setPaylasAc] = useState(false)
   const [toast, goster] = useToast()
   const [besinHesap, setBesinHesap] = useState(false)
+  // Begeni puani: okunmamissa sayfadan bir kez okunur (yapay zeka yok, yalnizca internet)
+  useEffect(() => {
+    if (r && etkilesimEski(r)) void etkilesimGetir(r)
+  }, [r?.id])
 
   if (r === undefined) return null
   if (!r) {
@@ -128,6 +133,22 @@ export default function RecipeDetail() {
             )}
             {r.cookCount > 0 && <span className="text-[12px] text-lz-600">{r.cookCount} kez pişirildi</span>}
           </div>
+          {r.etkilesim && r.etkilesim.puan > 0 && (
+            <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+              <span className="rounded-full bg-amber-50 dark:bg-[#2a2113] text-amber-800 dark:text-amber-300 text-[12.5px] font-bold px-2.5 py-1">
+                Beğeni {r.etkilesim.puan}/10
+              </span>
+              <span className={`text-[12px] ${T_SOLUK}`}>
+                {[
+                  r.etkilesim.begeni ? `${kisaSayi(r.etkilesim.begeni)} beğeni` : '',
+                  r.etkilesim.yorum ? `${kisaSayi(r.etkilesim.yorum)} yorum` : '',
+                  r.etkilesim.izlenme ? `${kisaSayi(r.etkilesim.izlenme)} izlenme` : ''
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </div>
+          )}
           {r.besin ? (
             <div className="mt-3">
               <div className={`text-[11.5px] mb-1 ${T_SOLUK}`}>1 porsiyon (tahmini)</div>

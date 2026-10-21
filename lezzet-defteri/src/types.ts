@@ -7,6 +7,7 @@ export type LzPlatform = 'instagram' | 'tiktok' | 'youtube' | 'pinterest' | 'fac
 
 export interface LzRecipe {
   id?: number
+  etkilesim?: LzEtkilesim // paylasimin begeni / yorum / izlenme sayilari ve 1-10 puan
   title: string
   photo: string // data URI (cihazda saklanir). Bos olabilir.
   sourceUrl: string // Tarifin alindigi paylasim/sayfa adresi. Bos olabilir.
@@ -170,4 +171,13 @@ export interface LzZiyaret {
   not: string
   tekrar: string // bir daha gelirsem bunu yerim
   tutar?: number // hesabi ben odediysem kac TL
+}
+
+// Paylasimin sosyal medyadaki ilgisi (sayfadan okunur, yapay zeka kullanilmaz)
+export interface LzEtkilesim {
+  begeni: number
+  yorum: number
+  izlenme: number
+  puan: number // 1-10; 0 = okunamadi
+  zaman: number
 }

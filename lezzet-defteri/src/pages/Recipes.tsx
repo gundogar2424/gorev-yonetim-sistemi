@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { etkilesimEski, etkilesimGetir } from '../lib/begeni'
 import { adaylar } from '../lib/hesaplar'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
@@ -30,14 +31,30 @@ export default function Recipes() {
   const yeniSinir = Date.now() - YENI_GUN * 86400000
   const arama = q.trim().toLocaleLowerCase('tr')
 
-  const gorunen = tarifler.filter((r) => {
+  // En begenilen: puani olanlar puana gore; eksik puanlar arka planda sirayla okunur
+  useEffect(() => {
+    if (filtre !== 'begeni') return
+    let iptal = false
+    void (async () => {
+      for (const r of tarifler.filter(etkilesimEski)) {
+        if (iptal) break
+        await etkilesimGetir(r)
+      }
+    })()
+    return () => {
+      iptal = true
+    }
+  }, [filtre])
+  const gorunenHam = tarifler.filter((r) => {
     if (sofra && !r.tableIds.includes(sofra)) return false
     if (filtre === 'yeni' && r.createdAt < yeniSinir) return false
     if (filtre === 'favori' && !r.favorite) return false
-    if (filtre !== 'hepsi' && filtre !== 'yeni' && filtre !== 'favori' && !r.tags.includes(filtre)) return false
+    if (filtre === 'begeni' && !r.etkilesim?.puan) return false
+    if (filtre !== 'hepsi' && filtre !== 'yeni' && filtre !== 'favori' && filtre !== 'begeni' && !r.tags.includes(filtre)) return false
     if (!arama) return true
     return `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')} ${r.author}`.toLocaleLowerCase('tr').includes(arama)
   })
+  const gorunen = filtre === 'begeni' ? [...gorunenHam].sort((a, b) => (b.etkilesim?.puan ?? 0) - (a.etkilesim?.puan ?? 0) || (b.etkilesim?.begeni ?? 0) - (a.etkilesim?.begeni ?? 0)) : gorunenHam
 
   return (
     <div>
@@ -130,6 +147,7 @@ export default function Recipes() {
               <Chip on={filtre === 'hepsi'} onClick={() => setFiltre('hepsi')} label="Tüm Tarifler" />
               <Chip on={filtre === 'yeni'} onClick={() => setFiltre('yeni')} label="Yeni" />
               <Chip on={filtre === 'favori'} onClick={() => setFiltre('favori')} label="★ Favoriler" />
+              <Chip on={filtre === 'begeni'} onClick={() => setFiltre('begeni')} label="En beğenilen" />
               {etiketler.map((e) => (
                 <Chip key={e} on={filtre === e} onClick={() => setFiltre(filtre === e ? 'hepsi' : e)} label={e} />
               ))}
@@ -138,7 +156,9 @@ export default function Recipes() {
             {tarifler.length === 0 ? (
               <BosDefter />
             ) : gorunen.length === 0 ? (
-              <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>Bu seçime uyan tarif yok.</div>
+              <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>
+                {filtre === 'begeni' ? 'Paylaşımların beğeni sayıları okunuyor; biraz sonra burada sıralanır.' : 'Bu seçime uyan tarif yok.'}
+              </div>
             ) : (
               <div className="space-y-2.5 pb-4">
                 {gorunen.map((r) => (
