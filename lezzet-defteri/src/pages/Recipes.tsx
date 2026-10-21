@@ -67,11 +67,8 @@ export default function Recipes() {
     if (!arama) return true
     return `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')} ${r.author}`.toLocaleLowerCase('tr').includes(arama)
   })
-  // Her listede (arama dahil) en begenilen once; "Yeni"de en yeni once kalir
-  const gorunen =
-    filtre === 'yeni'
-      ? gorunenHam
-      : [...gorunenHam].sort(
+  // Her listede (arama ve "Yeni" dahil) en begenilen once
+  const gorunen = [...gorunenHam].sort(
           (a, b) =>
             (b.etkilesim?.puan ?? 0) - (a.etkilesim?.puan ?? 0) ||
             (b.etkilesim?.begeni ?? 0) - (a.etkilesim?.begeni ?? 0) ||

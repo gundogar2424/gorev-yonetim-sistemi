@@ -6,6 +6,7 @@ import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { instagramLinki, konumdanAdres, mesafeKm, mesafeYaz, oneriKaydet, telefonKonumu, type Konum } from '../lib/mekan'
+import { guvenSkoru } from './Takip'
 
 const SINIRSIZ = /sınırsız|limitsiz|açık büfe|doyasıya|bitirdikçe|yenileyebilir/i
 // Serpme kahvalti sinirsiz yemek sayilmaz (acik bufe kahvalti sayilir)
@@ -57,7 +58,7 @@ export default function Sinirsiz() {
         .map((o) => ({ ...o, km: o.enlem || o.boylam ? mesafeKm(k, { lat: o.enlem, lon: o.boylam }) : undefined }))
         .filter((o) => !km || o.km === undefined || o.km <= km + 0.5)
         .filter((o) => !serpme(`${o.ad} ${o.tur} ${o.neden}`))
-        .sort((a, b) => (a.km ?? 999) - (b.km ?? 999))
+        .sort((a, b) => guvenSkoru(b) - guvenSkoru(a) || (a.km ?? 999) - (b.km ?? 999))
       setSonuc(r)
       if (!r.length) setHata(`${km ? `${km} km içinde` : 'Yakınında'} sınırsız teklif bulunamadı; mesafeyi büyütmeyi dene.`)
     } catch (e) {
@@ -133,7 +134,7 @@ export default function Sinirsiz() {
           </div>
         )}
         {kayitli
-          .sort((a, b) => (mesafe(a) ?? 999) - (mesafe(b) ?? 999))
+          .sort((a, b) => guvenSkoru({ puan: b.puan ?? 0, yorumSayisi: b.yorumSayisi ?? 0, reklam: b.reklam }) - guvenSkoru({ puan: a.puan ?? 0, yorumSayisi: a.yorumSayisi ?? 0, reklam: a.reklam }) || (mesafe(a) ?? 999) - (mesafe(b) ?? 999))
           .map((m) => (
             <Link key={m.id} to={`/mekan/${m.id}`} className="lz-card p-3 flex gap-3">
               <Thumb src={m.foto} className="w-14 h-14 rounded-xl" />

@@ -5,7 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
-import { ReklamRozeti } from './Takip'
+import { ReklamRozeti, guvenSkoru } from './Takip'
 import { hesapAdi, hesaplariOku, hesaplariYaz, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { adrestenKonum, instagramLinki, konumdanAdres, oneriKaydet, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
 
@@ -190,13 +190,9 @@ export default function MekanOner() {
           o.enlem || o.boylam ? { lat: o.enlem, lon: o.boylam } : kayit?.lat !== undefined ? { lat: kayit.lat, lon: kayit.lon! } : undefined
         return { ...o, kayitliId: kayit?.id, km: k && hedef ? mesafeKm(k, hedef) : undefined }
       })
-      // Secilen mesafenin disindakileri at; yemek aramasinda en iyi puanlidan, digerlerinde yakindan sirala
+      // Secilen mesafenin disindakileri at; her zaman en begenilenden (cok yorumlu yuksek Google puani) sirala
       const icerde = km ? sonuc.filter((o) => o.km === undefined || o.km <= km + 0.5) : sonuc
-      setSonuclar(
-        yemek
-          ? icerde.sort((a, b) => (b.puan || 0) - (a.puan || 0) || (a.km ?? 999) - (b.km ?? 999))
-          : icerde.sort((a, b) => (a.km ?? 999) - (b.km ?? 999))
-      )
+      setSonuclar(icerde.sort((a, b) => guvenSkoru(b) - guvenSkoru(a) || (a.km ?? 999) - (b.km ?? 999)))
       if (sonuc.length && !icerde.length) setHata(`${km} km içinde uygun yer bulunamadı; mesafeyi büyütmeyi dene.`)
       else if (!sonuc.length)
         setHata(

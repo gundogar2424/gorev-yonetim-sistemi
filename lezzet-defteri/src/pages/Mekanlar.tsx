@@ -45,22 +45,6 @@ export default function Mekanlar() {
   const [sadeceHype, setSadeceHype] = useState(false)
   const [hypeDurum, setHypeDurum] = useState('')
   const [yaricap, setYaricap] = useState(0) // 0 = hepsi
-  // Varsayilan: en begenilen once (Google puani + yorum sayisi + hype); secim hatirlanir
-  const [siralama, setSiralamaHam] = useState<'mesafe' | 'puan'>(() => {
-    try {
-      return localStorage.getItem('lz-mekan-sira') === 'mesafe' ? 'mesafe' : 'puan'
-    } catch {
-      return 'puan'
-    }
-  })
-  const setSiralama = (v: 'mesafe' | 'puan') => {
-    setSiralamaHam(v)
-    try {
-      localStorage.setItem('lz-mekan-sira', v)
-    } catch {
-      /* yok */
-    }
-  }
   const aiVar = !!apiAnahtari()
 
   const konumuAl = async () => {
@@ -124,11 +108,8 @@ export default function Mekanlar() {
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
   const sirali =
-    siralama === 'puan' || !konum
-      ? [...suzulmus].sort((a, b) => mekanSkoru(b) - mekanSkoru(a))
-      : konum
-      ? [...suzulmus].sort((a, b) => (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
-      : suzulmus
+    // Her zaman (arama dahil) en begenilen once; esitse yakin olan
+    [...suzulmus].sort((a, b) => mekanSkoru(b) - mekanSkoru(a) || (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
   // HYPE: listedeki mekanlardan hangileri su an sosyal medyada konusuluyor? Tek aramada en fazla 25 mekan;
   // son 7 gunde bakilanlara tekrar bakilmaz (kredi harcamamak icin)
   const hypeKontrol = async () => {
@@ -338,9 +319,6 @@ export default function Mekanlar() {
                   onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}
                 >
                   Gitmediklerim
-                </button>
-                <button className="lz-chip whitespace-nowrap" onClick={() => setSiralama(siralama === 'puan' ? 'mesafe' : 'puan')}>
-                  {siralama === 'puan' ? '★ Puana göre' : 'Yakına göre'}
                 </button>
               </div>
             </div>
