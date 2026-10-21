@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
-import { ReklamRozeti } from './Takip'
+import { ReklamRozeti, guvenSkoru } from './Takip'
 import { sinirsizTeklif } from './Sinirsiz'
 import { bugunAyYil, odemeler, tlYaz } from '../lib/harcama'
 import type { LzMekan } from '../types'
@@ -45,7 +45,22 @@ export default function Mekanlar() {
   const [sadeceHype, setSadeceHype] = useState(false)
   const [hypeDurum, setHypeDurum] = useState('')
   const [yaricap, setYaricap] = useState(0) // 0 = hepsi
-  const [siralama, setSiralama] = useState<'mesafe' | 'puan'>('mesafe')
+  // Varsayilan: en begenilen once (Google puani + yorum sayisi + hype); secim hatirlanir
+  const [siralama, setSiralamaHam] = useState<'mesafe' | 'puan'>(() => {
+    try {
+      return localStorage.getItem('lz-mekan-sira') === 'mesafe' ? 'mesafe' : 'puan'
+    } catch {
+      return 'puan'
+    }
+  })
+  const setSiralama = (v: 'mesafe' | 'puan') => {
+    setSiralamaHam(v)
+    try {
+      localStorage.setItem('lz-mekan-sira', v)
+    } catch {
+      /* yok */
+    }
+  }
   const aiVar = !!apiAnahtari()
 
   const konumuAl = async () => {
@@ -109,8 +124,8 @@ export default function Mekanlar() {
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
   const sirali =
-    siralama === 'puan'
-      ? [...suzulmus].sort((a, b) => (b.puan ?? 0) - (a.puan ?? 0))
+    siralama === 'puan' || !konum
+      ? [...suzulmus].sort((a, b) => mekanSkoru(b) - mekanSkoru(a))
       : konum
       ? [...suzulmus].sort((a, b) => (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
       : suzulmus
@@ -500,4 +515,14 @@ function KampanyaKarti({ liste }: { liste: LzMekan[] }) {
       ))}
     </div>
   )
+}
+
+// Begeni skoru: cok yorumlu yuksek Google puani one; su an hype olan ve benim yuksek puan verdigim biraz daha one; reklam biraz geri
+function mekanSkoru(m: LzMekan): number {
+  const z = (m.ziyaretler ?? []).filter((x) => x.puan > 0)
+  const benim = z.length ? z.reduce((t, x) => t + x.puan, 0) / z.length : 0
+  let s = guvenSkoru({ puan: m.puan ?? 0, yorumSayisi: m.yorumSayisi ?? 0, reklam: m.reklam })
+  if (m.hype?.var) s *= 1.15
+  if (benim) s += benim * 0.5
+  return s
 }

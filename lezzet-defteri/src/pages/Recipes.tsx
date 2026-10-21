@@ -13,6 +13,7 @@ import { Header, Icon, Logo, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_SOLUK
 const SOFRA_EMOJI = ['👩', '👨', '👧', '👦', '👵', '👴', '💑', '👶', '🎉', '🥗', '🏠', '🍽️']
 const YENI_GUN = 7
 
+let begeniOkundu = false
 type Filtre = 'hepsi' | 'yeni' | 'favori' | string // string = etiket adi
 
 export default function Recipes() {
@@ -32,6 +33,18 @@ export default function Recipes() {
   const arama = q.trim().toLocaleLowerCase('tr')
 
   // En begenilen: puani olanlar puana gore; eksik puanlar arka planda sirayla okunur
+  // Puani okunmamis tarifler uygulama her acildiginda bir kez arka planda okunur (yapay zeka yok)
+  useEffect(() => {
+    if (begeniOkundu || !tarifler.length) return
+    begeniOkundu = true
+    void (async () => {
+      // Instagram'i yormamak icin aralikli
+      for (const r of tarifler.filter(etkilesimEski)) {
+        await etkilesimGetir(r)
+        await new Promise((x) => setTimeout(x, 1500))
+      }
+    })()
+  }, [tarifler.length])
   useEffect(() => {
     if (filtre !== 'begeni') return
     let iptal = false
@@ -54,7 +67,16 @@ export default function Recipes() {
     if (!arama) return true
     return `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')} ${r.author}`.toLocaleLowerCase('tr').includes(arama)
   })
-  const gorunen = filtre === 'begeni' ? [...gorunenHam].sort((a, b) => (b.etkilesim?.puan ?? 0) - (a.etkilesim?.puan ?? 0) || (b.etkilesim?.begeni ?? 0) - (a.etkilesim?.begeni ?? 0)) : gorunenHam
+  // Her listede (arama dahil) en begenilen once; "Yeni"de en yeni once kalir
+  const gorunen =
+    filtre === 'yeni'
+      ? gorunenHam
+      : [...gorunenHam].sort(
+          (a, b) =>
+            (b.etkilesim?.puan ?? 0) - (a.etkilesim?.puan ?? 0) ||
+            (b.etkilesim?.begeni ?? 0) - (a.etkilesim?.begeni ?? 0) ||
+            b.createdAt - a.createdAt
+        )
 
   return (
     <div>
