@@ -214,12 +214,23 @@ export default function LzSettings() {
         <section className="lz-card p-4 space-y-3">
           <div className={`font-semibold ${T_BASLIK}`}>Yedekleme</div>
           <p className={`text-[13px] ${T_SOLUK}`}>
-            Tarifler yalnızca bu telefonda saklanır. Telefon değiştirirken yedeği indir, yeni telefonda geri yükle (fotoğraflar, sofralar, plan ve
-            alışveriş listesi dahil).
+            Her şey yalnızca bu telefonda saklanır. “Yedeği al”a basınca paylaşım menüsü açılır: Google Drive’a ya da kendine e-postayla kaydet.
+            Yeni telefonda “Geri yükle” ile o dosyayı seç. Yedekte tarifler, mekanlar (ziyaretler, harcamalar), diyet planı, sofralar, haftalık
+            plan, alışveriş listesi ve takip ettiğin influencer’lar var; API anahtarı yok.
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <button className="lz-btn-soft" onClick={() => void downloadBackup()}>
-              Yedeği indir
+            <button
+              className="lz-btn-soft"
+              onClick={async () => {
+                try {
+                  await downloadBackup()
+                } catch (e) {
+                  const t = String((e as Error)?.message ?? e)
+                  if (!/cancel|abort|iptal/i.test(t)) setMesaj('Yedek alınamadı: ' + t.slice(0, 80))
+                }
+              }}
+            >
+              Yedeği al
             </button>
             <button className="lz-btn-soft" onClick={() => dosya.current?.click()}>
               Geri yükle
@@ -228,7 +239,6 @@ export default function LzSettings() {
           <input
             ref={dosya}
             type="file"
-            accept="application/json,.json"
             className="hidden"
             onChange={async (e) => {
               const f = e.target.files?.[0]
@@ -236,7 +246,7 @@ export default function LzSettings() {
               if (!f) return
               try {
                 const s = await restoreBackup(f)
-                setMesaj(`✓ ${s.eklendi} tarif eklendi${s.atlandi ? `, ${s.atlandi} zaten vardı` : ''}.`)
+                setMesaj(`✓ ${s.eklendi} tarif, ${s.mekan} mekan eklendi${s.atlandi ? `; ${s.atlandi} tarif zaten vardı` : ''}.`)
               } catch (err) {
                 setMesaj((err as Error).message)
               }

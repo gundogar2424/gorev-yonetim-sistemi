@@ -13,6 +13,43 @@ interface LzBackup {
   shopping: LzShopItem[]
   diyet?: LzDiyet[]
   mekanlar?: LzMekan[]
+  ayarlar?: Record<string, string> // takip edilen influencer'lar, fotograflari, kendi etiketlerim, profil… (API anahtari YOK)
+}
+
+// Yedege giren telefon ayarlari; anahtarlar ve gecici onbellekler girmez
+const AYAR_ANAHTARLARI = ['lz-yemek-hesaplari', 'lz-hesap-cikan', 'lz-hesap-aday', 'lz-hesap-foto', 'lz-hesap-oto', 'lz-kendi-etiketler', 'lz-profil', 'lz-gezi', 'lz-theme', 'lz-shop-grup', 'lz-tasarruf', 'lz-gunluk-sinir']
+function ayarlariOku(): Record<string, string> {
+  const a: Record<string, string> = {}
+  for (const k of AYAR_ANAHTARLARI) {
+    try {
+      const v = localStorage.getItem(k)
+      if (v !== null) a[k] = v
+    } catch {
+      /* yok */
+    }
+  }
+  return a
+}
+// Geri yuklerken: listeler birlestirilir, fotograflar eklenir, digerleri telefonda yoksa yazilir
+function ayarlariYukle(a: Record<string, string> | undefined): void {
+  if (!a) return
+  for (const k of AYAR_ANAHTARLARI) {
+    const yeni = a[k]
+    if (yeni === undefined) continue
+    try {
+      const eski = localStorage.getItem(k)
+      if (eski === null) {
+        localStorage.setItem(k, yeni)
+        continue
+      }
+      const e = JSON.parse(eski) as unknown
+      const y = JSON.parse(yeni) as unknown
+      if (Array.isArray(e) && Array.isArray(y)) localStorage.setItem(k, JSON.stringify([...new Set([...e, ...y])]))
+      else if (e && y && typeof e === 'object' && typeof y === 'object') localStorage.setItem(k, JSON.stringify({ ...(y as object), ...(e as object) }))
+    } catch {
+      /* duz metin ayar: telefondaki kalir */
+    }
+  }
 }
 
 export async function downloadBackup(): Promise<void> {
@@ -25,14 +62,26 @@ export async function downloadBackup(): Promise<void> {
     plans: await lzDb.plans.toArray(),
     shopping: await lzDb.shopping.toArray(),
     diyet: await lzDb.diyet.toArray(),
-    mekanlar: await lzDb.mekanlar.toArray()
+    mekanlar: await lzDb.mekanlar.toArray(),
+    ayarlar: ayarlariOku()
   }
-  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+  const metin = JSON.stringify(data)
+  const d = new Date()
+  const ad = `lezzet-rotasi-yedek-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`
+  // Telefonda (APK) indirme baglantisi calismaz: dosya yazilip paylasim menusu acilir (Drive, e-posta, WhatsApp, Dosyalar…)
+  const { Capacitor } = await import('@capacitor/core')
+  if (Capacitor.isNativePlatform()) {
+    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
+    const { Share } = await import('@capacitor/share')
+    const yaz = await Filesystem.writeFile({ path: ad, data: metin, directory: Directory.Cache, encoding: Encoding.UTF8 })
+    await Share.share({ title: 'Lezzet Rotası yedeği', dialogTitle: 'Yedeği kaydet (Drive, e-posta…)', files: [yaz.uri] })
+    return
+  }
+  const blob = new Blob([metin], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  const d = new Date()
   a.href = url
-  a.download = `lezzet-defteri-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`
+  a.download = ad
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -42,7 +91,7 @@ export async function downloadBackup(): Promise<void> {
 // Geri yukleme mevcut veriyi SILMEZ; yedektekiler eklenir. Ayni baslikli tarif
 // ve ayni adli sofra atlanir. Kimlikler yeniden verildigi icin tarif-sofra ve
 // plan-tarif baglari eski->yeni kimlik eslemesiyle kurulur.
-export async function restoreBackup(file: File): Promise<{ eklendi: number; atlandi: number }> {
+export async function restoreBackup(file: File): Promise<{ eklendi: number; atlandi: number; mekan: number }> {
   let data: LzBackup
   try {
     data = JSON.parse(await file.text()) as LzBackup
@@ -55,6 +104,7 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
 
   let eklendi = 0
   let atlandi = 0
+  let mekan = 0
   await lzDb.transaction('rw', [lzDb.recipes, lzDb.sofralar, lzDb.plans, lzDb.shopping, lzDb.diyet, lzDb.mekanlar], async () => {
     // Mekanlar: ayni adli ve ayni sehirdeki mekan atlanir
     const mevcutMekan = await lzDb.mekanlar.toArray()
@@ -63,8 +113,10 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
       if (mevcutMekan.some((x) => mk(x) === mk(m))) continue
       const { id: _id, ...rest } = m
       await lzDb.mekanlar.add(rest)
+      mekan++
     }
     // Diyet plani: telefonda plan yoksa yedektekini al (varsa uzerine yazma)
+    ayarlariYukle(data.ayarlar)
     if (data.diyet?.[0] && !(await lzDb.diyet.get(1))) await lzDb.diyet.put({ ...data.diyet[0], id: 1, eslesme: undefined })
     const sofraEsle = new Map<number, number>()
     const mevcutSofra = await lzDb.sofralar.toArray()
@@ -127,5 +179,5 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
       await lzDb.shopping.add({ ...rest, recipeId: tarifEsle.get(rest.recipeId) ?? 0 })
     }
   })
-  return { eklendi, atlandi }
+  return { eklendi, atlandi, mekan }
 }
