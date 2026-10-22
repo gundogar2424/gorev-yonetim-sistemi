@@ -125,3 +125,15 @@ export async function placesTest(): Promise<string> {
   const m = await googleMekanAra('Galata Kulesi İstanbul')
   return m ? `✓ Google Haritalar çalışıyor (${m.ad}${m.puan ? `, ★ ${m.puan}` : ''})` : '✓ Anahtar çalışıyor'
 }
+
+// Bulundugum yerdeki yeme-icme mekanlari (en yakindan)
+export async function googleYakindakiler(k: { lat: number; lon: number }, yaricap = 150): Promise<GoogleMekan[]> {
+  const j = (await istek('places:searchNearby', 'POST', ALANLAR.map((a) => `places.${a}`).join(','), {
+    includedTypes: ['restaurant', 'cafe', 'bakery', 'bar', 'meal_takeaway', 'fast_food_restaurant', 'ice_cream_shop', 'coffee_shop'],
+    maxResultCount: 12,
+    rankPreference: 'DISTANCE',
+    languageCode: 'tr',
+    locationRestriction: { circle: { center: { latitude: k.lat, longitude: k.lon }, radius: yaricap } }
+  })) as { places?: HamYer[] }
+  return (j.places ?? []).map(cevir)
+}
