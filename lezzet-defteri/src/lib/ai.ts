@@ -158,7 +158,9 @@ function hataMetni(status: number, govde: string): string {
   if (status === 404) return `Model bulunamadı (${modelAdi()}). Ayarlar’dan modeli değiştir.`
   if (status === 429)
     return saglayici() === 'gemini'
-      ? 'Gemini’nin ücretsiz kullanım sınırına ulaşıldı; bir dakika ya da yarına kadar bekle (ya da Ayarlar’dan Claude’a geç).'
+      ? /PerDay|per day|daily/i.test(govde)
+        ? 'Google’ın bugünkü Gemini sınırı doldu (tüm modellerde denendi). Yarın kendiliğinden açılır; beklemek istemezsen aistudio.google.com’da projene faturalandırma (ücretli katman) ekle.'
+        : 'Gemini şu an çok sık istek aldı (dakikalık sınır). Bir dakika sonra “Tekrar dene”ye bas.'
       : 'Şu an istek sınırındasın; birazdan tekrar dene.'
   if (status === 529 || status >= 500) return `${ad} şu an yoğun; birazdan tekrar dene.`
   return `İstek reddedildi (${status}). ${govde.slice(0, 160)}`
@@ -448,6 +450,26 @@ async function geminiCagri<T>(system: string, parcalar: Parca[], schema: object,
       // Hepsi yogunsa son bir kez uzun bekleyip asil modeli dene
       await new Promise((res) => setTimeout(res, 8000))
       r = await cagir(true)
+    }
+  }
+  // Kota (429, yogunluk degil): dakikalik sinir icin biraz bekleyip tekrar; olmazsa diger modeller
+  // (Google'in sinirlari model basina: biri dolunca digeri genelde calisir)
+  const kota = (x: { status: number; govde: string }) => x.status === 429 && !yogun(x)
+  if (kota(r)) {
+    if (!/PerDay|per day|daily/i.test(r.govde)) {
+      await new Promise((res) => setTimeout(res, 25000))
+      r = await cagir(true)
+    }
+    if (kota(r)) {
+      const asil = model
+      for (const aday of ['gemini-flash-lite-latest', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'].filter((x) => x !== model)) {
+        model = aday
+        const r2 = await cagir(true)
+        if (r2.status === 404 || kota(r2)) continue
+        r = r2
+        break
+      }
+      if (!r.ok) model = asil
     }
   }
   if (r.status === 404) {
