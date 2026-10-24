@@ -156,12 +156,21 @@ function hataMetni(status: number, govde: string): string {
       ? 'Gemini ön ödemeli kredin bitti. Uygulamada sorun yok; kredi yükleyince devam eder: ai.studio/projects → projen → Faturalandırma (Billing) → kredi ekle. İstersen otomatik yüklemeyi aç.'
       : 'Claude hesabındaki bakiye bitti; console.anthropic.com → Billing’den bakiye yükle.'
   if (status === 404) return `Model bulunamadı (${modelAdi()}). Ayarlar’dan modeli değiştir.`
-  if (status === 429)
-    return saglayici() === 'gemini'
+  if (status === 429) {
+    // Google'in kendi aciklamasi da gosterilir (hangi sinir: dakikalik, gunluk, harcama limiti…)
+    let ham = ''
+    try {
+      ham = ((JSON.parse(govde) as { error?: { message?: string } }).error?.message ?? '').split('\n')[0].slice(0, 220)
+    } catch {
+      /* duz metin */
+    }
+    if (/spend|spending cap|budget/i.test(ham)) return `Google projendeki harcama sınırına ulaşıldı; aistudio.google.com → projen → Faturalandırma’dan sınırı artır. (Google: ${ham})`
+    return (saglayici() === 'gemini'
       ? /PerDay|per day|daily/i.test(govde)
         ? 'Google’ın bugünkü Gemini sınırı doldu (tüm modellerde denendi). Yarın kendiliğinden açılır; beklemek istemezsen aistudio.google.com’da projene faturalandırma (ücretli katman) ekle.'
         : 'Gemini şu an çok sık istek aldı (dakikalık sınır). Bir dakika sonra “Tekrar dene”ye bas.'
-      : 'Şu an istek sınırındasın; birazdan tekrar dene.'
+      : 'Şu an istek sınırındasın; birazdan tekrar dene.') + (ham ? ` (Google: ${ham})` : '')
+  }
   if (status === 529 || status >= 500) return `${ad} şu an yoğun; birazdan tekrar dene.`
   return `İstek reddedildi (${status}). ${govde.slice(0, 160)}`
 }
