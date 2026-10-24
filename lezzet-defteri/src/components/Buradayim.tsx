@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK } from './ui'
-import { telefonKonumu, mesafeYaz, type Konum } from '../lib/mekan'
-import { yakindakiYerler, yeriKaydet, type YakinYer } from '../lib/burada'
+import { haritaLinkiMi, mekanLinktenEkle, telefonKonumu, mesafeYaz, type Konum } from '../lib/mekan'
+import { linkAyikla } from '../lib/importer'
+import { haritaLinkindenYer, yakindakiYerler, yeriKaydet, type YakinYer } from '../lib/burada'
 
 // SU AN BURADAYIM: konumdan etraftaki mekanlar listelenir; secilen yer kaydedilip "Buraya gittim" formu acilir
 export default function Buradayim() {
@@ -31,10 +32,32 @@ export default function Buradayim() {
     }
     setDurum('')
   }
+  // Elle: ad ya da Google Haritalar linki
+  const elle = async () => {
+    const g = ad.trim()
+    if (!haritaLinkiMi(g)) return sec({ ad: g, tur: '', adres: '', lat: konum!.lat, lon: konum!.lon, km: 0 })
+    setDurum('Harita linki okunuyor…')
+    setHata('')
+    try {
+      const y = await haritaLinkindenYer(linkAyikla(g) || g)
+      if (y) {
+        if (!y.lat && !y.lon && konum) Object.assign(y, { lat: konum.lat, lon: konum.lon })
+        return sec(y)
+      }
+      // Okunamadiysa yapay zeka ile (normal "Mekan ekle" yolu)
+      setDurum('Mekan araştırılıyor…')
+      const s = await mekanLinktenEkle(g, (m) => setDurum(m))
+      setAcik(false)
+      navigate(`/mekan/${s.id}`, { state: { gittim: true } })
+    } catch (e) {
+      setHata((e as Error).message || 'Link okunamadı.')
+    }
+    setDurum('')
+  }
   const sec = async (y: YakinYer) => {
-    if (!konum) return
+    if (!konum && !y.lat) return
     setDurum(`${y.ad} kaydediliyor…`)
-    const id = await yeriKaydet(y, konum)
+    const id = await yeriKaydet(y, konum ?? { lat: y.lat, lon: y.lon })
     setDurum('')
     setAcik(false)
     navigate(`/mekan/${id}`, { state: { gittim: true } })
@@ -75,15 +98,15 @@ export default function Buradayim() {
               <span className="text-[12.5px] font-semibold text-lz-600 whitespace-nowrap">{mesafeYaz(y.km)}</span>
             </button>
           ))}
-          {konum && !durum && (
+          {!durum && (
             <div className="pt-2 space-y-2">
-              <div className={`text-[12.5px] ${T_SOLUK}`}>Listede yok mu? Adını yaz, bu konumla kaydedilsin:</div>
+              <div className={`text-[12.5px] ${T_SOLUK}`}>Listede yok mu? Adını yaz ya da Google Haritalar’dan “Paylaş” ile kopyaladığın linki yapıştır:</div>
               <div className="flex gap-2">
-                <input className="lz-input py-2 text-[14px] flex-1" placeholder="Mekanın adı" value={ad} onChange={(e) => setAd(e.target.value)} />
+                <input className="lz-input py-2 text-[14px] flex-1" placeholder="Mekanın adı ya da harita linki" value={ad} onChange={(e) => setAd(e.target.value)} />
                 <button
                   className="lz-btn-primary px-4 text-[14px]"
-                  disabled={!ad.trim()}
-                  onClick={() => void sec({ ad: ad.trim(), tur: '', adres: '', lat: konum.lat, lon: konum.lon, km: 0 })}
+                  disabled={!ad.trim() || (!konum && !haritaLinkiMi(ad))}
+                  onClick={() => void elle()}
                 >
                   Kaydet
                 </button>

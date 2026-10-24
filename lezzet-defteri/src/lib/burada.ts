@@ -3,7 +3,7 @@
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { googleYakindakiler, placesAnahtari } from './places'
-import { konumdanAdres, mesafeKm, type Konum } from './mekan'
+import { haritaKoordinati, konumdanAdres, mesafeKm, type Konum } from './mekan'
 
 export interface YakinYer {
   ad: string
@@ -31,11 +31,34 @@ const TUR: Record<string, string> = {
   confectionery: 'Tatlıcı'
 }
 
+// Telefonda CapacitorHttp (WebView kisitlari yok), tarayicida fetch; yonlendirme sonrasi adres de doner
+async function getir(url: string): Promise<{ metin: string; son: string }> {
+  const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+  if (Capacitor.isNativePlatform()) {
+    const r = await CapacitorHttp.get({ url, responseType: 'text', headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36', 'Accept-Language': 'tr-TR,tr;q=0.9' } })
+    if (r.status >= 400) throw new Error(String(r.status))
+    return { metin: typeof r.data === 'string' ? r.data : JSON.stringify(r.data), son: r.url || url }
+  }
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(String(r.status))
+  return { metin: await r.text(), son: r.url || url }
+}
+
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']
+
 async function osmYakindakiler(k: Konum, yaricap: number): Promise<YakinYer[]> {
   const q = `[out:json][timeout:15];(nwr(around:${yaricap},${k.lat},${k.lon})["amenity"~"^(restaurant|cafe|fast_food|bar|pub|ice_cream|food_court)$"];nwr(around:${yaricap},${k.lat},${k.lon})["shop"~"^(bakery|pastry|confectionery)$"];);out center tags 30;`
-  const r = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`)
-  if (!r.ok) throw new Error('Yakındaki mekanlar alınamadı (harita servisi). Biraz sonra dene ya da adını yaz.')
-  const j = (await r.json()) as { elements?: { lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[] }
+  let ham = ''
+  for (const kok of OVERPASS) {
+    try {
+      ham = (await getir(`${kok}?data=${encodeURIComponent(q)}`)).metin
+      if (ham.trim().startsWith('{')) break
+    } catch {
+      /* sonraki sunucu */
+    }
+  }
+  if (!ham.trim().startsWith('{')) throw new Error('Harita servisine ulaşılamadı. İnterneti kontrol et ya da adını / Google Haritalar linkini yaz.')
+  const j = JSON.parse(ham) as { elements?: { lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[] }
   return (j.elements ?? [])
     .filter((e) => e.tags?.name)
     .map((e) => {
@@ -61,6 +84,8 @@ export async function yakindakiYerler(k: Konum): Promise<YakinYer[]> {
     dis = placesAnahtari()
       ? (await googleYakindakiler(k)).map((g) => ({ ad: g.ad, tur: g.tur, adres: g.adres, lat: g.lat, lon: g.lon, km: mesafeKm(k, g), googleId: g.id, puan: g.puan, yorumSayisi: g.yorumSayisi, haritaUrl: g.haritaUrl }))
       : await osmYakindakiler(k, 150)
+    // GPS sapabilir: az sonuc varsa cember buyutulur
+    if (dis.length < 3) dis = placesAnahtari() ? [...dis, ...(await googleYakindakiler(k, 400)).map((g) => ({ ad: g.ad, tur: g.tur, adres: g.adres, lat: g.lat, lon: g.lon, km: mesafeKm(k, g), googleId: g.id, puan: g.puan, yorumSayisi: g.yorumSayisi, haritaUrl: g.haritaUrl }))] : await osmYakindakiler(k, 400)
   } catch (e) {
     if (!kayitli.length) throw e
   }
@@ -103,4 +128,16 @@ export async function yeriKaydet(y: YakinYer, k: Konum): Promise<number> {
     haritaUrl: y.haritaUrl || undefined
   }
   return lzDb.mekanlar.add(m)
+}
+
+// Google Haritalar paylasim linkinden (maps.app.goo.gl…) mekan adi ve yeri; yapay zeka yok
+export async function haritaLinkindenYer(link: string): Promise<YakinYer | undefined> {
+  const { metin, son } = await getir(link)
+  const birlesik = `${son}\n${metin}`
+  const k = haritaKoordinati(birlesik)
+  const ad =
+    decodeURIComponent(son.match(/\/place\/([^/@?]+)/)?.[1] ?? '').replace(/\+/g, ' ') ||
+    (metin.match(/<meta[^>]+(?:property|itemprop)="(?:og:title|name)"[^>]+content="([^"]+)"/i)?.[1] ?? '').split(/\s*[·|]\s*/)[0]
+  if (!ad || /^google (maps|haritalar)$/i.test(ad)) return undefined
+  return { ad: ad.trim(), tur: '', adres: '', lat: k?.lat ?? 0, lon: k?.lon ?? 0, km: 0, haritaUrl: link }
 }
