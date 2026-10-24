@@ -19,7 +19,7 @@ import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
 import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
 import { placesAnahtari, placesAnahtariKaydet, placesTest } from '../lib/places'
-import { gunlukSinir, gunlukSinirAyarla, kullanimOku, tasarrufModu, tasarrufModuAyarla } from '../lib/ai'
+import { gunlukSinir, gunlukSinirAyarla, kullanimOku, tahminiTl, tasarrufModu, tasarrufModuAyarla } from '../lib/ai'
 
 export default function LzSettings() {
   const [sag, setSag] = useState<Saglayici>(saglayici())
@@ -368,9 +368,10 @@ function HarcamaKarti() {
   const bin = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace('.', ',')} milyon` : n >= 1000 ? `${Math.round(n / 1000)} bin` : String(n))
   const satir = (ad: string, b: typeof k.bugun) => (
     <div className={`text-[13px] ${T_GOVDE}`}>
-      <b>{ad}:</b> {b.istek} istek · ≈ {(b.tl ?? 0) < 1 && b.istek ? '1 TL’den az' : `${Math.round(b.tl ?? 0)} TL`}
+      <b>{ad}:</b> {b.istek} istek · ≈ {tahminiTl(b).toplam < 1 && b.istek ? '1 TL’den az' : `${Math.round(tahminiTl(b).toplam)} TL`}
       <span className={`block text-[11.5px] ${T_SOLUK}`}>
-        {bin(b.girdi)} girdi + {bin(b.cikti)} çıktı birimi{b.arama ? ` · ${b.arama} Google araması` : ''}
+        {bin(b.girdi)} girdi + {bin(b.cikti)} çıktı birimi ≈ {Math.round(b.tl ?? 0)} TL
+        {b.arama ? ` · ${b.arama} Google araması ≈ ${Math.round(tahminiTl(b).arama)} TL` : ''}
       </span>
     </div>
   )
@@ -414,9 +415,11 @@ function HarcamaKarti() {
         {satir('Bu ay', k.buAy)}
       </div>
       <p className={`text-[12px] ${T_SOLUK}`}>
-        TL tutarı yaklaşıktır (1 $ ≈ 42 TL); harcama önce 2.940 TL’lik ücretsiz krediden düşer. En çok harcayan: videolu tarifler ve Google aramaları (mekan, puan, kampanya). Kesin tutar için{' '}
-        <a href="https://aistudio.google.com/usage" target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
-          AI Studio kullanım sayfası
+        TL tutarı yaklaşıktır (1 $ ≈ 42 TL; Google’ın günlük ücretsiz arama indirimleri düşülmeden). Harcama önce ücretsiz krediden düşer. En çok
+        harcayan Google aramalı işler (mekan önerisi, puan, kampanya, hype, influencer), sonra videolu tarifler. Google projendeki aylık harcama
+        sınırı dolarsa yapay zeka durur. Kesin tutar ve sınır için{' '}
+        <a href="https://ai.studio/spend" target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
+          AI Studio harcama sayfası
         </a>
         .
       </p>

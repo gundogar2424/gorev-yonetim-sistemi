@@ -321,6 +321,13 @@ export interface Kullanim {
 // Yaklasik tutar: Google'in 1 milyon birim (token) fiyatlari (USD, girdi/cikti) ve dolar kuru.
 // Kesin tutar degil; Google aramasinin ayrica ucreti (ucretsiz kotayi asinca) dahil degil.
 const DOLAR_TL = 42
+// Google aramali (grounding) her istek ayrica ucretlidir (~35 $ / 1000 istek); Google'in fatura sayfasiyla karsilastirinca
+// asil fark buradan geliyordu. Gecmis kayitlar da dogru ciksin diye tutara gosterirken eklenir.
+const ARAMA_USD = 0.035
+export function tahminiTl(b: { tl?: number; arama: number }): { toplam: number; arama: number } {
+  const arama = b.arama * ARAMA_USD * DOLAR_TL
+  return { toplam: (b.tl ?? 0) + arama, arama }
+}
 function birimFiyat(model: string): [number, number] {
   if (/lite/.test(model)) return [0.1, 0.4]
   if (/pro/.test(model)) return [2, 12]
