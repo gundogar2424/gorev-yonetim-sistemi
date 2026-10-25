@@ -1,5 +1,6 @@
 package com.karttakip.app.data
 
+import com.karttakip.app.domain.CardCalc
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -67,7 +68,11 @@ object BackupIO {
             limit = limit.coerceAtLeast(0.0),
             debt = debt,
             colorArgb = color,
-            remindDaysBefore = o.optInt("remindDaysBefore", 3).coerceIn(0, 30)
+            remindDaysBefore = o.optInt("remindDaysBefore", 3).coerceIn(0, 30),
+            // Takibi bu donguden baslat (gecmis aylar icin bogmasin).
+            lastPaidDueEpochDay = if (o.has("lastPaidDueEpochDay"))
+                o.optLong("lastPaidDueEpochDay", 0L)
+            else CardCalc.initialLastPaid(dueEpochDay, today)
         )
     }
 
@@ -124,6 +129,7 @@ object BackupIO {
                     .put("debt", c.debt)
                     .put("colorArgb", c.colorArgb)
                     .put("remindDaysBefore", c.remindDaysBefore)
+                    .put("lastPaidDueEpochDay", c.lastPaidDueEpochDay)
             )
         }
         return JSONObject().put("app", "kart-takip").put("cards", arr).toString(2)

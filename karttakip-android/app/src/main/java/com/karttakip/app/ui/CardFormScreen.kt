@@ -308,7 +308,10 @@ fun CardFormScreen(
                                 limit = limit.toDoubleOrNull() ?: 0.0,
                                 debt = debt.toDoubleOrNull() ?: 0.0,
                                 colorArgb = color,
-                                remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3
+                                remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
+                                // Yeni kartta takibi bu dongaden baslat; duzenlemede koru.
+                                lastPaidDueEpochDay = existing?.lastPaidDueEpochDay?.takeIf { it > 0L }
+                                    ?: CardCalc.initialLastPaid(dDate.toEpochDay())
                             )
                             vm.save(card) { onBack() }
                         }
@@ -322,23 +325,28 @@ fun CardFormScreen(
             }
 
             if (isEdit) {
-                // Bu ayki odemeyi yap: borc sifirlanir (kullanilabilir = tam limit),
-                // son odeme bir sonraki aya kayar.
+                // Bu ayki odemeyi yap: borc sifirlanir ve bu dongu "ödendi"
+                // isaretlenir; hatirlatma zinciri durur, sonraki donguye gecilir.
                 Button(
                     onClick = {
                         val sDate = statementDate
                         val dDate = dueDate
                         if (name.isNotBlank() && sDate != null && dDate != null) {
-                            val paid = Card(
+                            val base = Card(
                                 id = existing?.id ?: 0L,
                                 name = name.trim(),
                                 bank = bank.trim(),
                                 statementEpochDay = sDate.toEpochDay(),
-                                dueEpochDay = dDate.plusMonths(1).toEpochDay(),
+                                dueEpochDay = dDate.toEpochDay(),
                                 limit = limit.toDoubleOrNull() ?: 0.0,
                                 debt = 0.0,
                                 colorArgb = color,
-                                remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3
+                                remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
+                                lastPaidDueEpochDay = existing?.lastPaidDueEpochDay ?: 0L
+                            )
+                            // Simdiki donguyu "ödendi" isaretle
+                            val paid = base.copy(
+                                lastPaidDueEpochDay = CardCalc.currentDue(base).toEpochDay()
                             )
                             vm.save(paid) { onBack() }
                         }

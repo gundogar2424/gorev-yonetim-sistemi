@@ -56,6 +56,32 @@ object CardCalc {
         nextFromAnchor(card.dueEpochDay, today)
 
     /**
+     * Odenmesi gereken GUNCEL son odeme tarihi. "ödedim" denene kadar ilerlemez;
+     * bu yuzden tarih gecse bile (gecikmis) ayni tarihte kalir ve hatirlatma surer.
+     * "ödedim" dendiginde [Card.lastPaidDueEpochDay] guncellenir ve bir sonraki
+     * donguye gecer.
+     */
+    fun currentDue(card: Card, today: LocalDate = LocalDate.now()): LocalDate {
+        val day = dueDayOfMonth(card)
+        val paidThrough: LocalDate =
+            if (card.lastPaidDueEpochDay > 0L) LocalDate.ofEpochDay(card.lastPaidDueEpochDay)
+            // Hic "ödedim" denmemis: bu dongunun bir oncesini baz al ki gecmis aylar
+            // icin bogmasin; nag bir sonraki son odemeden itibaren baslar.
+            else nextFromAnchor(card.dueEpochDay, today).minusMonths(1)
+        var ym = YearMonth.from(paidThrough)
+        var d = clampToMonth(ym, day)
+        while (!d.isAfter(paidThrough)) {
+            ym = ym.plusMonths(1)
+            d = clampToMonth(ym, day)
+        }
+        return d
+    }
+
+    /** Yeni kart olustururken/aktarirken ilk donguden itibaren takip baslatmak icin. */
+    fun initialLastPaid(dueEpochDay: Long, today: LocalDate = LocalDate.now()): Long =
+        nextFromAnchor(dueEpochDay, today).minusMonths(1).toEpochDay()
+
+    /**
      * Verilen son odeme tarihinin ait oldugu ekstrenin kesim tarihi.
      * (Son odemeden onceki, en yakin kesim gunu.) Boylece kart ekraninda
      * kesim -> son odeme hep ayni dongu ve dogru sirada gosterilir.
@@ -92,7 +118,7 @@ object CardCalc {
     fun bestCardToUse(cards: List<Card>, today: LocalDate = LocalDate.now()): Card? =
         cards.maxByOrNull { floatDays(it, today) }
 
-    /** En acil odeme: son odeme tarihi en yakin olan kart (borc girilmemis olsa da). */
+    /** En acil odeme: guncel son odeme tarihi en yakin (veya en cok gecikmis) kart. */
     fun mostUrgentPayment(cards: List<Card>, today: LocalDate = LocalDate.now()): Card? =
-        cards.minByOrNull { nextDue(it, today) }
+        cards.minByOrNull { currentDue(it, today) }
 }

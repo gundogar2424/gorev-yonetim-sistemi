@@ -244,7 +244,7 @@ fun CardListScreen(
                 }
             }
             urgent?.let {
-                val due = CardCalc.nextDue(it, today)
+                val due = CardCalc.currentDue(it, today)
                 val days = CardCalc.daysUntil(due, today)
                 val amount = if (it.debt > 0) " • ${money(it.debt)}" else ""
                 item {
@@ -267,7 +267,7 @@ fun CardListScreen(
                 )
             }
 
-            items(cards.sortedBy { CardCalc.nextDue(it, today) }, key = { it.id }) { card ->
+            items(cards.sortedBy { CardCalc.currentDue(it, today) }, key = { it.id }) { card ->
                 CreditCardTile(card = card, today = today, onClick = { onEdit(card.id) })
             }
         }
@@ -403,7 +403,7 @@ private fun RecommendationCard(
 
 @Composable
 private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Unit) {
-    val nextDue = CardCalc.nextDue(card, today)
+    val nextDue = CardCalc.currentDue(card, today)
     // Son odemenin ait oldugu ekstrenin kesimi -> hep ayni dongu, dogru sira
     val kesim = CardCalc.statementForDue(card, nextDue)
     val daysToDue = CardCalc.daysUntil(nextDue, today)
@@ -511,10 +511,17 @@ private fun PaidBadge() {
 
 @Composable
 private fun DaysBadge(days: Long) {
+    val overdue = days < 0
     val bg = when {
+        overdue -> Color(0xFFDC2626)
         days <= 2 -> Color(0xFFEF4444)
         days <= 5 -> Color(0xFFF59E0B)
         else -> Color.White.copy(alpha = 0.22f)
+    }
+    val label = when {
+        overdue -> "${-days} gün geçti"
+        days == 0L -> "Bugün"
+        else -> "$days gün"
     }
     Box(
         Modifier
@@ -523,7 +530,7 @@ private fun DaysBadge(days: Long) {
             .padding(horizontal = 12.dp, vertical = 5.dp)
     ) {
         Text(
-            "$days gün",
+            label,
             style = MaterialTheme.typography.labelMedium,
             color = Color.White,
             fontWeight = FontWeight.Bold

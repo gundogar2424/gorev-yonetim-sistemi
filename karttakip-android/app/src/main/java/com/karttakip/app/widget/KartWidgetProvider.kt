@@ -48,7 +48,7 @@ class KartWidgetProvider : AppWidgetProvider() {
             } else {
                 val urgent = CardCalc.mostUrgentPayment(cards, today)
                 if (urgent != null) {
-                    val due = CardCalc.nextDue(urgent, today)
+                    val due = CardCalc.currentDue(urgent, today)
                     val days = CardCalc.daysUntil(due, today)
                     val borc = if (urgent.debt > 0) " • ${money(urgent.debt)}" else ""
                     views.setTextViewText(

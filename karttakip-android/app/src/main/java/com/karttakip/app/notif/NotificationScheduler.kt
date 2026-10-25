@@ -25,6 +25,7 @@ import com.karttakip.app.domain.CardCalc
 import com.karttakip.app.widget.KartWidgetProvider
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -42,10 +43,16 @@ object NotificationScheduler {
     private val NOTIFY_TIME: LocalTime = LocalTime.of(10, 0) // sabah 10:00
     private val dateFmt = DateTimeFormatter.ofPattern("d MMMM EEEE", Locale("tr", "TR"))
 
-    // Alarm turleri (istek kodu = kartId * 10 + tur)
-    private const val TYPE_REMIND = 1  // son odemeden X gun once
-    private const val TYPE_DUE = 2     // son odeme gunu
-    private const val TYPE_STATEMENT = 3 // ekstre kesim gunu
+    // Alarm turleri
+    private const val TYPE_REMIND = 1  // son odemeden X gun once (tek sefer)
+    private const val TYPE_DUE = 2     // son odeme gunu baslangic (tek sefer)
+    private const val TYPE_STATEMENT = 3 // ekstre kesim gunu (tek sefer)
+    private const val TYPE_NAG = 4     // "ödedim" denene kadar 3-4 saatte bir
+
+    // Nag saatleri (gunduz ~3.5 saatte bir). Gece calmaz.
+    private val NAG_SLOTS = listOf(
+        LocalTime.of(9, 0), LocalTime.of(12, 30), LocalTime.of(16, 0), LocalTime.of(19, 30)
+    )
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -83,28 +90,45 @@ object NotificationScheduler {
         val today = LocalDate.now()
 
         for (card in cards) {
-            val due = CardCalc.nextDue(card, today)
+            val due = CardCalc.currentDue(card, today)   // "ödedim" denene kadar ilerlemez
             val statement = CardCalc.nextStatement(card, today)
             val borc = if (card.debt > 0) " Borç: ${formatMoney(card.debt)}." else ""
 
-            // Odeme hatirlatmalari TUM kartlar icin kurulur. ("Borç yok" sadece
-            // borc girilmedigi anlamina gelebilir; yine de hatirlatilmali.)
-            // 1) Son odemeden X gun once
-            val remindDate = due.minusDays(card.remindDaysBefore.toLong())
-            scheduleAt(
-                context, am, reqCode(card.id, TYPE_REMIND), remindDate,
-                "${card.name}: son ödeme yaklaşıyor",
-                "Son ödeme ${dateFmt.format(due)} (${CardCalc.daysUntil(due, today)} gün kaldı).$borc"
-            )
+            if (due.isAfter(today)) {
+                // Henuz son odeme gunu gelmedi:
+                // nag zincirini durdur (odenmis / bir sonraki donguye gecilmis olabilir)
+                cancelAlarm(context, am, reqCode(card.id, TYPE_NAG))
 
-            // 2) Son odeme gunu
-            scheduleAt(
-                context, am, reqCode(card.id, TYPE_DUE), due,
-                "${card.name}: bugün son ödeme günü!",
-                "Bugün ${card.name} kartının son ödeme günü.$borc Gecikme faizi yememek için bugün öde."
-            )
+                // 1) Son odemeden X gun once tek seferlik hatirlatma
+                val remindDate = due.minusDays(card.remindDaysBefore.toLong())
+                scheduleAt(
+                    context, am, reqCode(card.id, TYPE_REMIND), remindDate,
+                    "${card.name}: son ödeme yaklaşıyor",
+                    "Son ödeme ${dateFmt.format(due)} (${CardCalc.daysUntil(due, today)} gün kaldı).$borc"
+                )
+                // 2) Son odeme gunu — nag zincirini baslatan tetikleyici
+                scheduleAt(
+                    context, am, reqCode(card.id, TYPE_DUE), due,
+                    "${card.name}: bugün son ödeme günü!",
+                    "Bugün ${card.name} kartının son ödeme günü.$borc Öde ve uygulamada 'Bu ayki ödemeyi yaptım' de."
+                )
+            } else {
+                // Son odeme gunu geldi/gecti ve "ödedim" denmedi:
+                // 3-4 saatte bir (gunduz) tekrar hatirlat.
+                cancelAlarm(context, am, reqCode(card.id, TYPE_REMIND))
+                cancelAlarm(context, am, reqCode(card.id, TYPE_DUE))
+                val gecikti = CardCalc.daysUntil(due, today) < 0
+                val baslik = if (gecikti) "${card.name}: ödeme GECİKTİ!" else "${card.name}: bugün son ödeme günü!"
+                val metin = "Son ödeme ${dateFmt.format(due)}.$borc Öde, sonra 'Bu ayki ödemeyi yaptım' de ki hatırlatma dursun."
+                val nagAt = nagNextSlot(LocalDateTime.now())
+                scheduleAtMillis(
+                    context, am, reqCode(card.id, TYPE_NAG),
+                    nagAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    baslik, metin
+                )
+            }
 
-            // 3) Ekstre kesim gunu
+            // Ekstre kesim gunu (bilgi)
             scheduleAt(
                 context, am, reqCode(card.id, TYPE_STATEMENT), statement,
                 "${card.name}: ekstre kesildi",
@@ -114,6 +138,45 @@ object NotificationScheduler {
 
         // Widget'i da tazele (kart eklendi/silindi/gun degisti).
         KartWidgetProvider.updateAll(context)
+    }
+
+    /** Gunduz saatlerinde, [now]'dan sonraki ilk nag anini dondurur. */
+    private fun nagNextSlot(now: LocalDateTime): LocalDateTime {
+        val day = now.toLocalDate()
+        for (t in NAG_SLOTS) {
+            val cand = day.atTime(t)
+            if (cand.isAfter(now)) return cand
+        }
+        return day.plusDays(1).atTime(NAG_SLOTS.first())
+    }
+
+    private fun scheduleAtMillis(
+        context: Context,
+        am: AlarmManager,
+        requestCode: Int,
+        triggerAt: Long,
+        title: String,
+        text: String
+    ) {
+        if (triggerAt <= System.currentTimeMillis()) return
+        val intent = Intent(context, ReminderReceiver::class.java).apply {
+            putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_TEXT, text)
+            putExtra(EXTRA_ID, requestCode)
+        }
+        val pi = PendingIntent.getBroadcast(
+            context, requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+            } else {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+            }
+        } catch (e: SecurityException) {
+            am.set(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        }
     }
 
     private fun scheduleAt(

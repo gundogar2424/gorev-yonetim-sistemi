@@ -23,5 +23,8 @@ data class Card(
     val limit: Double = 0.0,
     val debt: Double = 0.0,
     val colorArgb: Long = 0xFF3B82F6,
-    val remindDaysBefore: Int = 3
+    val remindDaysBefore: Int = 3,
+    // Kullanicinin "ödedim" dedigi son son-odeme tarihi (epoch-day). Bu sayede
+    // o dongu icin tekrar eden hatirlatma durur ve bir sonraki donguye gecilir.
+    val lastPaidDueEpochDay: Long = 0
 )
