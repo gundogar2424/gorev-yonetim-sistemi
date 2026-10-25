@@ -21,7 +21,11 @@ data class Card(
     val statementEpochDay: Long,
     val dueEpochDay: Long,
     val limit: Double = 0.0,
+    // Toplam borc = limit - kullanilabilir (taksitliler dahil tum kullanilan).
     val debt: Double = 0.0,
+    // Ekstre borcu = bu ay ODENECEK tutar. Limitle BAGIMSIZDIR (kalani taksitte
+    // olabilir). Hatirlatmalar ve "ödenecek" bu tutari gosterir.
+    val statementDebt: Double = 0.0,
     val colorArgb: Long = 0xFF3B82F6,
     val remindDaysBefore: Int = 3,
     // Kullanicinin "ödedim" dedigi son son-odeme tarihi (epoch-day). Bu sayede

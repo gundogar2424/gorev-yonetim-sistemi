@@ -91,6 +91,7 @@ fun CardListScreen(
     val totalDebt = cards.sumOf { it.debt }
     val totalLimit = cards.sumOf { it.limit }
     val totalAvailable = cards.sumOf { (it.limit - it.debt).coerceAtLeast(0.0) }
+    val totalEkstre = cards.sumOf { it.statementDebt }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -223,8 +224,8 @@ fun CardListScreen(
         ) {
             item {
                 SummaryHeader(
+                    totalEkstre = totalEkstre,
                     totalDebt = totalDebt,
-                    totalLimit = totalLimit,
                     totalAvailable = totalAvailable,
                     cardCount = cards.size
                 )
@@ -246,7 +247,7 @@ fun CardListScreen(
             urgent?.let {
                 val due = CardCalc.currentDue(it, today)
                 val days = CardCalc.daysUntil(due, today)
-                val amount = if (it.debt > 0) " • ${money(it.debt)}" else ""
+                val amount = if (it.statementDebt > 0) " • ${money(it.statementDebt)}" else ""
                 item {
                     RecommendationCard(
                         icon = Icons.Default.NotificationsActive,
@@ -276,20 +277,20 @@ fun CardListScreen(
 
 @Composable
 private fun SummaryHeader(
+    totalEkstre: Double,
     totalDebt: Double,
-    totalLimit: Double,
     totalAvailable: Double,
     cardCount: Int
 ) {
     Column(Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp)) {
         Text(
-            "Toplam borç",
+            "Bu ay ödenecek (ekstre)",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(2.dp))
         Text(
-            money(totalDebt),
+            money(totalEkstre),
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -299,9 +300,9 @@ private fun SummaryHeader(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             StatChip(
-                label = "Toplam limit",
-                value = money(totalLimit),
-                accent = MaterialTheme.colorScheme.primary,
+                label = "Toplam borç",
+                value = money(totalDebt),
+                accent = Color(0xFFF59E0B),
                 modifier = Modifier.weight(1f)
             )
             StatChip(
@@ -450,7 +451,7 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                 )
                 if (card.limit > 0) {
                     Text(
-                        "Kullanılabilir ${money(available)}",
+                        "Kullanılabilir ${money(available)} · Borç ${money(card.debt)}",
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = 0.8f)
                     )
@@ -478,12 +479,13 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     DaysBadge(daysToDue)
-                    if (card.debt > 0) {
+                    if (card.statementDebt > 0) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            money(card.debt),
+                            "Öde ${money(card.statementDebt)}",
                             style = MaterialTheme.typography.labelLarge,
-                            color = Color.White.copy(alpha = 0.9f)
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }

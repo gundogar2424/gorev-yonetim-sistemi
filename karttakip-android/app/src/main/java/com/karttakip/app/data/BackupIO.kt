@@ -49,10 +49,16 @@ object BackupIO {
         val dueEpochDay = anchorEpochDay(o, "dueEpochDay", "dueDate", "dueDay", today)
 
         val limit = o.optDouble("limit", 0.0)
+        // Toplam borc = limit - kullanilabilir (ya da acikca verilmisse "debt").
         val debt = when {
             o.has("debt") -> o.optDouble("debt", 0.0)
-            o.optDouble("stmt", 0.0) > 0.0 -> o.optDouble("stmt", 0.0)
             o.has("avail") -> (limit - o.optDouble("avail", limit)).coerceAtLeast(0.0)
+            else -> 0.0
+        }
+        // Ekstre borcu (bu ay odenecek): yeni anahtar veya eski "stmt".
+        val statementDebt = when {
+            o.has("statementDebt") -> o.optDouble("statementDebt", 0.0)
+            o.has("stmt") -> o.optDouble("stmt", 0.0)
             else -> 0.0
         }
 
@@ -67,6 +73,7 @@ object BackupIO {
             dueEpochDay = dueEpochDay,
             limit = limit.coerceAtLeast(0.0),
             debt = debt,
+            statementDebt = statementDebt.coerceAtLeast(0.0),
             colorArgb = color,
             remindDaysBefore = o.optInt("remindDaysBefore", 3).coerceIn(0, 30),
             // Takibi bu donguden baslat (gecmis aylar icin bogmasin).
@@ -127,6 +134,7 @@ object BackupIO {
                     .put("dueEpochDay", c.dueEpochDay)
                     .put("limit", c.limit)
                     .put("debt", c.debt)
+                    .put("statementDebt", c.statementDebt)
                     .put("colorArgb", c.colorArgb)
                     .put("remindDaysBefore", c.remindDaysBefore)
                     .put("lastPaidDueEpochDay", c.lastPaidDueEpochDay)

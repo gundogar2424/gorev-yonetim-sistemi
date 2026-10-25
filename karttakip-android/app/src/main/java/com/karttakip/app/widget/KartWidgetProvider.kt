@@ -50,7 +50,7 @@ class KartWidgetProvider : AppWidgetProvider() {
                 if (urgent != null) {
                     val due = CardCalc.currentDue(urgent, today)
                     val days = CardCalc.daysUntil(due, today)
-                    val borc = if (urgent.debt > 0) " • ${money(urgent.debt)}" else ""
+                    val borc = if (urgent.statementDebt > 0) " • ${money(urgent.statementDebt)}" else ""
                     views.setTextViewText(
                         R.id.tvUrgent,
                         "${urgent.name}: $days gün (${dateFmt.format(due)})$borc"

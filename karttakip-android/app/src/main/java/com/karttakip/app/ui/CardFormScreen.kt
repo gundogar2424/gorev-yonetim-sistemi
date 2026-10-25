@@ -91,7 +91,8 @@ fun CardFormScreen(
     var dueDate by remember { mutableStateOf<LocalDate?>(null) }
     var limit by remember { mutableStateOf("") }
     var available by remember { mutableStateOf("") }   // kullanilabilir limit
-    var debt by remember { mutableStateOf("") }        // borc (limit - kullanilabilir)
+    var debt by remember { mutableStateOf("") }        // TOPLAM borc (limit - kullanilabilir)
+    var ekstre by remember { mutableStateOf("") }      // ekstre borcu (bu ay odenecek)
     var remind by remember { mutableStateOf("3") }
     var color by remember { mutableStateOf(PRESET_COLORS.first()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -112,6 +113,7 @@ fun CardFormScreen(
                 limit = if (c.limit > 0) c.limit.toLong().toString() else ""
                 debt = if (c.debt > 0) c.debt.toLong().toString() else ""
                 available = if (c.limit - c.debt > 0) (c.limit - c.debt).toLong().toString() else ""
+                ekstre = if (c.statementDebt > 0) c.statementDebt.toLong().toString() else ""
                 remind = c.remindDaysBefore.toString()
                 color = c.colorArgb
             }
@@ -246,15 +248,23 @@ fun CardFormScreen(
                         val l = limit.toDoubleOrNull() ?: 0.0
                         if (l > 0) available = (l - (debt.toDoubleOrNull() ?: 0.0)).coerceAtLeast(0.0).toLong().toString()
                     },
-                    label = { Text("Borç (₺)") },
+                    label = { Text("Toplam borç (₺)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true, modifier = Modifier.weight(1f)
                 )
             }
             Text(
-                "İkisinden birini yaz; diğeri limitten otomatik dolar.",
+                "Kullanılabilir ↔ Toplam borç: birini yaz, diğeri limitten dolar (taksitler dahil).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            OutlinedTextField(
+                value = ekstre, onValueChange = { ekstre = it.filter(Char::isDigit) },
+                label = { Text("Ekstre borcu — bu ay ödenecek (₺)") },
+                supportingText = { Text("Limitten bağımsız; hatırlatmalarda bu tutar gösterilir.") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true, modifier = Modifier.fillMaxWidth()
             )
 
             Text(
@@ -307,6 +317,7 @@ fun CardFormScreen(
                                 dueEpochDay = dDate.toEpochDay(),
                                 limit = limit.toDoubleOrNull() ?: 0.0,
                                 debt = debt.toDoubleOrNull() ?: 0.0,
+                                statementDebt = ekstre.toDoubleOrNull() ?: 0.0,
                                 colorArgb = color,
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
                                 // Yeni kartta takibi bu dongaden baslat; duzenlemede koru.
@@ -332,6 +343,8 @@ fun CardFormScreen(
                         val sDate = statementDate
                         val dDate = dueDate
                         if (name.isNotBlank() && sDate != null && dDate != null) {
+                            val total = debt.toDoubleOrNull() ?: 0.0
+                            val ekstreNow = ekstre.toDoubleOrNull() ?: 0.0
                             val base = Card(
                                 id = existing?.id ?: 0L,
                                 name = name.trim(),
@@ -339,7 +352,9 @@ fun CardFormScreen(
                                 statementEpochDay = sDate.toEpochDay(),
                                 dueEpochDay = dDate.toEpochDay(),
                                 limit = limit.toDoubleOrNull() ?: 0.0,
-                                debt = 0.0,
+                                // Ekstre odendi: toplam borc o kadar azalir, ekstre sifirlanir.
+                                debt = (total - ekstreNow).coerceAtLeast(0.0),
+                                statementDebt = 0.0,
                                 colorArgb = color,
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
                                 lastPaidDueEpochDay = existing?.lastPaidDueEpochDay ?: 0L

@@ -100,7 +100,7 @@ object NotificationScheduler {
         for (card in cards) {
             val due = CardCalc.currentDue(card, today)   // "ödedim" denene kadar ilerlemez
             val statement = CardCalc.nextStatement(card, today)
-            val borc = if (card.debt > 0) " Borç: ${formatMoney(card.debt)}." else ""
+            val borc = if (card.statementDebt > 0) " Ödenecek: ${formatMoney(card.statementDebt)}." else ""
 
             if (due.isAfter(today)) {
                 // Henuz son odeme gunu gelmedi:
