@@ -49,9 +49,10 @@ object NotificationScheduler {
     private const val TYPE_STATEMENT = 3 // ekstre kesim gunu (tek sefer)
     private const val TYPE_NAG = 4     // "ödedim" denene kadar 3-4 saatte bir
 
-    // Nag saatleri (gunduz ~3.5 saatte bir). Gece calmaz.
+    // Nag saatleri: son gun ~3-4 saatte bir, gece 23:00'e kadar. 00:00 sonrasi sessiz.
     private val NAG_SLOTS = listOf(
-        LocalTime.of(9, 0), LocalTime.of(12, 30), LocalTime.of(16, 0), LocalTime.of(19, 30)
+        LocalTime.of(9, 0), LocalTime.of(12, 30), LocalTime.of(16, 0),
+        LocalTime.of(19, 30), LocalTime.of(23, 0)
     )
 
     // Son 3 gun: gitgide artan hatirlatma (kac gun kala -> o gunku saatler).
