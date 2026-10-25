@@ -92,10 +92,7 @@ object CardCalc {
     fun bestCardToUse(cards: List<Card>, today: LocalDate = LocalDate.now()): Card? =
         cards.maxByOrNull { floatDays(it, today) }
 
-    /** En acil odeme: borcu olan kartlar arasinda son odeme tarihi en yakin olan. */
-    fun mostUrgentPayment(cards: List<Card>, today: LocalDate = LocalDate.now()): Card? {
-        val withDebt = cards.filter { it.debt > 0.0 }
-        val pool = if (withDebt.isNotEmpty()) withDebt else cards
-        return pool.minByOrNull { nextDue(it, today) }
-    }
+    /** En acil odeme: son odeme tarihi en yakin olan kart (borc girilmemis olsa da). */
+    fun mostUrgentPayment(cards: List<Card>, today: LocalDate = LocalDate.now()): Card? =
+        cards.minByOrNull { nextDue(it, today) }
 }

@@ -244,18 +244,17 @@ fun CardListScreen(
                 }
             }
             urgent?.let {
-                if (it.debt > 0) {
-                    val due = CardCalc.nextDue(it, today)
-                    val days = CardCalc.daysUntil(due, today)
-                    item {
-                        RecommendationCard(
-                            icon = Icons.Default.NotificationsActive,
-                            accent = if (days <= 3) Color(0xFFF87171) else Color(0xFFFBBF24),
-                            eyebrow = "EN YAKIN ÖDEME",
-                            title = "${it.name} • ${money(it.debt)}",
-                            body = "Son ödeme ${dateFmt.format(due)} — $days gün kaldı."
-                        )
-                    }
+                val due = CardCalc.nextDue(it, today)
+                val days = CardCalc.daysUntil(due, today)
+                val amount = if (it.debt > 0) " • ${money(it.debt)}" else ""
+                item {
+                    RecommendationCard(
+                        icon = Icons.Default.NotificationsActive,
+                        accent = if (days <= 3) Color(0xFFF87171) else Color(0xFFFBBF24),
+                        eyebrow = "EN YAKIN ÖDEME",
+                        title = "${it.name}$amount",
+                        body = "Son ödeme ${dateFmt.format(due)} — $days gün kaldı."
+                    )
                 }
             }
 
@@ -478,18 +477,14 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
+                    DaysBadge(daysToDue)
                     if (card.debt > 0) {
-                        // Odenecek borc var -> gun rozeti + tutar
-                        DaysBadge(daysToDue)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             money(card.debt),
                             style = MaterialTheme.typography.labelLarge,
                             color = Color.White.copy(alpha = 0.9f)
                         )
-                    } else {
-                        // Borc yok -> acil gostermez
-                        PaidBadge()
                     }
                 }
             }
