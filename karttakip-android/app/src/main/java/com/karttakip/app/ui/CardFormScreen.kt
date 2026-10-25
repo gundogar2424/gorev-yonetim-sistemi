@@ -257,11 +257,11 @@ fun CardFormScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            OutlinedTextField(
-                value = remind, onValueChange = { remind = it.filter(Char::isDigit).take(2) },
-                label = { Text("Son ödemeden kaç gün önce hatırlat") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true, modifier = Modifier.fillMaxWidth()
+            Text(
+                "Hatırlatma: son 3 güne doğru gitgide artar; son gün 3-4 saatte bir — " +
+                    "sen 'Bu ayki ödemeyi yaptım' diyene kadar sürer.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Text("Renk", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))

@@ -54,6 +54,13 @@ object NotificationScheduler {
         LocalTime.of(9, 0), LocalTime.of(12, 30), LocalTime.of(16, 0), LocalTime.of(19, 30)
     )
 
+    // Son 3 gun: gitgide artan hatirlatma (kac gun kala -> o gunku saatler).
+    private val RAMP = listOf(
+        3 to listOf(LocalTime.of(10, 0)),                                   // 3 gun kala: 1x
+        2 to listOf(LocalTime.of(10, 0), LocalTime.of(18, 0)),              // 2 gun kala: 2x
+        1 to listOf(LocalTime.of(9, 0), LocalTime.of(14, 0), LocalTime.of(19, 0)) // 1 gun kala: 3x
+    )
+
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService<NotificationManager>() ?: return
@@ -99,14 +106,20 @@ object NotificationScheduler {
                 // nag zincirini durdur (odenmis / bir sonraki donguye gecilmis olabilir)
                 cancelAlarm(context, am, reqCode(card.id, TYPE_NAG))
 
-                // 1) Son odemeden X gun once tek seferlik hatirlatma
-                val remindDate = due.minusDays(card.remindDaysBefore.toLong())
-                scheduleAt(
-                    context, am, reqCode(card.id, TYPE_REMIND), remindDate,
-                    "${card.name}: son ödeme yaklaşıyor",
-                    "Son ödeme ${dateFmt.format(due)} (${CardCalc.daysUntil(due, today)} gün kaldı).$borc"
-                )
-                // 2) Son odeme gunu — nag zincirini baslatan tetikleyici
+                // Son 3 gun: gitgide artan hatirlatma (gecmis olanlar atlanir)
+                for ((daysBefore, times) in RAMP) {
+                    val date = due.minusDays(daysBefore.toLong())
+                    times.forEachIndexed { idx, t ->
+                        scheduleAtMillis(
+                            context, am, reqCode(card.id, 20 + daysBefore * 5 + idx),
+                            date.atTime(t).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                            "${card.name}: son ödemeye $daysBefore gün",
+                            "Son ödeme ${dateFmt.format(due)} — $daysBefore gün kaldı.$borc"
+                        )
+                    }
+                }
+
+                // Son odeme gunu — en sik hatirlatma (nag) zincirini baslatir
                 scheduleAt(
                     context, am, reqCode(card.id, TYPE_DUE), due,
                     "${card.name}: bugün son ödeme günü!",
@@ -266,7 +279,7 @@ object NotificationScheduler {
         NotificationManagerCompat.from(context).notify(id, notif)
     }
 
-    private fun reqCode(cardId: Long, type: Int): Int = (cardId.toInt() * 10 + type)
+    private fun reqCode(cardId: Long, type: Int): Int = (cardId.toInt() * 100 + type)
 
     private fun formatMoney(v: Double): String =
         "%,.2f ₺".format(Locale("tr", "TR"), v)
