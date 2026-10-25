@@ -56,6 +56,22 @@ object CardCalc {
         nextFromAnchor(card.dueEpochDay, today)
 
     /**
+     * Verilen son odeme tarihinin ait oldugu ekstrenin kesim tarihi.
+     * (Son odemeden onceki, en yakin kesim gunu.) Boylece kart ekraninda
+     * kesim -> son odeme hep ayni dongu ve dogru sirada gosterilir.
+     */
+    fun statementForDue(card: Card, dueDate: LocalDate): LocalDate {
+        val k = statementDayOfMonth(card)
+        var ym = YearMonth.from(dueDate)
+        var cut = clampToMonth(ym, k)
+        if (cut.isAfter(dueDate)) {
+            ym = ym.minusMonths(1)
+            cut = clampToMonth(ym, k)
+        }
+        return cut
+    }
+
+    /**
      * Bugun bu kartla yapilan harcamanin son odeme tarihi: harcama bir sonraki
      * kesimle kapanan ekstreye girer; o ekstrenin son odemesi kesimden SONRAKI
      * ilk son-odeme-gunudur.

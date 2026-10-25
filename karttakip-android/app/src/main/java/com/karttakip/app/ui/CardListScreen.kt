@@ -404,8 +404,9 @@ private fun RecommendationCard(
 
 @Composable
 private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Unit) {
-    val nextStatement = CardCalc.nextStatement(card, today)
     val nextDue = CardCalc.nextDue(card, today)
+    // Son odemenin ait oldugu ekstrenin kesimi -> hep ayni dongu, dogru sira
+    val kesim = CardCalc.statementForDue(card, nextDue)
     val daysToDue = CardCalc.daysUntil(nextDue, today)
     val available = (card.limit - card.debt).coerceAtLeast(0.0)
     val base = Color(card.colorArgb)
@@ -464,27 +465,17 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    val dueLine: @Composable () -> Unit = {
-                        Text(
-                            "Son ödeme ${dateFmt.format(nextDue)}",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    val stmtLine: @Composable () -> Unit = {
-                        Text(
-                            "Kesim ${dateFmt.format(nextStatement)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    }
-                    // Zaman sirasi: hangisi once geliyorsa ustte gozuksun
-                    if (!nextDue.isAfter(nextStatement)) {
-                        dueLine(); stmtLine()
-                    } else {
-                        stmtLine(); dueLine()
-                    }
+                    Text(
+                        "Kesim ${dateFmt.format(kesim)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        "Son ödeme ${dateFmt.format(nextDue)}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     if (card.debt > 0) {
@@ -511,13 +502,13 @@ private fun PaidBadge() {
     Box(
         Modifier
             .clip(RoundedCornerShape(50))
-            .background(Color(0xFF22C55E).copy(alpha = 0.30f))
+            .background(Color(0xFF0B3B2E))
             .padding(horizontal = 12.dp, vertical = 5.dp)
     ) {
         Text(
             "Borç yok",
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
+            color = Color(0xFF4ADE80),
             fontWeight = FontWeight.Bold
         )
     }
