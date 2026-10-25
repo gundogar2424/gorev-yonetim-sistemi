@@ -106,6 +106,8 @@ object NotificationScheduler {
                 // Henuz son odeme gunu gelmedi:
                 // nag zincirini durdur (odenmis / bir sonraki donguye gecilmis olabilir)
                 cancelAlarm(context, am, reqCode(card.id, TYPE_NAG))
+                // O an ekranda calan bir nag bildirimi varsa onu da kapat.
+                NotificationManagerCompat.from(context).cancel(reqCode(card.id, TYPE_NAG))
 
                 // Son 3 gun: gitgide artan hatirlatma (gecmis olanlar atlanir)
                 for ((daysBefore, times) in RAMP) {
