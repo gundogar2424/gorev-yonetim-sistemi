@@ -87,20 +87,28 @@ object NotificationScheduler {
             val statement = CardCalc.nextStatement(card, today)
             val borc = if (card.debt > 0) " Borç: ${formatMoney(card.debt)}." else ""
 
-            // 1) Son odemeden X gun once
-            val remindDate = due.minusDays(card.remindDaysBefore.toLong())
-            scheduleAt(
-                context, am, reqCode(card.id, TYPE_REMIND), remindDate,
-                "${card.name}: son ödeme yaklaşıyor",
-                "Son ödeme ${dateFmt.format(due)} (${CardCalc.daysUntil(due, today)} gün kaldı).$borc"
-            )
+            // Odeme hatirlatmalari SADECE borcu olan kartlar icin (borc yoksa odenecek
+            // bir sey yok; ekrandaki "Borç yok" ile tutarli olsun).
+            if (card.debt > 0) {
+                // 1) Son odemeden X gun once
+                val remindDate = due.minusDays(card.remindDaysBefore.toLong())
+                scheduleAt(
+                    context, am, reqCode(card.id, TYPE_REMIND), remindDate,
+                    "${card.name}: son ödeme yaklaşıyor",
+                    "Son ödeme ${dateFmt.format(due)} (${CardCalc.daysUntil(due, today)} gün kaldı).$borc"
+                )
 
-            // 2) Son odeme gunu
-            scheduleAt(
-                context, am, reqCode(card.id, TYPE_DUE), due,
-                "${card.name}: bugün son ödeme günü!",
-                "Bugün ${card.name} kartının son ödeme günü.$borc Gecikme faizi yememek için bugün öde."
-            )
+                // 2) Son odeme gunu
+                scheduleAt(
+                    context, am, reqCode(card.id, TYPE_DUE), due,
+                    "${card.name}: bugün son ödeme günü!",
+                    "Bugün ${card.name} kartının son ödeme günü.$borc Gecikme faizi yememek için bugün öde."
+                )
+            } else {
+                // Borc yok -> daha once kurulmus odeme alarmlari varsa iptal et.
+                cancelAlarm(context, am, reqCode(card.id, TYPE_REMIND))
+                cancelAlarm(context, am, reqCode(card.id, TYPE_DUE))
+            }
 
             // 3) Ekstre kesim gunu
             scheduleAt(
@@ -144,6 +152,19 @@ object NotificationScheduler {
             }
         } catch (e: SecurityException) {
             am.set(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        }
+    }
+
+    /** Daha once kurulmus bir alarmi iptal eder (varsa). */
+    private fun cancelAlarm(context: Context, am: AlarmManager, requestCode: Int) {
+        val intent = Intent(context, ReminderReceiver::class.java)
+        val pi = PendingIntent.getBroadcast(
+            context, requestCode, intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pi != null) {
+            am.cancel(pi)
+            pi.cancel()
         }
     }
 

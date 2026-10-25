@@ -144,7 +144,7 @@ fun CardListScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Kart Takip", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
+                title = { Text("Ayas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menü")
@@ -178,13 +178,13 @@ fun CardListScreen(
                                 if (!hasPerm) {
                                     Toast.makeText(
                                         context,
-                                        "Önce bildirim iznini aç: Ayarlar → Uygulamalar → Kart Takip → Bildirimler",
+                                        "Önce bildirim iznini aç: Ayarlar → Uygulamalar → Ayas → Bildirimler",
                                         Toast.LENGTH_LONG
                                     ).show()
                                 } else {
                                     NotificationScheduler.showNotification(
                                         context, 999999,
-                                        "Kart Takip — test 🔔",
+                                        "Ayas — test 🔔",
                                         "Bildirimler çalışıyor! Gerçek hatırlatmalar kesim ve son ödeme günlerinde böyle gelir."
                                     )
                                     Toast.makeText(context, "Test bildirimi gönderildi", Toast.LENGTH_SHORT).show()

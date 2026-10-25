@@ -63,9 +63,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: karttakip-latest
-          name: Kart Takip APK
+          name: Ayas APK
           body: |
-            En güncel Kart Takip (native Android) uygulaması.
+            En güncel Ayas (kredi kartı takip) uygulaması.
             İndir, telefonda aç, "bilinmeyen kaynaklara izin ver" diyip kur.
 
             Chrome APK indirmede %100'de takılıyorsa kart-takip-apk.zip'i indir,
