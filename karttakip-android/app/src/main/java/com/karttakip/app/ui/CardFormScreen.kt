@@ -322,7 +322,9 @@ fun CardFormScreen(
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
                                 // Yeni kartta takibi bu dongaden baslat; duzenlemede koru.
                                 lastPaidDueEpochDay = existing?.lastPaidDueEpochDay?.takeIf { it > 0L }
-                                    ?: CardCalc.initialLastPaid(dDate.toEpochDay())
+                                    ?: CardCalc.initialLastPaid(dDate.toEpochDay()),
+                                // Kaydetmek = ekstre girildi/onaylandi -> yanip sonme dursun.
+                                ekstreForStatementEpochDay = LocalDate.now().toEpochDay()
                             )
                             vm.save(card) { onBack() }
                         }
@@ -357,7 +359,8 @@ fun CardFormScreen(
                                 statementDebt = 0.0,
                                 colorArgb = color,
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
-                                lastPaidDueEpochDay = existing?.lastPaidDueEpochDay ?: 0L
+                                lastPaidDueEpochDay = existing?.lastPaidDueEpochDay ?: 0L,
+                                ekstreForStatementEpochDay = LocalDate.now().toEpochDay()
                             )
                             // Simdiki donguyu "ödendi" isaretle
                             val paid = base.copy(

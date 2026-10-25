@@ -30,5 +30,8 @@ data class Card(
     val remindDaysBefore: Int = 3,
     // Kullanicinin "ödedim" dedigi son son-odeme tarihi (epoch-day). Bu sayede
     // o dongu icin tekrar eden hatirlatma durur ve bir sonraki donguye gecilir.
-    val lastPaidDueEpochDay: Long = 0
+    val lastPaidDueEpochDay: Long = 0,
+    // Ekstre borcunun en son girildigi/onaylandigi gun (epoch-day). Bundan SONRA
+    // yeni bir ekstre kesilirse kart "ekstre borcunu gir" diye yanip soner.
+    val ekstreForStatementEpochDay: Long = 0
 )

@@ -114,6 +114,27 @@ object CardCalc {
     fun daysUntil(date: LocalDate, today: LocalDate = LocalDate.now()): Long =
         ChronoUnit.DAYS.between(today, date)
 
+    /** Bugune kadar (dahil) en son kesilen ekstre (kesim) tarihi. */
+    fun lastStatementCut(card: Card, today: LocalDate = LocalDate.now()): LocalDate {
+        val k = statementDayOfMonth(card)
+        var ym = YearMonth.from(today)
+        var cut = clampToMonth(ym, k)
+        if (cut.isAfter(today)) {
+            ym = ym.minusMonths(1)
+            cut = clampToMonth(ym, k)
+        }
+        return cut
+    }
+
+    /**
+     * Kart "ekstre borcunu gir" diye yanip sonmeli mi?
+     * Ekstre en son girildikten SONRA yeni bir ekstre kesildiyse true.
+     * (ekstreForStatementEpochDay 0 ise takip baslamamistir -> yanip sonmez.)
+     */
+    fun needsStatementEntry(card: Card, today: LocalDate = LocalDate.now()): Boolean =
+        card.ekstreForStatementEpochDay > 0L &&
+            lastStatementCut(card, today).toEpochDay() > card.ekstreForStatementEpochDay
+
     /** En uzun faizsiz sure saglayan kart (bugun harcama icin en mantikli). */
     fun bestCardToUse(cards: List<Card>, today: LocalDate = LocalDate.now()): Card? =
         cards.maxByOrNull { floatDays(it, today) }

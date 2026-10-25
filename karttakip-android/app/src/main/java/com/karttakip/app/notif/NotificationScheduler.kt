@@ -144,11 +144,11 @@ object NotificationScheduler {
                 )
             }
 
-            // Ekstre kesim gunu (bilgi)
+            // Ekstre kesim gunu (bilgi + ekstre borcunu gir)
             scheduleAt(
                 context, am, reqCode(card.id, TYPE_STATEMENT), statement,
-                "${card.name}: ekstre kesildi",
-                "${card.name} ekstresi bugün kesildi. Son ödeme: ${dateFmt.format(CardCalc.nextOccurrenceStrictAfter(CardCalc.dueDayOfMonth(card), statement))}."
+                "${card.name}: ekstre kesildi — borcunu gir",
+                "${card.name} ekstresi bugün kesildi. Uygulamada bu ayki ekstre borcunu gir. Son ödeme: ${dateFmt.format(CardCalc.nextOccurrenceStrictAfter(CardCalc.dueDayOfMonth(card), statement))}."
             )
         }
 

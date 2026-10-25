@@ -6,6 +6,11 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.core.content.ContextCompat
 import com.karttakip.app.notif.NotificationScheduler
 import androidx.compose.foundation.background
@@ -410,6 +415,15 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
     val daysToDue = CardCalc.daysUntil(nextDue, today)
     val available = (card.limit - card.debt).coerceAtLeast(0.0)
     val base = Color(card.colorArgb)
+    val needsEntry = CardCalc.needsStatementEntry(card, today)
+
+    // Ekstre girilmesi gerekiyorsa kart mavi yanip soner.
+    val blink by rememberInfiniteTransition(label = "blink").animateFloat(
+        initialValue = 0.15f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
+        label = "blinkAlpha"
+    )
 
     Box(
         Modifier
@@ -417,6 +431,11 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
             .height(172.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.linearGradient(listOf(base, base.darken(0.55f))))
+            .then(
+                if (needsEntry) Modifier.border(
+                    3.dp, Color(0xFF3B82F6).copy(alpha = blink), RoundedCornerShape(22.dp)
+                ) else Modifier
+            )
             .clickable(onClick = onClick)
             .padding(18.dp)
     ) {
@@ -449,7 +468,14 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (card.limit > 0) {
+                if (needsEntry) {
+                    Text(
+                        "📄 Ekstre kesildi — borcunu gir",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF93C5FD),
+                        fontWeight = FontWeight.Bold
+                    )
+                } else if (card.limit > 0) {
                     Text(
                         "Kullanılabilir ${money(available)} · Borç ${money(card.debt)}",
                         style = MaterialTheme.typography.labelMedium,

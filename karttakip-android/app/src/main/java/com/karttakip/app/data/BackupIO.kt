@@ -79,7 +79,10 @@ object BackupIO {
             // Takibi bu donguden baslat (gecmis aylar icin bogmasin).
             lastPaidDueEpochDay = if (o.has("lastPaidDueEpochDay"))
                 o.optLong("lastPaidDueEpochDay", 0L)
-            else CardCalc.initialLastPaid(dueEpochDay, today)
+            else CardCalc.initialLastPaid(dueEpochDay, today),
+            ekstreForStatementEpochDay = if (o.has("ekstreForStatementEpochDay"))
+                o.optLong("ekstreForStatementEpochDay", 0L)
+            else today.toEpochDay()
         )
     }
 
@@ -138,6 +141,7 @@ object BackupIO {
                     .put("colorArgb", c.colorArgb)
                     .put("remindDaysBefore", c.remindDaysBefore)
                     .put("lastPaidDueEpochDay", c.lastPaidDueEpochDay)
+                    .put("ekstreForStatementEpochDay", c.ekstreForStatementEpochDay)
             )
         }
         return JSONObject().put("app", "kart-takip").put("cards", arr).toString(2)
