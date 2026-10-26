@@ -10,7 +10,7 @@ import '../index.css'
 initTheme()
 installAudioUnlock()
 
-// Ses Egzersizi: CRM, Diyet Kocu, Termomiks Defteri, Zihin Jimnastigi ve EFT
+// Ses Egzersizi: CRM, Diyet Kocu, Zihin Jimnastigi ve EFT
 // Dokunma'dan TAMAMEN AYRI, kendi giris noktasi olan altinci bagimsiz program.
 const rootEl = document.getElementById('root')!
 try {

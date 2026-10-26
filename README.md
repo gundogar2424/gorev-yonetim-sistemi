@@ -52,33 +52,9 @@ Kullanıcı sonra **"💪 Vazgeçtim"** veya **"😋 Yine de yedim"** kararını
 
 > Diyet Koçu kendi yerel veritabanını (`diet-coach`) kullanır; CRM verilerine dokunmaz.
 
-## 🍲 Termomiks Defteri (ayrı program)
-
-Bu depodaki **üçüncü bağımsız program**: **Termomiks Defteri**. Kendi giriş sayfası (`termomiks.html`) ve kendi veritabanı vardır; CRM'in ve Diyet Koçu'nun hiçbir dosyasını paylaşmaz/değiştirmez.
-
-- **Termomiks Defteri** → `termomiks.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/termomiks.html`)
-
-**Ne yapar?** İnternette bulduğun **normal (ocak/tencere usulü) bir tarifi** Thermomix TM7'ye uyarlanmış haliyle deftere alırsın: hangi adım kaç saniye, kaç devirde, kaç derecede, ne zaman ters yön, hangi özel mod (sote, hamur, Varoma, sous-vide…). Sonra mutfakta **adım adım pişirirsin**.
-
-Uygulamanın içinde yapay zeka **yok**: API anahtarı, internet ya da abonelik gerekmez. Uyarlama başka bir yerde yapılır, sonuç bir **tarif kodu** (JSON) olarak verilir; sen kodu uygulamaya yapıştırırsın.
-
-| Özellik | Açıklama |
-|---|---|
-| 📥 **Tarif kodu yapıştır** | Hazır TM7 kodunu yapıştır, tarif fotoğrafı ve uyarılarıyla deftere insin. Bir kodun içinde birden fazla tarif olabilir |
-| 📖 **Tarif defteri** | Ara, kategoriye göre süz, favorile; her tarifin küçük fotoğrafı listede görünür |
-| 📷 **Fotoğraf** | Tarif fotoğrafı kodun içinde gelebilir ya da telefonun galerisinden seçilir (cihazda saklanır) |
-| ▶︎ **Pişirme modu** | Adımlar tek tek büyük yazıyla; her adımda geri sayım, süre bitince sesli uyarı + titreşim, sonraki adıma otomatik geçiş, ekran açık kalır |
-| ✍️ **Elle tarif** | Kendi tarifini de adım adım (devir/sıcaklık/mod seçerek) yazabilirsin |
-| ⚠️ **Uyarılar** | Kap doluluğu, sıcak sıvıyı yüksek devirde çekme gibi durumlarda uyarı satırı |
-| 💾 **Yedekleme** | Tüm defteri (fotoğraflar dahil) tek dosyaya indir, telefon değişince geri yükle |
-
-**Kurulum:** Sadece APK'yı kur, hesap/anahtar yok. Uygulama tamamen **çevrimdışı** çalışır; hiçbir veri sunucuya gitmez.
-
-> Termomiks Defteri kendi yerel veritabanını (`termomiks-defter`) kullanır; CRM ve Diyet Koçu verilerine dokunmaz.
-
 ## 🧠 Zihin Jimnastiği (ayrı program)
 
-Bu depodaki **dördüncü bağımsız program**: **Zihin Jimnastiği**. Kendi giriş sayfası (`zihin.html`), kendi rengi ve kendi kayıt alanı vardır; diğer üç programın hiçbir dosyasını paylaşmaz/değiştirmez.
+Bu depodaki **üçüncü bağımsız program**: **Zihin Jimnastiği**. Kendi giriş sayfası (`zihin.html`), kendi rengi ve kendi kayıt alanı vardır; diğer iki programın hiçbir dosyasını paylaşmaz/değiştirmez.
 
 - **Zihin Jimnastiği** → `zihin.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/zihin.html`)
 - APK: `.github/workflows/zihin-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **zihin-latest** sürümüne `zihin-jimnastigi.apk` yüklenir.
@@ -104,7 +80,7 @@ Ek özellikler: günlük seri sayacı, gelişim ekranı (son 7 gün, oyun başı
 
 ## 🤲 EFT Dokunma (ayrı program)
 
-Bu depodaki **beşinci bağımsız program**: **EFT Dokunma**. Kendi giriş sayfası (`eft.html`), kendi rengi (deniz yeşili) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
+Bu depodaki **dördüncü bağımsız program**: **EFT Dokunma**. Kendi giriş sayfası (`eft.html`), kendi rengi (deniz yeşili) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
 
 - **EFT Dokunma** → `eft.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/eft.html`)
 - APK: `.github/workflows/eft-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **eft-latest** sürümüne `eft-dokunma.apk` yüklenir.
@@ -137,7 +113,7 @@ Diğer ekranlar: **Noktalar** (çizim üzerinde noktaya dokun → nerede/nasıl 
 
 ## 🎤 Ses Egzersizi (ayrı program)
 
-Bu depodaki **altıncı bağımsız program**: **Ses Egzersizi**. Kendi giriş sayfası (`ses.html`), kendi rengi (turuncu) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
+Bu depodaki **beşinci bağımsız program**: **Ses Egzersizi**. Kendi giriş sayfası (`ses.html`), kendi rengi (turuncu) ve kendi kayıt alanı vardır; diğer programların hiçbir dosyasını paylaşmaz/değiştirmez.
 
 - **Ses Egzersizi** → `ses.html` (örn. `https://<kullanıcı>.github.io/gorev-yonetim-sistemi/ses.html`)
 - APK: `.github/workflows/ses-apk.yml` iş akışı derler; `main`'e giren her değişiklikte **ses-latest** sürümüne `ses-egzersizi.apk` yüklenir.

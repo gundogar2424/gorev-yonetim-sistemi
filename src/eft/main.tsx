@@ -10,7 +10,7 @@ import '../index.css'
 initTheme()
 installAudioUnlock()
 
-// EFT Dokunma: CRM, Diyet Kocu, Termomiks Defteri ve Zihin Jimnastigi'nden
+// EFT Dokunma: CRM, Diyet Kocu ve Zihin Jimnastigi'nden
 // TAMAMEN AYRI, kendi giris noktasi olan besinci bagimsiz program.
 const rootEl = document.getElementById('root')!
 try {

@@ -8,7 +8,7 @@ import '../index.css'
 
 initTheme()
 
-// Zihin Jimnastigi: CRM, Diyet Kocu ve Termomiks Defteri'nden TAMAMEN AYRI,
+// Zihin Jimnastigi: CRM ve Diyet Kocu'ndan TAMAMEN AYRI,
 // kendi giris noktasi olan dorduncu bagimsiz program.
 const rootEl = document.getElementById('root')!
 try {
