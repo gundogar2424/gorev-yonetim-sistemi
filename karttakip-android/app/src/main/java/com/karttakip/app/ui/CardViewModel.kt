@@ -35,6 +35,22 @@ class CardViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * "Borç yok" — kesim gecmis ama borc girilmemis karttaki yanip sonmeyi,
+     * borc girmeden kapatir. Ekstre borcu 0 kalir, bu dongu "gorüldü" isaretlenir.
+     */
+    fun markNoStatement(card: Card) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.upsert(
+                card.copy(
+                    statementDebt = 0.0,
+                    ekstreForStatementEpochDay = java.time.LocalDate.now().toEpochDay()
+                )
+            )
+            NotificationScheduler.scheduleAll(getApplication())
+        }
+    }
+
     suspend fun getById(id: Long): Card? = dao.getById(id)
 
     /** Yedek metnini (JSON) okuyup kartlari ekler. onResult'a eklenen kart sayisini verir (hata -> -1). */

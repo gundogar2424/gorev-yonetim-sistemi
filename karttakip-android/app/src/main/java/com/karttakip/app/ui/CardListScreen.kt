@@ -274,7 +274,12 @@ fun CardListScreen(
             }
 
             items(cards.sortedBy { CardCalc.currentDue(it, today) }, key = { it.id }) { card ->
-                CreditCardTile(card = card, today = today, onClick = { onEdit(card.id) })
+                CreditCardTile(
+                    card = card,
+                    today = today,
+                    onClick = { onEdit(card.id) },
+                    onNoDebt = { vm.markNoStatement(card) }
+                )
             }
         }
     }
@@ -408,7 +413,12 @@ private fun RecommendationCard(
 }
 
 @Composable
-private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Unit) {
+private fun CreditCardTile(
+    card: CardEntity,
+    today: LocalDate,
+    onClick: () -> Unit,
+    onNoDebt: () -> Unit
+) {
     val nextDue = CardCalc.currentDue(card, today)
     // Son odemenin ait oldugu ekstrenin kesimi -> hep ayni dongu, dogru sira
     val kesim = CardCalc.statementForDue(card, nextDue)
@@ -469,12 +479,31 @@ private fun CreditCardTile(card: CardEntity, today: LocalDate, onClick: () -> Un
                     overflow = TextOverflow.Ellipsis
                 )
                 if (needsEntry) {
-                    Text(
-                        "📄 Ekstre kesildi — borcunu gir",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF93C5FD),
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "📄 Ekstre kesildi — gir",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color(0xFF93C5FD),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        // Borc yoksa tek dokunusla yanip sonmeyi kapat.
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.White.copy(alpha = 0.18f))
+                                .clickable(onClick = onNoDebt)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                "Borç yok",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 } else if (card.limit > 0) {
                     Text(
                         "Kullanılabilir ${money(available)} · Borç ${money(card.debt)}",
