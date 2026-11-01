@@ -427,13 +427,15 @@ private fun CreditCardTile(
     val base = Color(card.colorArgb)
     val needsEntry = CardCalc.needsStatementEntry(card, today)
 
-    // Ekstre girilmesi gerekiyorsa kart mavi yanip soner.
+    // Ekstre girilmesi gerekiyorsa kartin TAMAMI guclu sekilde mavi yanip soner.
     val blink by rememberInfiniteTransition(label = "blink").animateFloat(
-        initialValue = 0.15f,
+        initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(520), RepeatMode.Reverse),
         label = "blinkAlpha"
     )
+    // Kart yuzeyi normal renk ile parlak mavi arasinda gidip gelir.
+    val flash = Color(0xFF2563EB)
 
     Box(
         Modifier
@@ -443,13 +445,25 @@ private fun CreditCardTile(
             .background(Brush.linearGradient(listOf(base, base.darken(0.55f))))
             .then(
                 if (needsEntry) Modifier.border(
-                    3.dp, Color(0xFF3B82F6).copy(alpha = blink), RoundedCornerShape(22.dp)
+                    4.dp, Color(0xFF93C5FD).copy(alpha = 0.4f + 0.6f * blink), RoundedCornerShape(22.dp)
                 ) else Modifier
             )
             .clickable(onClick = onClick)
-            .padding(18.dp)
     ) {
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+        // Tum karti kaplayan yanip sonen mavi katman.
+        if (needsEntry) {
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .background(flash.copy(alpha = 0.85f * blink))
+            )
+        }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             // Ust satir: banka + cip ikonu
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
