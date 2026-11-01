@@ -154,6 +154,31 @@ function metaIcerik(html: string, ad: string): string {
   return (tag.match(/content=["']([^"']+)["']/i)?.[1] ?? '').replace(/&amp;/g, '&').replace(/&#39;/g, "'")
 }
 const GENEL = /^(google ?maps|google haritalar|haritalar|maps|google)$/i
+// Harita sayfasinin icindeki konum: onizleme resmi (center= / markers=), sayfa acilis durumu, !3d!4d
+function sayfaKoordinati(html: string): Konum | undefined {
+  const desen = [
+    /markers=(-?\d{1,2}\.\d+)(?:%2C|,)(-?\d{1,3}\.\d+)/,
+    /center=(-?\d{1,2}\.\d+)(?:%2C|,)(-?\d{1,3}\.\d+)/,
+    /!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/
+  ]
+  for (const d of desen) {
+    const m = html.match(d)
+    if (m) return { lat: Number(m[1]), lon: Number(m[2]) }
+  }
+  // APP_INITIALIZATION_STATE=[[[uzaklik,boylam,enlem]…
+  const a = html.match(/APP_INITIALIZATION_STATE=\[\[\[[\d.]+,(-?\d{1,3}\.\d+),(-?\d{1,2}\.\d+)\]/)
+  if (a) return { lat: Number(a[2]), lon: Number(a[1]) }
+  return undefined
+}
+// Sayfa aciklamasindan Google puani, yorum sayisi ve tur ("4,5(8) · Aile restoranı" gibi)
+function sayfaBilgisi(html: string): { puan?: number; yorum?: number; tur?: string; adres?: string } {
+  const t = metaIcerik(html, 'og:title')
+  const d = metaIcerik(html, 'og:description') || metaIcerik(html, 'description')
+  const puan = Number((d.match(/(\d[.,]\d)\s*(?:★|\(|yıldız)/)?.[1] ?? '').replace(',', '.')) || undefined
+  const yorum = Number((d.match(/\((\d[\d.,]*)\)/)?.[1] ?? '').replace(/[.,]/g, '')) || undefined
+  const tur = d.split(/\s*·\s*/).map((x) => x.trim()).find((x) => x && !/\d|★/.test(x) && x.length < 40)
+  return { puan, yorum, tur, adres: (t.split(/\s*·\s*/)[1] ?? '').trim() || undefined }
+}
 function adresten(u: string): string {
   const yer = u.match(/\/place\/([^/@?]+)/)?.[1]
   if (yer) return coz(yer)
@@ -171,6 +196,9 @@ export async function haritaLinkindenYer(link: string): Promise<YakinYer | undef
   let ad = ''
   let adres = ''
   let k: Konum | undefined
+  let bilgi: ReturnType<typeof sayfaBilgisi> = {}
+  let bulunanAd = ''
+  let bulunanAdres = ''
   const gorulen: string[] = []
   for (const ua of [UA_MASA, UA_BOT, UA_TEL]) {
     const g = await getir(link, ua).catch(() => undefined)
@@ -178,7 +206,9 @@ export async function haritaLinkindenYer(link: string): Promise<YakinYer | undef
     const html = kacissiz(g.metin)
     const adaylar = [g.son, ...(html.match(/https?:\/\/(?:www\.)?(?:google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)[^"'\s<>\\]*/gi) ?? [])]
     gorulen.push(g.son)
-    k = k ?? haritaKoordinati(adaylar.join('\n') + '\n' + html)
+    k = k ?? haritaKoordinati(adaylar.join('\n')) ?? sayfaKoordinati(html)
+    const b = sayfaBilgisi(html)
+    bilgi = { puan: bilgi.puan ?? b.puan, yorum: bilgi.yorum ?? b.yorum, tur: bilgi.tur ?? b.tur, adres: bilgi.adres ?? b.adres }
     for (const u of adaylar) {
       ad = adresten(u)
       if (ad) break
@@ -189,12 +219,18 @@ export async function haritaLinkindenYer(link: string): Promise<YakinYer | undef
       const h2 = await getir(adaylar[1], UA_BOT).catch(() => undefined)
       if (h2) {
         ;({ ad, adres } = sayfadan(kacissiz(h2.metin)))
-        k = k ?? haritaKoordinati(`${h2.son}\n${kacissiz(h2.metin)}`)
+        k = k ?? haritaKoordinati(h2.son) ?? sayfaKoordinati(kacissiz(h2.metin))
       }
     }
-    if (ad && !GENEL.test(ad)) break
-    ad = ''
+    if (ad && !GENEL.test(ad)) bulunanAd = bulunanAd || ad
+    if (!bulunanAd && adres) bulunanAdres = adres
+    else if (adres) bulunanAdres = bulunanAdres || adres
+    // Ad ve konum bulunduysa dur; konum yoksa diger kimliklerle de dene
+    if (bulunanAd && k) break
   }
+  ad = bulunanAd
+  adres = bulunanAdres
+  if (!adres && bilgi.adres) adres = bilgi.adres
   if (!ad) throw new Error(`Harita linki okunamadı${gorulen[0] ? ` (yönlendiği adres: ${gorulen[0].slice(0, 90)})` : ' (bağlantı kurulamadı)'}`)
   let yer = k
   if (!yer) {
@@ -202,7 +238,7 @@ export async function haritaLinkindenYer(link: string): Promise<YakinYer | undef
       const g = await googleMekanAra(`${ad} ${adres}`).catch(() => undefined)
       if (g) return { ad: g.ad || ad, tur: g.tur, adres: g.adres, lat: g.lat, lon: g.lon, km: 0, googleId: g.id, puan: g.puan, yorumSayisi: g.yorumSayisi, haritaUrl: g.haritaUrl || link }
     }
-    yer = await adrestenKonum(`${ad} ${adres}`.trim()).catch(() => undefined)
+    yer = (await adrestenKonum(`${ad} ${adres}`.trim()).catch(() => undefined)) ?? (adres ? await adrestenKonum(adres).catch(() => undefined) : undefined)
   }
-  return { ad, tur: '', adres, lat: yer?.lat ?? 0, lon: yer?.lon ?? 0, km: 0, haritaUrl: link }
+  return { ad, tur: bilgi.tur ?? '', adres, lat: yer?.lat ?? 0, lon: yer?.lon ?? 0, km: 0, puan: bilgi.puan, yorumSayisi: bilgi.yorum, haritaUrl: link }
 }

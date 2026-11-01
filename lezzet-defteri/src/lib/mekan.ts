@@ -163,7 +163,17 @@ export async function mekanLinktenEkle(
       const ayni = (await lzDb.mekanlar.toArray()).find(
         (m) => sade(m.ad) === sade(y.ad) && (!y.lat || m.lat === undefined || mesafeKm({ lat: y.lat, lon: y.lon }, { lat: m.lat, lon: m.lon! }) < 1)
       )
-      if (ayni) return { id: ayni.id!, yeni: false, digerleri: 0 }
+      if (ayni) {
+        // Daha once eksik kaydedildiyse (yer/adres/puan yok) linkten gelenlerle tamamlanir
+        const ek: Partial<LzMekan> = {}
+        if (ayni.lat === undefined && y.lat) Object.assign(ek, { lat: y.lat, lon: y.lon, konumKaynak: y.googleId ? 'google' : 'harita' })
+        if (!ayni.adres && y.adres) ek.adres = y.adres
+        if (!ayni.puan && y.puan) Object.assign(ek, { puan: y.puan, yorumSayisi: y.yorumSayisi, puanZamani: Date.now() })
+        if (!ayni.tur && y.tur) ek.tur = y.tur
+        if (!ayni.haritaUrl && y.haritaUrl) ek.haritaUrl = y.haritaUrl
+        if (Object.keys(ek).length) await lzDb.mekanlar.update(ayni.id!, ek)
+        return { id: ayni.id!, yeni: false, digerleri: 0 }
+      }
       return { id: await yeriKaydet(y), yeni: true, digerleri: 0 }
     }
   }
