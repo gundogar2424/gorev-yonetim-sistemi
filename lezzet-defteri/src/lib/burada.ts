@@ -32,10 +32,11 @@ const TUR: Record<string, string> = {
 }
 
 // Telefonda CapacitorHttp (WebView kisitlari yok), tarayicida fetch; yonlendirme sonrasi adres de doner
-async function getir(url: string): Promise<{ metin: string; son: string }> {
+const UA_TEL = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
+async function getir(url: string, ua = UA_TEL): Promise<{ metin: string; son: string }> {
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
   if (Capacitor.isNativePlatform()) {
-    const r = await CapacitorHttp.get({ url, responseType: 'text', headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36', 'Accept-Language': 'tr-TR,tr;q=0.9' } })
+    const r = await CapacitorHttp.get({ url, responseType: 'text', headers: { 'User-Agent': ua, 'Accept-Language': 'tr-TR,tr;q=0.9' } })
     if (r.status >= 400) throw new Error(String(r.status))
     return { metin: typeof r.data === 'string' ? r.data : JSON.stringify(r.data), son: r.url || url }
   }
@@ -133,29 +134,68 @@ export async function yeriKaydet(y: YakinYer, k?: Konum): Promise<number> {
 }
 
 // Google Haritalar paylasim linkinden (maps.app.goo.gl…) mekan adi ve yeri; yapay zeka yok.
-// Kisa link su bicimlere yonlenir: /maps/place/AD/@enlem,boylam · ?q=AD,+adres · ?cid=… (ad sayfa basligindan)
+// Kisa link telefon kimligine ara sayfa (uygulamaya yonlendirme) dondurebilir; bu yuzden birkac kimlikle
+// denenir ve sayfanin icindeki asil harita adresleri de taranir. Bicimler: /maps/place/AD/@enlem,boylam ·
+// ?q=AD,+adres · ?cid=… (ad sayfa basligindan).
+const UA_MASA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
+const UA_BOT = 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+function coz(x: string): string {
+  try {
+    return decodeURIComponent(x.replace(/\+/g, ' '))
+  } catch {
+    return x.replace(/\+/g, ' ')
+  }
+}
+function kacissiz(x: string): string {
+  return x.replace(/\\u003d/gi, '=').replace(/\\u0026/gi, '&').replace(/\\\//g, '/').replace(/&amp;/g, '&')
+}
+function metaIcerik(html: string, ad: string): string {
+  const tag = html.match(new RegExp(`<meta[^>]*(?:property|itemprop|name)=["']${ad}["'][^>]*>`, 'i'))?.[0] ?? ''
+  return (tag.match(/content=["']([^"']+)["']/i)?.[1] ?? '').replace(/&amp;/g, '&').replace(/&#39;/g, "'")
+}
+const GENEL = /^(google ?maps|google haritalar|haritalar|maps|google)$/i
+function adresten(u: string): string {
+  const yer = u.match(/\/place\/([^/@?]+)/)?.[1]
+  if (yer) return coz(yer)
+  const q = u.match(/[?&](?:q|query)=([^&]+)/)?.[1]
+  if (q && !/^-?\d+\.\d+/.test(coz(q)) && !/^place_id:/i.test(coz(q))) return coz(q).split(',')[0]
+  return ''
+}
+function sayfadan(html: string): { ad: string; adres: string } {
+  const t = metaIcerik(html, 'og:title') || metaIcerik(html, 'name') || (html.match(/<title>([^<]*)<\/title>/i)?.[1] ?? '')
+  const [ad, adres] = t.split(/\s*·\s*/)
+  return { ad: (ad ?? '').split(/\s+[|–-]\s+/)[0].trim(), adres: (adres ?? '').trim() }
+}
+
 export async function haritaLinkindenYer(link: string): Promise<YakinYer | undefined> {
-  const { metin, son } = await getir(link)
-  const coz = (x: string) => {
-    try {
-      return decodeURIComponent(x.replace(/\+/g, ' '))
-    } catch {
-      return x.replace(/\+/g, ' ')
+  let ad = ''
+  let adres = ''
+  let k: Konum | undefined
+  const gorulen: string[] = []
+  for (const ua of [UA_MASA, UA_BOT, UA_TEL]) {
+    const g = await getir(link, ua).catch(() => undefined)
+    if (!g) continue
+    const html = kacissiz(g.metin)
+    const adaylar = [g.son, ...(html.match(/https?:\/\/(?:www\.)?(?:google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)[^"'\s<>\\]*/gi) ?? [])]
+    gorulen.push(g.son)
+    k = k ?? haritaKoordinati(adaylar.join('\n') + '\n' + html)
+    for (const u of adaylar) {
+      ad = adresten(u)
+      if (ad) break
     }
+    if (!ad) ({ ad, adres } = sayfadan(html))
+    // cid gibi adsiz harita adresi: o sayfanin basligindan
+    if ((!ad || GENEL.test(ad)) && adaylar[1]) {
+      const h2 = await getir(adaylar[1], UA_BOT).catch(() => undefined)
+      if (h2) {
+        ;({ ad, adres } = sayfadan(kacissiz(h2.metin)))
+        k = k ?? haritaKoordinati(`${h2.son}\n${kacissiz(h2.metin)}`)
+      }
+    }
+    if (ad && !GENEL.test(ad)) break
+    ad = ''
   }
-  const k = haritaKoordinati(`${son}\n${metin}`)
-  const metaIcerik = (ad: string) => {
-    const tag = metin.match(new RegExp(`<meta[^>]*(?:property|itemprop|name)=["']${ad}["'][^>]*>`, 'i'))?.[0] ?? ''
-    return tag.match(/content=["']([^"']+)["']/i)?.[1] ?? ''
-  }
-  const q = son.match(/[?&](?:q|query)=([^&]+)/)?.[1]
-  let ad =
-    coz(son.match(/\/place\/([^/@?]+)/)?.[1] ?? '') ||
-    (q && !/^-?\d+\.\d+/.test(coz(q)) ? coz(q).split(',')[0] : '') ||
-    (metaIcerik('og:title') || metaIcerik('name') || metin.match(/<title>([^<]*)<\/title>/i)?.[1] || '').split(/\s*[·|–-]\s*/)[0]
-  ad = ad.replace(/&amp;/g, '&').replace(/&#39;/g, "'").trim()
-  if (!ad || /^(google ?maps|google haritalar|haritalar|maps)$/i.test(ad)) return undefined
-  const adres = (metaIcerik('og:title').split(/\s*·\s*/)[1] ?? '').trim()
+  if (!ad) throw new Error(`Harita linki okunamadı${gorulen[0] ? ` (yönlendiği adres: ${gorulen[0].slice(0, 90)})` : ' (bağlantı kurulamadı)'}`)
   let yer = k
   if (!yer) {
     if (placesAnahtari()) {

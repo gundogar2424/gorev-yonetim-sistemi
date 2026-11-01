@@ -151,7 +151,13 @@ export async function mekanLinktenEkle(
   if (url && haritaLinkiMi(url)) {
     ilerleme('Harita linki okunuyor…')
     const { haritaLinkindenYer, yeriKaydet } = await import('./burada')
-    const y = await haritaLinkindenYer(url).catch(() => undefined)
+    let neden = ''
+    const y = await haritaLinkindenYer(url).catch((e: Error) => {
+      neden = e.message
+      return undefined
+    })
+    // Ciplak kisa link ise yapay zeka da bir sey bulamaz: sebebi goster
+    if (!y && girdi.replace(url, '').trim().length < 3) throw new Error(`${neden || 'Harita linki okunamadı'}. Mekanın adını ve semtini yaz (ör. “Kaya Pide, Nilüfer Bursa”).`)
     if (y) {
       const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
       const ayni = (await lzDb.mekanlar.toArray()).find(
