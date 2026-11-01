@@ -440,7 +440,7 @@ private fun CreditCardTile(
     Box(
         Modifier
             .fillMaxWidth()
-            .height(172.dp)
+            .height(188.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.linearGradient(listOf(base, base.darken(0.55f))))
             .then(
@@ -492,14 +492,19 @@ private fun CreditCardTile(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                // Limit/kullanilabilir/borc HER ZAMAN gorunur (limit girilmisse).
-                if (card.limit > 0) {
-                    Text(
-                        "Kullanılabilir ${money(available)} · Borç ${money(card.debt)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.85f)
-                    )
-                }
+                // Limit + kalan + borc HER kartta gorunur. Veri yoksa uyarir.
+                Text(
+                    when {
+                        card.limit > 0 ->
+                            "Limit ${money(card.limit)} · Kalan ${money(available)} · Borç ${money(card.debt)}"
+                        card.debt > 0 -> "Borç ${money(card.debt)}"
+                        else -> "Limit girilmemiş — eklemek için dokun"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.85f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 // Yanip sonen kartta ekstre uyarisi EK olarak altinda gosterilir.
                 if (needsEntry) {
                     Spacer(Modifier.height(3.dp))
