@@ -323,8 +323,12 @@ fun CardFormScreen(
                                 // Yeni kartta takibi bu dongaden baslat; duzenlemede koru.
                                 lastPaidDueEpochDay = existing?.lastPaidDueEpochDay?.takeIf { it > 0L }
                                     ?: CardCalc.initialLastPaid(dDate.toEpochDay()),
-                                // Kaydetmek = ekstre girildi/onaylandi -> yanip sonme dursun.
-                                ekstreForStatementEpochDay = LocalDate.now().toEpochDay()
+                                // Ekstre borcu girildiyse "onaylandi" -> yanip sonme durur.
+                                // Girilmediyse (0) onaylama; kart "borcunu gir" diye yanip
+                                // sonmeye devam etsin (ya da kullanici "Borç yok" desin).
+                                ekstreForStatementEpochDay =
+                                    if ((ekstre.toDoubleOrNull() ?: 0.0) > 0.0) LocalDate.now().toEpochDay()
+                                    else existing?.ekstreForStatementEpochDay ?: 0L
                             )
                             vm.save(card) { onBack() }
                         }

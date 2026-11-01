@@ -80,9 +80,14 @@ object BackupIO {
             lastPaidDueEpochDay = if (o.has("lastPaidDueEpochDay"))
                 o.optLong("lastPaidDueEpochDay", 0L)
             else CardCalc.initialLastPaid(dueEpochDay, today),
-            ekstreForStatementEpochDay = if (o.has("ekstreForStatementEpochDay"))
-                o.optLong("ekstreForStatementEpochDay", 0L)
-            else today.toEpochDay()
+            // Ekstre onayi: yedekte varsa kullan; yoksa ekstre borcu girilmisse
+            // onaylanmis say (bugun), girilmemisse 0 birak ki kesim gecmis kartlar
+            // "borcunu gir" diye yanip sonsun.
+            ekstreForStatementEpochDay = when {
+                o.has("ekstreForStatementEpochDay") -> o.optLong("ekstreForStatementEpochDay", 0L)
+                statementDebt > 0.0 -> today.toEpochDay()
+                else -> 0L
+            }
         )
     }
 
