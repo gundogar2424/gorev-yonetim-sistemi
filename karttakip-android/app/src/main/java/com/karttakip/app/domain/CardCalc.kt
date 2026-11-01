@@ -128,13 +128,18 @@ object CardCalc {
 
     /**
      * Kart "ekstre borcunu gir" diye yanip sonmeli mi?
-     * Kesim gecti (en son girilen ekstreden sonra yeni kesim oldu) VE ekstre
-     * borcu hala 0 (girilmemis) ise true. Kullanici borcu girer veya "Borç yok"
-     * derse (ekstreForStatementEpochDay bugune cekilir) yanip sonme durur.
+     *
+     * Kartta GOSTERILEN donguyun kesim tarihi (statementForDue(currentDue)) BUGUN
+     * veya once geldiyse VE ekstre borcu hala 0 (girilmemis) ise true. Boylece
+     * kesim tarihi GELECEKTE olan kartlar (ör. kesim 8 Kas, bugun 1 Kas) yanip
+     * sonmez. Kullanici borcu girer veya "Borç yok" derse
+     * (ekstreForStatementEpochDay bugune cekilir) yanip sonme durur.
      */
-    fun needsStatementEntry(card: Card, today: LocalDate = LocalDate.now()): Boolean =
-        card.statementDebt <= 0.0 &&
-            lastStatementCut(card, today).toEpochDay() > card.ekstreForStatementEpochDay
+    fun needsStatementEntry(card: Card, today: LocalDate = LocalDate.now()): Boolean {
+        if (card.statementDebt > 0.0) return false
+        val cut = statementForDue(card, currentDue(card, today))
+        return !cut.isAfter(today) && cut.toEpochDay() > card.ekstreForStatementEpochDay
+    }
 
     /** En uzun faizsiz sure saglayan kart (bugun harcama icin en mantikli). */
     fun bestCardToUse(cards: List<Card>, today: LocalDate = LocalDate.now()): Card? =
