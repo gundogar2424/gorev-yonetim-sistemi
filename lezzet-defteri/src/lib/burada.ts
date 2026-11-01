@@ -2,8 +2,8 @@
 // Google Haritalar anahtari varsa oradan (puanli), yoksa OpenStreetMap'ten (ucretsiz) bulunur.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { googleYakindakiler, placesAnahtari } from './places'
-import { haritaKoordinati, konumdanAdres, mesafeKm, type Konum } from './mekan'
+import { googleMekanAra, googleYakindakiler, placesAnahtari } from './places'
+import { adrestenKonum, haritaKoordinati, konumdanAdres, mesafeKm, type Konum } from './mekan'
 
 export interface YakinYer {
   ad: string
@@ -96,9 +96,11 @@ export async function yakindakiYerler(k: Konum): Promise<YakinYer[]> {
 }
 
 // Secilen yeri Mekanlarim'a kaydeder (kayitliysa o); adres/semt konumdan doldurulur
-export async function yeriKaydet(y: YakinYer, k: Konum): Promise<number> {
+export async function yeriKaydet(y: YakinYer, k?: Konum): Promise<number> {
   if (y.kayitliId) return y.kayitliId
-  const bolge = await konumdanAdres({ lat: y.lat, lon: y.lon }).catch(() => '')
+  const lat = y.lat || k?.lat
+  const lon = y.lon || k?.lon
+  const bolge = lat !== undefined && lon !== undefined ? await konumdanAdres({ lat, lon }).catch(() => '') : ''
   // "Mahalle, Ilce, Il" -> ilce ve il
   const p = bolge.split(',').map((x) => x.trim()).filter(Boolean)
   const sehir = p.length ? p[p.length - 1] : ''
@@ -109,9 +111,9 @@ export async function yeriKaydet(y: YakinYer, k: Konum): Promise<number> {
     adres: y.adres,
     ilce,
     sehir,
-    lat: y.lat || k.lat,
-    lon: y.lon || k.lon,
-    konumKaynak: y.googleId ? 'google' : 'harita',
+    lat,
+    lon,
+    konumKaynak: lat === undefined ? '' : y.googleId ? 'google' : 'harita',
     oneriler: [],
     fiyat: '',
     notlar: '',
@@ -130,14 +132,37 @@ export async function yeriKaydet(y: YakinYer, k: Konum): Promise<number> {
   return lzDb.mekanlar.add(m)
 }
 
-// Google Haritalar paylasim linkinden (maps.app.goo.gl…) mekan adi ve yeri; yapay zeka yok
+// Google Haritalar paylasim linkinden (maps.app.goo.gl…) mekan adi ve yeri; yapay zeka yok.
+// Kisa link su bicimlere yonlenir: /maps/place/AD/@enlem,boylam · ?q=AD,+adres · ?cid=… (ad sayfa basligindan)
 export async function haritaLinkindenYer(link: string): Promise<YakinYer | undefined> {
   const { metin, son } = await getir(link)
-  const birlesik = `${son}\n${metin}`
-  const k = haritaKoordinati(birlesik)
-  const ad =
-    decodeURIComponent(son.match(/\/place\/([^/@?]+)/)?.[1] ?? '').replace(/\+/g, ' ') ||
-    (metin.match(/<meta[^>]+(?:property|itemprop)="(?:og:title|name)"[^>]+content="([^"]+)"/i)?.[1] ?? '').split(/\s*[·|]\s*/)[0]
-  if (!ad || /^google (maps|haritalar)$/i.test(ad)) return undefined
-  return { ad: ad.trim(), tur: '', adres: '', lat: k?.lat ?? 0, lon: k?.lon ?? 0, km: 0, haritaUrl: link }
+  const coz = (x: string) => {
+    try {
+      return decodeURIComponent(x.replace(/\+/g, ' '))
+    } catch {
+      return x.replace(/\+/g, ' ')
+    }
+  }
+  const k = haritaKoordinati(`${son}\n${metin}`)
+  const metaIcerik = (ad: string) => {
+    const tag = metin.match(new RegExp(`<meta[^>]*(?:property|itemprop|name)=["']${ad}["'][^>]*>`, 'i'))?.[0] ?? ''
+    return tag.match(/content=["']([^"']+)["']/i)?.[1] ?? ''
+  }
+  const q = son.match(/[?&](?:q|query)=([^&]+)/)?.[1]
+  let ad =
+    coz(son.match(/\/place\/([^/@?]+)/)?.[1] ?? '') ||
+    (q && !/^-?\d+\.\d+/.test(coz(q)) ? coz(q).split(',')[0] : '') ||
+    (metaIcerik('og:title') || metaIcerik('name') || metin.match(/<title>([^<]*)<\/title>/i)?.[1] || '').split(/\s*[·|–-]\s*/)[0]
+  ad = ad.replace(/&amp;/g, '&').replace(/&#39;/g, "'").trim()
+  if (!ad || /^(google ?maps|google haritalar|haritalar|maps)$/i.test(ad)) return undefined
+  const adres = (metaIcerik('og:title').split(/\s*·\s*/)[1] ?? '').trim()
+  let yer = k
+  if (!yer) {
+    if (placesAnahtari()) {
+      const g = await googleMekanAra(`${ad} ${adres}`).catch(() => undefined)
+      if (g) return { ad: g.ad || ad, tur: g.tur, adres: g.adres, lat: g.lat, lon: g.lon, km: 0, googleId: g.id, puan: g.puan, yorumSayisi: g.yorumSayisi, haritaUrl: g.haritaUrl || link }
+    }
+    yer = await adrestenKonum(`${ad} ${adres}`.trim()).catch(() => undefined)
+  }
+  return { ad, tur: '', adres, lat: yer?.lat ?? 0, lon: yer?.lon ?? 0, km: 0, haritaUrl: link }
 }

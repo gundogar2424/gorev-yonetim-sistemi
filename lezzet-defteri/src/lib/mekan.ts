@@ -142,12 +142,26 @@ export async function mekanLinktenEkle(
   ilerleme: (m: string) => void = () => {},
   hazir?: { parca?: VideoParcalari; kapak?: string }
 ): Promise<{ id: number; yeni: boolean; digerleri: number }> {
-  if (!apiAnahtari()) throw new Error('Mekanı tanımak için Ayarlar’dan Gemini anahtarı gir.')
   const url = linkAyikla(girdi)
   if (url) {
     const var_ = await ayniMekan({ ad: '', sehir: '', sourceUrl: url })
     if (var_) return { id: var_.id!, yeni: false, digerleri: 0 }
   }
+  // Google Haritalar linki: ad ve yer dogrudan linkten okunur (yapay zeka yok)
+  if (url && haritaLinkiMi(url)) {
+    ilerleme('Harita linki okunuyor…')
+    const { haritaLinkindenYer, yeriKaydet } = await import('./burada')
+    const y = await haritaLinkindenYer(url).catch(() => undefined)
+    if (y) {
+      const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
+      const ayni = (await lzDb.mekanlar.toArray()).find(
+        (m) => sade(m.ad) === sade(y.ad) && (!y.lat || m.lat === undefined || mesafeKm({ lat: y.lat, lon: y.lon }, { lat: m.lat, lon: m.lon! }) < 1)
+      )
+      if (ayni) return { id: ayni.id!, yeni: false, digerleri: 0 }
+      return { id: await yeriKaydet(y), yeni: true, digerleri: 0 }
+    }
+  }
+  if (!apiAnahtari()) throw new Error('Mekanı tanımak için Ayarlar’dan Gemini anahtarı gir.')
   ilerleme('Mekan paylaşımı okunuyor…')
   let metin = girdi
   let foto = ''
