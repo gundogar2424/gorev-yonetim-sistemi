@@ -492,7 +492,17 @@ private fun CreditCardTile(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                // Limit/kullanilabilir/borc HER ZAMAN gorunur (limit girilmisse).
+                if (card.limit > 0) {
+                    Text(
+                        "Kullanılabilir ${money(available)} · Borç ${money(card.debt)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+                // Yanip sonen kartta ekstre uyarisi EK olarak altinda gosterilir.
                 if (needsEntry) {
+                    Spacer(Modifier.height(3.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "📄 Ekstre kesildi — gir",
@@ -518,12 +528,6 @@ private fun CreditCardTile(
                             )
                         }
                     }
-                } else if (card.limit > 0) {
-                    Text(
-                        "Kullanılabilir ${money(available)} · Borç ${money(card.debt)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
                 }
             }
 
