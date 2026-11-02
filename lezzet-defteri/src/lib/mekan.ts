@@ -9,7 +9,7 @@ import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } fr
 import { PLATFORM_AD, linkAyikla, linktenTarif, metinIndir, platformBul } from './importer'
 import { uzaktanFotoIndir } from './image'
 import { temelLink } from './kopya'
-import { hesapAdi, hesapFotoGetir, hesapTakipEt } from './hesaplar'
+import { hesapAdi, hesapFotoGetir, hesapNormal, hesapTakipEt } from './hesaplar'
 
 export type Konum = { lat: number; lon: number; ad?: string }
 
@@ -154,19 +154,37 @@ export async function ayniMekan(m: { ad: string; sehir: string; sourceUrl?: stri
   )
 }
 
-// Ayni mekan baska bir paylasimdan (baska influencer / platform) tekrar gelince: yenisi acilmaz,
-// paylasim (kim, ne yedi, ne dedi, video linki) mekanin "Diger paylasimlar" listesine eklenir
+// Ayni kisi mi: platformlar arasi ad farki ("@vedatmilor" / "Vedat Milor") tolere edilir
+function ayniKisi(a: string, b: string): boolean {
+  const n = (x: string) => hesapNormal(x).replace(/[^\p{L}\p{N}]+/gu, '')
+  const x = n(a)
+  const y = n(b)
+  return !!x && !!y && (x === y || (Math.min(x.length, y.length) >= 5 && (x.includes(y) || y.includes(x))))
+}
+
+// Ayni mekan baska bir paylasimdan tekrar gelince yenisi acilmaz:
+// - ayni influencer'in ayni paylasimi baska platformdaysa (Instagram + TikTok) yalnizca link eklenir
+// - baska influencer'sa (kim, ne yedi, ne dedi, video) "Baska paylasanlar" listesine eklenir
 async function ikinciPaylasimiEkle(m: LzMekan, url: string, paylasan: string, yorum?: LzPaylasim['yorum'], reklam?: boolean): Promise<void> {
   if (!url) return
   const t = temelLink(url)
-  if ((m.sourceUrl && temelLink(m.sourceUrl) === t) || (m.paylasimlar ?? []).some((p) => temelLink(p.url) === t)) return
+  const linkVar = (l?: { url: string }[]) => (l ?? []).some((x) => temelLink(x.url) === t)
+  if ((m.sourceUrl && temelLink(m.sourceUrl) === t) || linkVar(m.ekLinkler) || (m.paylasimlar ?? []).some((p) => temelLink(p.url) === t || linkVar(p.ekLinkler))) return
+  const link = { url, platform: platformBul(url) }
   // Ilk kayitta paylasan yoksa bu paylasim "asil" paylasim olur
   if (!m.paylasan && paylasan && !m.sourceUrl) {
-    await lzDb.mekanlar.update(m.id!, { paylasan, sourceUrl: url, platform: platformBul(url), paylasanYorumu: yorum, reklam: reklam || undefined })
+    await lzDb.mekanlar.update(m.id!, { paylasan, sourceUrl: url, platform: link.platform, paylasanYorumu: yorum, reklam: reklam || undefined })
     return
   }
-  const yeni: LzPaylasim = { paylasan, url, platform: platformBul(url), yorum, reklam: reklam || undefined, zaman: Date.now() }
-  await lzDb.mekanlar.update(m.id!, { paylasimlar: [...(m.paylasimlar ?? []), yeni] })
+  if (paylasan && m.paylasan && ayniKisi(paylasan, m.paylasan)) {
+    await lzDb.mekanlar.update(m.id!, { ekLinkler: [...(m.ekLinkler ?? []), link] })
+    return
+  }
+  const liste = [...(m.paylasimlar ?? [])]
+  const i = paylasan ? liste.findIndex((p) => ayniKisi(p.paylasan, paylasan)) : -1
+  if (i >= 0) liste[i] = { ...liste[i], ekLinkler: [...(liste[i].ekLinkler ?? []), link], yorum: liste[i].yorum ?? yorum }
+  else liste.push({ paylasan, ...link, yorum, reklam: reklam || undefined, zaman: Date.now() })
+  await lzDb.mekanlar.update(m.id!, { paylasimlar: liste })
 }
 
 // Paylasilan linkten (Instagram, TikTok, YouTube, Google Maps…) mekan kaydi olusturur.

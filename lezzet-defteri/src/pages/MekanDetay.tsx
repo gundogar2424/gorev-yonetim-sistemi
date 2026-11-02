@@ -165,6 +165,22 @@ export default function MekanDetay() {
                 {m.reklam && <ReklamRozeti />}
               </span>
               {m.reklam && <span className="block text-[11.5px] text-amber-700 dark:text-amber-300">Bu paylaşım reklam / iş birliği olarak işaretli</span>}
+              {(m.ekLinkler ?? []).length > 0 && (
+                <span className="flex gap-1.5 mt-1 flex-wrap">
+                  {m.ekLinkler!.map((l, j) => (
+                    <button
+                      key={j}
+                      className="rounded-full bg-[#f3f3f1] dark:bg-[#26262a] px-2.5 py-1 text-[11.5px] font-semibold"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        ac(l.url)
+                      }}
+                    >
+                      Ayrıca {PLATFORM[l.platform] ?? 'paylaşım'} ›
+                    </button>
+                  ))}
+                </span>
+              )}
             </span>
             </Link>
             {takipEdiliyor(m.paylasan) ? (
@@ -202,9 +218,11 @@ export default function MekanDetay() {
                     ) : (
                       <span className={`flex-1 text-[14px] ${T_SOLUK}`}>Bir paylaşım</span>
                     )}
-                    <button className="lz-btn-soft px-3 py-1.5 text-[12.5px] whitespace-nowrap" onClick={() => ac(p.url)}>
-                      {PLATFORM[p.platform] ?? 'Paylaşım'} ›
-                    </button>
+                    {[{ url: p.url, platform: p.platform }, ...(p.ekLinkler ?? [])].map((l, j) => (
+                      <button key={j} className="lz-btn-soft px-3 py-1.5 text-[12.5px] whitespace-nowrap" onClick={() => ac(l.url)}>
+                        {PLATFORM[l.platform] ?? 'Paylaşım'} ›
+                      </button>
+                    ))}
                   </div>
                   {p.yorum?.yedi && (
                     <p className={`text-[13px] ${T_GOVDE}`}>
