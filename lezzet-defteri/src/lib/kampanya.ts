@@ -6,6 +6,7 @@ import { useSyncExternalStore } from 'react'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { aiMekanKampanya, apiAnahtari } from './ai'
+import { mesafeKm } from './mekan'
 
 const KEY_SON = 'lz-kampanya-son'
 const EN_FAZLA = 15 // bir kontrolde en fazla bu kadar mekana bakilir (maliyet)
@@ -100,10 +101,14 @@ export function yerelKampanya(m: LzMekan): string {
 
 // Kontrol edilecek mekanlar: once paylasiminda kampanya izi olanlar, sonra favoriler, gitmek istediklerin
 // ve en uzun suredir bakilmayanlar (her seferinde en fazla EN_FAZLA mekan)
-async function hedefMekanlar(): Promise<LzMekan[]> {
+// Konum biliniyorsa en yakin mekanlardan baslanir (uzaklik 1 km'lik dilimlerle; ayni dilimde favori/istek once)
+async function hedefMekanlar(konum?: { lat: number; lon: number }): Promise<LzMekan[]> {
   const hepsi = await lzDb.mekanlar.toArray()
   const oncelik = (m: LzMekan) => (yerelKampanya(m) ? 0 : m.favori ? 1 : m.gitmekIstiyorum ? 2 : 3)
-  return hepsi.sort((a, b) => oncelik(a) - oncelik(b) || (a.kampanyaBakildi ?? 0) - (b.kampanyaBakildi ?? 0)).slice(0, EN_FAZLA)
+  const dilim = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? Math.floor(mesafeKm(konum, { lat: m.lat, lon: m.lon })) : 1e6)
+  return hepsi
+    .sort((a, b) => (konum ? dilim(a) - dilim(b) : 0) || oncelik(a) - oncelik(b) || (a.kampanyaBakildi ?? 0) - (b.kampanyaBakildi ?? 0))
+    .slice(0, EN_FAZLA)
 }
 
 // Paylasimda gecen kampanyalar kredi harcamadan isaretlenir
@@ -118,11 +123,11 @@ async function yerelleriIsaretle(): Promise<LzMekan[]> {
   return bulunan
 }
 
-export async function kampanyaKontrolEt(): Promise<{ bakilan: number; bulunan: LzMekan[] }> {
+export async function kampanyaKontrolEt(konum?: { lat: number; lon: number }): Promise<{ bakilan: number; bulunan: LzMekan[] }> {
   if (durum.calisiyor) return { bakilan: 0, bulunan: [] }
   if (!apiAnahtari()) throw new Error('Kampanya araştırması için Ayarlar’dan Gemini anahtarı gir.')
   const bulunan: LzMekan[] = await yerelleriIsaretle()
-  const liste = await hedefMekanlar()
+  const liste = await hedefMekanlar(konum)
   durumYaz({ calisiyor: true, mesaj: `${liste.length} mekanın kampanyalarına bakılıyor…` })
   try {
     for (let i = 0; i < liste.length; i++) {

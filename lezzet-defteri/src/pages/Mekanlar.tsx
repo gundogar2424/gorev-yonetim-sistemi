@@ -478,7 +478,7 @@ function KampanyaKarti({ liste, konum }: { liste: LzMekan[]; konum: Konum | null
           setSonuc('')
           void bildirimIzniIste()
           try {
-            const r = await kampanyaKontrolEt()
+            const r = await kampanyaKontrolEt(konum ?? undefined)
             setSonuc(r.bulunan.length ? `${r.bulunan.length} mekanda kampanya bulundu.` : `${r.bakilan} mekana bakıldı, şu an kampanya bulunamadı.`)
           } catch (e) {
             setSonuc((e as Error).message)
@@ -488,7 +488,7 @@ function KampanyaKarti({ liste, konum }: { liste: LzMekan[]; konum: Konum | null
         {d.calisiyor ? d.mesaj : 'Kampanyaları kontrol et'}
       </button>
       <p className={`text-[12px] ${T_SOLUK}`}>
-        {favSayisi ? `${Math.min(favSayisi, 15)} favori mekanının` : 'Mekanlarının'} önümüzdeki 7 gündeki (hafta sonu dahil) kampanya, indirim ve etkinliklerine
+        {konum ? 'Sana en yakın 15 mekanın' : favSayisi ? `${Math.min(favSayisi, 15)} favori mekanının` : 'Mekanlarının'} önümüzdeki 7 gündeki (hafta sonu dahil) kampanya, indirim ve etkinliklerine
         yapay zeka Google’da bakar; bulursa bildirim gelir.{son ? ` Son kontrol: ${new Date(son).toLocaleDateString('tr')}.` : ''}
       </p>
       {sonuc && <p className={`text-[13px] font-medium ${T_GOVDE}`}>{sonuc}</p>}
