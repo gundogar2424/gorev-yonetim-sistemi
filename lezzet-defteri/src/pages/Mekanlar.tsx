@@ -147,6 +147,9 @@ export default function Mekanlar() {
             <Icon name="pin" className="w-[18px] h-[18px]" /> Yemek gezisi
           </Link>
         </div>
+        <Link to="/harita" className="lz-btn-soft w-full text-[14px]">
+          <Icon name="pin" className="w-[18px] h-[18px]" /> Mekanlarımı haritada gör
+        </Link>
         <Buradayim />
         <Link to="/takip" className="lz-card p-3.5 flex items-center gap-3">
           <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">

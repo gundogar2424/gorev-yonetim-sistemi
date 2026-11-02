@@ -19,6 +19,7 @@ import TarifDegistir from './pages/TarifDegistir'
 import Mekanlar from './pages/Mekanlar'
 import MekanDetay from './pages/MekanDetay'
 import GeziPlani from './pages/GeziPlani'
+import Harita from './pages/Harita'
 import MekanOner from './pages/MekanOner'
 import HypeTarifler from './pages/HypeTarifler'
 import Takip from './pages/Takip'
@@ -104,6 +105,7 @@ export default function LzApp() {
           <Route path="/mekanlar" element={<Mekanlar />} />
           <Route path="/mekan/:id" element={<MekanDetay />} />
           <Route path="/gezi" element={<GeziPlani />} />
+          <Route path="/harita" element={<Harita />} />
           <Route path="/oner" element={<MekanOner />} />
           <Route path="/hype" element={<HypeTarifler />} />
           <Route path="/takip" element={<Takip />} />
