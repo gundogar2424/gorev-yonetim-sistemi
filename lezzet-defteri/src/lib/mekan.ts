@@ -126,13 +126,43 @@ async function yerBul(m: Pick<LzMekan, 'ad' | 'adres' | 'ilce' | 'sehir'>, ai?: 
   return { kaynak: '' }
 }
 
-export async function ayniMekan(m: { ad: string; sehir: string; sourceUrl?: string }): Promise<LzMekan | undefined> {
+// Ayni mekan mi: ayni link; ya da adlar ayni / biri digerini iceriyor ("Kaya Pide" ~ "Kaya Pide & Kebap")
+// ve sehir uyusuyor (biri bossa da olur) ya da haritada 300 m'den yakinlar
+export async function ayniMekan(m: { ad: string; sehir: string; sourceUrl?: string; lat?: number; lon?: number }): Promise<LzMekan | undefined> {
   const hepsi = await lzDb.mekanlar.toArray()
   const t = m.sourceUrl ? temelLink(m.sourceUrl) : ''
-  const ad = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
-  return hepsi.find(
-    (x) => (t && x.sourceUrl && temelLink(x.sourceUrl) === t) || (ad(x.ad) && ad(x.ad) === ad(m.ad) && ad(x.sehir) === ad(m.sehir))
+  const ad = (x: string) =>
+    x
+      .toLocaleLowerCase('tr')
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/(?<!\p{L})(restoran|restaurant|cafe|kafe|lokantas[ıi]|şubesi|subesi)(?!\p{L})/gu, ' ')
+      .replace(/[^\p{L}\p{N}]+/gu, '')
+  const ikisiKonumlu = (x: LzMekan) => m.lat !== undefined && m.lon !== undefined && x.lat !== undefined && x.lon !== undefined
+  const yakin = (x: LzMekan) => ikisiKonumlu(x) && mesafeKm({ lat: m.lat!, lon: m.lon! }, { lat: x.lat!, lon: x.lon! }) < 0.3
+  const sehirUyar = (x: LzMekan) => ad(x.sehir) === ad(m.sehir) || !x.sehir || !m.sehir
+  const ayniAd = (x: LzMekan) => !!ad(x.ad) && ad(x.ad) === ad(m.ad)
+  // Biri digerini iceriyorsa yanlis eslesmesin diye ("Köfteci" / "Hakiki Köfteci") yer de tutmali
+  const icerir = (x: LzMekan) => {
+    const a = ad(x.ad)
+    const b = ad(m.ad)
+    return Math.min(a.length, b.length) >= 5 && (a.includes(b) || b.includes(a))
+  }
+  return (
+    (t ? hepsi.find((x) => x.sourceUrl && temelLink(x.sourceUrl) === t) : undefined) ??
+    hepsi.find((x) => ayniAd(x) && (sehirUyar(x) || yakin(x))) ??
+    hepsi.find((x) => icerir(x) && (yakin(x) || (!ikisiKonumlu(x) && !!x.sehir && ad(x.sehir) === ad(m.sehir))))
   )
+}
+
+// Ayni mekan baska bir paylasimdan (baska influencer / platform) tekrar gelince: yenisi acilmaz,
+// eskisine "Ayrıca paylaşan" notu eklenir
+async function ikinciPaylasimiEkle(m: LzMekan, url: string, paylasan: string): Promise<void> {
+  if (!url || (m.sourceUrl && temelLink(m.sourceUrl) === temelLink(url)) || m.notlar.includes(temelLink(url))) return
+  const satir = `Ayrıca paylaşan: ${paylasan || 'bir paylaşım'} — ${temelLink(url)}`
+  const ek: Partial<LzMekan> = { notlar: [m.notlar, satir].filter(Boolean).join('\n') }
+  if (!m.paylasan && paylasan) ek.paylasan = paylasan
+  if (!m.sourceUrl) Object.assign(ek, { sourceUrl: url, platform: platformBul(url) })
+  await lzDb.mekanlar.update(m.id!, ek)
 }
 
 // Paylasilan linkten (Instagram, TikTok, YouTube, Google Maps…) mekan kaydi olusturur.
@@ -254,8 +284,11 @@ export async function mekanLinktenEkle(
     hesapTakipEt(paylasan, url ? PLATFORM_AD[platformBul(url)] : '', true)
     void hesapFotoGetir(paylasan, video?.yazarFoto ?? '')
   }
-  const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir })
-  if (ayni) return { id: ayni.id!, yeni: false, digerleri }
+  const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir, lat: koord?.lat ?? (b.enlem || undefined), lon: koord?.lon ?? (b.boylam || undefined) })
+  if (ayni) {
+    if (url) await ikinciPaylasimiEkle(ayni, url, paylasan)
+    return { id: ayni.id!, yeni: false, digerleri }
+  }
   ilerleme('Mekanın haritadaki yeri bulunuyor…')
   const yer = koord ? { k: koord, kaynak: 'harita' as const } : await yerBul(b, { lat: b.enlem || 0, lon: b.boylam || 0 })
   // Google Haritalar anahtari varsa mekanin kesin kaydi oradan alinir
