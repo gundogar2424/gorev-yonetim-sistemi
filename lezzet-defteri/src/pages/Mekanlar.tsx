@@ -60,9 +60,10 @@ export default function Mekanlar() {
     }
   }
 
-  // Ekran acilinca konum kendiliginden alinir (ilk seferde telefon izin sorar)
+  // Ekran her acildiginda guncel konum alinir (izin bir kez sorulur); eskisi beklerken gosterilir.
+  // Elle yazilan semt varsa ona dokunulmaz.
   useEffect(() => {
-    if (!sonKonum) void konumuAl()
+    if (!sonKonum || sonKonum.ad === 'Bulunduğun yer') void konumuAl()
   }, [])
 
   const semtBul = async () => {
@@ -218,7 +219,7 @@ export default function Mekanlar() {
           </span>
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
         </Link>
-        <KampanyaKarti liste={liste} />
+        <KampanyaKarti liste={liste} konum={konum} />
         {/* Nerede oldugun */}
         <div className="lz-card p-4 space-y-2.5">
           <div className={`font-semibold ${T_BASLIK}`}>{konum ? `Konum: ${konum.ad ?? 'Bulunduğun yer'}` : 'Neredesin?'}</div>
@@ -457,10 +458,14 @@ export function YakinMekanSeridi() {
 }
 
 // Kampanyalar: dugmeye basinca favori (yoksa tum) mekanlarin guncel kampanyalarina bakilir
-function KampanyaKarti({ liste }: { liste: LzMekan[] }) {
+function KampanyaKarti({ liste, konum }: { liste: LzMekan[]; konum: Konum | null }) {
   const [sonuc, setSonuc] = useState('')
   const d = useKampanyaDurumu()
-  const kampanyali = liste.filter((m) => m.kampanya && Date.now() - m.kampanya.zaman < 7 * 24 * 3600 * 1000)
+  // Kampanyalar bulundugum yerden uzaga dogru (konumu olmayanlar en sonda)
+  const uzaklik = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
+  const kampanyali = liste
+    .filter((m) => m.kampanya && Date.now() - m.kampanya.zaman < 7 * 24 * 3600 * 1000)
+    .sort((a, b) => (uzaklik(a) ?? 1e9) - (uzaklik(b) ?? 1e9))
   const favSayisi = liste.filter((m) => m.favori).length
   if (!liste.length) return null
   const son = sonKontrol()
@@ -489,6 +494,7 @@ function KampanyaKarti({ liste }: { liste: LzMekan[] }) {
       {sonuc && <p className={`text-[13px] font-medium ${T_GOVDE}`}>{sonuc}</p>}
       {kampanyali.map((m) => (
         <Link key={m.id} to={`/mekan/${m.id}`} className="block rounded-2xl bg-emerald-50 dark:bg-[#10261e] text-emerald-900 dark:text-emerald-200 text-[13.5px] p-3">
+          {uzaklik(m) !== undefined && <span className="float-right ml-2 text-[12px] font-semibold">{mesafeYaz(uzaklik(m)!)}</span>}
           <b>{m.ad}</b>: {m.kampanya!.ozet}
           {m.kampanya!.gecerlilik ? ` (${m.kampanya!.gecerlilik})` : ''}
         </Link>
