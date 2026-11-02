@@ -421,3 +421,28 @@ export async function youtubeDogrula(url: string, kanal = ''): Promise<boolean> 
     return false
   }
 }
+
+// Yapay zekanin verdigi paylasim linki gercekten o kisinin mi (uydurma link acilmasin):
+// YouTube ve TikTok herkese acik oEmbed ile, Instagram onizleme sayfasindaki hesap adiyla kontrol edilir
+export async function paylasimDogrula(url: string, kisi: string): Promise<boolean> {
+  if (/youtu/.test(url)) return youtubeDogrula(url, kisi)
+  const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/^@/, '').replace(/\s*\([^)]*\)$/, '').replace(/[^\p{L}\p{N}]+/gu, '')
+  const k = sade(kisi)
+  try {
+    const { metinIndir, UA_BOT } = await import('./importer')
+    if (/tiktok\.com/.test(url)) {
+      const j = JSON.parse(await metinIndir(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, UA_BOT)) as { author_unique_id?: string; author_name?: string }
+      const a = sade(`${j.author_unique_id ?? ''}`) || sade(j.author_name ?? '')
+      return !!a && (!k || a.includes(k) || k.includes(a))
+    }
+    if (/instagram\.com/.test(url)) {
+      const h = (await metinIndir(url, UA_BOT)).toLocaleLowerCase('tr')
+      // Silinmis / uydurma gonderide onizleme bilgisi gelmez
+      if (!/og:(title|description)/.test(h)) return false
+      return !k || sade(h).includes(k)
+    }
+  } catch {
+    return false
+  }
+  return false
+}

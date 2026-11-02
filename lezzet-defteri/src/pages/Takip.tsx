@@ -8,7 +8,7 @@ import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { adayReddet, adaylar, hesapBirak, hesapFoto, hesapFotoGetir, hesapNormal, hesapTakipEt, hesaplariOku, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { oneriKaydet } from '../lib/mekan'
 import { PLATFORM_AD } from '../lib/importer'
-import { youtubeDogrula } from '../lib/video'
+import { paylasimDogrula } from '../lib/video'
 
 // "En beğenilen + Google onaylı": paylaşımı çok beğeni/olumlu yorum almış VE Google puanı yüksek yerler
 export const BEGENI_KURALI =
@@ -54,14 +54,15 @@ function onerininHesabi(o: MekanOnerisi, hesap: string): string {
 // YouTube linki acmadan once dogrulanir; Instagram linki dogrulanamadigi icin fenomenin profili acilir.
 async function paylasimiAc(o: MekanOnerisi, kisi: string): Promise<void> {
   const { ad, platform } = hesapParca(kisi || o.paylasan || '')
-  const yt = o.paylasim && /youtu/.test(o.paylasim) ? o.paylasim : ''
-  if (yt && (await youtubeDogrula(yt, ad))) return void window.open(yt, '_blank')
+  // Video / gonderi linki varsa ve gercekten o kisinin paylasimiysa dogrudan o acilir
+  if (o.paylasim && (await paylasimDogrula(o.paylasim, ad))) return void window.open(o.paylasim, '_blank')
   if (ad.startsWith('@') && !/youtube/i.test(platform)) return void window.open(`https://www.instagram.com/${ad.slice(1)}/`, '_blank')
   window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(`${ad} ${o.ad}`)}`, '_blank')
 }
 function paylasimEtiketi(o: MekanOnerisi, kisi: string): string {
+  if (o.paylasim) return /youtu/.test(o.paylasim) ? 'YouTube’da izle' : /tiktok/.test(o.paylasim) ? 'TikTok’ta izle' : 'Instagram’da izle'
   const { ad, platform } = hesapParca(kisi || o.paylasan || '')
-  return ad.startsWith('@') && !/youtube/i.test(platform) ? 'Instagram’ını aç' : 'YouTube’da izle'
+  return ad.startsWith('@') && !/youtube/i.test(platform) ? 'Instagram’ını aç' : 'YouTube’da bul'
 }
 
 // Fenomenin son gittigi, henuz kayitli olmayan yerler
