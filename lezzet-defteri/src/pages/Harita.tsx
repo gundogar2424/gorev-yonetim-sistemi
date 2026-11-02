@@ -57,11 +57,31 @@ export default function Harita() {
   useEffect(() => {
     if (!kutu.current || harita.current) return
     const h = L.map(kutu.current, { zoomControl: true, attributionControl: true }).setView([39.0, 35.0], 6)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '© OpenStreetMap · © CARTO'
-    }).addTo(h)
+    // Harita altligi: biri telefonda acilmazsa (engel / hata) siradakine gecilir
+    const altliklar: [string, L.TileLayerOptions][] = [
+      ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '© Esri · OpenStreetMap' }],
+      ['https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap · © CARTO' }],
+      ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }]
+    ]
+    let sira = 0
+    let hata = 0
+    let yuklendi = false
+    const kur = (): L.TileLayer => {
+      const [url, ayar] = altliklar[sira]
+      const t = L.tileLayer(url, ayar)
+      t.on('tileload', () => (yuklendi = true))
+      t.on('tileerror', () => {
+        if (yuklendi || ++hata < 4 || sira >= altliklar.length - 1) return
+        sira++
+        hata = 0
+        h.removeLayer(t)
+        kur()
+      })
+      return t.addTo(h)
+    }
+    kur()
+    // Sayfa yerlesince boyut yeniden olculur (yoksa harita kismen gri kalir)
+    setTimeout(() => h.invalidateSize(), 300)
     katman.current = L.layerGroup().addTo(h)
     harita.current = h
     // Noktadaki "Aç" baglantisi uygulama icinde mekan sayfasina gider
