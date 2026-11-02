@@ -183,6 +183,41 @@ export default function MekanDetay() {
             )}
           </div>
         )}
+        {(m.paylasimlar ?? []).length > 0 && (
+          <div className="lz-card p-4 space-y-2.5">
+            <div className={`font-semibold ${T_BASLIK}`}>Başka paylaşanlar da var · {m.paylasimlar!.length}</div>
+            {m.paylasimlar!.map((p, i) => {
+              const anahtar = hesaplariOku().find((x) => hesapNormal(x) === hesapNormal(p.paylasan)) ?? (p.paylasan.startsWith('@') || !PLATFORM_AD[p.platform] ? p.paylasan : `${p.paylasan} (${PLATFORM_AD[p.platform]})`)
+              return (
+                <div key={i} className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1.5">
+                  <div className="flex items-center gap-2.5">
+                    {p.paylasan ? (
+                      <Link to={`/influencer/${encodeURIComponent(anahtar)}`} className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <KisiAvatar ad={hesapNormal(p.paylasan)} foto={hesapFoto(anahtar)} className="w-8 h-8 text-[12px]" />
+                        <span className={`font-semibold text-[14px] truncate ${T_BASLIK}`}>
+                          {p.paylasan}
+                          {p.reklam && <ReklamRozeti />}
+                        </span>
+                      </Link>
+                    ) : (
+                      <span className={`flex-1 text-[14px] ${T_SOLUK}`}>Bir paylaşım</span>
+                    )}
+                    <button className="lz-btn-soft px-3 py-1.5 text-[12.5px] whitespace-nowrap" onClick={() => ac(p.url)}>
+                      {PLATFORM[p.platform] ?? 'Paylaşım'} ›
+                    </button>
+                  </div>
+                  {p.yorum?.yedi && (
+                    <p className={`text-[13px] ${T_GOVDE}`}>
+                      <b>Denediği:</b> {p.yorum.yedi}
+                    </p>
+                  )}
+                  {(p.yorum?.karar || p.yorum?.begendi) && <p className={`text-[13px] ${T_GOVDE}`}>“{p.yorum.karar || p.yorum.begendi}”</p>}
+                  {p.yorum?.begenmedi && <p className={`text-[12.5px] ${T_SOLUK}`}>Beğenmediği: {p.yorum.begenmedi}</p>}
+                </div>
+              )
+            })}
+          </div>
+        )}
         {m.sourceUrl && ['instagram', 'tiktok', 'youtube'].includes(m.platform) && apiAnahtari() && (
           <button
             className="lz-btn-soft w-full text-[13.5px]"

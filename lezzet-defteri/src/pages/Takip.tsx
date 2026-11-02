@@ -35,7 +35,10 @@ export function hesapParca(h: string): { ad: string; platform: string } {
   return { ad: h.replace(/\s*\([^)]*\)$/, ''), platform: h.match(/\(([^)]*)\)$/)?.[1] ?? (h.startsWith('@') ? 'Instagram / TikTok' : '') }
 }
 export function onunMekanlari(mekanlar: LzMekan[], h: string): LzMekan[] {
-  return mekanlar.filter((m) => m.paylasan && hesapNormal(m.paylasan) === hesapNormal(h)).sort((a, b) => b.createdAt - a.createdAt)
+  const n = hesapNormal(h)
+  return mekanlar
+    .filter((m) => (m.paylasan && hesapNormal(m.paylasan) === n) || (m.paylasimlar ?? []).some((p) => p.paylasan && hesapNormal(p.paylasan) === n))
+    .sort((a, b) => b.createdAt - a.createdAt)
 }
 
 // Onerinin hangi takip edilen hesaptan geldigi: yapay zekanin yazdigi ad ya da populerlik metnindeki ad

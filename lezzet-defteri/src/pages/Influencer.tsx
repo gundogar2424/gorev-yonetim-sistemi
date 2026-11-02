@@ -240,9 +240,11 @@ export default function Influencer() {
                   {m.reklam && <ReklamRozeti />}
                 </span>
                 <span className={`block text-[12px] ${T_SOLUK}`}>{[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}</span>
-                {(m.paylasanYorumu?.karar || m.paylasanYorumu?.begendi) && (
-                  <span className={`block text-[12.5px] mt-0.5 ${T_GOVDE}`}>“{m.paylasanYorumu.karar || m.paylasanYorumu.begendi}”</span>
-                )}
+                {(() => {
+                  // Bu kisi mekani ikinci paylasan olabilir: onun kendi yorumu
+                  const y = m.paylasan && hesapNormal(m.paylasan) === hesapNormal(h) ? m.paylasanYorumu : m.paylasimlar?.find((p) => hesapNormal(p.paylasan) === hesapNormal(h))?.yorum
+                  return y && (y.karar || y.begendi) ? <span className={`block text-[12.5px] mt-0.5 ${T_GOVDE}`}>“{y.karar || y.begendi}”</span> : null
+                })()}
               </span>
               <span className={`text-[12px] font-semibold mt-0.5 ${m.gidildi ? 'text-emerald-600' : T_SOLUK}`}>{m.gidildi ? 'Gittin' : 'Gitmedin'}</span>
             </Link>

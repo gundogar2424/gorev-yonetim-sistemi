@@ -2,7 +2,7 @@
 // paylasimda olmasa da arastirilarak bulunur. Kullanici bir bolgedeyken
 // (telefon konumu ya da yazdigi semt) yakindaki kayitli mekanlar onerilir.
 import { lzDb } from '../db'
-import type { LzMekan } from '../types'
+import type { LzPaylasim, LzMekan } from '../types'
 import { instagramAdi, reklamMetni, aiMekanAyikla, aiMekanFiyatlari, aiMekanPuan, apiAnahtari, puanTemizle, type DigerMekan, type MekanOnerisi, type PaylasanYorumu, type VideoParcalari } from './ai'
 import { mekanIcinTopla } from './pipeline'
 import { googleMekanAra, googleMekanGetir, placesAnahtari, type GoogleMekan } from './places'
@@ -155,14 +155,18 @@ export async function ayniMekan(m: { ad: string; sehir: string; sourceUrl?: stri
 }
 
 // Ayni mekan baska bir paylasimdan (baska influencer / platform) tekrar gelince: yenisi acilmaz,
-// eskisine "Ayrıca paylaşan" notu eklenir
-async function ikinciPaylasimiEkle(m: LzMekan, url: string, paylasan: string): Promise<void> {
-  if (!url || (m.sourceUrl && temelLink(m.sourceUrl) === temelLink(url)) || m.notlar.includes(temelLink(url))) return
-  const satir = `Ayrıca paylaşan: ${paylasan || 'bir paylaşım'} — ${temelLink(url)}`
-  const ek: Partial<LzMekan> = { notlar: [m.notlar, satir].filter(Boolean).join('\n') }
-  if (!m.paylasan && paylasan) ek.paylasan = paylasan
-  if (!m.sourceUrl) Object.assign(ek, { sourceUrl: url, platform: platformBul(url) })
-  await lzDb.mekanlar.update(m.id!, ek)
+// paylasim (kim, ne yedi, ne dedi, video linki) mekanin "Diger paylasimlar" listesine eklenir
+async function ikinciPaylasimiEkle(m: LzMekan, url: string, paylasan: string, yorum?: LzPaylasim['yorum'], reklam?: boolean): Promise<void> {
+  if (!url) return
+  const t = temelLink(url)
+  if ((m.sourceUrl && temelLink(m.sourceUrl) === t) || (m.paylasimlar ?? []).some((p) => temelLink(p.url) === t)) return
+  // Ilk kayitta paylasan yoksa bu paylasim "asil" paylasim olur
+  if (!m.paylasan && paylasan && !m.sourceUrl) {
+    await lzDb.mekanlar.update(m.id!, { paylasan, sourceUrl: url, platform: platformBul(url), paylasanYorumu: yorum, reklam: reklam || undefined })
+    return
+  }
+  const yeni: LzPaylasim = { paylasan, url, platform: platformBul(url), yorum, reklam: reklam || undefined, zaman: Date.now() }
+  await lzDb.mekanlar.update(m.id!, { paylasimlar: [...(m.paylasimlar ?? []), yeni] })
 }
 
 // Paylasilan linkten (Instagram, TikTok, YouTube, Google Maps…) mekan kaydi olusturur.
@@ -286,7 +290,7 @@ export async function mekanLinktenEkle(
   }
   const ayni = await ayniMekan({ ad: b.ad, sehir: b.sehir, lat: koord?.lat ?? (b.enlem || undefined), lon: koord?.lon ?? (b.boylam || undefined) })
   if (ayni) {
-    if (url) await ikinciPaylasimiEkle(ayni, url, paylasan)
+    if (url) await ikinciPaylasimiEkle(ayni, url, paylasan, yorumTemizle(b.paylasan_yorumu), b.reklam === true || reklamMetni(metin))
     return { id: ayni.id!, yeni: false, digerleri }
   }
   ilerleme('Mekanın haritadaki yeri bulunuyor…')

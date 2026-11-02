@@ -153,6 +153,7 @@ export interface LzMekan {
   reklam?: boolean // paylasim reklam / is birligi olarak isaretli
   gitmekIstiyorum?: boolean // "Gitmek istediğim yerler" listesinde (ziyaret eklenince duser)
   paylasanYorumu?: { yedi: string; begendi: string; begenmedi: string; karar: string } // paylasan (influencer) ne dedi
+  paylasimlar?: LzPaylasim[] // ayni mekani paylasan diger influencer'lar (ilk paylasan paylasan alaninda)
   hype?: { var: boolean; not: string; zaman: number } // son "sosyal medyada konusuluyor mu" kontrolu
   googleId?: string // Google Haritalar kaydi (Places)
   paylasan?: string // Paylasimi yapan hesap (@…)
@@ -179,5 +180,15 @@ export interface LzEtkilesim {
   yorum: number
   izlenme: number
   puan: number // 1-10; 0 = okunamadi
+  zaman: number
+}
+
+// Ayni mekanin baska bir paylasimi (baska influencer / platform)
+export interface LzPaylasim {
+  paylasan: string
+  url: string
+  platform: LzPlatform
+  yorum?: { yedi: string; begendi: string; begenmedi: string; karar: string }
+  reklam?: boolean
   zaman: number
 }
