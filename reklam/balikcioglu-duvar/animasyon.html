@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Balıkçıoğlu Duvar</title>
+<style>
+  :root { --bg: #14202a; }
+  html, body { margin: 0; height: 100%; background: var(--bg); }
+  body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  svg { height: 100vh; max-width: 100vw; aspect-ratio: 9 / 16; display: block; }
+  body.capture svg { width: 540px; height: 960px; }
+  text { font-family: Inter, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<svg id="s" viewBox="0 0 540 960" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- dokular -->
+  <filter id="rough" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="4" seed="4" result="n"/>
+    <feDiffuseLighting in="n" lighting-color="#fff" surfaceScale="2.6" result="l"><feDistantLight azimuth="235" elevation="50"/></feDiffuseLighting>
+    <feComposite in="l" in2="SourceGraphic" operator="arithmetic" k1="1.35" k2="0" k3="0" k4="0" result="lit"/>
+    <feComposite in="lit" in2="SourceAlpha" operator="in"/>
+  </filter>
+  <filter id="stoneDrop" x="-5%" y="-5%" width="110%" height="115%"><feDropShadow dx="1.5" dy="2.5" stdDeviation="1.4" flood-color="#000" flood-opacity=".65"/></filter>
+  <filter id="wood" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9 0.012" numOctaves="3" seed="8" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 .22  0 0 0 0 .12  0 0 0 0 .05  -1.5 0 0 0 1.05" result="g"/>
+    <feComposite in="g" in2="SourceAlpha" operator="in" result="g2"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="g2"/></feMerge>
+  </filter>
+  <filter id="woodH" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.006 0.35" numOctaves="3" seed="2" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 .3  0 0 0 0 .17  0 0 0 0 .07  -1.2 0 0 0 .85" result="g"/>
+    <feComposite in="g" in2="SourceAlpha" operator="in" result="g2"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="g2"/></feMerge>
+  </filter>
+  <filter id="felt" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="5" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .35 -.08" result="g"/>
+    <feComposite in="g" in2="SourceAlpha" operator="in" result="g2"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="g2"/></feMerge>
+  </filter>
+  <filter id="cloudy" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="4" seed="11" result="n"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 .55  0 0 0 0 .53  0 0 0 0 .5  1.4 0 0 0 -.62" result="g"/>
+    <feComposite in="g" in2="SourceAlpha" operator="in"/>
+  </filter>
+  <filter id="b1"><feGaussianBlur stdDeviation=".7"/></filter>
+  <filter id="b4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000" flood-opacity=".28"/></filter>
+  <filter id="cardSh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity=".35"/></filter>
+
+  <!-- renkler -->
+  <linearGradient id="wallG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9e3da"/><stop offset="1" stop-color="#d3ccc1"/></linearGradient>
+  <linearGradient id="ceilG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f1ec"/><stop offset="1" stop-color="#e6e1d9"/></linearGradient>
+  <linearGradient id="floorG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b6e46"/><stop offset="1" stop-color="#c49464"/></linearGradient>
+  <linearGradient id="aoW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+  <linearGradient id="aoF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+  <radialGradient id="spot" cx=".5" cy="0" r="1" fx=".5" fy="0"><stop offset="0" stop-color="#fff6dc" stop-opacity=".75"/><stop offset=".55" stop-color="#fff6dc" stop-opacity=".12"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></radialGradient>
+  <radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient>
+  <linearGradient id="slatG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8e5a30"/><stop offset=".4" stop-color="#c38a55"/><stop offset="1" stop-color="#7d4d27"/></linearGradient>
+  <linearGradient id="marbleG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbfaf7"/><stop offset=".6" stop-color="#efece6"/><stop offset="1" stop-color="#e2ddd5"/></linearGradient>
+  <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="glossStatic" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".55" stop-color="#fff" stop-opacity=".18"/><stop offset=".62" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="gDress" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3b93a6"/><stop offset=".55" stop-color="#2f7a8c"/><stop offset="1" stop-color="#22606e"/></linearGradient>
+  <linearGradient id="gShirt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4a82c0"/><stop offset=".55" stop-color="#3b6ea8"/><stop offset="1" stop-color="#2d578a"/></linearGradient>
+  <linearGradient id="gKid" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f7c54e"/><stop offset=".55" stop-color="#f2b632"/><stop offset="1" stop-color="#d99a1c"/></linearGradient>
+  <radialGradient id="gSkin" cx=".38" cy=".35" r=".75"><stop offset="0" stop-color="#f8d6b4"/><stop offset="1" stop-color="#e2b089"/></radialGradient>
+  <radialGradient id="glow"><stop offset="0" stop-color="#ffe680" stop-opacity=".9"/><stop offset="1" stop-color="#ffe680" stop-opacity="0"/></radialGradient>
+  <linearGradient id="storeWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3d4b"/><stop offset="1" stop-color="#1c2b36"/></linearGradient>
+  <linearGradient id="storeFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfc8bd"/><stop offset="1" stop-color="#ebe6de"/></linearGradient>
+</defs>
+
+<g id="cam">
+  <!-- ================= EV ================= -->
+  <g id="home">
+    <rect width="540" height="700" fill="url(#wallG)"/>
+    <rect width="540" height="150" fill="url(#ceilG)"/>
+    <rect y="146" width="540" height="10" fill="#f7f4ef"/><rect y="155" width="540" height="3" fill="#cfc7bb"/>
+    <g id="kayaW"></g>
+    <g id="akuW1"></g><g id="akuW2"></g>
+    <g id="merW"></g>
+    <rect y="560" width="540" height="128" fill="url(#aoW)"/>
+    <g id="homeSpots">
+      <ellipse cx="54" cy="160" rx="120" ry="420" fill="url(#spot)"/>
+      <ellipse cx="214" cy="160" rx="120" ry="420" fill="url(#spot)"/>
+      <ellipse cx="430" cy="160" rx="130" ry="420" fill="url(#spot)"/>
+    </g>
+    <g fill="#fff8e6"><ellipse cx="54" cy="140" rx="12" ry="3"/><ellipse cx="214" cy="140" rx="12" ry="3"/><ellipse cx="430" cy="140" rx="12" ry="3"/></g>
+    <rect y="688" width="540" height="14" fill="#f3eee6"/>
+    <g filter="url(#woodH)">
+      <rect y="702" width="540" height="258" fill="url(#floorG)"/>
+    </g>
+    <g stroke="#6e4b2c" stroke-width="1.5" opacity=".45">
+      <line x1="0" y1="752" x2="540" y2="752"/><line x1="0" y1="812" x2="540" y2="812"/><line x1="0" y1="882" x2="540" y2="882"/>
+      <line x1="150" y1="702" x2="150" y2="752"/><line x1="400" y1="702" x2="400" y2="752"/><line x1="270" y1="752" x2="270" y2="812"/><line x1="80" y1="812" x2="80" y2="882"/><line x1="460" y1="812" x2="460" y2="882"/><line x1="200" y1="882" x2="200" y2="960"/>
+    </g>
+    <rect y="702" width="540" height="40" fill="url(#aoF)"/>
+    <ellipse cx="270" cy="890" rx="225" ry="44" fill="#000" opacity=".12" filter="url(#b4)"/>
+    <ellipse cx="270" cy="885" rx="215" ry="40" fill="#efe6d6"/>
+    <ellipse cx="270" cy="885" rx="195" ry="31" fill="none" stroke="#c9b89c" stroke-width="2"/>
+    <g id="boxes">
+      <g id="bx1"><g transform="translate(330,770)" filter="url(#soft)"><rect x="-36" y="-34" width="72" height="38" rx="3" fill="#c9a46a"/><rect x="-36" y="-24" width="72" height="13" fill="#1f3a4d"/><text y="-14.2" font-size="8.5" font-weight="800" fill="#fff" text-anchor="middle">KAYA PANEL</text></g></g>
+      <g id="bx2"><g transform="translate(410,772)" filter="url(#soft)"><rect x="-36" y="-52" width="72" height="56" rx="3" fill="#c9a46a"/><rect x="-36" y="-36" width="72" height="13" fill="#1f3a4d"/><text y="-26.2" font-size="8.5" font-weight="800" fill="#fff" text-anchor="middle">AKUSTİK KEÇE</text></g></g>
+      <g id="bx3"><g transform="translate(480,776)" filter="url(#soft)"><rect x="-34" y="-30" width="68" height="34" rx="3" fill="#c9a46a"/><rect x="-34" y="-22" width="68" height="13" fill="#1f3a4d"/><text y="-12.2" font-size="8.5" font-weight="800" fill="#fff" text-anchor="middle">PVC MERMER</text></g></g>
+    </g>
+  </g>
+
+  <!-- ================= MAĞAZA ================= -->
+  <g id="store">
+    <rect width="540" height="960" fill="url(#storeWall)"/>
+    <rect y="0" width="540" height="40" fill="#15222c"/>
+    <g id="sign">
+      <rect x="70" y="128" width="400" height="84" rx="10" fill="#fff" opacity=".04"/>
+      <text x="270" y="176" font-size="44" font-weight="900" fill="#fff" text-anchor="middle" letter-spacing="1">BALIKÇIOĞLU</text>
+      <text x="270" y="202" font-size="12" font-weight="700" fill="#e9c27a" text-anchor="middle" letter-spacing="6">DUVAR DEKORASYON</text>
+    </g>
+    <ellipse cx="95" cy="232" rx="110" ry="430" fill="url(#spot)" opacity=".55"/>
+    <ellipse cx="250" cy="232" rx="110" ry="430" fill="url(#spot)" opacity=".55"/>
+    <ellipse cx="425" cy="232" rx="125" ry="430" fill="url(#spot)" opacity=".55"/>
+    <g id="sp1" filter="url(#soft)"></g><g id="sp2" filter="url(#soft)"></g><g id="sp3" filter="url(#soft)"></g>
+    <g id="tags"></g>
+    <rect y="700" width="540" height="260" fill="url(#storeFloor)"/>
+    <g stroke="#bdb5a8" stroke-width="1.5" opacity=".7">
+      <line x1="0" y1="760" x2="540" y2="760"/><line x1="0" y1="850" x2="540" y2="850"/>
+      <line x1="90" y1="700" x2="60" y2="960"/><line x1="210" y1="700" x2="200" y2="960"/><line x1="330" y1="700" x2="340" y2="960"/><line x1="450" y1="700" x2="480" y2="960"/>
+    </g>
+    <rect y="700" width="540" height="30" fill="url(#aoF)"/>
+  </g>
+
+  <g id="cart"><g id="cartPos">
+    <ellipse cx="0" cy="0" rx="48" ry="7" fill="#000" opacity=".25" filter="url(#b4)"/>
+    <path d="M40 -100 L54 -124" stroke="#444" stroke-width="5" stroke-linecap="round"/>
+    <g id="cb1"><rect x="-34" y="-128" width="30" height="34" rx="2" fill="#c9a46a"/><rect x="-34" y="-118" width="30" height="8" fill="#1f3a4d"/></g>
+    <g id="cb2"><rect x="0" y="-140" width="32" height="46" rx="2" fill="#c9a46a"/><rect x="0" y="-126" width="32" height="8" fill="#1f3a4d"/></g>
+    <g id="cb3"><rect x="-22" y="-156" width="36" height="26" rx="2" fill="#c9a46a"/><rect x="-22" y="-148" width="36" height="8" fill="#1f3a4d"/></g>
+    <path d="M-42 -100 L42 -100 L34 -40 L-34 -40Z" fill="#9aa3ab" fill-opacity=".25" stroke="#444" stroke-width="4.5" stroke-linejoin="round"/>
+    <line x1="-38" y1="-70" x2="38" y2="-70" stroke="#444" stroke-width="2.5"/>
+    <line x1="-34" y1="-40" x2="-30" y2="-14" stroke="#444" stroke-width="4"/><line x1="34" y1="-40" x2="30" y2="-14" stroke="#444" stroke-width="4"/>
+    <circle cx="-28" cy="-8" r="8" fill="#222"/><circle cx="28" cy="-8" r="8" fill="#222"/>
+  </g></g>
+
+  <g id="people"></g>
+
+  <!-- düşünce balonu -->
+  <g id="bubble">
+    <circle id="bdot1" cx="210" cy="600" r="7" fill="#fff"/>
+    <circle id="bdot2" cx="238" cy="565" r="11" fill="#fff"/>
+    <g id="cloud"><g transform="translate(350,420)" filter="url(#soft)">
+      <g fill="#fff">
+        <ellipse cx="0" cy="0" rx="150" ry="95"/>
+        <circle cx="-110" cy="-40" r="55"/><circle cx="-40" cy="-85" r="60"/><circle cx="50" cy="-85" r="58"/>
+        <circle cx="120" cy="-30" r="55"/><circle cx="100" cy="50" r="50"/><circle cx="-100" cy="50" r="50"/>
+      </g>
+      <rect x="-112" y="-82" width="224" height="146" rx="6" fill="#e3ddd3"/>
+      <g id="miniWall"></g>
+      <text x="0" y="90" font-size="15" font-weight="700" fill="#7a6a5a" text-anchor="middle">hayalimdeki duvar</text>
+    </g></g>
+  </g>
+
+  <g id="bulb"><g id="bulbPos">
+    <circle r="60" fill="url(#glow)"/>
+    <g stroke="#f2b632" stroke-width="4" stroke-linecap="round">
+      <line x1="0" y1="-40" x2="0" y2="-52"/><line x1="34" y1="-24" x2="44" y2="-32"/><line x1="-34" y1="-24" x2="-44" y2="-32"/><line x1="40" y1="6" x2="52" y2="6"/><line x1="-40" y1="6" x2="-52" y2="6"/>
+    </g>
+    <circle r="24" fill="#ffd84a"/><rect x="-11" y="20" width="22" height="16" rx="3" fill="#8e949b"/>
+  </g></g>
+</g>
+
+<!-- ================= ARAYÜZ ================= -->
+<rect width="540" height="960" fill="url(#vig)" pointer-events="none"/>
+
+<g id="price"><g transform="translate(330,330) rotate(-4)" filter="url(#cardSh)">
+  <rect x="-150" y="-90" width="300" height="180" rx="18" fill="#fff"/>
+  <rect x="-150" y="-90" width="300" height="44" rx="18" fill="#1f3a4d"/><rect x="-150" y="-60" width="300" height="14" fill="#1f3a4d"/>
+  <text y="-61" font-size="16" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="3">USTA TEKLİFİ</text>
+  <text y="28" font-size="58" font-weight="900" fill="#1f3a4d" text-anchor="middle">18.500 ₺</text>
+  <text y="64" font-size="14" font-weight="500" fill="#6b625a" text-anchor="middle">malzeme + işçilik</text>
+</g></g>
+
+<g id="hearts"><path id="heart" d="M0 8 C-14 -2 -14 -14 -6 -14 C-2 -14 0 -10 0 -8 C0 -10 2 -14 6 -14 C14 -14 14 -2 0 8Z" fill="#e2574c"/></g>
+<g id="sparks" fill="#fff4c2">
+  <path class="sp" d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" data-x="60" data-y="420"/>
+  <path class="sp" d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" data-x="480" data-y="380"/>
+  <path class="sp" d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" data-x="210" data-y="470"/>
+  <path class="sp" d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" data-x="150" data-y="560"/>
+  <path class="sp" d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" data-x="420" data-y="560"/>
+  <path class="sp" d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" data-x="330" data-y="440"/>
+</g>
+
+<g id="cost"><g transform="translate(270,262)" filter="url(#cardSh)">
+  <rect x="-215" y="-140" width="430" height="280" rx="20" fill="#fff"/>
+  <text x="-190" y="-104" font-size="14" font-weight="800" fill="#1f3a4d" letter-spacing="2">BU DUVARIN MALİYETİ</text>
+  <g id="cr0"><text x="-190" y="-68" font-size="19" font-weight="700" fill="#9a918a">Usta teklifi</text><text x="190" y="-68" font-size="19" font-weight="700" fill="#9a918a" text-anchor="end">18.500 ₺</text>
+    <line id="strike" x1="-194" y1="-74" x2="194" y2="-74" stroke="#b3aaa1" stroke-width="2.5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></g>
+  <line x1="-190" y1="-48" x2="190" y2="-48" stroke="#e6e0d8" stroke-width="2"/>
+  <g id="cr1"><text x="-190" y="-16" font-size="18" font-weight="600" fill="#2b2622">1 × Kaya panel</text><text x="190" y="-16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">2.700 ₺</text></g>
+  <g id="cr2"><text x="-190" y="16" font-size="18" font-weight="600" fill="#2b2622">2 × Akustik keçe panel</text><text x="190" y="16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">1.600 ₺</text></g>
+  <g id="cr3"><text x="-190" y="48" font-size="18" font-weight="600" fill="#2b2622">1 × PVC mermer panel</text><text x="190" y="48" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">1.250 ₺</text></g>
+  <g id="cr4"><rect x="-200" y="70" width="400" height="54" rx="12" fill="#e8f3ec"/>
+    <text x="-180" y="105" font-size="24" font-weight="900" fill="#2f6b4a">Toplam</text><text x="180" y="105" font-size="30" font-weight="900" fill="#2f6b4a" text-anchor="end">5.550 ₺</text></g>
+</g></g>
+
+<g id="cap">
+  <rect x="40" y="40" width="460" height="62" rx="31" fill="#1f3a4d" opacity=".93"/>
+  <circle cx="72" cy="71" r="6" fill="#e9c27a"/>
+  <text id="capT" x="280" y="80" font-size="24" font-weight="800" fill="#fff" text-anchor="middle"></text>
+</g>
+
+<g id="end">
+  <rect id="endBg" width="540" height="960" fill="#1f3a4d"/>
+  <g id="endTxt">
+    <text x="270" y="250" font-size="20" font-weight="700" fill="#e9c27a" text-anchor="middle" letter-spacing="4">EVİNİZE YENİ BİR NEFES</text>
+    <text x="270" y="322" font-size="56" font-weight="900" fill="#fff" text-anchor="middle" letter-spacing="1">BALIKÇIOĞLU</text>
+    <rect x="160" y="346" width="220" height="4" rx="2" fill="#e9c27a"/>
+    <g id="endRows"></g>
+    <text x="270" y="770" font-size="26" font-weight="800" fill="#e9c27a" text-anchor="middle">Sizi bekliyoruz!</text>
+  </g>
+</g>
+</svg>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const el = (parent, tag, attrs = {}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; };
+const cl = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const p = (t, a, b) => cl((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const io = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+const oc = x => 1 - Math.pow(1 - x, 3);
+const bo = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const bounce = x => { const n = 7.5625, d = 2.75;
+  if (x < 1 / d) return n * x * x; if (x < 2 / d) return n * (x -= 1.5 / d) * x + .75;
+  if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + .9375; return n * (x -= 2.625 / d) * x + .984375; };
+const fade = (t, a, b, f = .3) => Math.min(p(t, a, a + f), 1 - p(t, b - f, b));
+const pop = (t, a, b, f = .4) => t < a || t > b ? 0 : Math.min(bo(p(t, a, a + f)), 1 - io(p(t, b - .25, b)));
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+let clipN = 0;
+function clipRect(x, y, w, h) {
+  const id = 'c' + (clipN++); const c = el(document.querySelector('defs'), 'clipPath', { id });
+  el(c, 'rect', { x, y, width: w, height: h }); return `url(#${id})`;
+}
+
+// ---------- ürünler ----------
+const STONE = ['#8f877b', '#a39a8c', '#b6ad9f', '#7d756a', '#c4baa9', '#968b7c', '#a8a091', '#6f685e'];
+function drawKaya(g, x0, y0, w, h, s = 1) {
+  const root = el(g, 'g', { 'clip-path': clipRect(x0, y0, w, h) });
+  const tex = el(root, 'g', { filter: 'url(#rough)' });
+  el(tex, 'rect', { x: x0, y: y0, width: w, height: h, fill: '#3e3a35' });
+  const sg = el(tex, 'g', { filter: 'url(#stoneDrop)' });
+  let y = y0 - 4 * s;
+  while (y < y0 + h) {
+    const rh = (16 + rnd() * 22) * s; let x = x0 - rnd() * 40 * s;
+    while (x < x0 + w) {
+      const sw = (30 + rnd() * 80) * s, j = () => (rnd() - .5) * 6 * s;
+      const pts = [[x + 2, y + 2], [x + sw * .35, y + 1 + j()], [x + sw * .7, y + 2 + j()], [x + sw - 2, y + 3],
+                   [x + sw - 1 + j(), y + rh * .5], [x + sw - 3, y + rh - 2], [x + sw * .6, y + rh - 1 + j()],
+                   [x + sw * .25, y + rh - 2 + j()], [x + 3, y + rh - 3], [x + 1 + j(), y + rh * .5]];
+      el(sg, 'polygon', { points: pts.map(q => q.map(v => v.toFixed(1)).join(',')).join(' '), fill: STONE[Math.floor(rnd() * STONE.length)] });
+      x += sw - 1;
+    }
+    y += rh - 1;
+  }
+  return root;
+}
+function drawAkustik(g, x0, y0, w, h, sw = 4.6, gap = 2.6) {
+  const root = el(g, 'g', {});
+  el(root, 'rect', { x: x0, y: y0, width: w, height: h, fill: '#232325', filter: 'url(#felt)' });
+  const sl = el(root, 'g', { filter: 'url(#wood)' });
+  const n = Math.floor((w - gap) / (sw + gap)); const off = (w - (n * sw + (n - 1) * gap)) / 2;
+  for (let i = 0; i < n; i++) el(sl, 'rect', { x: x0 + off + i * (sw + gap), y: y0, width: sw, height: h, fill: 'url(#slatG)' });
+  return root;
+}
+function drawMermer(g, x0, y0, w, h, s = 1) {
+  const root = el(g, 'g', { 'clip-path': clipRect(x0, y0, w, h) });
+  el(root, 'rect', { x: x0, y: y0, width: w, height: h, fill: 'url(#marbleG)' });
+  el(root, 'rect', { x: x0, y: y0, width: w, height: h, fill: '#fff', filter: 'url(#cloudy)', opacity: .4 });
+  const walk = (sx, sy, ang, len) => {
+    let x = sx, y = sy, a = ang, d = `M${x.toFixed(1)} ${y.toFixed(1)}`; const pts = [];
+    for (let l = 0; l < len; l += 7 * s) { a += (rnd() - .5) * .7; x += Math.cos(a) * 7 * s; y += Math.sin(a) * 7 * s; d += ` L${x.toFixed(1)} ${y.toFixed(1)}`; pts.push([x, y, a]); }
+    return { d, pts };
+  };
+  const vein = (col, wd, op) => {
+    const dir = rnd() < .5 ? 1 : -1;
+    const v = walk(x0 + rnd() * w, y0 - 5 * s, Math.PI / 2 - dir * (.35 + rnd() * .35), h * 1.4);
+    el(root, 'path', { d: v.d, fill: 'none', stroke: col, 'stroke-width': wd * 2.6 * s, opacity: op * .35, filter: 'url(#b1)', 'stroke-linejoin': 'round' });
+    el(root, 'path', { d: v.d, fill: 'none', stroke: col, 'stroke-width': wd * s, opacity: op, 'stroke-linejoin': 'round' });
+    for (let b = 0; b < 2; b++) {
+      const q = v.pts[Math.floor(rnd() * v.pts.length)]; if (!q) continue;
+      const br = walk(q[0], q[1], q[2] + (rnd() < .5 ? .8 : -.8), h * (.15 + rnd() * .2));
+      el(root, 'path', { d: br.d, fill: 'none', stroke: col, 'stroke-width': wd * .5 * s, opacity: op * .8 });
+    }
+  };
+  vein('#7f786f', 1.4, .75); vein('#8f887f', 1.0, .6); vein('#9d968c', .7, .55);
+  vein('#b8955a', .9, .75);
+  el(root, 'rect', { x: x0, y: y0, width: w, height: h, fill: 'url(#glossStatic)' });
+  return root;
+}
+
+// ev duvarı: 1 kaya (60cm) + 2 akustik (2×60cm) + 1 mermer (122cm)  ≈ 1.79 px/cm
+const FLOOR = 688;
+const kayaW = drawKaya($('kayaW'), 0, FLOOR - 501, 107, 501);
+const aku1 = drawAkustik($('akuW1'), 107, FLOOR - 492, 107, 492);
+const aku2 = drawAkustik($('akuW2'), 214, FLOOR - 492, 107, 492);
+const merW = drawMermer($('merW'), 321, FLOOR - 437, 219, 437);
+const sheen = el($('merW'), 'rect', { x: 321, y: FLOOR - 437, width: 80, height: 437, fill: 'url(#gloss)', 'clip-path': clipRect(321, FLOOR - 437, 219, 437) });
+
+// mağaza örnekleri
+drawKaya($('sp1'), 30, 240, 130, 262);
+drawAkustik($('sp2'), 185, 244, 130, 258);
+drawMermer($('sp3'), 340, 262, 170, 240);
+function tag(cx, name, size, price, note) {
+  const g = el($('tags'), 'g', { transform: `translate(${cx},556)`, filter: 'url(#soft)' });
+  el(g, 'rect', { x: -78, y: -36, width: 156, height: 90, rx: 10, fill: '#fff' });
+  el(g, 'text', { y: -14, 'font-size': 12, 'font-weight': 800, fill: '#1f3a4d', 'text-anchor': 'middle' }, name);
+  el(g, 'text', { y: 4, 'font-size': 11, 'font-weight': 600, fill: '#7a726b', 'text-anchor': 'middle' }, size);
+  el(g, 'text', { y: 34, 'font-size': 24, 'font-weight': 900, fill: '#c4553f', 'text-anchor': 'middle' }, price);
+  if (note) { el(g, 'rect', { x: 30, y: -50, width: 52, height: 20, rx: 10, fill: '#2f8a57' }); el(g, 'text', { x: 56, y: -36, 'font-size': 10.5, 'font-weight': 800, fill: '#fff', 'text-anchor': 'middle' }, note); }
+}
+tag(95, 'KAYA PANEL', '60 × 280 cm', '2.700 ₺');
+tag(250, 'AKUSTİK KEÇE PANEL', '60 × 275 cm', '800 ₺', 'NAKİT');
+tag(425, 'PVC MERMER PANEL', '122 × 244 cm', '1.250 ₺');
+const checks = [95, 250, 425].map(cx => {
+  const g = el($('store'), 'g', {}); const i = el(g, 'g', { transform: `translate(${cx + 62},240)` });
+  el(i, 'circle', { r: 17, fill: '#2f8a57', stroke: '#fff', 'stroke-width': 3 });
+  el(i, 'path', { d: 'M-7 0 L-2 6 L8 -6', fill: 'none', stroke: '#fff', 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+  return { g, cx: cx + 62 };
+});
+
+// hayal balonu: aynı duvarın küçüğü
+drawKaya($('miniWall'), -112, -82, 44, 146, .35);
+drawAkustik($('miniWall'), -68, -80, 44, 144, 2, 1.2);
+drawAkustik($('miniWall'), -24, -80, 44, 144, 2, 1.2);
+drawMermer($('miniWall'), 20, -60, 92, 124, .4);
+
+// kapanış listesi
+[['Kaya Panel', '60 × 280 cm', '2.700 ₺'], ['Akustik Keçe Panel', '60 × 275 cm', '800 ₺ nakit'], ['PVC Mermer Panel', '122 × 244 cm', '1.250 ₺']].forEach(([n, s, pr], i) => {
+  const g = el($('endRows'), 'g', { transform: `translate(270,${420 + i * 92})`, id: 'er' + i });
+  el(g, 'rect', { x: -210, y: -36, width: 420, height: 76, rx: 14, fill: '#fff', opacity: .07 });
+  el(g, 'text', { x: -188, y: -4, 'font-size': 21, 'font-weight': 800, fill: '#fff' }, n);
+  el(g, 'text', { x: -188, y: 22, 'font-size': 14, 'font-weight': 600, fill: '#a9bccb' }, s);
+  el(g, 'text', { x: 188, y: 10, 'font-size': 24, 'font-weight': 900, fill: '#e9c27a', 'text-anchor': 'end' }, pr);
+});
+
+// ---------- karakterler ----------
+const SKIN = 'url(#gSkin)', SKINF = '#f1c7a0';
+function makePerson(kind) {
+  const W = kind === 'woman', C = kind === 'child';
+  const g = el($('people'), 'g', {});
+  const P = { g, kind };
+  P.shadow = el(g, 'ellipse', { cx: 0, cy: 2, rx: C ? 26 : 40, ry: C ? 5 : 8, fill: '#000', opacity: .3, filter: 'url(#b4)' });
+  P.body = el(g, 'g', {});
+  const b = el(P.body, 'g', { transform: C ? 'scale(.62)' : '' });
+  const top = W ? 'url(#gDress)' : C ? 'url(#gKid)' : 'url(#gShirt)';
+  const sleeve = W ? '#2f7a8c' : C ? '#f2b632' : '#3b6ea8';
+  const pants = C ? '#3a7bd5' : '#2a3448';
+  P.hipY = W ? -82 : -95;
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const lg = el(b, 'g', {});
+    if (W) {
+      el(lg, 'line', { x1: 0, y1: 0, x2: 0, y2: 70, stroke: SKINF, 'stroke-width': 11, 'stroke-linecap': 'round' });
+      el(lg, 'path', { d: 'M-7 68 L10 70 Q20 74 13 79 L-7 79 Z', fill: '#c0392b' });
+      el(lg, 'rect', { x: -8, y: 76, width: 4, height: 7, fill: '#8e2a20' });
+      el(lg, 'circle', { cx: 9, cy: 72, r: 2.2, fill: '#f4d27a' });
+    } else {
+      el(lg, 'line', { x1: 0, y1: 0, x2: 0, y2: 88, stroke: pants, 'stroke-width': 18, 'stroke-linecap': 'round' });
+      el(lg, 'ellipse', { cx: 5, cy: 92, rx: 14, ry: 7, fill: C ? '#e04f3f' : '#1b1b1b' });
+    }
+    legs.push(lg);
+  }
+  [P.legL, P.legR] = legs;
+  if (W) {
+    el(b, 'path', { d: 'M-27 -202 Q0 -212 27 -202 L29 -150 L52 -78 Q0 -68 -52 -78 L-29 -150 Z', fill: top });
+    el(b, 'path', { d: 'M-10 -148 L-30 -80 M10 -148 L30 -80', stroke: '#1d5260', 'stroke-width': 1.5, opacity: .5 });
+    el(b, 'rect', { x: -29, y: -154, width: 58, height: 7, rx: 3, fill: '#e9c27a' });
+    el(b, 'path', { d: 'M-12 -205 L0 -186 L12 -205Z', fill: SKINF });
+    el(b, 'circle', { cx: 0, cy: -190, r: 3, fill: '#e9c27a' });
+  } else {
+    el(b, 'rect', { x: -36, y: -205, width: 72, height: 120, rx: 28, fill: top });
+    if (!C) el(b, 'line', { x1: 0, y1: -188, x2: 0, y2: -92, stroke: '#2d578a', 'stroke-width': 2 });
+    el(b, 'path', { d: 'M-14 -205 L0 -188 L14 -205Z', fill: SKINF });
+  }
+  const arm = side => {
+    const a = el(b, 'g', {});
+    if (W) {
+      el(a, 'line', { x1: 0, y1: 0, x2: 0, y2: 30, stroke: sleeve, 'stroke-width': 15, 'stroke-linecap': 'round' });
+      el(a, 'line', { x1: 0, y1: 26, x2: 0, y2: 68, stroke: SKINF, 'stroke-width': 10, 'stroke-linecap': 'round' });
+      el(a, 'rect', { x: -6, y: 58, width: 12, height: 4, rx: 2, fill: '#e9c27a' });
+    } else el(a, 'line', { x1: 0, y1: 0, x2: 0, y2: 70, stroke: sleeve, 'stroke-width': 16, 'stroke-linecap': 'round' });
+    if (side > 0) {
+      P.hold = el(a, 'g', {});
+      if (W) { P.phone = el(P.hold, 'g', {}); el(P.phone, 'rect', { x: -8, y: -16, width: 16, height: 28, rx: 3, fill: '#222' }); el(P.phone, 'rect', { x: -6, y: -13, width: 12, height: 20, fill: '#7ab8e0' }); }
+    }
+    el(a, 'circle', { cx: 0, cy: 74, r: 9, fill: SKINF });
+    return a;
+  };
+  P.armL = arm(-1); P.armR = arm(1);
+  P.head = el(b, 'g', {});
+  const h = P.head;
+  if (W) el(h, 'path', { d: 'M-35 -8 C-42 -52 42 -52 35 -8 L38 46 Q20 54 0 50 Q-20 54 -38 46 Z', fill: '#3f2518' });
+  el(h, 'circle', { r: 31, fill: SKIN });
+  if (W) {
+    el(h, 'path', { d: 'M-32 2 C-34 -40 34 -42 32 -2 C24 -20 4 -24 -8 -18 C-16 -12 -26 -6 -32 2Z', fill: '#4a2c1d' });
+    el(h, 'path', { d: 'M-14 -26 C-4 -32 10 -32 18 -26', stroke: '#6b4330', 'stroke-width': 2.5, fill: 'none', opacity: .7 });
+    el(h, 'circle', { cx: -31, cy: 12, r: 3, fill: '#e9c27a' }); el(h, 'circle', { cx: 31, cy: 12, r: 3, fill: '#e9c27a' });
+  } else if (C) {
+    el(h, 'path', { d: 'M-31 -4 C-36 -44 34 -46 31 -8 C26 -18 18 -22 10 -16 C2 -26 -14 -24 -20 -14 C-24 -12 -28 -8 -31 -4Z', fill: '#8a5a2b' });
+  } else {
+    el(h, 'path', { d: 'M-31 -4 C-34 -40 32 -44 31 -8 C22 -24 -6 -28 -31 -4Z', fill: '#2a2018' });
+  }
+  el(h, 'ellipse', { cx: -17, cy: 9, rx: 6, ry: 3.5, fill: '#f09a8a', opacity: W ? .55 : .3 });
+  el(h, 'ellipse', { cx: 17, cy: 9, rx: 6, ry: 3.5, fill: '#f09a8a', opacity: W ? .55 : .3 });
+  P.eyes = [-11, 11].map(cx => el(h, 'circle', { cx, cy: -2, r: 3.6, fill: '#2a1d16' }));
+  [-11, 11].forEach(cx => el(h, 'circle', { cx: cx + 1.2, cy: -3.2, r: 1, fill: '#fff' }));
+  if (W) [-11, 11].forEach(cx => el(h, 'path', { d: `M${cx - 5} -7 L${cx + 5 * Math.sign(cx)} -9`, stroke: '#2a1d16', 'stroke-width': 1.8, 'stroke-linecap': 'round' }));
+  const lip = W ? '#b03a3a' : '#7a2e22';
+  P.m = {
+    smile: el(h, 'path', { d: 'M-10 11 Q0 20 10 11', fill: 'none', stroke: lip, 'stroke-width': 3, 'stroke-linecap': 'round' }),
+    big: el(h, 'path', { d: 'M-13 8 Q0 26 13 8Z', fill: lip }),
+    o: el(h, 'ellipse', { cx: 0, cy: 14, rx: 4, ry: 5, fill: lip }),
+    flat: el(h, 'path', { d: 'M-9 14 Q0 10 9 14', fill: 'none', stroke: lip, 'stroke-width': 3, 'stroke-linecap': 'round' }),
+  };
+  P.sweat = el(h, 'path', { d: 'M30 -26 C24 -16 26 -10 31 -10 C36 -10 37 -16 30 -26Z', fill: '#7ac4f0', opacity: 0 });
+  return P;
+}
+const man = makePerson('man'), kid = makePerson('child'), mom = makePerson('woman');
+
+function pose(P, o) {
+  const { x, hop = 0, sw = 0, aL = 8 - sw * .5, aR = -8 + sw * .5, mood = 'smile', er = 3.6, shake = 0, op = 1, sweat = 0 } = o;
+  P.g.setAttribute('transform', `translate(${x},890)`); P.g.setAttribute('opacity', op);
+  P.body.setAttribute('transform', `translate(0,${hop})`);
+  const k = 1 + hop / 120; P.shadow.setAttribute('transform', `scale(${k},${k})`);
+  P.legL.setAttribute('transform', `translate(-12,${P.hipY}) rotate(${sw})`);
+  P.legR.setAttribute('transform', `translate(12,${P.hipY}) rotate(${-sw})`);
+  const sx = P.kind === 'woman' ? 27 : 30;
+  P.armL.setAttribute('transform', `translate(${-sx},-188) rotate(${aL})`);
+  P.armR.setAttribute('transform', `translate(${sx},-188) rotate(${aR})`);
+  P.hold.setAttribute('transform', `translate(0,74) rotate(${-aR})`);
+  P.head.setAttribute('transform', `translate(0,-236) rotate(${shake})`);
+  for (const m in P.m) P.m[m].setAttribute('opacity', m === mood ? 1 : 0);
+  P.eyes.forEach(e => e.setAttribute('r', mood === 'o' ? 4.3 : er));
+  P.sweat.setAttribute('opacity', sweat);
+}
+
+const sparks = [...document.querySelectorAll('.sp')];
+const show = (id, o) => (typeof id === 'string' ? $(id) : id).setAttribute('opacity', o);
+const scaleAt = (id, k, cx, cy) => (typeof id === 'string' ? $(id) : id).setAttribute('transform', `translate(${cx},${cy}) scale(${k}) translate(${-cx},${-cy})`);
+
+const T = 41;
+const CAPS = [
+  [0.4, 2.6, "Bu duvara bir şeyler lazım..."],
+  [2.8, 5.4, "Şöyle şık bir duvarım olsa!"],
+  [5.6, 6.6, "Ustadan fiyat alayım..."],
+  [6.7, 9.3, "Hmm... 18.500 ₺, biraz fazla."],
+  [9.4, 10.75, "Ben bunu kendim de yaparım!"],
+  [10.9, 12.0, "Doğru adres: Balıkçıoğlu!"],
+  [12.05, 13.45, "PVC mermer panel..."],
+  [13.5, 14.95, "Akustik keçe panel..."],
+  [15.0, 16.8, "Anne, kaya panel de çok güzel!"],
+  [17.2, 18.0, "Hadi başlayalım!"],
+  [18.1, 21.2, "1. Adım: Kaya panel"],
+  [21.4, 24.6, "2. Adım: Akustik keçe panel"],
+  [24.8, 28.2, "3. Adım: PVC mermer panel"],
+  [28.4, 30.2, "Hem şık, hem cebimize dost!"],
+  [30.3, 32.0, "Hepsi sadece 5.550 ₺!"],
+];
+
+function path(t, K) {
+  for (let i = 0; i < K.length - 1; i++) {
+    const [ta, xa] = K[i], [tb, xb] = K[i + 1];
+    if (t >= ta && t <= tb) return { x: lerp(xa, xb, io(p(t, ta, tb))), walk: xa !== xb ? 1 : 0 };
+  }
+  return { x: K[K.length - 1][1], walk: 0 };
+}
+const momX = t => path(t, t < 10.8 ? [[0, -80], [2.5, 170], [10.8, 170]]
+  : t < 16.95 ? [[10.8, 640], [11.6, 425], [12.4, 425], [12.9, 250], [13.9, 250], [14.4, 95], [15.8, 95], [16.95, -220]]
+  : [[16.95, -60], [17.8, 200], [21.0, 200], [21.5, 420], [24.5, 420], [25.2, 200], [T, 200]]);
+
+// kamera anahtar kareleri: [t, odakX, odakY, zoom]
+const CAM = [[0, 270, 480, 1], [6.6, 270, 480, 1], [7.1, 170, 640, 1.38], [8.8, 170, 640, 1.38], [9.3, 270, 480, 1], [10.8, 270, 480, 1],
+  [10.81, 270, 480, 1.0], [16.9, 270, 460, 1.07],
+  [16.95, 270, 480, 1], [18.0, 270, 480, 1], [18.5, 120, 450, 1.2], [21.0, 120, 450, 1.2], [21.5, 250, 440, 1.14], [24.4, 250, 440, 1.14],
+  [24.9, 420, 450, 1.16], [28.0, 420, 450, 1.16], [28.7, 270, 480, 1], [T, 270, 480, 1]];
+function cam(t) {
+  let a = CAM[0], b = CAM[CAM.length - 1];
+  for (let i = 0; i < CAM.length - 1; i++) if (t >= CAM[i][0] && t <= CAM[i + 1][0]) { a = CAM[i]; b = CAM[i + 1]; break; }
+  const k = io(p(t, a[0], b[0]));
+  const z = lerp(a[3], b[3], k);
+  const hx = 270 / z, hy = 480 / z;
+  const fx = cl(lerp(a[1], b[1], k), hx, 540 - hx), fy = cl(lerp(a[2], b[2], k), hy, 960 - hy);
+  return `translate(270,480) scale(${z}) translate(${-fx},${-fy})`;
+}
+
+function press(g, t, a, cx, cy) { // panel duvara bastırılıyor
+  const k = p(t, a, a + .55);
+  g.setAttribute('opacity', k > 0 ? Math.min(1, k * 2.5) : 0);
+  scaleAt(g, lerp(1.12, 1, oc(k)), cx, cy);
+}
+
+function render(t) {
+  $('cam').setAttribute('transform', cam(t));
+  const storeO = Math.min(p(t, 10.55, 10.85), 1 - p(t, 16.85, 17.15));
+  show('store', storeO); show('cart', storeO);
+  const celebrate = t > 28.2 && t < 32;
+  const hop = (ph = 0) => celebrate ? -Math.abs(Math.sin((t - 28.2) * Math.PI * 1.6 + ph)) * 34 : 0;
+  const dip = Math.min(1, Math.abs(t - 10.8) / .25, Math.abs(t - 16.95) / .25);
+
+  // ---- anne ----
+  const { x, walk } = momX(t);
+  const sw = Math.sin(t * Math.PI * 4) * 24 * walk;
+  let aR = -8 + sw * .5, aL = 8 - sw * .5;
+  const ramp = (a, b, from, to, f = .35) => lerp(from, to, io(p(t, a, a + f))) * (1 - p(t, b - f, b)) + from * p(t, b - f, b);
+  if (t > 5.6 && t < 9.0) aR = ramp(5.6, 9.0, -8, -170, .4);
+  if (t > 9.1 && t < 10.6) aR = ramp(9.1, 10.6, -8, -150);
+  [12.0, 13.5, 15.0].forEach(a => { if (t > a - .4 && t < a + .5) aR = ramp(a - .4, a + .5, -8, -140, .3); });
+  if (t > 18.0 && t < 21.0) aL = ramp(18.0, 21.0, 8, 100);
+  if (t > 21.5 && t < 24.5) aL = ramp(21.5, 24.5, 8, 95);
+  if (t > 25.2 && t < 28.2) aR = ramp(25.2, 28.2, -8, -100);
+  const up = io(p(t, 28.2, 28.5));
+  if (celebrate) { aL = lerp(8, 160, up); aR = lerp(-8, -160, up); }
+  let mood = 'big';
+  if (t < 6.7) mood = 'smile'; else if (t < 9.0) mood = 'o';
+  else if (t > 17.8 && t < 28.2) mood = 'smile';
+  const er = [1.6, 4.4, 14.1, 19.5, 23.0, 26.6, 33].some(b => t > b && t < b + .12) ? 1.2 : 3.6;
+  pose(mom, { x, hop: hop(), sw, aL, aR, mood, er, op: dip, ...(t > 6.8 && t < 9.0 ? {} : {}),
+    shake: (t > 6.9 && t < 9.0 ? -8 * io(p(t, 6.9, 7.3)) * (1 - p(t, 8.7, 9.0)) : 0) + (t < 2.6 ? 6 * io(p(t, 1.0, 1.4)) * (1 - p(t, 2.2, 2.6)) : 0), sweat: 0 });
+  mom.phone.setAttribute('opacity', t > 5.8 && t < 8.8 ? 1 : 0);
+
+  // ---- aile ----
+  let on = false, fwalk = 0, kx = -300, mx = -300;
+  if (t >= 10.8 && t < 16.95) { on = true; fwalk = walk; kx = x + 68; mx = x + 140; }
+  else if (t >= 27.8) { const k = io(p(t, 27.8, 28.6)); fwalk = t < 28.6 ? 1 : 0; kx = lerp(620, 315, k); mx = lerp(700, 410, k); on = true; }
+  const fop = on ? (t < 16.95 ? dip : 1) : 0;
+  const fsw = Math.sin(t * Math.PI * 4 + 1) * 24 * fwalk;
+  const fArms = celebrate ? { aL: lerp(8, 160, up), aR: lerp(-8, -160, up) } : {};
+  pose(kid, { x: kx, hop: hop(.6), sw: fsw, mood: celebrate ? 'big' : 'smile', op: fop, ...fArms,
+    ...(t > 14.7 && t < 16.4 ? { aR: ramp(14.7, 16.4, -8, -120) } : {}) });
+  pose(man, { x: mx, hop: hop(1.2), sw: fsw, mood: celebrate ? 'big' : 'smile', op: fop, ...fArms,
+    ...(t > 10.8 && t < 16.95 ? { aR: -60 } : {}) });
+  $('cartPos').setAttribute('transform', `translate(${mx + 78},890)`);
+
+  // ---- balon / fiyat / ampul ----
+  show('bdot1', fade(t, 2.5, 5.5, .15)); show('bdot2', fade(t, 2.65, 5.5, .15));
+  const ck = pop(t, 2.8, 5.5, .5); show('cloud', ck ? 1 : 0); scaleAt('cloud', ck, 350, 420);
+  const pk = pop(t, 6.7, 9.0, .45); show('price', pk ? 1 : 0);
+  scaleAt('price', pk, 330, 330);
+  const bk = pop(t, 9.1, 10.6, .4); show('bulb', bk ? 1 : 0);
+  $('bulbPos').setAttribute('transform', `translate(${x},${560 + Math.sin(t * 6) * 3}) scale(${bk})`);
+
+  // ---- mağaza: seçimler (sağdan sola) ----
+  [[12.0, 'sp3', 2, 'cb1', 425], [13.5, 'sp2', 1, 'cb2', 250], [15.0, 'sp1', 0, 'cb3', 95]].forEach(([a, sp, ci, cb, cx]) => {
+    const k = t < a ? 0 : bo(p(t, a, a + .4));
+    show(checks[ci].g, k ? 1 : 0); scaleAt(checks[ci].g, k, checks[ci].cx, 240);
+    const bump = t > a - .1 && t < a + .5 ? Math.sin(p(t, a - .1, a + .5) * Math.PI) * .05 : 0;
+    scaleAt(sp, 1 + bump, cx, 370);
+    show(cb, t > a + .1 ? 1 : 0);
+    $(cb).setAttribute('transform', `translate(0,${(1 - bounce(p(t, a + .1, a + .5))) * -60})`);
+  });
+
+  // ---- eve gelen kutular ----
+  ['bx1', 'bx2', 'bx3'].forEach((id, i) => {
+    const a = 17.3 + i * .18, k = p(t, a, a + .6);
+    $(id).setAttribute('transform', `translate(0,${(1 - bounce(k)) * -800})`);
+    show(id, t > a ? 1 - p(t, 27.4, 27.8) : 0);
+  });
+
+  // ---- montaj ----
+  press($('kayaW'), t, 18.5, 53, 437);
+  press($('akuW1'), t, 21.9, 160, 442);
+  press($('akuW2'), t, 22.7, 267, 442);
+  press($('merW'), t, 25.3, 430, 470);
+  const sk = p(t, 26.0, 26.9);
+  sheen.setAttribute('x', lerp(240, 560, io(sk))); sheen.setAttribute('opacity', sk > 0 && sk < 1 ? 1 : 0);
+
+  // ---- kutlama ----
+  sparks.forEach((s, i) => {
+    const k = celebrate ? Math.max(0, Math.sin((t - 28.2) * 3 + i * 1.3)) : 0;
+    s.setAttribute('transform', `translate(${s.dataset.x},${s.dataset.y}) scale(${k}) rotate(${t * 60})`);
+  });
+  const ok = t < 28.4 ? 0 : Math.min(bo(p(t, 28.4, 28.85)), 1 - io(p(t, 31.7, 32.0)));
+  show('cost', ok > 0 ? 1 : 0); scaleAt('cost', ok, 270, 262);
+  ['cr0', 'cr1', 'cr2', 'cr3'].forEach((id, i) => show(id, p(t, 28.7 + i * .3, 28.95 + i * .3)));
+  $('strike').setAttribute('stroke-dashoffset', 1 - io(p(t, 29.9, 30.3)));
+  const tk = t < 30.3 ? 0 : bo(p(t, 30.3, 30.7)); show('cr4', tk ? 1 : 0); scaleAt('cr4', tk, 0, 97);
+
+  { const hk = t < 29.0 || t > 31.9 ? 0 : bo(p(t, 29.0, 29.45)); const hy = 600 - (t - 29) * 30;
+    show('heart', hk ? Math.min(1, 1 - p(t, 31.4, 31.9)) : 0); $('heart').setAttribute('transform', `translate(270,${hy}) scale(${hk * 2.2})`); }
+  // ---- altyazı ----
+  const c = CAPS.find(([a, b]) => t >= a && t <= b);
+  if (c) {
+    const o = fade(t, c[0], c[1], .25);
+    $('capT').textContent = c[2];
+    $('capT').setAttribute('font-size', c[2].length > 24 ? 21 : 24);
+    $('cap').setAttribute('opacity', o);
+    $('cap').setAttribute('transform', `translate(0,${(1 - o) * -12})`);
+  } else $('cap').setAttribute('opacity', 0);
+
+  // ---- kapanış ----
+  const eb = p(t, 32, 32.6);
+  show('end', eb ? 1 : 0); show('endBg', eb);
+  const et = t < 32.4 ? 0 : bo(p(t, 32.4, 32.9));
+  $('endTxt').setAttribute('opacity', Math.min(1, et));
+  scaleAt('endTxt', .85 + .15 * et, 270, 480);
+  [0, 1, 2].forEach(i => { const k = p(t, 34.4 + i * .5, 34.8 + i * .5); show('er' + i, k);
+    $('er' + i).setAttribute('transform', `translate(${270 + (1 - oc(k)) * 60},${420 + i * 92})`); });
+}
+window.render = render;
+
+if (location.hash.includes('capture')) {
+  document.body.classList.add('capture');
+  render(0);
+} else {
+  let start = performance.now();
+  document.body.addEventListener('click', () => start = performance.now());
+  const loop = now => { render(((now - start) / 1000) % T); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

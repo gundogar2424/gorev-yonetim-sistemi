@@ -1,0 +1,21 @@
+W, K, A = 0, 1, 4   # anne, çocuk, kapanış anonsu (hepsi kadın sesi)
+LINES = [
+ (0.45, W, 1.0, "Bu duvara bir şeyler lazım..."),
+ (2.85, W, 1.05, "Şöyle şık bir duvarım olsa!"),
+ (5.6, W, 1.1, "Ustadan bir fiyat alayım."),
+ (6.85, W, 1.15, "Hımm... On sekiz bin beş yüz. Biraz fazla."),
+ (9.55, W, 1.15, "Ben bunu kendim de yaparım!"),
+ (10.85, W, 1.15, "Doğru adres: Balıkçıoğlu!"),
+ (12.3, W, 1.1, "PVC mermer panel..."),
+ (13.55, W, 1.1, "akustik keçe panel..."),
+ (15.05, K, 1.1, "Anne, kaya panel de çok güzel!"),
+ (17.3, W, 1.1, "Hadi başlayalım!"),
+ (18.4, W, 1.05, "Önce kaya panel."),
+ (21.6, W, 1.05, "Sonra akustik keçe panel."),
+ (25.0, W, 1.05, "Ve PVC mermer panel."),
+ (28.5, W, 1.1, "Hem şık, hem cebimize dost!"),
+ (30.35, W, 1.1, "Hepsi sadece beş bin beş yüz elli lira!"),
+ (32.7, A, 0.95, "Evinize yeni bir nefes."),
+ (34.5, A, 1.0, "Kaya panel, akustik keçe panel, PVC mermer panel..."),
+ (38.3, A, 1.0, "Hepsi Balıkçıoğlu'nda. Sizi bekliyoruz!"),
+]
