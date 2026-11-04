@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import { ReklamRozeti, guvenSkoru } from './Takip'
@@ -40,7 +40,10 @@ export default function Mekanlar() {
   const [hata, setHata] = useState('')
   const [arama, setArama] = useState('')
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
-  const [etiket, setEtiket] = useState('')
+  // Mekan sayfasindaki etikete / yemege dokununca buraya ?etiket= / ?yemek= ile gelinir
+  const [params] = useSearchParams()
+  const [etiket, setEtiket] = useState(params.get('etiket') ?? '')
+  const [yemek, setYemek] = useState(params.get('yemek') ?? '')
   const [sadeceFavori, setSadeceFavori] = useState(false)
   const [sadeceIstek, setSadeceIstek] = useState(false)
   const [sadeceHype, setSadeceHype] = useState(false)
@@ -99,6 +102,7 @@ export default function Mekanlar() {
     (m) =>
       (!sadeceGidilmedi || !m.gidildi) &&
       (!etiket || m.etiketler.includes(etiket)) &&
+      (!yemek || yemekGeciyor(m, yemek)) &&
       (!sadeceFavori || m.favori) &&
       (!sadeceIstek || m.gitmekIstiyorum) &&
       (!sadeceHype || m.hype?.var) &&
@@ -109,9 +113,15 @@ export default function Mekanlar() {
           .includes(q))
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
+  // Etiket ya da yemek secilince bulundugum yerden uzaga dogru; digerlerinde en begenilen once (esitse yakin olan)
   const sirali =
-    // Her zaman (arama dahil) en begenilen once; esitse yakin olan
-    [...suzulmus].sort((a, b) => mekanSkoru(b) - mekanSkoru(a) || (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
+    etiket || yemek
+      ? [...suzulmus].sort((a, b) => (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9) || mekanSkoru(b) - mekanSkoru(a))
+      : [...suzulmus].sort((a, b) => mekanSkoru(b) - mekanSkoru(a) || (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
+  // Etiket / yemekle gelindiyse liste goruntulenir
+  useEffect(() => {
+    if (params.get('etiket') || params.get('yemek')) setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 300)
+  }, [])
   // HYPE: listedeki mekanlardan hangileri su an sosyal medyada konusuluyor? Tek aramada en fazla 25 mekan;
   // son 7 gunde bakilanlara tekrar bakilmaz (kredi harcamamak icin)
   const hypeKontrol = async () => {
@@ -332,6 +342,21 @@ export default function Mekanlar() {
             {sadeceHype && !hypeDurum && sirali.length === 0 && (
               <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu listede şu an sosyal medyada çok konuşulan mekan yok.</div>
             )}
+            {(yemek || etiket) && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {yemek && (
+                  <button className="lz-chip lz-chip-on whitespace-nowrap" onClick={() => setYemek('')}>
+                    Yemek: {yemek} ✕
+                  </button>
+                )}
+                {etiket && (
+                  <button className="lz-chip lz-chip-on whitespace-nowrap" onClick={() => setEtiket('')}>
+                    {etiket} ✕
+                  </button>
+                )}
+                <span className={`text-[12px] ${T_SOLUK}`}>{konum ? 'Yakından uzağa sıralı' : 'Konum alınınca yakından uzağa sıralanır'}</span>
+              </div>
+            )}
             {tumEtiketler.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4">
                 {tumEtiketler.map(([e, n]) => (
@@ -514,4 +539,19 @@ function mekanSkoru(m: LzMekan): number {
   if (m.hype?.var) s *= 1.15
   if (benim) s += benim * 0.5
   return s
+}
+
+// Yemek bu mekanda geciyor mu: onerilenler, benim yediklerim, paylasanlarin denedikleri
+function yemekGeciyor(m: LzMekan, yemek: string): boolean {
+  const y = yemek.toLocaleLowerCase('tr').trim()
+  const metin = [
+    ...m.oneriler,
+    ...(m.ziyaretler ?? []).map((z) => z.yedim),
+    m.paylasanYorumu?.yedi ?? '',
+    ...(m.paylasimlar ?? []).map((p) => p.yorum?.yedi ?? '')
+  ]
+    .join(' | ')
+    .toLocaleLowerCase('tr')
+  // Tam ad ya da ilk kelimesi ("Kuşbaşılı pide" -> "kuşbaşılı pide" / "pide")
+  return metin.includes(y) || y.split(/\s+/).filter((k) => k.length >= 4).some((k) => metin.includes(k))
 }

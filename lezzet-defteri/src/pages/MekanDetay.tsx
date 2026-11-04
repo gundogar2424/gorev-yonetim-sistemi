@@ -390,9 +390,12 @@ export default function MekanDetay() {
               <div>
                 <div className="lz-label mb-0.5">Ne yenir?</div>
                 <ul className="space-y-0.5">
+                  {/* Yemege dokununca o yemegi yapan diger mekanlar yakindan uzaga */}
                   {m.oneriler.map((x, i) => (
-                    <li key={i} className={`text-[14.5px] ${T_GOVDE}`}>
-                      {x}
+                    <li key={i}>
+                      <Link to={`/mekanlar?yemek=${encodeURIComponent(x)}`} className={`text-[14.5px] underline decoration-dotted underline-offset-4 ${T_GOVDE}`}>
+                        {x}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -413,9 +416,9 @@ export default function MekanDetay() {
             {m.etiketler.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {m.etiketler.map((e) => (
-                  <span key={e} className="lz-pill">
-                    {e}
-                  </span>
+                  <Link key={e} to={`/mekanlar?etiket=${encodeURIComponent(e)}`} className="lz-pill">
+                    {e} ›
+                  </Link>
                 ))}
               </div>
             )}
