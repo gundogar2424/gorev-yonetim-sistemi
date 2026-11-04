@@ -27,4 +27,5 @@ echo "-> MP4"
 ffmpeg -loglevel error -y -framerate $FPS -i cikti/kareler/f%05d.png -i cikti/ses.wav \
   -c:v libx264 -pix_fmt yuv420p -crf 20 -c:a aac -b:a 192k -shortest -movflags +faststart balikcioglu-duvar.mp4
 rm -rf cikti/kareler
-echo "hazır: balikcioglu-duvar.mp4"
+node kapak.cjs "$PWD/animasyon.html" "$PWD/kapak.png"
+echo "hazır: balikcioglu-duvar.mp4 ve kapak.png"

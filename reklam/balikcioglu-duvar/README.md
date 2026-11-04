@@ -2,6 +2,7 @@
 
 41 saniyelik, dikey (1080×1920, Reels/TikTok/Shorts), sesli tanıtım animasyonu.
 Hazır video: **`balikcioglu-duvar.mp4`**
+Instagram kapak görseli: **`kapak.png`** (paylaşırken "Kapağı düzenle → Film rulosundan ekle")
 
 ## Hikâye
 
@@ -34,6 +35,7 @@ Hazır video: **`balikcioglu-duvar.mp4`**
 | `seslendir.py` | Replikleri seslendirir, çakışma varsa uyarır. |
 | `muzik_ve_miks.py` | Müziği ve efektleri kodla üretir, konuşmayla karıştırır (konuşurken müzik kısılır). |
 | `kareler.cjs` | Animasyonu kare kare PNG'ye çizer (paralel çalışabilir). |
+| `kapak.cjs` | Bitmiş TV duvarı + "Usta 20 bin dedi… Biz 8.350 ₺'ye yaptık!" başlığıyla kapak görselini üretir. |
 | `olustur.sh` | Hepsini sırayla çalıştırıp `balikcioglu-duvar.mp4`'ü üretir. |
 
 ## Yeniden üretmek
