@@ -26,6 +26,14 @@ html,
 body,
 #root {
   height: 100%;
+  /* Telefonda buyuk yazi boyutunda bile sayfa saga tasmasin */
+  max-width: 100%;
+  /* clip: kaydirma alani olusturmaz (hidden olsa pencere kaydirmasi bozulurdu) */
+  overflow-x: clip;
+}
+/* Uzun kelime / link satiri genisletmesin */
+body {
+  overflow-wrap: break-word;
 }
 body {
   margin: 0;
