@@ -5,12 +5,12 @@ Hazır video: **`balikcioglu-duvar.mp4`**
 
 ## Hikâye
 
-1. Kadın boş duvara bakıyor, hayalindeki duvarı düşünüyor.
+1. "Salona TV ünitesi yapmak istiyoruz": kadın televizyonun durduğu boş duvara bakıyor, hayalindeki TV duvarını düşünüyor.
 2. Ustadan fiyat alıyor: 18.500 ₺, "biraz fazla".
 3. "Ben bunu kendim de yaparım!" deyip ailece **Balıkçıoğlu**'na gidiyorlar.
 4. Mağazada PVC mermer panel, akustik keçe panel ve kaya paneli seçiyorlar.
-5. Evde sırayla takıyor: kaya panel → akustik keçe panel → PVC mermer panel.
-6. Aile seviniyor, maliyet tablosu çıkıyor (toplam 5.600 ₺).
+5. Evde sırayla takıyor: dış taraflara kaya panel → iki yanına akustik keçe panel → ortaya PVC mermer panel; televizyon duvara asılıyor, altına asma konsol geliyor.
+6. Aile seviniyor, maliyet tablosu çıkıyor (toplam 8.350 ₺).
 7. Kapanış: "Evinize yeni bir nefes – BALIKÇIOĞLU – Sizi bekliyoruz!"
 
 ## Ürünler ve fiyatlar (videodaki)
@@ -21,7 +21,8 @@ Hazır video: **`balikcioglu-duvar.mp4`**
 | Akustik Keçe Panel (çıtalı) | 60 × 275 cm | 800 ₺ (nakit) |
 | PVC Mermer Panel | 122 × 244 cm | 1.250 ₺ |
 
-> "Usta teklifi 18.500 ₺" ve duvar düzeni (1 kaya + 2 akustik keçe + 1 PVC mermer = 5.600 ₺) örnek olarak konmuştur.
+> TV duvarı düzeni (soldan sağa): kaya | akustik keçe | PVC mermer | akustik keçe | kaya → 2 kaya (5.500 ₺) + 2 akustik keçe (1.600 ₺) + 1 PVC mermer (1.250 ₺) = **8.350 ₺**.
+> "Usta teklifi 18.500 ₺" örnek olarak konmuştur.
 
 ## Dosyalar
 
@@ -47,7 +48,7 @@ Gerekenler: `python3` + `numpy`, `node` + `playwright` (Chromium), `ffmpeg`.
 
 ## Sık yapılacak değişiklikler
 
-- **Fiyat değişti:** `animasyon.html` içinde fiyatları ara (`2.750 ₺`, `800 ₺`, `1.250 ₺`, `5.600 ₺`); konuşmadaki toplam için `replikler.py`.
+- **Fiyat değişti:** `animasyon.html` içinde fiyatları ara (`2.750 ₺`, `800 ₺`, `1.250 ₺`, `5.500 ₺`, `8.350 ₺`); konuşmadaki toplam için `replikler.py`.
 - **Altyazılar:** `animasyon.html` içindeki `CAPS` listesi.
 - **Ses değiştirmek:** `replikler.py` başındaki `W, K, A` (0–4 kadın, 5–9 erkek sesi).
 - **Kapanışa telefon/adres:** `animasyon.html` içinde `id="end"` bölümü.

@@ -60,6 +60,9 @@
   <linearGradient id="aoF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
   <radialGradient id="spot" cx=".5" cy="0" r="1" fx=".5" fy="0"><stop offset="0" stop-color="#fff6dc" stop-opacity=".75"/><stop offset=".55" stop-color="#fff6dc" stop-opacity=".12"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></radialGradient>
   <radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient>
+  <linearGradient id="stoneShade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".32"/><stop offset=".42" stop-color="#fff" stop-opacity="0"/><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient>
+  <linearGradient id="ledG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".9"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></linearGradient>
+  <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f7fc4"/><stop offset=".6" stop-color="#9cc8e8"/><stop offset="1" stop-color="#f3d9a6"/></linearGradient>
   <linearGradient id="slatG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8e5a30"/><stop offset=".4" stop-color="#c38a55"/><stop offset="1" stop-color="#7d4d27"/></linearGradient>
   <linearGradient id="marbleG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbfaf7"/><stop offset=".6" stop-color="#efece6"/><stop offset="1" stop-color="#e2ddd5"/></linearGradient>
   <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
@@ -79,9 +82,7 @@
     <rect width="540" height="700" fill="url(#wallG)"/>
     <rect width="540" height="150" fill="url(#ceilG)"/>
     <rect y="146" width="540" height="10" fill="#f7f4ef"/><rect y="155" width="540" height="3" fill="#cfc7bb"/>
-    <g id="kayaW"></g>
-    <g id="akuW1"></g><g id="akuW2"></g>
-    <g id="merW"></g>
+    <g id="kayaL"></g><g id="akuL"></g><g id="merW"></g><g id="akuR"></g><g id="kayaR"></g>
     <rect y="560" width="540" height="128" fill="url(#aoW)"/>
     <g id="homeSpots">
       <ellipse cx="54" cy="160" rx="120" ry="420" fill="url(#spot)"/>
@@ -101,6 +102,31 @@
     <ellipse cx="270" cy="890" rx="225" ry="44" fill="#000" opacity=".12" filter="url(#b4)"/>
     <ellipse cx="270" cy="885" rx="215" ry="40" fill="#efe6d6"/>
     <ellipse cx="270" cy="885" rx="195" ry="31" fill="none" stroke="#c9b89c" stroke-width="2"/>
+    <g id="oldStand"><g filter="url(#soft)">
+      <rect x="212" y="640" width="116" height="10" rx="2" fill="#8a6a4c"/>
+      <rect x="220" y="650" width="6" height="50" fill="#6b5038"/><rect x="314" y="650" width="6" height="50" fill="#6b5038"/>
+    </g></g>
+    <g id="console">
+      <ellipse id="ledGlow" cx="270" cy="650" rx="120" ry="16" fill="#ffcf7a" opacity="0" filter="url(#b4)"/>
+      <g filter="url(#soft)">
+        <rect x="150" y="588" width="240" height="44" rx="4" fill="#f1ebe1"/>
+        <line x1="230" y1="593" x2="230" y2="627" stroke="#d6cdbf" stroke-width="1.5"/><line x1="310" y1="593" x2="310" y2="627" stroke="#d6cdbf" stroke-width="1.5"/>
+        <rect x="150" y="626" width="240" height="6" rx="2" fill="#b98a5a"/>
+      </g>
+    </g>
+    <g id="tv">
+      <ellipse id="tvGlow" cx="0" cy="0" rx="120" ry="80" fill="#ffd9a0" opacity="0" filter="url(#b4)"/>
+      <g filter="url(#soft)"><rect x="-82" y="-49" width="164" height="94" rx="4" fill="#111"/></g>
+      <rect x="-78" y="-45" width="156" height="86" fill="#1b1e24"/>
+      <g id="tvOn" opacity="0">
+        <rect x="-78" y="-45" width="156" height="86" fill="url(#skyG)"/>
+        <circle cx="34" cy="2" r="12" fill="#ffe9b0"/>
+        <path d="M-78 41 L-78 14 Q-50 -6 -24 12 Q4 -10 30 16 Q56 0 78 12 L78 41Z" fill="#4f7a5a"/>
+        <path d="M-78 41 L-78 26 Q-40 14 -6 28 Q36 14 78 30 L78 41Z" fill="#35583f"/>
+      </g>
+      <path d="M-78 -45 L-20 -45 L-60 41 L-78 41Z" fill="#fff" opacity=".06"/>
+      <rect x="-12" y="45" width="24" height="3" fill="#333"/>
+    </g>
     <g id="boxes">
       <g id="bx1"><g transform="translate(330,770)" filter="url(#soft)"><rect x="-36" y="-34" width="72" height="38" rx="3" fill="#c9a46a"/><rect x="-36" y="-24" width="72" height="13" fill="#1f3a4d"/><text y="-14.2" font-size="8.5" font-weight="800" fill="#fff" text-anchor="middle">KAYA PANEL</text></g></g>
       <g id="bx2"><g transform="translate(410,772)" filter="url(#soft)"><rect x="-36" y="-52" width="72" height="56" rx="3" fill="#c9a46a"/><rect x="-36" y="-36" width="72" height="13" fill="#1f3a4d"/><text y="-26.2" font-size="8.5" font-weight="800" fill="#fff" text-anchor="middle">AKUSTİK KEÇE</text></g></g>
@@ -190,17 +216,17 @@
   <path class="sp" d="M0 -14 L3 -3 L14 0 L3 3 L0 14 L-3 3 L-14 0 L-3 -3Z" data-x="330" data-y="440"/>
 </g>
 
-<g id="cost"><g transform="translate(270,262)" filter="url(#cardSh)">
+<g id="cost"><g transform="translate(270,212) scale(.78)" filter="url(#cardSh)">
   <rect x="-215" y="-140" width="430" height="280" rx="20" fill="#fff"/>
   <text x="-190" y="-104" font-size="14" font-weight="800" fill="#1f3a4d" letter-spacing="2">BU DUVARIN MALİYETİ</text>
   <g id="cr0"><text x="-190" y="-68" font-size="19" font-weight="700" fill="#9a918a">Usta teklifi</text><text x="190" y="-68" font-size="19" font-weight="700" fill="#9a918a" text-anchor="end">18.500 ₺</text>
     <line id="strike" x1="-194" y1="-74" x2="194" y2="-74" stroke="#b3aaa1" stroke-width="2.5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></g>
   <line x1="-190" y1="-48" x2="190" y2="-48" stroke="#e6e0d8" stroke-width="2"/>
-  <g id="cr1"><text x="-190" y="-16" font-size="18" font-weight="600" fill="#2b2622">1 × Kaya panel</text><text x="190" y="-16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">2.750 ₺</text></g>
+  <g id="cr1"><text x="-190" y="-16" font-size="18" font-weight="600" fill="#2b2622">2 × Kaya panel</text><text x="190" y="-16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">5.500 ₺</text></g>
   <g id="cr2"><text x="-190" y="16" font-size="18" font-weight="600" fill="#2b2622">2 × Akustik keçe panel</text><text x="190" y="16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">1.600 ₺</text></g>
   <g id="cr3"><text x="-190" y="48" font-size="18" font-weight="600" fill="#2b2622">1 × PVC mermer panel</text><text x="190" y="48" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">1.250 ₺</text></g>
   <g id="cr4"><rect x="-200" y="70" width="400" height="54" rx="12" fill="#e8f3ec"/>
-    <text x="-180" y="105" font-size="24" font-weight="900" fill="#2f6b4a">Toplam</text><text x="180" y="105" font-size="30" font-weight="900" fill="#2f6b4a" text-anchor="end">5.600 ₺</text></g>
+    <text x="-180" y="105" font-size="24" font-weight="900" fill="#2f6b4a">Toplam</text><text x="180" y="105" font-size="30" font-weight="900" fill="#2f6b4a" text-anchor="end">8.350 ₺</text></g>
 </g></g>
 
 <g id="cap">
@@ -246,23 +272,40 @@ function clipRect(x, y, w, h) {
 // ---------- ürünler ----------
 const STONE = ['#8f877b', '#a39a8c', '#b6ad9f', '#7d756a', '#c4baa9', '#968b7c', '#a8a091', '#6f685e'];
 function drawKaya(g, x0, y0, w, h, s = 1) {
+  // Doğal kaya duvar: düzensiz, yuvarlak kenarlı, farklı boyutlarda taşlar + kabartma dokusu
   const root = el(g, 'g', { 'clip-path': clipRect(x0, y0, w, h) });
   const tex = el(root, 'g', { filter: 'url(#rough)' });
-  el(tex, 'rect', { x: x0, y: y0, width: w, height: h, fill: '#3e3a35' });
+  el(tex, 'rect', { x: x0, y: y0, width: w, height: h, fill: '#2f2b27' });
   const sg = el(tex, 'g', { filter: 'url(#stoneDrop)' });
-  let y = y0 - 4 * s;
-  while (y < y0 + h) {
-    const rh = (16 + rnd() * 22) * s; let x = x0 - rnd() * 40 * s;
-    while (x < x0 + w) {
-      const sw = (30 + rnd() * 80) * s, j = () => (rnd() - .5) * 6 * s;
-      const pts = [[x + 2, y + 2], [x + sw * .35, y + 1 + j()], [x + sw * .7, y + 2 + j()], [x + sw - 2, y + 3],
-                   [x + sw - 1 + j(), y + rh * .5], [x + sw - 3, y + rh - 2], [x + sw * .6, y + rh - 1 + j()],
-                   [x + sw * .25, y + rh - 2 + j()], [x + 3, y + rh - 3], [x + 1 + j(), y + rh * .5]];
-      el(sg, 'polygon', { points: pts.map(q => q.map(v => v.toFixed(1)).join(',')).join(' '), fill: STONE[Math.floor(rnd() * STONE.length)] });
-      x += sw - 1;
+  const c = 30 * s, seeds = [];
+  for (let y = y0 - c; y < y0 + h + c; y += c * (.7 + rnd() * .35))
+    for (let x = x0 - c * (.3 + rnd() * .7); x < x0 + w + c; x += c * (.85 + rnd() * .95))
+      seeds.push([x + (rnd() - .5) * c * .45, y + (rnd() - .5) * c * .35]);
+  const clip = (poly, p, q) => {
+    const nx = q[0] - p[0], ny = q[1] - p[1], cv = (q[0] * q[0] + q[1] * q[1] - p[0] * p[0] - p[1] * p[1]) / 2;
+    const inside = v => nx * v[0] + ny * v[1] <= cv, out = [];
+    for (let k = 0; k < poly.length; k++) {
+      const a = poly[k], b = poly[(k + 1) % poly.length], ia = inside(a), ib = inside(b);
+      if (ia) out.push(a);
+      if (ia !== ib) { const da = nx * a[0] + ny * a[1] - cv, db = nx * b[0] + ny * b[1] - cv, u = da / (da - db); out.push([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]); }
     }
-    y += rh - 1;
-  }
+    return out;
+  };
+  const m = 3 * c;
+  seeds.forEach((p, i) => {
+    let poly = [[x0 - m, y0 - m], [x0 + w + m, y0 - m], [x0 + w + m, y0 + h + m], [x0 - m, y0 + h + m]];
+    seeds.forEach((q, j) => { if (j !== i && Math.abs(q[0] - p[0]) < m && Math.abs(q[1] - p[1]) < m && poly.length) poly = clip(poly, p, q); });
+    if (poly.length < 3) return;
+    const cx = poly.reduce((a, v) => a + v[0], 0) / poly.length, cy = poly.reduce((a, v) => a + v[1], 0) / poly.length;
+    if (cx < x0 - c || cx > x0 + w + c || cy < y0 - c || cy > y0 + h + c) return;
+    const gap = 2.4 * s;
+    const v = poly.map(([x, y]) => { const d = Math.hypot(x - cx, y - cy) || 1, k = Math.max(0, d - gap) / d; return [cx + (x - cx) * k, cy + (y - cy) * k]; });
+    const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], f = n => n.toFixed(1);
+    let st = mid(v[v.length - 1], v[0]), d = `M${f(st[0])} ${f(st[1])}`;
+    for (let k = 0; k < v.length; k++) { const n = mid(v[k], v[(k + 1) % v.length]); d += ` Q${f(v[k][0])} ${f(v[k][1])} ${f(n[0])} ${f(n[1])}`; }
+    el(sg, 'path', { d, fill: STONE[Math.floor(rnd() * STONE.length)] });
+    el(sg, 'path', { d, fill: 'url(#stoneShade)' });
+  });
   return root;
 }
 function drawAkustik(g, x0, y0, w, h, sw = 4.6, gap = 2.6) {
@@ -301,14 +344,16 @@ function drawMermer(g, x0, y0, w, h, s = 1) {
 
 // ev duvarı: 1 kaya (60cm) + 2 akustik (2×60cm) + 1 mermer (122cm)  ≈ 1.79 px/cm
 const FLOOR = 688;
-const kayaW = drawKaya($('kayaW'), 0, FLOOR - 501, 107, 501);
-const aku1 = drawAkustik($('akuW1'), 107, FLOOR - 501, 107, 501);
-const aku2 = drawAkustik($('akuW2'), 214, FLOOR - 501, 107, 501);
-const merW = drawMermer($('merW'), 321, FLOOR - 501, 219, 501);
-const sheen = el($('merW'), 'rect', { x: 321, y: FLOOR - 501, width: 80, height: 501, fill: 'url(#gloss)', 'clip-path': clipRect(321, FLOOR - 501, 219, 501) });
+const PW = 89.5, MW = 181, TOP = FLOOR - 501;
+const kayaL = drawKaya($('kayaL'), 0, TOP, PW, 501);
+const akuL = drawAkustik($('akuL'), PW, TOP, PW, 501);
+const merW = drawMermer($('merW'), 2 * PW, TOP, MW, 501);
+const akuR = drawAkustik($('akuR'), 2 * PW + MW, TOP, PW, 501);
+const kayaR = drawKaya($('kayaR'), 3 * PW + MW, TOP, PW, 501);
+const sheen = el($('merW'), 'rect', { x: 2 * PW, y: TOP, width: 60, height: 501, fill: 'url(#gloss)', 'clip-path': clipRect(2 * PW, TOP, MW, 501) });
 
 // mağaza örnekleri
-drawKaya($('sp1'), 30, 240, 130, 262);
+drawKaya($('sp1'), 30, 240, 130, 262, .9);
 drawAkustik($('sp2'), 185, 240, 130, 262);
 drawMermer($('sp3'), 340, 240, 170, 262);
 function tag(cx, name, size, price, note) {
@@ -330,10 +375,14 @@ const checks = [95, 250, 425].map(cx => {
 });
 
 // hayal balonu: aynı duvarın küçüğü
-drawKaya($('miniWall'), -112, -82, 44, 146, .35);
-drawAkustik($('miniWall'), -68, -82, 44, 146, 2, 1.2);
-drawAkustik($('miniWall'), -24, -82, 44, 146, 2, 1.2);
-drawMermer($('miniWall'), 20, -82, 92, 146, .4);
+drawKaya($('miniWall'), -112, -82, 37, 146, .35);
+drawAkustik($('miniWall'), -75, -82, 37, 146, 1.8, 1.1);
+drawMermer($('miniWall'), -38, -82, 76, 146, .4);
+drawAkustik($('miniWall'), 38, -82, 37, 146, 1.8, 1.1);
+drawKaya($('miniWall'), 75, -82, 37, 146, .35);
+el($('miniWall'), 'rect', { x: -27, y: -42, width: 54, height: 31, rx: 2, fill: '#111' });
+el($('miniWall'), 'rect', { x: -25, y: -40, width: 50, height: 27, fill: '#6fa3d6' });
+el($('miniWall'), 'rect', { x: -34, y: 22, width: 68, height: 12, rx: 2, fill: '#f1ebe1' });
 
 // kapanış listesi
 [['Kaya Panel', '60 × 280 cm', '2.750 ₺'], ['Akustik Keçe Panel', '60 × 275 cm', '800 ₺ nakit'], ['PVC Mermer Panel', '122 × 244 cm', '1.250 ₺']].forEach(([n, s, pr], i) => {
@@ -451,8 +500,8 @@ const scaleAt = (id, k, cx, cy) => (typeof id === 'string' ? $(id) : id).setAttr
 
 const T = 41;
 const CAPS = [
-  [0.4, 2.6, "Bu duvara bir şeyler lazım..."],
-  [2.8, 5.4, "Şöyle şık bir duvarım olsa!"],
+  [0.4, 2.6, "Salona TV ünitesi yapmak istiyoruz..."],
+  [2.8, 5.4, "Şöyle şık bir TV duvarı olsa!"],
   [5.6, 6.6, "Ustadan fiyat alayım..."],
   [6.7, 9.3, "Hmm... 18.500 ₺, biraz fazla."],
   [9.4, 10.75, "Ben bunu kendim de yaparım!"],
@@ -463,9 +512,10 @@ const CAPS = [
   [17.2, 18.0, "Hadi başlayalım!"],
   [18.1, 21.2, "1. Adım: Kaya panel"],
   [21.4, 24.6, "2. Adım: Akustik keçe panel"],
-  [24.8, 28.2, "3. Adım: PVC mermer panel"],
+  [24.8, 26.8, "3. Adım: PVC mermer panel"],
+  [26.9, 28.2, "Televizyon da yerine!"],
   [28.4, 30.2, "Hem şık, hem cebimize dost!"],
-  [30.3, 32.0, "Hepsi sadece 5.600 ₺!"],
+  [30.3, 32.0, "Hepsi sadece 8.350 ₺!"],
 ];
 
 function path(t, K) {
@@ -477,13 +527,13 @@ function path(t, K) {
 }
 const momX = t => path(t, t < 10.8 ? [[0, -80], [2.5, 170], [10.8, 170]]
   : t < 16.95 ? [[10.8, 640], [11.6, 425], [12.4, 425], [12.9, 250], [13.9, 250], [14.4, 95], [15.8, 95], [16.95, -220]]
-  : [[16.95, -60], [17.8, 200], [21.0, 200], [21.5, 420], [24.5, 420], [25.2, 200], [T, 200]]);
+  : [[16.95, -60], [17.8, 270], [24.5, 270], [25.2, 110], [T, 110]]);
 
 // kamera anahtar kareleri: [t, odakX, odakY, zoom]
 const CAM = [[0, 270, 480, 1], [6.6, 270, 480, 1], [7.1, 170, 640, 1.38], [8.8, 170, 640, 1.38], [9.3, 270, 480, 1], [10.8, 270, 480, 1],
   [10.81, 270, 480, 1.0], [16.9, 270, 460, 1.07],
-  [16.95, 270, 480, 1], [18.0, 270, 480, 1], [18.5, 120, 450, 1.2], [21.0, 120, 450, 1.2], [21.5, 250, 440, 1.14], [24.4, 250, 440, 1.14],
-  [24.9, 420, 450, 1.16], [28.0, 420, 450, 1.16], [28.7, 270, 480, 1], [T, 270, 480, 1]];
+  [16.95, 270, 480, 1], [18.0, 270, 480, 1], [18.5, 270, 465, 1.04], [21.0, 270, 465, 1.04], [21.5, 270, 455, 1.1], [24.4, 270, 455, 1.1],
+  [24.9, 270, 445, 1.16], [28.0, 270, 445, 1.16], [28.7, 270, 480, 1], [T, 270, 480, 1]];
 function cam(t) {
   let a = CAM[0], b = CAM[CAM.length - 1];
   for (let i = 0; i < CAM.length - 1; i++) if (t >= CAM[i][0] && t <= CAM[i + 1][0]) { a = CAM[i]; b = CAM[i + 1]; break; }
@@ -516,9 +566,9 @@ function render(t) {
   if (t > 5.6 && t < 9.0) aR = ramp(5.6, 9.0, -8, -170, .4);
   if (t > 9.1 && t < 10.6) aR = ramp(9.1, 10.6, -8, -150);
   [12.0, 13.5, 15.0].forEach(a => { if (t > a - .4 && t < a + .5) aR = ramp(a - .4, a + .5, -8, -140, .3); });
-  if (t > 18.0 && t < 21.0) aL = ramp(18.0, 21.0, 8, 100);
-  if (t > 21.5 && t < 24.5) aL = ramp(21.5, 24.5, 8, 95);
-  if (t > 25.2 && t < 28.2) aR = ramp(25.2, 28.2, -8, -100);
+  if (t > 18.0 && t < 21.0) { aL = ramp(18.0, 21.0, 8, 100); aR = ramp(18.0, 21.0, -8, -100); }
+  if (t > 21.5 && t < 24.5) { aL = ramp(21.5, 24.5, 8, 80); aR = ramp(21.5, 24.5, -8, -80); }
+  if (t > 25.2 && t < 28.2) aR = ramp(25.2, 28.2, -8, -110);
   const up = io(p(t, 28.2, 28.5));
   if (celebrate) { aL = lerp(8, 160, up); aR = lerp(-8, -160, up); }
   let mood = 'big';
@@ -568,12 +618,17 @@ function render(t) {
   });
 
   // ---- montaj ----
-  press($('kayaW'), t, 18.5, 53, 437);
-  press($('akuW1'), t, 21.9, 160, 437);
-  press($('akuW2'), t, 22.7, 267, 437);
-  press($('merW'), t, 25.3, 430, 437);
-  const sk = p(t, 26.0, 26.9);
-  sheen.setAttribute('x', lerp(240, 560, io(sk))); sheen.setAttribute('opacity', sk > 0 && sk < 1 ? 1 : 0);
+  press($('kayaL'), t, 18.5, 45, 437); press($('kayaR'), t, 18.9, 495, 437);
+  press($('akuL'), t, 21.9, 134, 437); press($('akuR'), t, 22.5, 406, 437);
+  press($('merW'), t, 25.3, 270, 437);
+  const sk = p(t, 26.0, 26.8);
+  sheen.setAttribute('x', lerp(120, 420, io(sk))); sheen.setAttribute('opacity', sk > 0 && sk < 1 ? 1 : 0);
+  // televizyon sehpadan duvara, altına asma konsol
+  const tvk = io(p(t, 26.9, 27.6));
+  $('tv').setAttribute('transform', `translate(270,${lerp(594, 392, tvk)})`);
+  show('oldStand', 1 - p(t, 26.9, 27.2));
+  press($('console'), t, 27.35, 270, 610);
+  show('tvOn', p(t, 27.8, 28.1)); show('tvGlow', .55 * p(t, 27.8, 28.4)); show('ledGlow', .8 * p(t, 27.9, 28.4));
 
   // ---- kutlama ----
   sparks.forEach((s, i) => {
@@ -581,7 +636,7 @@ function render(t) {
     s.setAttribute('transform', `translate(${s.dataset.x},${s.dataset.y}) scale(${k}) rotate(${t * 60})`);
   });
   const ok = t < 28.4 ? 0 : Math.min(bo(p(t, 28.4, 28.85)), 1 - io(p(t, 31.7, 32.0)));
-  show('cost', ok > 0 ? 1 : 0); scaleAt('cost', ok, 270, 262);
+  show('cost', ok > 0 ? 1 : 0); scaleAt('cost', ok, 270, 212);
   ['cr0', 'cr1', 'cr2', 'cr3'].forEach((id, i) => show(id, p(t, 28.7 + i * .3, 28.95 + i * .3)));
   $('strike').setAttribute('stroke-dashoffset', 1 - io(p(t, 29.9, 30.3)));
   const tk = t < 30.3 ? 0 : bo(p(t, 30.3, 30.7)); show('cr4', tk ? 1 : 0); scaleAt('cr4', tk, 0, 97);

@@ -88,8 +88,8 @@ add(sfx, 10.6, whoosh(.55), .25); add(sfx, 16.8, whoosh(.55), .25); add(sfx, 31.
 for a in (12.0, 13.5, 15.0):                                  # seçim tiki
     add(sfx, a, bell(1568, .5, 9), .2); add(sfx, a + .09, bell(2093, .7, 8), .18)
 for i in range(3): add(sfx, 17.3 + i * .18 + .26, thud(), .45)   # kutular yere
-for a in (18.75, 22.15, 22.95, 25.55): add(sfx, a, thud(85, .3), .55); add(sfx, a + .02, knock(), .12)
-add(sfx, 26.05, bell(2637, 1.0, 4), .10, .5); add(sfx, 26.15, bell(3520, 1.0, 4), .08, .5)  # mermer parlaması
+for a in (18.75, 19.15, 22.15, 22.75, 25.55, 27.6): add(sfx, a, thud(85, .3), .55); add(sfx, a + .02, knock(), .12)
+add(sfx, 27.85, bell(1975, 1.2, 4), .12); add(sfx, 26.05, bell(2637, 1.0, 4), .10, .5); add(sfx, 26.15, bell(3520, 1.0, 4), .08, .5)  # mermer parlaması
 for i in range(4): add(sfx, 28.7 + i * .3, pop(500, 900, .08), .15)
 add(sfx, 29.9, whoosh(.3), .25)
 for k in range(6): add(sfx, 28.2 + k * .08, bell(hz(84 + [0, 4, 7, 12, 16, 19][k]), .6, 7), .08, (k % 3 - 1) * .5)
