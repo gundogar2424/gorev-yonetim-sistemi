@@ -100,9 +100,15 @@ for i in range(3): add(sfx, 34.4 + i * .5, pop(500, 1200, .1), .15)
 
 # ---------- ses ----------
 vmask = np.zeros(N)
+prev_end = 0.0
 for i, (st, sid, sp, txt) in enumerate(LINES):
     x = np.load(os.path.join(HERE, 'cikti', 'tts', f'line{i}.npy')); x = x / (np.abs(x).max() + 1e-9) * .85
+    # Ses modeli her seferinde biraz farklı süre üretir: öncekiyle çakışacaksa replik biraz ileri kayar.
+    if st < prev_end + .08:
+        print(f'  replik {i} {st:.2f} -> {prev_end + .08:.2f} sn kaydırıldı (çakışmasın diye)')
+        st = prev_end + .08
     add(voice, st, x, 1.0); vmask[int(st*SR):int(st*SR) + len(x)] = 1
+    prev_end = st + len(x) / SR
 duck = 1 - .55 * smooth(vmask, int(.15 * SR))
 music *= duck[:, None]
 mix = music + sfx + voice[:, None] * .95
