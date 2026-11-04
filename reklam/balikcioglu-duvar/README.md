@@ -32,7 +32,7 @@ Hazır video: **`balikcioglu-duvar.mp4`**
 | `ses_motoru.py` | Doğal Türkçe ses (Supertonic 3, sherpa-onnx). Sesli PDF uygulamasındaki modelin aynısı. |
 | `seslendir.py` | Replikleri seslendirir, çakışma varsa uyarır. |
 | `muzik_ve_miks.py` | Müziği ve efektleri kodla üretir, konuşmayla karıştırır (konuşurken müzik kısılır). |
-| `kareler.js` | Animasyonu kare kare PNG'ye çizer (paralel çalışabilir). |
+| `kareler.cjs` | Animasyonu kare kare PNG'ye çizer (paralel çalışabilir). |
 | `olustur.sh` | Hepsini sırayla çalıştırıp `balikcioglu-duvar.mp4`'ü üretir. |
 
 ## Yeniden üretmek

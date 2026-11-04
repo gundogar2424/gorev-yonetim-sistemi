@@ -19,8 +19,9 @@ echo "-> müzik + efekt + ses miksi"; python3 muzik_ve_miks.py
 
 echo "-> kareler ($ISCI paralel işçi)"
 rm -rf cikti/kareler && mkdir -p cikti/kareler
-for w in $(seq 0 $((ISCI - 1))); do node kareler.js "$PWD/animasyon.html" "$PWD/cikti/kareler" $SURE $FPS $w $ISCI & done
-wait
+PIDS=()
+for w in $(seq 0 $((ISCI - 1))); do node kareler.cjs "$PWD/animasyon.html" "$PWD/cikti/kareler" $SURE $FPS $w $ISCI & PIDS+=($!); done
+for pid in "${PIDS[@]}"; do wait "$pid" || { echo "HATA: kare çizimi başarısız" >&2; exit 1; }; done
 
 echo "-> MP4"
 ffmpeg -loglevel error -y -framerate $FPS -i cikti/kareler/f%05d.png -i cikti/ses.wav \
