@@ -10,18 +10,18 @@ Hazır video: **`balikcioglu-duvar.mp4`**
 3. "Ben bunu kendim de yaparım!" deyip ailece **Balıkçıoğlu**'na gidiyorlar.
 4. Mağazada PVC mermer panel, akustik keçe panel ve kaya paneli seçiyorlar.
 5. Evde sırayla takıyor: kaya panel → akustik keçe panel → PVC mermer panel.
-6. Aile seviniyor, maliyet tablosu çıkıyor (toplam 5.550 ₺).
+6. Aile seviniyor, maliyet tablosu çıkıyor (toplam 5.600 ₺).
 7. Kapanış: "Evinize yeni bir nefes – BALIKÇIOĞLU – Sizi bekliyoruz!"
 
 ## Ürünler ve fiyatlar (videodaki)
 
 | Ürün | Ölçü | Fiyat |
 |---|---|---|
-| Kaya Panel | 60 × 280 cm | 2.700 ₺ |
+| Kaya Panel | 60 × 280 cm | 2.750 ₺ |
 | Akustik Keçe Panel (çıtalı) | 60 × 275 cm | 800 ₺ (nakit) |
 | PVC Mermer Panel | 122 × 244 cm | 1.250 ₺ |
 
-> "Usta teklifi 18.500 ₺" ve duvar düzeni (1 kaya + 2 akustik keçe + 1 PVC mermer = 5.550 ₺) örnek olarak konmuştur.
+> "Usta teklifi 18.500 ₺" ve duvar düzeni (1 kaya + 2 akustik keçe + 1 PVC mermer = 5.600 ₺) örnek olarak konmuştur.
 
 ## Dosyalar
 
@@ -47,7 +47,7 @@ Gerekenler: `python3` + `numpy`, `node` + `playwright` (Chromium), `ffmpeg`.
 
 ## Sık yapılacak değişiklikler
 
-- **Fiyat değişti:** `animasyon.html` içinde fiyatları ara (`2.700 ₺`, `800 ₺`, `1.250 ₺`, `5.550 ₺`); konuşmadaki toplam için `replikler.py`.
+- **Fiyat değişti:** `animasyon.html` içinde fiyatları ara (`2.750 ₺`, `800 ₺`, `1.250 ₺`, `5.600 ₺`); konuşmadaki toplam için `replikler.py`.
 - **Altyazılar:** `animasyon.html` içindeki `CAPS` listesi.
 - **Ses değiştirmek:** `replikler.py` başındaki `W, K, A` (0–4 kadın, 5–9 erkek sesi).
 - **Kapanışa telefon/adres:** `animasyon.html` içinde `id="end"` bölümü.

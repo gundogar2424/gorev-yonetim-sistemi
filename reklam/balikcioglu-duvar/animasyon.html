@@ -196,11 +196,11 @@
   <g id="cr0"><text x="-190" y="-68" font-size="19" font-weight="700" fill="#9a918a">Usta teklifi</text><text x="190" y="-68" font-size="19" font-weight="700" fill="#9a918a" text-anchor="end">18.500 ₺</text>
     <line id="strike" x1="-194" y1="-74" x2="194" y2="-74" stroke="#b3aaa1" stroke-width="2.5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></g>
   <line x1="-190" y1="-48" x2="190" y2="-48" stroke="#e6e0d8" stroke-width="2"/>
-  <g id="cr1"><text x="-190" y="-16" font-size="18" font-weight="600" fill="#2b2622">1 × Kaya panel</text><text x="190" y="-16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">2.700 ₺</text></g>
+  <g id="cr1"><text x="-190" y="-16" font-size="18" font-weight="600" fill="#2b2622">1 × Kaya panel</text><text x="190" y="-16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">2.750 ₺</text></g>
   <g id="cr2"><text x="-190" y="16" font-size="18" font-weight="600" fill="#2b2622">2 × Akustik keçe panel</text><text x="190" y="16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">1.600 ₺</text></g>
   <g id="cr3"><text x="-190" y="48" font-size="18" font-weight="600" fill="#2b2622">1 × PVC mermer panel</text><text x="190" y="48" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">1.250 ₺</text></g>
   <g id="cr4"><rect x="-200" y="70" width="400" height="54" rx="12" fill="#e8f3ec"/>
-    <text x="-180" y="105" font-size="24" font-weight="900" fill="#2f6b4a">Toplam</text><text x="180" y="105" font-size="30" font-weight="900" fill="#2f6b4a" text-anchor="end">5.550 ₺</text></g>
+    <text x="-180" y="105" font-size="24" font-weight="900" fill="#2f6b4a">Toplam</text><text x="180" y="105" font-size="30" font-weight="900" fill="#2f6b4a" text-anchor="end">5.600 ₺</text></g>
 </g></g>
 
 <g id="cap">
@@ -302,15 +302,15 @@ function drawMermer(g, x0, y0, w, h, s = 1) {
 // ev duvarı: 1 kaya (60cm) + 2 akustik (2×60cm) + 1 mermer (122cm)  ≈ 1.79 px/cm
 const FLOOR = 688;
 const kayaW = drawKaya($('kayaW'), 0, FLOOR - 501, 107, 501);
-const aku1 = drawAkustik($('akuW1'), 107, FLOOR - 492, 107, 492);
-const aku2 = drawAkustik($('akuW2'), 214, FLOOR - 492, 107, 492);
-const merW = drawMermer($('merW'), 321, FLOOR - 437, 219, 437);
-const sheen = el($('merW'), 'rect', { x: 321, y: FLOOR - 437, width: 80, height: 437, fill: 'url(#gloss)', 'clip-path': clipRect(321, FLOOR - 437, 219, 437) });
+const aku1 = drawAkustik($('akuW1'), 107, FLOOR - 501, 107, 501);
+const aku2 = drawAkustik($('akuW2'), 214, FLOOR - 501, 107, 501);
+const merW = drawMermer($('merW'), 321, FLOOR - 501, 219, 501);
+const sheen = el($('merW'), 'rect', { x: 321, y: FLOOR - 501, width: 80, height: 501, fill: 'url(#gloss)', 'clip-path': clipRect(321, FLOOR - 501, 219, 501) });
 
 // mağaza örnekleri
 drawKaya($('sp1'), 30, 240, 130, 262);
-drawAkustik($('sp2'), 185, 244, 130, 258);
-drawMermer($('sp3'), 340, 262, 170, 240);
+drawAkustik($('sp2'), 185, 240, 130, 262);
+drawMermer($('sp3'), 340, 240, 170, 262);
 function tag(cx, name, size, price, note) {
   const g = el($('tags'), 'g', { transform: `translate(${cx},556)`, filter: 'url(#soft)' });
   el(g, 'rect', { x: -78, y: -36, width: 156, height: 90, rx: 10, fill: '#fff' });
@@ -319,7 +319,7 @@ function tag(cx, name, size, price, note) {
   el(g, 'text', { y: 34, 'font-size': 24, 'font-weight': 900, fill: '#c4553f', 'text-anchor': 'middle' }, price);
   if (note) { el(g, 'rect', { x: 30, y: -50, width: 52, height: 20, rx: 10, fill: '#2f8a57' }); el(g, 'text', { x: 56, y: -36, 'font-size': 10.5, 'font-weight': 800, fill: '#fff', 'text-anchor': 'middle' }, note); }
 }
-tag(95, 'KAYA PANEL', '60 × 280 cm', '2.700 ₺');
+tag(95, 'KAYA PANEL', '60 × 280 cm', '2.750 ₺');
 tag(250, 'AKUSTİK KEÇE PANEL', '60 × 275 cm', '800 ₺', 'NAKİT');
 tag(425, 'PVC MERMER PANEL', '122 × 244 cm', '1.250 ₺');
 const checks = [95, 250, 425].map(cx => {
@@ -331,12 +331,12 @@ const checks = [95, 250, 425].map(cx => {
 
 // hayal balonu: aynı duvarın küçüğü
 drawKaya($('miniWall'), -112, -82, 44, 146, .35);
-drawAkustik($('miniWall'), -68, -80, 44, 144, 2, 1.2);
-drawAkustik($('miniWall'), -24, -80, 44, 144, 2, 1.2);
-drawMermer($('miniWall'), 20, -60, 92, 124, .4);
+drawAkustik($('miniWall'), -68, -82, 44, 146, 2, 1.2);
+drawAkustik($('miniWall'), -24, -82, 44, 146, 2, 1.2);
+drawMermer($('miniWall'), 20, -82, 92, 146, .4);
 
 // kapanış listesi
-[['Kaya Panel', '60 × 280 cm', '2.700 ₺'], ['Akustik Keçe Panel', '60 × 275 cm', '800 ₺ nakit'], ['PVC Mermer Panel', '122 × 244 cm', '1.250 ₺']].forEach(([n, s, pr], i) => {
+[['Kaya Panel', '60 × 280 cm', '2.750 ₺'], ['Akustik Keçe Panel', '60 × 275 cm', '800 ₺ nakit'], ['PVC Mermer Panel', '122 × 244 cm', '1.250 ₺']].forEach(([n, s, pr], i) => {
   const g = el($('endRows'), 'g', { transform: `translate(270,${420 + i * 92})`, id: 'er' + i });
   el(g, 'rect', { x: -210, y: -36, width: 420, height: 76, rx: 14, fill: '#fff', opacity: .07 });
   el(g, 'text', { x: -188, y: -4, 'font-size': 21, 'font-weight': 800, fill: '#fff' }, n);
@@ -465,7 +465,7 @@ const CAPS = [
   [21.4, 24.6, "2. Adım: Akustik keçe panel"],
   [24.8, 28.2, "3. Adım: PVC mermer panel"],
   [28.4, 30.2, "Hem şık, hem cebimize dost!"],
-  [30.3, 32.0, "Hepsi sadece 5.550 ₺!"],
+  [30.3, 32.0, "Hepsi sadece 5.600 ₺!"],
 ];
 
 function path(t, K) {
@@ -569,9 +569,9 @@ function render(t) {
 
   // ---- montaj ----
   press($('kayaW'), t, 18.5, 53, 437);
-  press($('akuW1'), t, 21.9, 160, 442);
-  press($('akuW2'), t, 22.7, 267, 442);
-  press($('merW'), t, 25.3, 430, 470);
+  press($('akuW1'), t, 21.9, 160, 437);
+  press($('akuW2'), t, 22.7, 267, 437);
+  press($('merW'), t, 25.3, 430, 437);
   const sk = p(t, 26.0, 26.9);
   sheen.setAttribute('x', lerp(240, 560, io(sk))); sheen.setAttribute('opacity', sk > 0 && sk < 1 ? 1 : 0);
 

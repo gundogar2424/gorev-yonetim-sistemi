@@ -14,7 +14,7 @@ LINES = [
  (21.6, W, 1.05, "Sonra akustik keçe panel."),
  (25.0, W, 1.05, "Ve PVC mermer panel."),
  (28.5, W, 1.1, "Hem şık, hem cebimize dost!"),
- (30.35, W, 1.1, "Hepsi sadece beş bin beş yüz elli lira!"),
+ (30.35, W, 1.1, "Hepsi sadece beş bin altı yüz lira!"),
  (32.7, A, 0.95, "Evinize yeni bir nefes."),
  (34.5, A, 1.0, "Kaya panel, akustik keçe panel, PVC mermer panel..."),
  (38.3, A, 1.0, "Hepsi Balıkçıoğlu'nda. Sizi bekliyoruz!"),
