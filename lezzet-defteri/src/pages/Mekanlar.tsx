@@ -161,6 +161,16 @@ export default function Mekanlar() {
           <Icon name="pin" className="w-[18px] h-[18px]" /> Mekanlarımı haritada gör
         </Link>
         <Buradayim />
+        <Link to="/etiketler" className="lz-card p-3.5 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
+            <Icon name="list" className="w-[18px] h-[18px]" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className={`block font-semibold ${T_BASLIK}`}>Etiketler ve yemekler</span>
+            <span className={`block text-[12.5px] ${T_SOLUK}`}>Pide, kahvaltı, kebap… dokun, o mekanlar yakından uzağa</span>
+          </span>
+          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
+        </Link>
         <Link to="/takip" className="lz-card p-3.5 flex items-center gap-3">
           <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
             <Icon name="users" className="w-[18px] h-[18px]" />
