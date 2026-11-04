@@ -520,10 +520,29 @@ function KampanyaKarti({ liste, konum }: { liste: LzMekan[]; konum: Konum | null
     .filter((m) => m.kampanya && Date.now() - m.kampanya.zaman < 7 * 24 * 3600 * 1000)
     .sort((a, b) => (uzaklik(a) ?? 1e9) - (uzaklik(b) ?? 1e9))
   const favSayisi = liste.filter((m) => m.favori).length
+  // Varsayilan kapali (cok yer kapliyordu); basinca acilir
+  const [acik, setAcik] = useState(false)
   if (!liste.length) return null
   const son = sonKontrol()
+  if (!acik && !d.calisiyor)
+    return (
+      <button className="lz-card p-3.5 flex items-center gap-3 w-full text-left" onClick={() => setAcik(true)}>
+        <span className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-[#1f1a2e] text-violet-600 flex items-center justify-center">
+          <Icon name="sparkle" className="w-[18px] h-[18px]" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className={`block font-semibold ${T_BASLIK}`}>Kampanyalar{kampanyali.length ? ` · ${kampanyali.length}` : ''}</span>
+          <span className={`block text-[12.5px] ${T_SOLUK}`}>{kampanyali.length ? 'Yakından uzağa; dokun, gör' : 'Yakınındaki mekanların kampanyalarını kontrol et'}</span>
+        </span>
+        <Icon name="back" className={`w-5 h-5 -rotate-90 ${T_SOLUK}`} />
+      </button>
+    )
   return (
     <div className="lz-card p-4 space-y-2.5">
+      <button className={`w-full flex items-center text-left font-semibold ${T_BASLIK}`} onClick={() => setAcik(false)}>
+        <span className="flex-1">Kampanyalar{kampanyali.length ? ` · ${kampanyali.length}` : ''}</span>
+        <Icon name="back" className={`w-5 h-5 rotate-90 ${T_SOLUK}`} />
+      </button>
       <button
         className="lz-btn-primary w-full text-[15px]"
         disabled={d.calisiyor}
