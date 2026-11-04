@@ -149,6 +149,31 @@ export default function Mekanlar() {
     <div>
       <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />
       <div className="px-4 space-y-3 pb-8">
+        {/* ETIKETLER: en ustte; dokununca o etiketteki mekanlar yakindan uzaga listelenir */}
+        {tumEtiketler.length > 0 && (
+          <div className="lz-card p-3.5 space-y-2">
+            <div className="flex items-center">
+              <span className={`flex-1 font-semibold ${T_BASLIK}`}>Etiketler</span>
+              <Link to="/etiketler" className="text-[12.5px] font-semibold text-lz-600">
+                Tümü ve yemekler ›
+              </Link>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {tumEtiketler.slice(0, 14).map(([e, n]) => (
+                <button
+                  key={e}
+                  className={`lz-chip text-[13px] ${etiket === e ? 'lz-chip-on' : ''}`}
+                  onClick={() => {
+                    setEtiket(etiket === e ? '' : e)
+                    setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 100)
+                  }}
+                >
+                  {e} <span className="opacity-60 ml-0.5">{n}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2.5">
           <Link to="/oner" className="lz-btn-primary text-[14px] px-2">
             <Icon name="sparkle" className="w-[18px] h-[18px]" /> Bana mekan öner
@@ -161,16 +186,6 @@ export default function Mekanlar() {
           <Icon name="pin" className="w-[18px] h-[18px]" /> Mekanlarımı haritada gör
         </Link>
         <Buradayim />
-        <Link to="/etiketler" className="lz-card p-3.5 flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
-            <Icon name="list" className="w-[18px] h-[18px]" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className={`block font-semibold ${T_BASLIK}`}>Etiketler ve yemekler</span>
-            <span className={`block text-[12.5px] ${T_SOLUK}`}>Pide, kahvaltı, kebap… dokun, o mekanlar yakından uzağa</span>
-          </span>
-          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
-        </Link>
         <Link to="/takip" className="lz-card p-3.5 flex items-center gap-3">
           <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
             <Icon name="users" className="w-[18px] h-[18px]" />
