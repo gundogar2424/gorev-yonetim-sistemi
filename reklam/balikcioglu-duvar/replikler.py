@@ -2,8 +2,8 @@ W, K, A = 0, 1, 4   # anne, çocuk, kapanış anonsu (hepsi kadın sesi)
 LINES = [
  (0.45, W, 1.05, "Salona bir TV ünitesi yapmak istiyoruz."),
  (2.85, W, 1.05, "Şöyle şık bir TV duvarı olsa!"),
- (5.6, W, 1.1, "Ustadan bir fiyat alayım."),
- (6.85, W, 1.15, "Hımm... On sekiz bin beş yüz. Biraz fazla."),
+ (5.6, W, 1.1, "İmalatçıdan bir fiyat alayım."),
+ (6.85, W, 1.15, "Hımm... Otuz bin lira. Biraz fazla."),
  (9.55, W, 1.15, "Ben bunu kendim de yaparım!"),
  (10.85, W, 1.15, "Doğru adres: Balıkçıoğlu!"),
  (12.3, W, 1.15, "PVC mermer panel..."),

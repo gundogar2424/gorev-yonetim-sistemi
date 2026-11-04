@@ -6,7 +6,7 @@ Hazır video: **`balikcioglu-duvar.mp4`**
 ## Hikâye
 
 1. "Salona TV ünitesi yapmak istiyoruz": kadın televizyonun durduğu boş duvara bakıyor, hayalindeki TV duvarını düşünüyor.
-2. Ustadan fiyat alıyor: 18.500 ₺, "biraz fazla".
+2. İmalatçıdan fiyat alıyor: 30.000 ₺, "biraz fazla".
 3. "Ben bunu kendim de yaparım!" deyip ailece **Balıkçıoğlu**'na gidiyorlar.
 4. Mağazada PVC mermer panel, akustik keçe panel ve kaya paneli seçiyorlar.
 5. Evde sırayla takıyor: dış taraflara kaya panel → iki yanına akustik keçe panel → ortaya PVC mermer panel; televizyon duvara asılıyor, altına asma konsol geliyor.
@@ -17,12 +17,12 @@ Hazır video: **`balikcioglu-duvar.mp4`**
 
 | Ürün | Ölçü | Fiyat |
 |---|---|---|
-| Kaya Panel | 60 × 280 cm | 2.750 ₺ |
+| Kaya Panel (beyaz, tek parça PU kaya yüzeyi) | 60 × 280 cm | 2.750 ₺ |
 | Akustik Keçe Panel (çıtalı) | 60 × 275 cm | 800 ₺ (nakit) |
 | PVC Mermer Panel | 122 × 244 cm | 1.250 ₺ |
 
 > TV duvarı düzeni (soldan sağa): kaya | akustik keçe | PVC mermer | akustik keçe | kaya → 2 kaya (5.500 ₺) + 2 akustik keçe (1.600 ₺) + 1 PVC mermer (1.250 ₺) = **8.350 ₺**.
-> "Usta teklifi 18.500 ₺" örnek olarak konmuştur.
+> "İmalatçı teklifi 30.000 ₺" örnek olarak konmuştur.
 
 ## Dosyalar
 

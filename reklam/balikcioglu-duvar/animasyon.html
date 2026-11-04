@@ -201,8 +201,8 @@
 <g id="price"><g transform="translate(330,330) rotate(-4)" filter="url(#cardSh)">
   <rect x="-150" y="-90" width="300" height="180" rx="18" fill="#fff"/>
   <rect x="-150" y="-90" width="300" height="44" rx="18" fill="#1f3a4d"/><rect x="-150" y="-60" width="300" height="14" fill="#1f3a4d"/>
-  <text y="-61" font-size="16" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="3">USTA TEKLİFİ</text>
-  <text y="28" font-size="58" font-weight="900" fill="#1f3a4d" text-anchor="middle">18.500 ₺</text>
+  <text y="-61" font-size="16" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="3">İMALATÇI TEKLİFİ</text>
+  <text y="28" font-size="58" font-weight="900" fill="#1f3a4d" text-anchor="middle">30.000 ₺</text>
   <text y="64" font-size="14" font-weight="500" fill="#6b625a" text-anchor="middle">malzeme + işçilik</text>
 </g></g>
 
@@ -219,7 +219,7 @@
 <g id="cost"><g transform="translate(270,212) scale(.78)" filter="url(#cardSh)">
   <rect x="-215" y="-140" width="430" height="280" rx="20" fill="#fff"/>
   <text x="-190" y="-104" font-size="14" font-weight="800" fill="#1f3a4d" letter-spacing="2">BU DUVARIN MALİYETİ</text>
-  <g id="cr0"><text x="-190" y="-68" font-size="19" font-weight="700" fill="#9a918a">Usta teklifi</text><text x="190" y="-68" font-size="19" font-weight="700" fill="#9a918a" text-anchor="end">18.500 ₺</text>
+  <g id="cr0"><text x="-190" y="-68" font-size="19" font-weight="700" fill="#9a918a">İmalatçı teklifi</text><text x="190" y="-68" font-size="19" font-weight="700" fill="#9a918a" text-anchor="end">30.000 ₺</text>
     <line id="strike" x1="-194" y1="-74" x2="194" y2="-74" stroke="#b3aaa1" stroke-width="2.5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></g>
   <line x1="-190" y1="-48" x2="190" y2="-48" stroke="#e6e0d8" stroke-width="2"/>
   <g id="cr1"><text x="-190" y="-16" font-size="18" font-weight="600" fill="#2b2622">2 × Kaya panel</text><text x="190" y="-16" font-size="18" font-weight="700" fill="#2b2622" text-anchor="end">5.500 ₺</text></g>
@@ -271,41 +271,31 @@ function clipRect(x, y, w, h) {
 
 // ---------- ürünler ----------
 const STONE = ['#8f877b', '#a39a8c', '#b6ad9f', '#7d756a', '#c4baa9', '#968b7c', '#a8a091', '#6f685e'];
+let rockN = 0;
+function rockFilter(s, seedV) {
+  // Tek parça PU kaya panel: açılı kırıklar ve çapraz sırtlar (yükseklik haritası + ışık)
+  const id = 'rock' + (rockN++), f = v => (v / s).toFixed(4);
+  const fl = el(document.querySelector('defs'), 'filter', { id, x: 0, y: 0, width: '100%', height: '100%', 'color-interpolation-filters': 'sRGB' });
+  el(fl, 'feTurbulence', { type: 'turbulence', baseFrequency: `${f(.0065)} ${f(.011)}`, numOctaves: 4, seed: seedV, result: 'n1' });
+  el(fl, 'feTurbulence', { type: 'fractalNoise', baseFrequency: f(.09), numOctaves: 2, seed: seedV + 3, result: 'n2' });
+  el(fl, 'feColorMatrix', { in: 'n1', type: 'matrix', values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0', result: 'h1' });
+  el(fl, 'feColorMatrix', { in: 'n2', type: 'matrix', values: '0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0', result: 'h2' });
+  el(fl, 'feComposite', { in: 'h1', in2: 'h2', operator: 'arithmetic', k1: 0, k2: .92, k3: .08, k4: 0, result: 'h' });
+  const dl = el(fl, 'feDiffuseLighting', { in: 'h', surfaceScale: (8 * s).toFixed(2), diffuseConstant: 1.1, 'lighting-color': '#fff', result: 'l' });
+  el(dl, 'feDistantLight', { azimuth: 235, elevation: 36 });
+  el(fl, 'feComposite', { in: 'l', in2: 'SourceGraphic', operator: 'arithmetic', k1: .5, k2: 0, k3: 0, k4: .5, result: 'lit' });
+  el(fl, 'feComposite', { in: 'lit', in2: 'SourceAlpha', operator: 'in' });
+  return `url(#${id})`;
+}
 function drawKaya(g, x0, y0, w, h, s = 1) {
-  // Doğal kaya duvar: düzensiz, yuvarlak kenarlı, farklı boyutlarda taşlar + kabartma dokusu
-  const root = el(g, 'g', { 'clip-path': clipRect(x0, y0, w, h) });
-  const tex = el(root, 'g', { filter: 'url(#rough)' });
-  el(tex, 'rect', { x: x0, y: y0, width: w, height: h, fill: '#2f2b27' });
-  const sg = el(tex, 'g', { filter: 'url(#stoneDrop)' });
-  const c = 30 * s, seeds = [];
-  for (let y = y0 - c; y < y0 + h + c; y += c * (.7 + rnd() * .35))
-    for (let x = x0 - c * (.3 + rnd() * .7); x < x0 + w + c; x += c * (.85 + rnd() * .95))
-      seeds.push([x + (rnd() - .5) * c * .45, y + (rnd() - .5) * c * .35]);
-  const clip = (poly, p, q) => {
-    const nx = q[0] - p[0], ny = q[1] - p[1], cv = (q[0] * q[0] + q[1] * q[1] - p[0] * p[0] - p[1] * p[1]) / 2;
-    const inside = v => nx * v[0] + ny * v[1] <= cv, out = [];
-    for (let k = 0; k < poly.length; k++) {
-      const a = poly[k], b = poly[(k + 1) % poly.length], ia = inside(a), ib = inside(b);
-      if (ia) out.push(a);
-      if (ia !== ib) { const da = nx * a[0] + ny * a[1] - cv, db = nx * b[0] + ny * b[1] - cv, u = da / (da - db); out.push([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]); }
-    }
-    return out;
-  };
-  const m = 3 * c;
-  seeds.forEach((p, i) => {
-    let poly = [[x0 - m, y0 - m], [x0 + w + m, y0 - m], [x0 + w + m, y0 + h + m], [x0 - m, y0 + h + m]];
-    seeds.forEach((q, j) => { if (j !== i && Math.abs(q[0] - p[0]) < m && Math.abs(q[1] - p[1]) < m && poly.length) poly = clip(poly, p, q); });
-    if (poly.length < 3) return;
-    const cx = poly.reduce((a, v) => a + v[0], 0) / poly.length, cy = poly.reduce((a, v) => a + v[1], 0) / poly.length;
-    if (cx < x0 - c || cx > x0 + w + c || cy < y0 - c || cy > y0 + h + c) return;
-    const gap = 2.4 * s;
-    const v = poly.map(([x, y]) => { const d = Math.hypot(x - cx, y - cy) || 1, k = Math.max(0, d - gap) / d; return [cx + (x - cx) * k, cy + (y - cy) * k]; });
-    const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], f = n => n.toFixed(1);
-    let st = mid(v[v.length - 1], v[0]), d = `M${f(st[0])} ${f(st[1])}`;
-    for (let k = 0; k < v.length; k++) { const n = mid(v[k], v[(k + 1) % v.length]); d += ` Q${f(v[k][0])} ${f(v[k][1])} ${f(n[0])} ${f(n[1])}`; }
-    el(sg, 'path', { d, fill: STONE[Math.floor(rnd() * STONE.length)] });
-    el(sg, 'path', { d, fill: 'url(#stoneShade)' });
-  });
+  const root = el(g, 'g', {});
+  el(root, 'rect', { x: x0, y: y0, width: w, height: h, fill: '#000', opacity: .3, filter: 'url(#soft)' });   // panel kalınlığının gölgesi
+  const inner = el(root, 'g', { 'clip-path': clipRect(x0, y0, w, h) });
+  // deseni çapraz yatırmak için döndürülmüş büyük bir yüzey
+  const cx = x0 + w / 2, cy = y0 + h / 2, R = Math.hypot(w, h);
+  const rot = el(inner, 'g', { transform: `rotate(-32 ${cx} ${cy})` });
+  el(rot, 'rect', { x: cx - R / 2, y: cy - R / 2, width: R, height: R, fill: '#ffffff', filter: rockFilter(s, 3 + Math.floor(rnd() * 90)) });
+  el(inner, 'rect', { x: x0, y: y0, width: w, height: h, fill: 'none', stroke: '#000', 'stroke-opacity': .12, 'stroke-width': 1.5 * s });
   return root;
 }
 function drawAkustik(g, x0, y0, w, h, sw = 4.6, gap = 2.6) {
@@ -502,8 +492,8 @@ const T = 41;
 const CAPS = [
   [0.4, 2.6, "Salona TV ünitesi yapmak istiyoruz..."],
   [2.8, 5.4, "Şöyle şık bir TV duvarı olsa!"],
-  [5.6, 6.6, "Ustadan fiyat alayım..."],
-  [6.7, 9.3, "Hmm... 18.500 ₺, biraz fazla."],
+  [5.6, 6.6, "İmalatçıdan fiyat alayım..."],
+  [6.7, 9.3, "Hmm... 30.000 ₺, biraz fazla."],
   [9.4, 10.75, "Ben bunu kendim de yaparım!"],
   [10.9, 12.0, "Doğru adres: Balıkçıoğlu!"],
   [12.05, 13.45, "PVC mermer panel..."],
