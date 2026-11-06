@@ -107,9 +107,11 @@ fun CardFormScreen(
                 existing = c
                 name = c.name
                 bank = c.bank
-                // Kayitli tarihin gelecekteki ilk gorunumunu goster.
-                statementDate = CardCalc.nextStatement(c, today)
-                dueDate = CardCalc.nextDue(c, today)
+                // Kartta gorunen donguyun AYNISINI goster (kart ile birebir ayni).
+                // Boylece "4 Kasım" secince formda da kartta da 4 Kasım kalir;
+                // ileri/geri bir aya kaymaz.
+                dueDate = CardCalc.currentDue(c, today)
+                statementDate = CardCalc.statementForDue(c, dueDate!!)
                 limit = if (c.limit > 0) c.limit.toLong().toString() else ""
                 debt = if (c.debt > 0) c.debt.toLong().toString() else ""
                 available = if (c.limit - c.debt > 0) (c.limit - c.debt).toLong().toString() else ""
