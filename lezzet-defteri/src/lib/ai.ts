@@ -779,7 +779,11 @@ async function tmCagri(
       'şekeri kaba koy, karamelize modunu çalıştır; karamel sos için ardından krema/tereyağını ekle, 90–100 °C devir 2 karıştır; tip alanına ' +
       '"Karamelize modu yoksa: Kavurma 160 °C, ters bıçak, yumuşak devir, gözle kontrol et" yaz), çikolata eritme 50 °C devir 2, tereyağı eritme 60–70 °C devir 2, ' +
       'ganaj, beşamel, muhallebi, puding, krema, sos, reçel/marmelat (Varoma sıcaklığı, ölçü kabı yerine sepet), şurup/şerbet 100 °C, ' +
-      'krem şanti ve beze (kelebek aksesuarı, devir 3–4, ısıtmadan), mayonez, yumurta haşlama (buhar), soğan karamelize ve et/kıyma kavurma (mode "sote"), ' +
+      'krem şanti ve beze (kelebek aksesuarı, devir 3–4, ısıtmadan; şantiyi gözle kontrol et, fazla çırpılırsa kesilir), ' +
+      'MASCARPONE / LABNE / KREM PEYNİR içeren kremalar (tiramisu vb.): ISITMADAN, KISA karıştır — ters bıçak devir 3, 15–30 sn ya da kelebekle devir 3, ' +
+      'en fazla 30–40 sn; uzun ya da yüksek devirde karıştırılan mascarpone sulanır/kesilir, tip alanına bunu yaz. Pişen muhallebi/krema tabanı soğumadan mascarponeyi ekleme. ' +
+      'Pişirilen krema/muhallebi/puding: 90 °C devir 4 NORMAL yön (ters değil; ters ve düşük devirde dibi tutar), ' +
+      'ters bıçak yalnızca parçalar bölünmesin istenince (et, sebze parçası, pilav) ya da hassas karıştırmada; mayonez, yumurta haşlama (buhar), soğan karamelize ve et/kıyma kavurma (mode "sote"), ' +
       'haşlama, buharda pişirme, pilav, hamur yoğurma ve mayalama, doğrama/rendeleme/öğütme/pudra şekeri, smoothie. ' +
       'TM7 DIŞINDA yalnızca şunlar yapılır: fırında pişirme, derin yağda kızartma, ızgara/mangal, geniş yüzey isteyen tava işleri ' +
       '(krep, pankek, omlet, büyük et/balık mühürleme), kalıba dökme ve soğutma. Bunlarda bile hamur, harç, sos gibi hazırlığı TM7’de yap; ' +
