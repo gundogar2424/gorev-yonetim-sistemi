@@ -48,7 +48,7 @@
     },
     {
       "program": "Bonus",
-      "match": ["garanti", "bonus"],
+      "match": ["garanti"],
       "title": "Market alışverişine 500 TL, BonusFlaş ile 600 TL bonus",
       "detail": "Market harcamalarına bonus; BonusFlaş ile ödeyince daha fazlası. Katılım Garanti BBVA Mobil / bonus.com.tr.",
       "category": "Market",
@@ -59,7 +59,7 @@
     },
     {
       "program": "Bonus",
-      "match": ["garanti", "bonus"],
+      "match": ["garanti"],
       "title": "Tüm Bonus kampanyaları (resmî)",
       "detail": "Garanti BBVA Bonus'un güncel kampanyalarının tam listesi (bonus.com.tr).",
       "category": "Tümü",
@@ -114,7 +114,7 @@
     },
     {
       "program": "Bonus",
-      "match": ["denizbank"],
+      "match": ["denizbank", "deniz"],
       "title": "Otomatik fatura talimatına 700 TL'ye varan Bonus",
       "detail": "1-30 Kasım 2026. 1 yeni fatura talimatı = 200 TL, 3 = 400 TL, 5 = 700 TL nakit iade. MobilDeniz'den katıl.",
       "category": "Fatura",
@@ -125,7 +125,7 @@
     },
     {
       "program": "Bonus",
-      "match": ["denizbank"],
+      "match": ["denizbank", "deniz"],
       "title": "Bonus Business TROY ile harcadıkça kazan",
       "detail": "Bonus Business TROY kart harcamalarına kazanç. Detay için dokun.",
       "category": "Genel",
@@ -136,7 +136,7 @@
     },
     {
       "program": "Bonus",
-      "match": ["denizbank"],
+      "match": ["denizbank", "deniz"],
       "title": "Tüm Denizbank kampanyaları (resmî)",
       "detail": "Denizbank kartlarının güncel kampanyalarının tam listesi.",
       "category": "Tümü",

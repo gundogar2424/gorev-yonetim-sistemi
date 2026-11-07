@@ -462,7 +462,6 @@ private fun CampaignCard(c: Campaign, onOpen: () -> Unit, onTrack: () -> Unit, o
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             PillButton("Takip et", Icons.Default.Add, MaterialTheme.colorScheme.primary, onTrack)
             if (c.url.isNotBlank()) PillButton("Detay", Icons.Default.LocalOffer, Color(0xFF8B5CF6), onOpen)
-            PillButton("Yok say", Icons.Default.Close, MaterialTheme.colorScheme.onSurfaceVariant, onHide)
         }
     }
 }
@@ -574,11 +573,23 @@ private fun SpendDialog(tc: TrackedCampaign, onDismiss: () -> Unit, onAdd: (Doub
     )
 }
 
+/**
+ * Linki TARAYICIDA acar. Duz ACTION_VIEW, banka uygulamasi kuruluysa (app link)
+ * onu acip kullaniciyi uygulamaya atiyordu; CATEGORY_APP_BROWSER secicisi ile
+ * dogrudan varsayilan tarayici hedeflenir. Olmazsa duz ACTION_VIEW'a duser.
+ */
 private fun openUrl(context: Context, url: String) {
     if (url.isBlank()) return
-    runCatching {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        })
+    val uri = Uri.parse(url)
+    val browser = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER).apply {
+        data = uri
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(browser) }.onFailure {
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_VIEW, uri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+        }
     }
 }
