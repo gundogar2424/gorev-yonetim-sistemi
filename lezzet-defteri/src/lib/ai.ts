@@ -784,7 +784,8 @@ async function tmCagri(
       'krem şanti ve beze (kelebek aksesuarı, devir 3–4, ısıtmadan; şantiyi gözle kontrol et, fazla çırpılırsa kesilir), ' +
       'MASCARPONE / LABNE / KREM PEYNİR içeren kremalar (tiramisu vb.): ISITMADAN, KISA karıştır — ters bıçak devir 3, 15–30 sn ya da kelebekle devir 3, ' +
       'en fazla 30–40 sn; uzun ya da yüksek devirde karıştırılan mascarpone sulanır/kesilir, tip alanına bunu yaz. Pişen muhallebi/krema tabanı soğumadan mascarponeyi ekleme. ' +
-      'Pişirilen krema/muhallebi/puding (unlu/nişastalı): 90–95 °C, devir 4 (normal yön ya da ters yön devir 3–4), 8–10 dk; nişasta tam pişsin diye ' +
+      'Pişirilen krema/muhallebi/puding (unlu/nişastalı): 90–95 °C, devir 4 (normal yön ya da ters yön devir 3–4); SÜRE SIVI MİKTARINA GÖRE: ' +
+      '~500 g süt 8–10 dk, ~750 g 11–13 dk, ~1000 g 14–16 dk (TM önce ısıtmak zorunda; kısa süre krema pişmez, sulu kalır); nişasta tam pişsin diye ' +
       'tip alanına "Koyulaşmadıysa 1–2 dk daha pişir; koyulaşınca hemen durdur, uzun karıştırma kıvamı bozar" yaz. Labne/mascarpone soğuduktan sonra ters yön devir 3, 20–30 sn. ' +
       'ters bıçak yalnızca parçalar bölünmesin istenince (et, sebze parçası, pilav) ya da hassas karıştırmada; mayonez, yumurta haşlama (buhar), soğan karamelize ve et/kıyma kavurma (mode "sote"), ' +
       'haşlama, buharda pişirme, pilav, hamur yoğurma ve mayalama, doğrama/rendeleme/öğütme/pudra şekeri, smoothie. ' +
