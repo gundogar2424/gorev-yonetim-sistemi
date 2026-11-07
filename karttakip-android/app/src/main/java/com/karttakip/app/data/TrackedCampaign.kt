@@ -27,6 +27,8 @@ data class TrackedCampaign(
     val completed: Boolean = false,
     // Bankadan kampanyaya katilindi mi? (Katilmadan harcama saymaz.)
     val joined: Boolean = false,
+    // Hangi kartla takip ediliyor (Card.id). 0 = karta bagli degil.
+    val cardId: Long = 0,
     val url: String = ""
 )
 

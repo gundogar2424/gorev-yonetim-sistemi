@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.karttakip.app.data.Campaign
 import com.karttakip.app.data.CampaignData
+import com.karttakip.app.data.Card
 import com.karttakip.app.data.CampaignRepository
 import com.karttakip.app.data.TrackedCampaign
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +99,7 @@ fun CampaignsScreen(
     var refreshKey by remember { mutableIntStateOf(0) }
 
     var trackFor by remember { mutableStateOf<Campaign?>(null) }
+    var trackCardId by remember { mutableStateOf(0L) }   // takibe alirken on-secili kart
     var spendFor by remember { mutableStateOf<TrackedCampaign?>(null) }
     var dismissed by remember { mutableStateOf(CampaignRepository.dismissed(context)) }
 
@@ -142,16 +144,18 @@ fun CampaignsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // --- TAKİP ETTİKLERİM ---
-            if (tracked.isNotEmpty()) {
+            // --- Karta bagli OLMAYAN takipler (karta baglilar kendi kartinin altinda) ---
+            val cardIds = cards.map { it.id }.toSet()
+            val unlinked = tracked.filter { it.cardId == 0L || it.cardId !in cardIds }
+            if (unlinked.isNotEmpty()) {
                 item {
                     Text(
-                        "TAKİP ETTİKLERİM",
+                        "TAKİP ETTİKLERİM (karta bağlı değil)",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                items(tracked, key = { "t" + it.id }) { tc ->
+                items(unlinked, key = { "t" + it.id }) { tc ->
                     TrackedCard(
                         tc = tc,
                         today = today,
@@ -192,7 +196,20 @@ fun CampaignsScreen(
 
                 cards.forEach { card ->
                     val matched = d.campaigns.filter { it.title !in dismissed && CampaignRepository.matches(card, it) }
-                    item { CardCampaignHeader(card.name, card.bank, matched.size) }
+                    val mine = tracked.filter { it.cardId == card.id }
+                    item { CardCampaignHeader(card.name, card.bank, matched.size, mine.size) }
+                    // Bu KARTLA takip edilen kampanyalar, kartin hemen altinda.
+                    items(mine, key = { "t" + it.id }) { tc ->
+                        TrackedCard(
+                            tc = tc,
+                            today = today,
+                            onJoin = { vm.setJoined(tc, !tc.joined) },
+                            onOpenBank = { openUrl(context, tc.url) },
+                            onAddSpend = { spendFor = tc },
+                            onComplete = { vm.completeTracked(tc) },
+                            onDelete = { vm.deleteTracked(tc) }
+                        )
+                    }
                     if (matched.isEmpty()) {
                         item {
                             Text(
@@ -204,7 +221,12 @@ fun CampaignsScreen(
                         }
                     } else {
                         items(matched) { c ->
-                            CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c }, onHide = { hide(c) })
+                            CampaignCard(
+                                c,
+                                onOpen = { openUrl(context, c.url) },
+                                onTrack = { trackCardId = card.id; trackFor = c },
+                                onHide = { hide(c) }
+                            )
                         }
                     }
                 }
@@ -220,7 +242,12 @@ fun CampaignsScreen(
                         )
                     }
                     items(others) { c ->
-                        CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c }, onHide = { hide(c) })
+                        CampaignCard(
+                            c,
+                            onOpen = { openUrl(context, c.url) },
+                            onTrack = { trackCardId = 0L; trackFor = c },
+                            onHide = { hide(c) }
+                        )
                     }
                 }
 
@@ -265,6 +292,8 @@ fun CampaignsScreen(
     trackFor?.let { c ->
         TrackDialog(
             campaign = c,
+            cards = cards,
+            initialCardId = trackCardId,
             onDismiss = { trackFor = null },
             onSave = { tc -> vm.track(tc); trackFor = null }
         )
@@ -404,7 +433,7 @@ private fun PillButton(text: String, icon: androidx.compose.ui.graphics.vector.I
 }
 
 @Composable
-private fun CardCampaignHeader(name: String, bank: String, count: Int) {
+private fun CardCampaignHeader(name: String, bank: String, count: Int, trackedCount: Int = 0) {
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier.size(34.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), CircleShape),
@@ -419,7 +448,12 @@ private fun CardCampaignHeader(name: String, bank: String, count: Int) {
                 Text(bank, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Text("$count kampanya", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(horizontalAlignment = Alignment.End) {
+            Text("$count kampanya", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (trackedCount > 0) {
+                Text("🎯 $trackedCount takipte", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 }
 
@@ -473,10 +507,17 @@ private fun Chip(text: String, accent: Color) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun TrackDialog(campaign: Campaign, onDismiss: () -> Unit, onSave: (TrackedCampaign) -> Unit) {
+private fun TrackDialog(
+    campaign: Campaign,
+    cards: List<Card>,
+    initialCardId: Long,
+    onDismiss: () -> Unit,
+    onSave: (TrackedCampaign) -> Unit
+) {
     var target by remember { mutableStateOf("") }
+    var cardId by remember { mutableStateOf(initialCardId) }
     var deadline by remember { mutableStateOf<LocalDate?>(null) }
     var showPicker by remember { mutableStateOf(false) }
 
@@ -528,6 +569,31 @@ private fun TrackDialog(campaign: Campaign, onDismiss: () -> Unit, onSave: (Trac
                     )
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 }
+                // Hangi kartla? Secili kart dolu renkte; takip o kartin altinda gorunur.
+                if (cards.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Hangi kartla?", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(6.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        cards.forEach { card ->
+                            val sel = card.id == cardId
+                            val accent = Color(card.colorArgb)
+                            Box(
+                                Modifier
+                                    .background(if (sel) accent else accent.copy(alpha = 0.15f), RoundedCornerShape(50))
+                                    .clickable { cardId = if (sel) 0L else card.id }
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    card.name,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (sel) Color.White else accent,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -539,6 +605,7 @@ private fun TrackDialog(campaign: Campaign, onDismiss: () -> Unit, onSave: (Trac
                         targetSpend = target.toDoubleOrNull() ?: 0.0,
                         spentSoFar = 0.0,
                         deadlineEpochDay = deadline?.toEpochDay() ?: 0L,
+                        cardId = cardId,
                         url = campaign.url
                     )
                 )

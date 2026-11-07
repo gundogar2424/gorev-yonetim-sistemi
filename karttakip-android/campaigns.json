@@ -1,6 +1,6 @@
 {
   "updated": "7 Kasım 2026",
-  "note": "Kampanyalar bankaların web sitelerinden derlenmiştir. Ayrıntı için kampanyaya dokun. Çoğu kampanyada önce bankadan KATILMAN gerekir, yoksa harcama saymaz.",
+  "note": "Kampanyalar bankaların web sitelerinden derlenmiştir. Ayrıntı için kampanyaya dokun. Çoğu kampanyada önce bankadan KATILMAN gerekir, yoksa harcama saymaz. Tarihi yazmayanlar için güncel koşulu dokunup kontrol et.",
   "campaigns": [
     {
       "program": "Maximum",
@@ -27,6 +27,39 @@
     {
       "program": "Maximum",
       "match": ["maximum", "maxipuan"],
+      "title": "Akaryakıtta Maximum Mobil'e özel 35 TL MaxiPuan",
+      "detail": "Akaryakıt alışverişini Maximum Mobil üzerinden ödeyince MaxiPuan. Güncel tarih ve koşul için dokun.",
+      "category": "Akaryakıt",
+      "reward": "35 TL MaxiPuan",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.isbank.com.tr/kampanyalar/akaryakit-alisverislerinizde-maximum-mobile-ozel-35-tl-maxipuan"
+    },
+    {
+      "program": "Maximum",
+      "match": ["maximum", "maxipuan"],
+      "title": "Opet'te 110 TL'ye varan MaxiPuan",
+      "detail": "Opet istasyonlarındaki akaryakıt alışverişlerine MaxiPuan. Güncel tarih ve koşul için dokun.",
+      "category": "Akaryakıt",
+      "reward": "110 TL'ye varan MaxiPuan",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.isbank.com.tr/kampanyalar/opet-te-maxipuan-firsati"
+    },
+    {
+      "program": "Maximum",
+      "match": ["maximum", "maxipuan"],
+      "title": "Jimmy Key'de MaxiPuan",
+      "detail": "Jimmy Key mağaza ve online alışverişlerine MaxiPuan. Detay için dokun.",
+      "category": "Giyim",
+      "reward": "MaxiPuan",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.isbank.com.tr/kampanyalar/jimmy-keyde-maxipuan-kampanyasi"
+    },
+    {
+      "program": "Maximum",
+      "match": ["maximum", "maxipuan"],
       "title": "MACFit'te 1.000 TL MaxiPuan",
       "detail": "MACFit üyelik/harcamalarında MaxiPuan. Detay için dokun.",
       "category": "Spor",
@@ -34,6 +67,28 @@
       "minSpend": "",
       "validUntil": "",
       "url": "https://www.isbank.com.tr/kampanyalar/macfitte-maxipuan"
+    },
+    {
+      "program": "Maximum",
+      "match": ["maximum", "maxipuan"],
+      "title": "Tüm akaryakıt kampanyaları (Maximum)",
+      "detail": "İş Bankası'nın güncel akaryakıt kampanyaları sayfası.",
+      "category": "Akaryakıt",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.isbank.com.tr/kampanyalar/akaryakit-kampanyalari"
+    },
+    {
+      "program": "Maximum",
+      "match": ["maximum", "maxipuan"],
+      "title": "Tüm giyim-aksesuar kampanyaları (Maximum)",
+      "detail": "İş Bankası'nın güncel giyim ve aksesuar kampanyaları sayfası.",
+      "category": "Giyim",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.isbank.com.tr/kampanyalar/giyim-aksesuar-kampanyalari"
     },
     {
       "program": "Maximum",
@@ -46,6 +101,7 @@
       "validUntil": "",
       "url": "https://www.isbank.com.tr/kampanyalar"
     },
+
     {
       "program": "Bonus",
       "match": ["garanti"],
@@ -60,6 +116,61 @@
     {
       "program": "Bonus",
       "match": ["garanti"],
+      "title": "Opet kampanyaları (Bonus)",
+      "detail": "Bonus ile Opet'te güncel akaryakıt kampanyaları. Detay için dokun.",
+      "category": "Akaryakıt",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.bonus.com.tr/kampanyalar/marka/opet"
+    },
+    {
+      "program": "Bonus",
+      "match": ["garanti"],
+      "title": "Elektronik kampanyaları (Bonus)",
+      "detail": "Elektronik ve beyaz eşya için güncel bonus/taksit kampanyaları.",
+      "category": "Elektronik",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.bonus.com.tr/kampanyalar/sektor/elektronik"
+    },
+    {
+      "program": "Bonus",
+      "match": ["garanti"],
+      "title": "Sanal mağaza / e-ticaret kampanyaları (Bonus)",
+      "detail": "Online alışveriş sitelerinde güncel bonus kampanyaları.",
+      "category": "E-ticaret",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.bonus.com.tr/kampanyalar/marka/sanal-magaza"
+    },
+    {
+      "program": "Bonus",
+      "match": ["garanti"],
+      "title": "Ulaşım kampanyaları (Bonus)",
+      "detail": "Uçak, otobüs, araç kiralama vb. ulaşım harcamalarına kampanyalar.",
+      "category": "Seyahat",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.bonus.com.tr/kampanyalar/sektor/ulasim"
+    },
+    {
+      "program": "Bonus",
+      "match": ["garanti"],
+      "title": "Taksit kampanyaları (Bonus)",
+      "detail": "Peşin fiyatına taksit ve ek taksit fırsatları.",
+      "category": "Taksit",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.bonus.com.tr/taksit-kampanyalari"
+    },
+    {
+      "program": "Bonus",
+      "match": ["garanti"],
       "title": "Tüm Bonus kampanyaları (resmî)",
       "detail": "Garanti BBVA Bonus'un güncel kampanyalarının tam listesi (bonus.com.tr).",
       "category": "Tümü",
@@ -67,6 +178,18 @@
       "minSpend": "",
       "validUntil": "",
       "url": "https://www.bonus.com.tr/kampanyalar"
+    },
+
+    {
+      "program": "Bankkart",
+      "match": ["ziraat", "bankkart"],
+      "title": "Elektrikli şarj istasyonlarında 750 TL Jest Lira",
+      "detail": "Elektrikli araç şarj istasyonlarındaki harcamalara Jest Lira. Son gün 30 Kasım 2026. Bankkart Mobil'den katıl; ayrıntı akaryakıt kampanyaları sayfasında.",
+      "category": "Elektrikli araç / Şarj",
+      "reward": "750 TL Jest Lira",
+      "minSpend": "",
+      "validUntil": "30 Kas 2026",
+      "url": "https://www.bankkart.com.tr/kampanyalar/akaryakit"
     },
     {
       "program": "Bankkart",
@@ -82,6 +205,39 @@
     {
       "program": "Bankkart",
       "match": ["ziraat", "bankkart"],
+      "title": "Kafe ve restoran harcamalarına toplam 450 TL Jest Lira",
+      "detail": "Kafe/restoran harcamalarına Jest Lira. Son gün 30 Kasım 2026. Koşullar için dokun; Bankkart Mobil'den katıl.",
+      "category": "Restoran",
+      "reward": "450 TL Jest Lira",
+      "minSpend": "",
+      "validUntil": "30 Kas 2026",
+      "url": "https://www.bankkart.com.tr/kampanyalar"
+    },
+    {
+      "program": "Bankkart",
+      "match": ["ziraat", "bankkart"],
+      "title": "TotalEnergies'de 500 TL Jest Lira",
+      "detail": "TotalEnergies istasyonlarında 4. akaryakıt/otogaz harcamana 500 TL Jest Lira. Bankkart Mobil'den katıl.",
+      "category": "Akaryakıt",
+      "reward": "500 TL Jest Lira",
+      "minSpend": "",
+      "validUntil": "Kas 2026",
+      "url": "https://www.bankkart.com.tr/kampanyalar/akaryakit/totalenergiesde-500-tl-jest-lira"
+    },
+    {
+      "program": "Bankkart",
+      "match": ["ziraat", "bankkart"],
+      "title": "M Oil'de 500 TL Jest Lira",
+      "detail": "M Oil istasyonlarındaki akaryakıt harcamalarına Jest Lira. Son gün 30 Kasım 2026. Ayrıntı akaryakıt kampanyaları sayfasında.",
+      "category": "Akaryakıt",
+      "reward": "500 TL Jest Lira",
+      "minSpend": "",
+      "validUntil": "30 Kas 2026",
+      "url": "https://www.bankkart.com.tr/kampanyalar/akaryakit"
+    },
+    {
+      "program": "Bankkart",
+      "match": ["ziraat", "bankkart"],
       "title": "Seyahatte 8.500 TL Jest Lira",
       "detail": "85.000 TL ve üzeri peşin/taksitli seyahat harcamasına 8.500 TL Jest Lira. Bir kez. Bankkart Mobil'den katıl.",
       "category": "Seyahat",
@@ -93,13 +249,24 @@
     {
       "program": "Bankkart",
       "match": ["ziraat", "bankkart"],
-      "title": "TotalEnergies'de 500 TL Jest Lira",
-      "detail": "1 Ekim - 15 Kasım 2026. TotalEnergies akaryakıt harcamalarına Jest Lira. Bankkart Mobil'den katıl.",
-      "category": "Akaryakıt",
-      "reward": "500 TL Jest Lira",
+      "title": "Türk Hava Yolları'nda 6 taksit",
+      "detail": "10.000 TL ve üzeri THY bilet alımlarına 6 taksit. Son gün 30 Kasım 2026.",
+      "category": "Seyahat",
+      "reward": "6 taksit",
+      "minSpend": "10.000 ₺",
+      "validUntil": "30 Kas 2026",
+      "url": "https://www.bankkart.com.tr/kampanyalar/turizm-ve-seyahat/turk-hava-yollarinda-6-taksit"
+    },
+    {
+      "program": "Bankkart",
+      "match": ["ziraat", "bankkart"],
+      "title": "İlk ek kredi kartına marketlerde 1.000 TL Jest Lira",
+      "detail": "İlk ek Bankkart kredi kartıyla market alışverişlerine Jest Lira. Güncel tarih/koşul için dokun.",
+      "category": "Market",
+      "reward": "1.000 TL Jest Lira",
       "minSpend": "",
-      "validUntil": "15 Kas 2026",
-      "url": "https://www.bankkart.com.tr/kampanyalar/akaryakit/totalenergiesde-500-tl-jest-lira"
+      "validUntil": "",
+      "url": "https://www.bankkart.com.tr/kampanyalar/market-ve-gida/market-alisverislerinize-1000-tl-jest-lira"
     },
     {
       "program": "Bankkart",
@@ -112,8 +279,20 @@
       "validUntil": "",
       "url": "https://www.bankkart.com.tr/kampanyalar"
     },
+
     {
-      "program": "Bonus",
+      "program": "Denizbank",
+      "match": ["denizbank", "deniz"],
+      "title": "ÖNEMLİ: Denizbank Bonus kartlar 6 Aralık 2026'da kapanıyor",
+      "detail": "Denizbank-Bonus iş birliği bitiyor. Bonus logolu kartlar 6 Aralık 2026'da kullanıma kapanacak; birikmiş Bonus puanları MaxiPuan'a dönüştürülecek, yeni kartlar Maximum üye işyerlerinde geçecek. Puanını o tarihe kadar harcamayı/dönüşümü takip et.",
+      "category": "Önemli",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "6 Ara 2026",
+      "url": "https://www.denizbank.com/kampanya/kart-kampanyalari/cok-yakinda"
+    },
+    {
+      "program": "Denizbank",
       "match": ["denizbank", "deniz"],
       "title": "Otomatik fatura talimatına 700 TL'ye varan Bonus",
       "detail": "1-30 Kasım 2026. 1 yeni fatura talimatı = 200 TL, 3 = 400 TL, 5 = 700 TL nakit iade. MobilDeniz'den katıl.",
@@ -124,18 +303,29 @@
       "url": "https://www.denizbank.com/kampanya/mobildeniz-firsatlari/otomatik-fatura-talimatlariniza-bonus-114201"
     },
     {
-      "program": "Bonus",
+      "program": "Denizbank",
       "match": ["denizbank", "deniz"],
-      "title": "Bonus Business TROY ile harcadıkça kazan",
-      "detail": "Bonus Business TROY kart harcamalarına kazanç. Detay için dokun.",
-      "category": "Genel",
+      "title": "Bonus Business ile akaryakıtta %8 indirim",
+      "detail": "Bonus Business kart + PLATFORM Taşıt Tanıma ile Lukoil, Akpet, Kadoil, Termopet, Balpet'te motorin ve benzinde %8 indirim (LPG hariç). Şirket aracı için uygun.",
+      "category": "Akaryakıt",
+      "reward": "%8 indirim",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.denizbank.com/kampanyalar/kredi-karti/bonus-kartlari-kampanyalari/denizbank-bonus-business-ile-indirimli-akaryakit-firsati.aspx"
+    },
+    {
+      "program": "Denizbank",
+      "match": ["denizbank", "deniz"],
+      "title": "Ödemelerini kolayca taksite bağla",
+      "detail": "Tek çekim harcamalarını sonradan taksitlendirme. Detay için dokun.",
+      "category": "Taksit",
       "reward": "",
       "minSpend": "",
       "validUntil": "",
-      "url": "https://www.denizbank.com/kampanya/bonus-kart-kampanyalari/bonus-business-troy-kartla-harcadikca-kazandiran-firsat-111169"
+      "url": "https://www.denizbank.com/kampanya/bonus-kart-kampanyalari/odemenizi-takside-baglayalim-17781"
     },
     {
-      "program": "Bonus",
+      "program": "Denizbank",
       "match": ["denizbank", "deniz"],
       "title": "Tüm Denizbank kampanyaları (resmî)",
       "detail": "Denizbank kartlarının güncel kampanyalarının tam listesi.",

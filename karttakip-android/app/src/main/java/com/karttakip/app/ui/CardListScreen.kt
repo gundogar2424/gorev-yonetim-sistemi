@@ -92,6 +92,7 @@ fun CardListScreen(
     vm: CardViewModel = viewModel()
 ) {
     val cards by vm.cards.collectAsState()
+    val tracked by vm.tracked.collectAsState()
     val today = LocalDate.now()
     val best = CardCalc.bestCardToUse(cards, today)
     val urgent = CardCalc.mostUrgentPayment(cards, today)
@@ -283,7 +284,8 @@ fun CardListScreen(
                     card = card,
                     today = today,
                     onClick = { onEdit(card.id) },
-                    onNoDebt = { vm.markNoStatement(card) }
+                    onNoDebt = { vm.markNoStatement(card) },
+                    trackedCount = tracked.count { it.cardId == card.id && !it.completed }
                 )
             }
         }
@@ -422,7 +424,8 @@ private fun CreditCardTile(
     card: CardEntity,
     today: LocalDate,
     onClick: () -> Unit,
-    onNoDebt: () -> Unit
+    onNoDebt: () -> Unit,
+    trackedCount: Int = 0
 ) {
     val nextDue = CardCalc.currentDue(card, today)
     // Son odemenin ait oldugu ekstrenin kesimi -> hep ayni dongu, dogru sira
@@ -514,6 +517,15 @@ private fun CreditCardTile(
                         "★ ${"%,.0f".format(Locale("tr", "TR"), card.points)} puan$upd",
                         style = MaterialTheme.typography.labelMedium,
                         color = Color(0xFFFCD34D),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                // Bu kartla takip edilen aktif kampanya sayisi.
+                if (trackedCount > 0) {
+                    Text(
+                        "🎯 $trackedCount kampanya takipte",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.9f),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
