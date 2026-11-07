@@ -444,7 +444,7 @@ private fun CreditCardTile(
     Box(
         Modifier
             .fillMaxWidth()
-            .height(202.dp)
+            .height(214.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.linearGradient(listOf(base, base.darken(0.55f))))
             .then(
@@ -490,19 +490,22 @@ private fun CreditCardTile(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                // Limit + kalan + borc HER kartta gorunur. Veri yoksa uyarir.
-                Text(
-                    when {
-                        card.limit > 0 ->
-                            "Limit ${money(card.limit)} · Kalan ${money(available)} · Borç ${money(card.debt)}"
-                        card.debt > 0 -> "Borç ${money(card.debt)}"
-                        else -> "Limit girilmemiş — eklemek için dokun"
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.85f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Spacer(Modifier.height(6.dp))
+                // Limit / Kalan / Borc: tek uzun cumle yerine uc kisa sutun —
+                // satir kirilmaz, "₺" alt satira dusmez, bir bakista okunur.
+                when {
+                    card.limit > 0 -> Row(Modifier.fillMaxWidth()) {
+                        TileStat("LİMİT", money(card.limit), Modifier.weight(1f))
+                        TileStat("KALAN", money(available), Modifier.weight(1f))
+                        TileStat("BORÇ", money(card.debt), Modifier.weight(1f))
+                    }
+                    card.debt > 0 -> TileStat("BORÇ", money(card.debt), Modifier)
+                    else -> Text(
+                        "Limit girilmemiş — eklemek için dokun",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.75f)
+                    )
+                }
                 // Guncel puan/TL bakiyesi + en son guncelleme tarihi.
                 if (card.points > 0) {
                     val upd = if (card.pointsUpdatedEpochDay > 0)
@@ -594,6 +597,27 @@ private fun PaidBadge() {
             style = MaterialTheme.typography.labelMedium,
             color = Color(0xFF4ADE80),
             fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/** Kart ustunde kucuk baslik + deger sutunu (LİMİT / KALAN / BORÇ). */
+@Composable
+private fun TileStat(label: String, value: String, modifier: Modifier) {
+    Column(modifier) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.65f),
+            maxLines = 1
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
