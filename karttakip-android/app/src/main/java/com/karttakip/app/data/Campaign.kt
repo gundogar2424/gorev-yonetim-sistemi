@@ -36,8 +36,19 @@ object CampaignRepository {
         "https://raw.githubusercontent.com/gundogar2424/gorev-yonetim-sistemi/main/karttakip-android/campaigns.json"
     private const val PREFS = "campaigns"
     private const val KEY_JSON = "json"
+    private const val KEY_DISMISSED = "dismissed"
 
     private val tr = Locale("tr", "TR")
+
+    /** Kullanicinin "Yok say" dedigi kampanyalarin anahtarlari (baslik). */
+    fun dismissed(context: Context): Set<String> =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getStringSet(KEY_DISMISSED, emptySet()) ?: emptySet()
+
+    fun setDismissed(context: Context, keys: Set<String>) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putStringSet(KEY_DISMISSED, keys).apply()
+    }
 
     /** Daha once indirilmis liste (internet yoksa gosterilir). */
     fun cached(context: Context): CampaignData? {

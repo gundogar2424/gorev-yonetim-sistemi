@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Refresh
@@ -98,6 +99,13 @@ fun CampaignsScreen(
 
     var trackFor by remember { mutableStateOf<Campaign?>(null) }
     var spendFor by remember { mutableStateOf<TrackedCampaign?>(null) }
+    var dismissed by remember { mutableStateOf(CampaignRepository.dismissed(context)) }
+
+    fun hide(c: Campaign) {
+        val s = dismissed.toMutableSet().apply { add(c.title) }
+        CampaignRepository.setDismissed(context, s)
+        dismissed = s
+    }
 
     LaunchedEffect(refreshKey) {
         loading = true
@@ -181,7 +189,7 @@ fun CampaignsScreen(
                 }
 
                 cards.forEach { card ->
-                    val matched = d.campaigns.filter { CampaignRepository.matches(card, it) }
+                    val matched = d.campaigns.filter { it.title !in dismissed && CampaignRepository.matches(card, it) }
                     item { CardCampaignHeader(card.name, card.bank, matched.size) }
                     if (matched.isEmpty()) {
                         item {
@@ -194,12 +202,12 @@ fun CampaignsScreen(
                         }
                     } else {
                         items(matched) { c ->
-                            CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c })
+                            CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c }, onHide = { hide(c) })
                         }
                     }
                 }
 
-                val others = d.campaigns.filter { c -> cards.none { CampaignRepository.matches(it, c) } }
+                val others = d.campaigns.filter { c -> c.title !in dismissed && cards.none { CampaignRepository.matches(it, c) } }
                 if (others.isNotEmpty()) {
                     item {
                         Text(
@@ -210,7 +218,23 @@ fun CampaignsScreen(
                         )
                     }
                     items(others) { c ->
-                        CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c })
+                        CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c }, onHide = { hide(c) })
+                    }
+                }
+
+                if (dismissed.isNotEmpty()) {
+                    item {
+                        Text(
+                            "${dismissed.size} kampanya gizlendi · Geri getir",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(top = 8.dp)
+                                .clickable {
+                                    CampaignRepository.setDismissed(context, emptySet())
+                                    dismissed = emptySet()
+                                }
+                        )
                     }
                 }
 
@@ -377,7 +401,7 @@ private fun CardCampaignHeader(name: String, bank: String, count: Int) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CampaignCard(c: Campaign, onOpen: () -> Unit, onTrack: () -> Unit) {
+private fun CampaignCard(c: Campaign, onOpen: () -> Unit, onTrack: () -> Unit, onHide: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -403,9 +427,10 @@ private fun CampaignCard(c: Campaign, onOpen: () -> Unit, onTrack: () -> Unit) {
             if (c.validUntil.isNotBlank()) Chip(c.validUntil, Color(0xFF8B5CF6))
         }
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             PillButton("Takip et", Icons.Default.Add, MaterialTheme.colorScheme.primary, onTrack)
             if (c.url.isNotBlank()) PillButton("Detay", Icons.Default.LocalOffer, Color(0xFF8B5CF6), onOpen)
+            PillButton("Yok say", Icons.Default.Close, MaterialTheme.colorScheme.onSurfaceVariant, onHide)
         }
     }
 }
