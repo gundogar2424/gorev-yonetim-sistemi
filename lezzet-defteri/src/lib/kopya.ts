@@ -56,7 +56,7 @@ export interface Benzerlik {
 
 // Icerigi ayni/cok benzer tarifi bulur (farkli platformdan gelmis olabilir)
 export async function benzerTarif(
-  d: { title: string; ingredients: string[]; sourceUrl?: string },
+  d: { title: string; ingredients: string[]; sourceUrl?: string; author?: string },
   haricId?: number
 ): Promise<Benzerlik | undefined> {
   if (d.sourceUrl) {
@@ -74,6 +74,9 @@ export async function benzerTarif(
     const rm = r.ingredients.filter((x) => x.trim())
     const ms = dice(bm, kokler(rm.join(' ')))
     const az = Math.min(malz.length, rm.length)
+    // Farkli kisilerin ayni yemegi (iki ayri tiramisu tarifi) kopya sayilmaz;
+    // yalnizca malzemeler miktarlariyla neredeyse birebir aynıysa (kopyalanmis paylasim) yakalanir
+    if (farkliKisi(d.author, r.author) && !(az >= 5 && dice(new Set(malz.map(sade)), new Set(rm.map(sade))) >= 0.9)) continue
     let neden = ''
     if (ts >= 0.6 && ms >= 0.55) neden = 'başlık ve malzemeler çok benzer'
     else if ((az >= 5 && ms >= 0.85 && ts >= 0.4) || (az >= 6 && ms >= 0.95)) neden = 'malzemeler neredeyse aynı'
@@ -83,4 +86,13 @@ export async function benzerTarif(
     if (!en || puan > en.puan) en = { r, puan, neden }
   }
   return en ? { tarif: en.r, neden: en.neden } : undefined
+}
+
+const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
+// Iki paylasan da biliniyor ve farkliysa ("@zeyyskitchenn" / "Refika") farkli tariflerdir
+function farkliKisi(a?: string, b?: string): boolean {
+  const x = sade((a ?? '').replace(/^@/, ''))
+  const y = sade((b ?? '').replace(/^@/, ''))
+  if (!x || !y) return false
+  return !(x === y || (Math.min(x.length, y.length) >= 5 && (x.includes(y) || y.includes(x))))
 }

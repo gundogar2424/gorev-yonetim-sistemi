@@ -347,7 +347,7 @@ export default function AddRecipe() {
             setHata('')
             try {
               const t = paylasilanTarifOku(await f.text())
-              const b = await benzerTarif({ title: t.title ?? '', ingredients: t.ingredients ?? [], sourceUrl: t.sourceUrl })
+              const b = await benzerTarif({ title: t.title ?? '', ingredients: t.ingredients ?? [], sourceUrl: t.sourceUrl, author: t.author })
               if (b && !confirm(`“${b.tarif.title}” zaten defterinde (${b.neden}). Yine de eklensin mi?`)) {
                 navigate(`/tarif/${b.tarif.id}`)
                 return

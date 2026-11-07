@@ -180,7 +180,7 @@ async function birIsle(is: LzSira, g: (patch: Partial<LzSira>) => Promise<void>,
     if (url && t.draft.platform === 'manual') t.draft.platform = platformBul(url)
     // Ayni tarif baska platformdan daha once eklenmisse ikinci kez ekleme
     if (!is.zorla) {
-      const b = await benzerTarif({ title: t.draft.title, ingredients: t.draft.ingredients })
+      const b = await benzerTarif({ title: t.draft.title, ingredients: t.draft.ingredients, author: t.draft.author })
       if (b) {
         await g({ durum: 'bitti', mesaj: `Bu tarif zaten defterde (${b.neden}).`, recipeId: b.tarif.id!, baslik: b.tarif.title })
         return
