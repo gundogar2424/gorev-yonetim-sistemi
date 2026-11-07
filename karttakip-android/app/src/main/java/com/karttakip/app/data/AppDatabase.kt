@@ -7,9 +7,10 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Card::class], version = 6, exportSchema = false)
+@Database(entities = [Card::class, TrackedCampaign::class], version = 7, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
+    abstract fun trackedCampaignDao(): TrackedCampaignDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -44,6 +45,24 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v6 -> v7: takip edilen kampanyalar tablosu. Diger veriler KORUNUR.
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `tracked_campaigns` (" +
+                        "`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                        "`title` TEXT NOT NULL, " +
+                        "`reward` TEXT NOT NULL, " +
+                        "`targetSpend` REAL NOT NULL, " +
+                        "`spentSoFar` REAL NOT NULL, " +
+                        "`deadlineEpochDay` INTEGER NOT NULL, " +
+                        "`note` TEXT NOT NULL, " +
+                        "`completed` INTEGER NOT NULL, " +
+                        "`url` TEXT NOT NULL)"
+                )
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -51,7 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "karttakip.db"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     // Bilinmeyen bir surumden gelirse son care: yeniden olustur.
                     .fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }

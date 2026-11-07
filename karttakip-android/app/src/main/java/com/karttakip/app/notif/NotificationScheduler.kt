@@ -40,6 +40,8 @@ object NotificationScheduler {
 
     // Alarm kanali (yeni id — kanal ayarlari ilk olusturuldugunda sabitlenir)
     const val CHANNEL_ID = "karttakip_alarm"
+    // Yumusak bilgi kanali (kampanya uyarilari): normal ses, calmaz, kapanabilir.
+    const val CHANNEL_SOFT_ID = "karttakip_info"
     private val NOTIFY_TIME: LocalTime = LocalTime.of(10, 0) // sabah 10:00
     private val dateFmt = DateTimeFormatter.ofPattern("d MMMM EEEE", Locale("tr", "TR"))
 
@@ -86,6 +88,23 @@ object NotificationScheduler {
             lightColor = Color.RED
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setSound(alarmUri, audioAttrs)
+        }
+        nm.createNotificationChannel(channel)
+    }
+
+    /** Kampanya uyarilari icin yumusak kanal (normal bildirim, calmaz). */
+    fun ensureSoftChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = context.getSystemService<NotificationManager>() ?: return
+        if (nm.getNotificationChannel(CHANNEL_SOFT_ID) != null) return
+        val channel = NotificationChannel(
+            CHANNEL_SOFT_ID,
+            "Kampanya uyarilari",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Takip edilen kampanyalar icin hatirlatmalar"
+            enableVibration(true)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         nm.createNotificationChannel(channel)
     }
@@ -152,9 +171,65 @@ object NotificationScheduler {
             )
         }
 
+        // Takip edilen kampanyalar icin uyarilari da planla.
+        scheduleCampaignReminders(context, am, today)
+
         // Widget'i da tazele (kart eklendi/silindi/gun degisti).
         KartWidgetProvider.updateAll(context)
     }
+
+    /**
+     * Takip edilen kampanyalar icin son tarihe 5/3/1/0 gun kala uyari planlar.
+     * Hedef harcama kalmissa "şu kadar daha harca", tamamlandiysa "hedef tamam,
+     * ödülünü kontrol et" mesaji verir. Tamamlanan/suresi gecen kampanyalar atlanir.
+     */
+    private fun scheduleCampaignReminders(context: Context, am: AlarmManager, today: LocalDate) {
+        val list = runBlocking { AppDatabase.get(context).trackedCampaignDao().getAll() }
+        for (tc in list) {
+            // Her ihtimale karsi eski alarmlari temizle, sonra gerekiyorsa yeniden kur.
+            for (idx in CAMP_OFFSETS.indices) cancelAlarm(context, am, campReq(tc.id, idx))
+            if (tc.completed || tc.deadlineEpochDay <= 0L) continue
+
+            val deadline = LocalDate.ofEpochDay(tc.deadlineEpochDay)
+            val remaining = (tc.targetSpend - tc.spentSoFar).coerceAtLeast(0.0)
+            val reached = tc.targetSpend > 0.0 && remaining <= 0.0
+            val odul = if (tc.reward.isNotBlank()) " Ödül: ${tc.reward}." else ""
+
+            CAMP_OFFSETS.forEachIndexed { idx, daysBefore ->
+                val date = deadline.minusDays(daysBefore.toLong())
+                val kala = if (daysBefore == 0) "bugün son gün" else "$daysBefore gün kaldı"
+                val title: String
+                val text: String
+                if (reached) {
+                    title = "🎉 ${tc.title}: hedef tamam"
+                    text = "Hedefi tuttun ($kala).$odul Ödülünü kontrol etmeyi unutma. Son gün ${dateFmt.format(deadline)}."
+                } else if (tc.targetSpend > 0.0) {
+                    title = "${tc.title}: ${formatMoney(remaining)} daha harca"
+                    text = "Kampanya için ${formatMoney(remaining)} daha harcaman lazım ($kala). " +
+                        "Şu ana kadar: ${formatMoney(tc.spentSoFar)} / ${formatMoney(tc.targetSpend)}.$odul Son gün ${dateFmt.format(deadline)}."
+                } else {
+                    title = "${tc.title}: son gün yaklaşıyor"
+                    text = "Kampanyanın son günü yaklaşıyor ($kala).$odul Son gün ${dateFmt.format(deadline)}."
+                }
+                scheduleAt(context, am, campReq(tc.id, idx), date, title, text, soft = true)
+            }
+        }
+    }
+
+    /** Bir takip kampanyasinin tum uyarilarini iptal eder (tamamlaninca/silinince). */
+    fun cancelCampaign(context: Context, id: Long) {
+        val am = context.getSystemService<AlarmManager>() ?: return
+        for (idx in CAMP_OFFSETS.indices) {
+            cancelAlarm(context, am, campReq(id, idx))
+            NotificationManagerCompat.from(context).cancel(campReq(id, idx))
+        }
+    }
+
+    // Kampanya uyari gunleri: son tarihe kac gun kala uyarilsin.
+    private val CAMP_OFFSETS = listOf(5, 3, 1, 0)
+
+    // Kart kodlariyla cakismayan ayri bir istek-kodu araligi.
+    private fun campReq(id: Long, idx: Int): Int = 100_000_000 + (id.toInt() * 10) + idx
 
     /** Gunduz saatlerinde, [now]'dan sonraki ilk nag anini dondurur. */
     private fun nagNextSlot(now: LocalDateTime): LocalDateTime {
@@ -201,7 +276,8 @@ object NotificationScheduler {
         requestCode: Int,
         date: LocalDate,
         title: String,
-        text: String
+        text: String,
+        soft: Boolean = false
     ) {
         val triggerAt = date.atTime(NOTIFY_TIME)
             .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -211,6 +287,7 @@ object NotificationScheduler {
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_TEXT, text)
             putExtra(EXTRA_ID, requestCode)
+            putExtra(EXTRA_SOFT, soft)
         }
         val pi = PendingIntent.getBroadcast(
             context, requestCode, intent,
@@ -282,6 +359,36 @@ object NotificationScheduler {
         NotificationManagerCompat.from(context).notify(id, notif)
     }
 
+    /** Kampanya uyarisi: normal bildirim (calmaz, kapanabilir). */
+    fun showSoftNotification(context: Context, id: Int, title: String, text: String) {
+        ensureSoftChannel(context)
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val contentPi = PendingIntent.getActivity(
+            context, id, openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notif = NotificationCompat.Builder(context, CHANNEL_SOFT_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setAutoCancel(true)
+            .setContentIntent(contentPi)
+            .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        NotificationManagerCompat.from(context).notify(id, notif)
+    }
+
     private fun reqCode(cardId: Long, type: Int): Int = (cardId.toInt() * 100 + type)
 
     private fun formatMoney(v: Double): String =
@@ -290,4 +397,5 @@ object NotificationScheduler {
     const val EXTRA_TITLE = "title"
     const val EXTRA_TEXT = "text"
     const val EXTRA_ID = "notifId"
+    const val EXTRA_SOFT = "soft"
 }

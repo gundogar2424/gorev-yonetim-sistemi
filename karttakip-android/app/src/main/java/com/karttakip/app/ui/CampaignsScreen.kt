@@ -1,5 +1,6 @@
 package com.karttakip.app.ui
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -8,8 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,19 +23,31 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,13 +61,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.karttakip.app.data.Campaign
 import com.karttakip.app.data.CampaignData
 import com.karttakip.app.data.CampaignRepository
+import com.karttakip.app.data.TrackedCampaign
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+private val dFmt = DateTimeFormatter.ofPattern("d MMM yyyy", Locale("tr", "TR"))
+private fun tl(v: Double): String = "%,.0f ₺".format(Locale("tr", "TR"), v)
+private fun LocalDate.toUtcMillis(): Long = this.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+private fun Long.toUtcLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,11 +88,16 @@ fun CampaignsScreen(
     vm: CardViewModel = viewModel()
 ) {
     val cards by vm.cards.collectAsState()
+    val tracked by vm.tracked.collectAsState()
     val context = LocalContext.current
+    val today = LocalDate.now()
 
     var data by remember { mutableStateOf<CampaignData?>(CampaignRepository.cached(context)) }
     var loading by remember { mutableStateOf(true) }
     var refreshKey by remember { mutableIntStateOf(0) }
+
+    var trackFor by remember { mutableStateOf<Campaign?>(null) }
+    var spendFor by remember { mutableStateOf<TrackedCampaign?>(null) }
 
     LaunchedEffect(refreshKey) {
         loading = true
@@ -100,15 +130,34 @@ fun CampaignsScreen(
     ) { pad ->
         val d = data
         LazyColumn(
-            Modifier
-                .fillMaxSize()
-                .padding(pad),
+            Modifier.fillMaxSize().padding(pad),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // --- TAKİP ETTİKLERİM ---
+            if (tracked.isNotEmpty()) {
+                item {
+                    Text(
+                        "TAKİP ETTİKLERİM",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                items(tracked, key = { "t" + it.id }) { tc ->
+                    TrackedCard(
+                        tc = tc,
+                        today = today,
+                        onAddSpend = { spendFor = tc },
+                        onComplete = { vm.completeTracked(tc) },
+                        onDelete = { vm.deleteTracked(tc) }
+                    )
+                }
+                item { Spacer(Modifier.height(4.dp)) }
+            }
+
             if (loading && d == null) {
                 item {
-                    Box(Modifier.fillMaxWidth().padding(top = 48.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
@@ -122,7 +171,6 @@ fun CampaignsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
                 if (cards.isEmpty()) {
                     item {
                         Text(
@@ -132,12 +180,9 @@ fun CampaignsScreen(
                     }
                 }
 
-                // Her kart icin ona uygun kampanyalar.
                 cards.forEach { card ->
                     val matched = d.campaigns.filter { CampaignRepository.matches(card, it) }
-                    item {
-                        CardCampaignHeader(card.name, card.bank, matched.size)
-                    }
+                    item { CardCampaignHeader(card.name, card.bank, matched.size) }
                     if (matched.isEmpty()) {
                         item {
                             Text(
@@ -148,11 +193,12 @@ fun CampaignsScreen(
                             )
                         }
                     } else {
-                        items(matched) { c -> CampaignCard(c) { openUrl(context, c.url) } }
+                        items(matched) { c ->
+                            CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c })
+                        }
                     }
                 }
 
-                // Hangi karta ait oldugu eslesmeyen genel kampanyalar.
                 val others = d.campaigns.filter { c -> cards.none { CampaignRepository.matches(it, c) } }
                 if (others.isNotEmpty()) {
                     item {
@@ -163,7 +209,9 @@ fun CampaignsScreen(
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-                    items(others) { c -> CampaignCard(c) { openUrl(context, c.url) } }
+                    items(others) { c ->
+                        CampaignCard(c, onOpen = { openUrl(context, c.url) }, onTrack = { trackFor = c })
+                    }
                 }
 
                 if (d.note.isNotBlank()) {
@@ -186,14 +234,130 @@ fun CampaignsScreen(
             }
         }
     }
+
+    // --- Diyaloglar ---
+    trackFor?.let { c ->
+        TrackDialog(
+            campaign = c,
+            onDismiss = { trackFor = null },
+            onSave = { tc -> vm.track(tc); trackFor = null }
+        )
+    }
+    spendFor?.let { tc ->
+        SpendDialog(
+            tc = tc,
+            onDismiss = { spendFor = null },
+            onAdd = { amount -> vm.addSpend(tc, amount); spendFor = null }
+        )
+    }
+}
+
+@Composable
+private fun TrackedCard(
+    tc: TrackedCampaign,
+    today: LocalDate,
+    onAddSpend: () -> Unit,
+    onComplete: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val remaining = (tc.targetSpend - tc.spentSoFar).coerceAtLeast(0.0)
+    val progress = if (tc.targetSpend > 0.0) (tc.spentSoFar / tc.targetSpend).toFloat().coerceIn(0f, 1f) else 0f
+    val reached = tc.targetSpend > 0.0 && remaining <= 0.0
+
+    val daysLeft = if (tc.deadlineEpochDay > 0)
+        java.time.temporal.ChronoUnit.DAYS.between(today, LocalDate.ofEpochDay(tc.deadlineEpochDay)) else null
+
+    val accent = when {
+        tc.completed -> Color(0xFF16A34A)
+        reached -> Color(0xFF16A34A)
+        daysLeft != null && daysLeft <= 3 -> Color(0xFFEF4444)
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.5.dp, accent.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                tc.title,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+            }
+        }
+        if (tc.reward.isNotBlank()) {
+            Text("Ödül: ${tc.reward}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        if (tc.completed) {
+            Text("✓ Tamamlandı", color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+        } else {
+            if (tc.targetSpend > 0.0) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                    color = accent
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "${tl(tc.spentSoFar)} / ${tl(tc.targetSpend)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    if (reached) "Hedef tamam — ödülünü kontrol et 🎉" else "${tl(remaining)} daha harcaman lazım",
+                    fontWeight = FontWeight.Bold,
+                    color = accent
+                )
+            } else {
+                Text("Harcama: ${tl(tc.spentSoFar)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            if (daysLeft != null) {
+                val t = when {
+                    daysLeft < 0 -> "Süre doldu (${dFmt.format(LocalDate.ofEpochDay(tc.deadlineEpochDay))})"
+                    daysLeft == 0L -> "Bugün son gün!"
+                    else -> "Son gün ${dFmt.format(LocalDate.ofEpochDay(tc.deadlineEpochDay))} — $daysLeft gün"
+                }
+                Text(t, style = MaterialTheme.typography.labelMedium, color = if (daysLeft in 0..3) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PillButton("Harcama ekle", Icons.Default.Add, MaterialTheme.colorScheme.primary, onAddSpend)
+                PillButton("Tamamlandı", Icons.Default.Check, Color(0xFF16A34A), onComplete)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PillButton(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, accent: Color, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .background(accent.copy(alpha = 0.15f), RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.size(6.dp))
+        Text(text, style = MaterialTheme.typography.labelMedium, color = accent, fontWeight = FontWeight.SemiBold)
+    }
 }
 
 @Composable
 private fun CardCampaignHeader(name: String, bank: String, count: Int) {
-    Row(
-        Modifier.fillMaxWidth().padding(top = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier.size(34.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), CircleShape),
             contentAlignment = Alignment.Center
@@ -213,16 +377,20 @@ private fun CardCampaignHeader(name: String, bank: String, count: Int) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CampaignCard(c: Campaign, onClick: () -> Unit) {
+private fun CampaignCard(c: Campaign, onOpen: () -> Unit, onTrack: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-            .clickable { if (c.url.isNotBlank()) onClick() }
             .padding(14.dp)
     ) {
-        Text(c.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            c.title,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.clickable { if (c.url.isNotBlank()) onOpen() }
+        )
         if (c.detail.isNotBlank()) {
             Spacer(Modifier.height(4.dp))
             Text(c.detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -232,21 +400,124 @@ private fun CampaignCard(c: Campaign, onClick: () -> Unit) {
             if (c.reward.isNotBlank()) Chip(c.reward, Color(0xFF16A34A))
             if (c.minSpend.isNotBlank()) Chip("Min ${c.minSpend}", Color(0xFFF59E0B))
             if (c.category.isNotBlank()) Chip(c.category, Color(0xFF3B82F6))
-            if (c.validUntil.isNotBlank()) Chip("Son ${c.validUntil}", Color(0xFF8B5CF6))
+            if (c.validUntil.isNotBlank()) Chip(c.validUntil, Color(0xFF8B5CF6))
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PillButton("Takip et", Icons.Default.Add, MaterialTheme.colorScheme.primary, onTrack)
+            if (c.url.isNotBlank()) PillButton("Detay", Icons.Default.LocalOffer, Color(0xFF8B5CF6), onOpen)
         }
     }
 }
 
 @Composable
 private fun Chip(text: String, accent: Color) {
-    Box(
-        Modifier.background(accent.copy(alpha = 0.16f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp)
-    ) {
+    Box(Modifier.background(accent.copy(alpha = 0.16f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp)) {
         Text(text, style = MaterialTheme.typography.labelSmall, color = accent, fontWeight = FontWeight.SemiBold)
     }
 }
 
-private fun openUrl(context: android.content.Context, url: String) {
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TrackDialog(campaign: Campaign, onDismiss: () -> Unit, onSave: (TrackedCampaign) -> Unit) {
+    var target by remember { mutableStateOf("") }
+    var deadline by remember { mutableStateOf<LocalDate?>(null) }
+    var showPicker by remember { mutableStateOf(false) }
+
+    if (showPicker) {
+        val state = rememberDatePickerState(initialSelectedDateMillis = (deadline ?: LocalDate.now()).toUtcMillis())
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { deadline = it.toUtcLocalDate() }
+                    showPicker = false
+                }) { Text("Tamam") }
+            },
+            dismissButton = { TextButton(onClick = { showPicker = false }) { Text("Vazgeç") } }
+        ) { DatePicker(state = state) }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Takibe al") },
+        text = {
+            Column {
+                Text(campaign.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                if (campaign.reward.isNotBlank()) {
+                    Text("Ödül: ${campaign.reward}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = target,
+                    onValueChange = { target = it.filter(Char::isDigit) },
+                    label = { Text("Hedef harcama (₺)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                        .clickable { showPicker = true }
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        deadline?.let { "Son tarih: ${dFmt.format(it)}" } ?: "Son tarih seç (opsiyonel)",
+                        color = if (deadline != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onSave(
+                    TrackedCampaign(
+                        title = campaign.title,
+                        reward = campaign.reward,
+                        targetSpend = target.toDoubleOrNull() ?: 0.0,
+                        spentSoFar = 0.0,
+                        deadlineEpochDay = deadline?.toEpochDay() ?: 0L,
+                        url = campaign.url
+                    )
+                )
+            }) { Text("Takip et") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    )
+}
+
+@Composable
+private fun SpendDialog(tc: TrackedCampaign, onDismiss: () -> Unit, onAdd: (Double) -> Unit) {
+    var amount by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Harcama ekle") },
+        text = {
+            Column {
+                Text(tc.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it.filter(Char::isDigit) },
+                    label = { Text("Bu harcama (₺)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onAdd(amount.toDoubleOrNull() ?: 0.0) }) { Text("Ekle") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Vazgeç") } }
+    )
+}
+
+private fun openUrl(context: Context, url: String) {
     if (url.isBlank()) return
     runCatching {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
