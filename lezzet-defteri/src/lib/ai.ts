@@ -772,7 +772,9 @@ async function tmCagri(
       'kıyma kavurma 8–10 dk 120 °C ters bıçak devir 1 (öncesinde soğanı kavur); hamur yoğurma mode "hamur" 2–3 dk (seconds 120–180, speed boş); ' +
       'pilav/pirinç mode "pirinc" ya da sepette 100 °C; buharda pişirme mode "buhar", temp "varoma", haznede en az 500 g su (30 dk’ya kadar), daha uzunsa daha fazla su; ' +
       'yoğurt/mayalama mode "ferment" 37 °C; uzun ağır pişirme mode "yavas" (12 saate kadar); vakumlu poşette mode "sousvide". ' +
-      'Malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı su 200 g, yemek kaşığı yağ ~12 g, 1 su bardağı un ~110 g, şeker ~180 g); adetle sayılan malzemeler (yumurta, soğan, diş sarımsak…) ADETLE kalsın, yanına gramı parantezle yaz: "4 adet yumurta (~200 g)"; tutam kalabilir; ' +
+      'Malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı su 200 g, yemek kaşığı yağ ~12 g, 1 su bardağı un ~110 g, şeker ~180 g; silme yemek kaşığı: un ~10 g, buğday/mısır nişastası ~10 g, şeker ~12 g, kakao ~7 g, tuz ~15 g; ' +
+      'tatlı kaşığı bunun yarısı, çay kaşığı ~üçte biri; tepeleme kaşık yaklaşık 1,5 katı). Kaşık/bardakla verilen malzemede asıl ölçüyü parantezde KORU: ' +
+      '"30 g un (3 yemek kaşığı)" ki kullanıcı karşılaştırabilsin; adetle sayılan malzemeler (yumurta, soğan, diş sarımsak…) ADETLE kalsın, yanına gramı parantezle yaz: "4 adet yumurta (~200 g)"; tutam kalabilir; ' +
       'malzemeler TM7 tartısıyla doğrudan kaba tartılarak eklenir, her adımda o adımda eklenecek malzemeleri gramla yaz. ' +
       'ÖNCE TM7 İLKESİ: Tarifin TM7’de yapılabilen HER adımını TM7’de yap; orijinal tarif tava, tencere ya da ocak dese bile TM7’de ' +
       'yapılabiliyorsa TM7’ye uyarla. TM7’de YAPILANLAR: KARAMEL (kuru ya da ıslak karamel, karamel sos: mode "karamel" — TM7 Karamelize modu; ' +
@@ -782,7 +784,8 @@ async function tmCagri(
       'krem şanti ve beze (kelebek aksesuarı, devir 3–4, ısıtmadan; şantiyi gözle kontrol et, fazla çırpılırsa kesilir), ' +
       'MASCARPONE / LABNE / KREM PEYNİR içeren kremalar (tiramisu vb.): ISITMADAN, KISA karıştır — ters bıçak devir 3, 15–30 sn ya da kelebekle devir 3, ' +
       'en fazla 30–40 sn; uzun ya da yüksek devirde karıştırılan mascarpone sulanır/kesilir, tip alanına bunu yaz. Pişen muhallebi/krema tabanı soğumadan mascarponeyi ekleme. ' +
-      'Pişirilen krema/muhallebi/puding: 90 °C devir 4 NORMAL yön (ters değil; ters ve düşük devirde dibi tutar), ' +
+      'Pişirilen krema/muhallebi/puding (unlu/nişastalı): 90–95 °C, devir 4 (normal yön ya da ters yön devir 3–4), 8–10 dk; nişasta tam pişsin diye ' +
+      'tip alanına "Koyulaşmadıysa 1–2 dk daha pişir; koyulaşınca hemen durdur, uzun karıştırma kıvamı bozar" yaz. Labne/mascarpone soğuduktan sonra ters yön devir 3, 20–30 sn. ' +
       'ters bıçak yalnızca parçalar bölünmesin istenince (et, sebze parçası, pilav) ya da hassas karıştırmada; mayonez, yumurta haşlama (buhar), soğan karamelize ve et/kıyma kavurma (mode "sote"), ' +
       'haşlama, buharda pişirme, pilav, hamur yoğurma ve mayalama, doğrama/rendeleme/öğütme/pudra şekeri, smoothie. ' +
       'TM7 DIŞINDA yalnızca şunlar yapılır: fırında pişirme, derin yağda kızartma, ızgara/mangal, geniş yüzey isteyen tava işleri ' +
