@@ -200,7 +200,10 @@ object NotificationScheduler {
                 val kala = if (daysBefore == 0) "bugün son gün" else "$daysBefore gün kaldı"
                 val title: String
                 val text: String
-                if (reached) {
+                if (!tc.joined) {
+                    title = "${tc.title}: önce KATIL!"
+                    text = "Bu kampanyaya henüz katılmadın — bankadan katılmadan harcaman saymaz ($kala).$odul Katıl, sonra uygulamada 'Katıldım' de. Son gün ${dateFmt.format(deadline)}."
+                } else if (reached) {
                     title = "🎉 ${tc.title}: hedef tamam"
                     text = "Hedefi tuttun ($kala).$odul Ödülünü kontrol etmeyi unutma. Son gün ${dateFmt.format(deadline)}."
                 } else if (tc.targetSpend > 0.0) {

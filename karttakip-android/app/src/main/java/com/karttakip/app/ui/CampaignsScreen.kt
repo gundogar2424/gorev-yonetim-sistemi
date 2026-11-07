@@ -155,6 +155,8 @@ fun CampaignsScreen(
                     TrackedCard(
                         tc = tc,
                         today = today,
+                        onJoin = { vm.setJoined(tc, !tc.joined) },
+                        onOpenBank = { openUrl(context, tc.url) },
                         onAddSpend = { spendFor = tc },
                         onComplete = { vm.completeTracked(tc) },
                         onDelete = { vm.deleteTracked(tc) }
@@ -276,10 +278,13 @@ fun CampaignsScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TrackedCard(
     tc: TrackedCampaign,
     today: LocalDate,
+    onJoin: () -> Unit,
+    onOpenBank: () -> Unit,
     onAddSpend: () -> Unit,
     onComplete: () -> Unit,
     onDelete: () -> Unit
@@ -325,6 +330,25 @@ private fun TrackedCard(
         if (tc.completed) {
             Text("✓ Tamamlandı", color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
         } else {
+            // Katilim durumu: katilmadan harcama saymaz.
+            if (tc.joined) {
+                Text("✓ Katıldım", style = MaterialTheme.typography.labelMedium, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+            } else {
+                Text(
+                    "⚠️ Önce bankadan katıl — yoksa harcaman saymaz",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFFF59E0B),
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(6.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (tc.url.isNotBlank()) PillButton("Bankadan katıl", Icons.Default.LocalOffer, Color(0xFF8B5CF6), onOpenBank)
+                    PillButton("Katıldım", Icons.Default.Check, Color(0xFF16A34A), onJoin)
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
             if (tc.targetSpend > 0.0) {
                 LinearProgressIndicator(
                     progress = { progress },

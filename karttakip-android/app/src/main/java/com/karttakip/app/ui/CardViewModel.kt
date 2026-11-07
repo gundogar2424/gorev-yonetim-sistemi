@@ -33,6 +33,14 @@ class CardViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Kampanyaya bankadan katildigini (veya iptal) isaretle. */
+    fun setJoined(c: TrackedCampaign, joined: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            trackedDao.upsert(c.copy(joined = joined))
+            NotificationScheduler.scheduleAll(getApplication())
+        }
+    }
+
     /** Takip edilen kampanyaya harcama ekle (ilerleme). */
     fun addSpend(c: TrackedCampaign, amount: Double) {
         if (amount <= 0.0) return

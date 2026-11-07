@@ -25,6 +25,8 @@ data class TrackedCampaign(
     val deadlineEpochDay: Long = 0,
     val note: String = "",
     val completed: Boolean = false,
+    // Bankadan kampanyaya katilindi mi? (Katilmadan harcama saymaz.)
+    val joined: Boolean = false,
     val url: String = ""
 )
 
