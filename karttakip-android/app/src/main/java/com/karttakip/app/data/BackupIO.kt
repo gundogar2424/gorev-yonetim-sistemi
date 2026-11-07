@@ -87,7 +87,9 @@ object BackupIO {
                 o.has("ekstreForStatementEpochDay") -> o.optLong("ekstreForStatementEpochDay", 0L)
                 statementDebt > 0.0 -> today.toEpochDay()
                 else -> 0L
-            }
+            },
+            points = o.optDouble("points", 0.0).coerceAtLeast(0.0),
+            pointsUpdatedEpochDay = o.optLong("pointsUpdatedEpochDay", 0L)
         )
     }
 
@@ -147,6 +149,8 @@ object BackupIO {
                     .put("remindDaysBefore", c.remindDaysBefore)
                     .put("lastPaidDueEpochDay", c.lastPaidDueEpochDay)
                     .put("ekstreForStatementEpochDay", c.ekstreForStatementEpochDay)
+                    .put("points", c.points)
+                    .put("pointsUpdatedEpochDay", c.pointsUpdatedEpochDay)
             )
         }
         return JSONObject().put("app", "kart-takip").put("cards", arr).toString(2)

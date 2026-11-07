@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Card::class, TrackedCampaign::class], version = 8, exportSchema = false)
+@Database(entities = [Card::class, TrackedCampaign::class], version = 9, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cardDao(): CardDao
     abstract fun trackedCampaignDao(): TrackedCampaignDao
@@ -70,6 +70,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v8 -> v9: kartta guncel puan/TL bakiyesi + guncelleme tarihi. Veri KORUNUR.
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE cards ADD COLUMN points REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE cards ADD COLUMN pointsUpdatedEpochDay INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -77,7 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "karttakip.db"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     // Bilinmeyen bir surumden gelirse son care: yeniden olustur.
                     .fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }

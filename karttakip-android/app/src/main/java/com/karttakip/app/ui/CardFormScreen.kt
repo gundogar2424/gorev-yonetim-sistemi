@@ -93,6 +93,7 @@ fun CardFormScreen(
     var available by remember { mutableStateOf("") }   // kullanilabilir limit
     var debt by remember { mutableStateOf("") }        // TOPLAM borc (limit - kullanilabilir)
     var ekstre by remember { mutableStateOf("") }      // ekstre borcu (bu ay odenecek)
+    var points by remember { mutableStateOf("") }      // guncel puan/TL bakiyesi
     var remind by remember { mutableStateOf("3") }
     var color by remember { mutableStateOf(PRESET_COLORS.first()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -116,6 +117,7 @@ fun CardFormScreen(
                 debt = if (c.debt > 0) c.debt.toLong().toString() else ""
                 available = if (c.limit - c.debt > 0) (c.limit - c.debt).toLong().toString() else ""
                 ekstre = if (c.statementDebt > 0) c.statementDebt.toLong().toString() else ""
+                points = if (c.points > 0) c.points.toLong().toString() else ""
                 remind = c.remindDaysBefore.toString()
                 color = c.colorArgb
             }
@@ -269,6 +271,20 @@ fun CardFormScreen(
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedTextField(
+                value = points, onValueChange = { points = it.filter(Char::isDigit) },
+                label = { Text("Güncel puan / TL (MaxiPuan, Bonus, Lira…)") },
+                supportingText = {
+                    Text(
+                        if (isEdit && (existing?.pointsUpdatedEpochDay ?: 0L) > 0L)
+                            "Son güncelleme: ${fullDateFmt.format(LocalDate.ofEpochDay(existing!!.pointsUpdatedEpochDay))}. Değiştirince tarih bugüne güncellenir."
+                        else "Ara ara güncelle; harcadıkça azalt. Değiştirdiğin tarih kartta yazar."
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true, modifier = Modifier.fillMaxWidth()
+            )
+
             Text(
                 "Hatırlatma: son 3 güne doğru gitgide artar; son gün 3-4 saatte bir — " +
                     "sen 'Bu ayki ödemeyi yaptım' diyene kadar sürer.",
@@ -330,7 +346,14 @@ fun CardFormScreen(
                                 // sonmeye devam etsin (ya da kullanici "Borç yok" desin).
                                 ekstreForStatementEpochDay =
                                     if ((ekstre.toDoubleOrNull() ?: 0.0) > 0.0) LocalDate.now().toEpochDay()
-                                    else existing?.ekstreForStatementEpochDay ?: 0L
+                                    else existing?.ekstreForStatementEpochDay ?: 0L,
+                                points = points.toDoubleOrNull() ?: 0.0,
+                                // Puan degistiyse guncelleme tarihini bugune cek; yoksa koru.
+                                pointsUpdatedEpochDay = run {
+                                    val np = points.toDoubleOrNull() ?: 0.0
+                                    if (np != (existing?.points ?: 0.0)) LocalDate.now().toEpochDay()
+                                    else existing?.pointsUpdatedEpochDay ?: 0L
+                                }
                             )
                             vm.save(card) { onBack() }
                         }
@@ -366,7 +389,9 @@ fun CardFormScreen(
                                 colorArgb = color,
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
                                 lastPaidDueEpochDay = existing?.lastPaidDueEpochDay ?: 0L,
-                                ekstreForStatementEpochDay = LocalDate.now().toEpochDay()
+                                ekstreForStatementEpochDay = LocalDate.now().toEpochDay(),
+                                points = existing?.points ?: 0.0,
+                                pointsUpdatedEpochDay = existing?.pointsUpdatedEpochDay ?: 0L
                             )
                             // Simdiki donguyu "ödendi" isaretle
                             val paid = base.copy(

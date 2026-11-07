@@ -444,7 +444,7 @@ private fun CreditCardTile(
     Box(
         Modifier
             .fillMaxWidth()
-            .height(188.dp)
+            .height(202.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.linearGradient(listOf(base, base.darken(0.55f))))
             .then(
@@ -503,6 +503,17 @@ private fun CreditCardTile(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                // Guncel puan/TL bakiyesi + en son guncelleme tarihi.
+                if (card.points > 0) {
+                    val upd = if (card.pointsUpdatedEpochDay > 0)
+                        " · güncelleme ${dateFmt.format(LocalDate.ofEpochDay(card.pointsUpdatedEpochDay))}" else ""
+                    Text(
+                        "★ ${"%,.0f".format(Locale("tr", "TR"), card.points)} puan$upd",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFFFCD34D),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 // Yanip sonen kartta ekstre uyarisi EK olarak altinda gosterilir.
                 if (needsEntry) {
                     Spacer(Modifier.height(3.dp))

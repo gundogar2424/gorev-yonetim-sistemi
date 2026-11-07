@@ -33,5 +33,10 @@ data class Card(
     val lastPaidDueEpochDay: Long = 0,
     // Ekstre borcunun en son girildigi/onaylandigi gun (epoch-day). Bundan SONRA
     // yeni bir ekstre kesilirse kart "ekstre borcunu gir" diye yanip soner.
-    val ekstreForStatementEpochDay: Long = 0
+    val ekstreForStatementEpochDay: Long = 0,
+    // Kartin guncel puan/TL bakiyesi (MaxiPuan, Bonus, Bankkart Lira vb.).
+    // Kullanici ara ara elle gunceller; harcadikca azaltir.
+    val points: Double = 0.0,
+    // Puanin en son guncellendigi gun (epoch-day) — kartta "güncelleme: X" olarak gosterilir.
+    val pointsUpdatedEpochDay: Long = 0
 )

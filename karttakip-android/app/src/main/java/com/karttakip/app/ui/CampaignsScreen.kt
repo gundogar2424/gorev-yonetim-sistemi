@@ -433,12 +433,20 @@ private fun CampaignCard(c: Campaign, onOpen: () -> Unit, onTrack: () -> Unit, o
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
-        Text(
-            c.title,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.clickable { if (c.url.isNotBlank()) onOpen() }
-        )
+        Row(verticalAlignment = Alignment.Top) {
+            Text(
+                c.title,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { if (c.url.isNotBlank()) onOpen() }
+            )
+            // Sag ust kose: X ile pasife at (kalabalik yapmasin).
+            IconButton(onClick = onHide, modifier = Modifier.size(26.dp)) {
+                Icon(Icons.Default.Close, contentDescription = "Yok say", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            }
+        }
         if (c.detail.isNotBlank()) {
             Spacer(Modifier.height(4.dp))
             Text(c.detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
