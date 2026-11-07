@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Kampanya listesini internetten (GitHub) indirmek icin -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Bildirimler (Android 13+ calisma zamani izni ister) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Tam-zamanli alarm: son odeme/kesim hatirlatmalari Doze/uyku modunda bile

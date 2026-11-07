@@ -1,0 +1,94 @@
+{
+  "updated": "7 Kasım 2026",
+  "note": "Kampanyalar halka açık kaynaklardan derlenmiştir; resmî bir banka beslemesi değildir. Katılım ve kesin koşullar için kampanyaya dokunup bankanın kendi sayfasını/uygulamasını kontrol et. Bu liste düzenli güncellenir.",
+  "campaigns": [
+    {
+      "program": "Maximum",
+      "match": ["maximum", "iş banka", "is banka", "maxipuan"],
+      "title": "Tüm Maximum kampanyaları (resmî sayfa)",
+      "detail": "İş Bankası'nın güncel Maximum kampanyalarının tam listesi. Dokun → aç, sana özel olanı Maximum Mobil'den gör.",
+      "category": "Tümü",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.isbank.com.tr/kampanyalar"
+    },
+    {
+      "program": "Maximum",
+      "match": ["maximum", "maxipuan"],
+      "title": "E-ticaret alışverişine 1.000 TL'ye varan MaxiPuan",
+      "detail": "Anlaşmalı e-ticaret sitelerindeki harcamalarına MaxiPuan. Puanların 17 Kasım 2026'da yükleneceği, 31 Aralık 2026'da geçerliliğini yitireceği belirtiliyor. Kesin koşullar için dokun.",
+      "category": "E-ticaret",
+      "reward": "1.000 TL'ye varan MaxiPuan",
+      "minSpend": "",
+      "validUntil": "Puan: 17 Kas 2026",
+      "url": "https://www.isbank.com.tr/kampanyalar"
+    },
+    {
+      "program": "Maximum",
+      "match": ["maximum", "maxipuan"],
+      "title": "Maximum 25. yıl MaxiPuan kampanyası",
+      "detail": "25. yıla özel MaxiPuan; ödül puanların 11 Kasım 2026'da kredi kartına yükleneceği belirtiliyor. Katılım Maximum Mobil'den. Dokun → detay.",
+      "category": "Genel",
+      "reward": "MaxiPuan",
+      "minSpend": "",
+      "validUntil": "Puan: 11 Kas 2026",
+      "url": "https://www.isbank.com.tr/kampanyalar/maximumun-25-yilina-ozel-25-ekimde-maxipuan-kampanyasi"
+    },
+    {
+      "program": "Bonus",
+      "match": ["garanti", "bonus"],
+      "title": "Tüm Bonus kampanyaları (resmî sayfa)",
+      "detail": "Garanti BBVA'nın güncel Bonus kampanyalarının tam listesi. Dokun → aç, sana özel olanı Garanti BBVA Mobil'den gör.",
+      "category": "Tümü",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.garantibbva.com.tr/kampanyalar"
+    },
+    {
+      "program": "Bonus",
+      "match": ["garanti", "bonus"],
+      "title": "Otomatik fatura ödemeye 800 TL'ye varan Bonus",
+      "detail": "Faturalarını otomatik ödeme talimatına bağlayınca 800 TL'ye varan bonus. Kazanılan bonusun 5 Kasım 2026 - 1 Nisan 2027 arasında kullanılacağı belirtiliyor. Dokun → katıl.",
+      "category": "Fatura",
+      "reward": "800 TL'ye varan Bonus",
+      "minSpend": "",
+      "validUntil": "Kullanım: 1 Nis 2027",
+      "url": "https://www.garantibbva.com.tr/kampanyalar"
+    },
+    {
+      "program": "Bankkart",
+      "match": ["ziraat", "bankkart"],
+      "title": "Tüm Bankkart kampanyaları (resmî sayfa)",
+      "detail": "Ziraat Bankkart'ın güncel kampanyalarının tam listesi. Dokun → aç, sana özel olanı Bankkart/Ziraat Mobil'den gör.",
+      "category": "Tümü",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.bankkart.com.tr"
+    },
+    {
+      "program": "Bankkart",
+      "match": ["ziraat", "bankkart"],
+      "title": "Otomatik fatura talimatına Jest Lira",
+      "detail": "Bankkart kredi kartına otomatik fatura ödeme talimatı tanımlayınca Jest Lira kazanımı. Kesin tutar ve tarih için dokun; Bankkart Mobil'den teyit et.",
+      "category": "Fatura",
+      "reward": "Jest Lira",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.bankkart.com.tr"
+    },
+    {
+      "program": "Bonus",
+      "match": ["denizbank"],
+      "title": "Tüm Denizbank kampanyaları (resmî sayfa)",
+      "detail": "Denizbank kartlarının güncel kampanyaları. Dokun → aç, sana özel olanı MobilDeniz'den gör.",
+      "category": "Tümü",
+      "reward": "",
+      "minSpend": "",
+      "validUntil": "",
+      "url": "https://www.denizbank.com/kampanyalar"
+    }
+  ]
+}

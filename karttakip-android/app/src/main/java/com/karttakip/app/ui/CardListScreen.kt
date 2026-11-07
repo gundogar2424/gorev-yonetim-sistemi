@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Upload
@@ -87,6 +88,7 @@ private fun Color.darken(f: Float = 0.6f): Color = Color(red * f, green * f, blu
 fun CardListScreen(
     onAdd: () -> Unit,
     onEdit: (Long) -> Unit,
+    onCampaigns: () -> Unit = {},
     vm: CardViewModel = viewModel()
 ) {
     val cards by vm.cards.collectAsState()
@@ -152,6 +154,9 @@ fun CardListScreen(
             TopAppBar(
                 title = { Text("Ayas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = onCampaigns) {
+                        Icon(Icons.Default.LocalOffer, contentDescription = "Kampanyalar")
+                    }
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menü")
                     }

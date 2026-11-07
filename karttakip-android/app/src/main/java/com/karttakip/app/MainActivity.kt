@@ -19,6 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.karttakip.app.notif.NotificationScheduler
+import com.karttakip.app.ui.CampaignsScreen
 import com.karttakip.app.ui.CardFormScreen
 import com.karttakip.app.ui.CardListScreen
 import com.karttakip.app.ui.theme.KartTakipTheme
@@ -55,8 +56,12 @@ class MainActivity : ComponentActivity() {
                         composable("list") {
                             CardListScreen(
                                 onAdd = { nav.navigate("form/0") },
-                                onEdit = { id -> nav.navigate("form/$id") }
+                                onEdit = { id -> nav.navigate("form/$id") },
+                                onCampaigns = { nav.navigate("campaigns") }
                             )
+                        }
+                        composable("campaigns") {
+                            CampaignsScreen(onBack = { nav.popBackStack() })
                         }
                         composable("form/{id}") { backStack ->
                             val id = backStack.arguments?.getString("id")?.toLongOrNull() ?: 0L
