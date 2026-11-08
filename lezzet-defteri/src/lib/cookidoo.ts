@@ -52,11 +52,12 @@ export function cookidooSayfasi(r: LzRecipe): string {
       })
     : r.steps
   const notlar = [tm?.warnings.join(' ') ?? '', r.notes].filter(Boolean).join(' ')
+  const ozetMetni = `${r.title} tarifi: ${malzemeler.length} malzeme, ${adimlar.length} adımda hazırlanış${tm ? ', Thermomix ayarlarıyla' : ''}.${r.servings ? ` ${r.servings} porsiyon.` : ''}`
   const veri = {
     '@context': 'https://schema.org',
     '@type': 'Recipe',
     name: r.title,
-    description: notlar || `${r.title}${tm ? ' — Thermomix uyarlaması' : ''}`,
+    description: ozetMetni,
     author: { '@type': 'Person', name: r.author || 'Lezzet Rotası' },
     recipeYield: r.servings ? `${r.servings} porsiyon` : undefined,
     totalTime: r.minutes ? `PT${r.minutes}M` : undefined,
@@ -70,7 +71,7 @@ export function cookidooSayfasi(r: LzRecipe): string {
   const ana = canon.replace(/t\/[^/]+$/, '')
   const ozet = [r.servings ? `${r.servings} porsiyon` : '', r.minutes ? `${r.minutes} dk` : '', tm ? `Thermomix · ${tm.category}` : ''].filter(Boolean).join(' · ')
   return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${k(r.title)} – Lezzet Rotası</title>
-<meta name="description" content="${k((notlar || `${r.title} tarifi: malzemeler ve adım adım hazırlanışı${tm ? ', Thermomix ayarlarıyla' : ''}.`).slice(0, 160))}"><link rel="canonical" href="${canon}"><meta name="lz-tarih" content="${new Date().toISOString().slice(0, 10)}">
+<meta name="description" content="${k(ozetMetni.slice(0, 160))}"><link rel="canonical" href="${canon}"><meta name="lz-tarih" content="${new Date().toISOString().slice(0, 10)}">
 <meta property="og:title" content="${k(r.title)}"><meta property="og:type" content="article"><meta property="og:url" content="${canon}">
 <script type="application/ld+json">${JSON.stringify(veri).replace(/</g, '\\u003c')}</script>
 <style>:root{--bg:#fffaf5;--kart:#fff;--yazi:#1f1a17;--soluk:#7a6f68;--vurgu:#d9480f;--cizgi:#efe3d8}@media(prefers-color-scheme:dark){:root{--bg:#161210;--kart:#211b18;--yazi:#f4ece6;--soluk:#a89b92;--vurgu:#ff8a4c;--cizgi:#342b26}}
