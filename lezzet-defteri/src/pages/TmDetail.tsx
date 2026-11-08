@@ -5,7 +5,7 @@ import { lzDb, updateRecipe } from '../db'
 import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { DuzenlemeSohbeti } from '../components/TarifSohbet'
 import { aiTmDuzenle } from '../lib/ai'
-import { adimOzeti, cihazAdimi, gramToplami, sureAdi, termomiksKodu, tmSurumDenetle, type TmSurum } from '../lib/tm7'
+import { adimOzeti, cihazAdimi, cookidooMetni, gramToplami, sureAdi, termomiksKodu, tmSurumDenetle, type TmSurum } from '../lib/tm7'
 import { AyarRozetleri } from '../components/TmAyar'
 import { thermomixeUyarla } from './Thermomix'
 import { dosyaPaylas, tmHtml } from '../lib/paylas'
@@ -64,6 +64,21 @@ export default function TmDetail() {
       if (!/cancel|abort|iptal/i.test(m)) goster('Paylaşılamadı: ' + m.slice(0, 60))
     }
   }
+  // Cookidoo (Vorwerk'in uygulamasi) disaridan tarif almaz; metin kopyalanip "Oluşturduğum tarifler"e elle yapistirilir
+  const cookidoo = async () => {
+    const metin = cookidooMetni(r)
+    try {
+      await navigator.clipboard.writeText(metin)
+      goster('Kopyalandı. Cookidoo → Oluşturduğum tarifler → Yeni tarif’e yapıştır')
+    } catch {
+      try {
+        if (navigator.share) await navigator.share({ title: r.title, text: metin })
+      } catch {
+        /* vazgecildi */
+      }
+    }
+    window.open('https://cookidoo.com.tr/created-recipes/tr-TR', '_blank')
+  }
   const aktar = async () => {
     const kod = termomiksKodu(r)
     try {
@@ -117,6 +132,13 @@ export default function TmDetail() {
             Termomiks’e aktar
           </button>
         </div>
+        <button className="lz-btn-soft w-full text-sm" onClick={() => void cookidoo()}>
+          Cookidoo’ya ekle (kopyala ve aç)
+        </button>
+        <p className={`text-[11.5px] px-1 -mt-1 ${T_SOLUK}`}>
+          Thermomix’in kendi uygulaması dışarıdan tarif kabul etmez. Düğme tarifi Cookidoo biçiminde kopyalar ve Cookidoo’yu açar; “Oluşturduğum tarifler → Yeni tarif”te
+          alanlara yapıştırırsın. Tarif Thermomix ekranında da görünür.
+        </p>
 
         {tm.referans && (
           <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>

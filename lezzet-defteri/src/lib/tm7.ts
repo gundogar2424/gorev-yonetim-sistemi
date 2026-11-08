@@ -274,3 +274,42 @@ export function tmSurumDenetle(tm: TmSurum): TmSurum {
   }
   return { ...tm, steps, warnings: uyarilar }
 }
+
+// COOKIDOO METNI: Vorwerk'in kendi uygulamasina (Cookidoo → "Oluşturduğum tarifler") elle girilirken
+// kopyala-yapistir icin, Cookidoo'nun yazim bicimiyle ("14 dk/90°C/hız 4") duz metin.
+export function cookidooMetni(r: LzRecipe): string {
+  const tm = tmSurumDenetle(r.tm!)
+  const ayar = (a: TmAdim): string => {
+    if (!cihazAdimi(a)) return ''
+    if (a.mode === 'hamur') return `${sureAdi(a.seconds)}/Hamur modu`
+    const p: string[] = []
+    if (a.seconds) p.push(sureAdi(a.seconds).replace(' ', ' '))
+    if (a.temp) p.push(a.temp === 'varoma' ? 'Varoma' : `${a.temp}°C`)
+    if (a.speed) p.push(a.speed === 'yumusak' ? 'yumuşak karıştırma' : a.speed === 'turbo' ? 'Turbo' : `hız ${a.speed}`)
+    let t = p.join('/')
+    if (a.reverse && a.speed) t += ' (ters yön)'
+    if (a.mode) t += ` [${modAdi(a.mode)}]`
+    return t
+  }
+  const adimlar = tm.steps.map((a, i) => {
+    const on = [a.kelebek ? 'Kelebeği tak.' : '', a.ingredients ? `${a.ingredients} hazneye ekle.` : ''].filter(Boolean).join(' ')
+    const s = ayar(a)
+    return `${i + 1}. ${[on, a.text.replace(/\.?$/, '.'), s ? `→ ${s}` : '', a.tip ? `(${a.tip})` : ''].filter(Boolean).join(' ')}`
+  })
+  return [
+    r.title,
+    [r.servings ? `${r.servings} porsiyon` : '', r.minutes ? `~${r.minutes} dk` : '', tm.category].filter(Boolean).join(' · '),
+    '',
+    'MALZEMELER',
+    ...tm.ingredients.map((m) => `- ${m}`),
+    '',
+    'HAZIRLANIŞI',
+    ...adimlar,
+    tm.warnings.length ? '' : '',
+    ...tm.warnings.map((w) => `Not: ${w}`),
+    tm.referans ? `Referans: ${tm.referans}` : '',
+    r.sourceUrl ? `Kaynak: ${r.sourceUrl}` : ''
+  ]
+    .filter((x, i, arr) => !(x === '' && arr[i - 1] === ''))
+    .join('\n')
+}
