@@ -185,9 +185,10 @@ export async function siteyeKoy(r: LzRecipe): Promise<{ tamam: boolean; mesaj: s
     window.open(githubYeniDosyaUrl(r), '_blank')
     return { tamam: true, mesaj: 'GitHub’da yeşil “Commit changes”e iki kez bas; 1–2 dk sonra yayında.', url }
   }
-  // Uzun tarif: icerik panoya, GitHub bos dosya ekrani acilir
-  await navigator.clipboard?.writeText(cookidooSayfasi(r)).catch(() => undefined)
+  // Uzun tarif: GitHub bos dosya ekrani acilir, icerik panoya. Pencere, dokunusun hemen ardindan
+  // (beklemeden) acilmali; yoksa telefon acilir pencereyi engeller.
   window.open(githubYeniDosyaUrl(r, false), '_blank')
+  await navigator.clipboard?.writeText(cookidooSayfasi(r)).catch(() => undefined)
   return {
     tamam: true,
     mesaj: 'Tarif uzun olduğu için sayfa panoya kopyalandı: GitHub’da büyük boş kutuya uzun basıp “Yapıştır”, sonra “Commit changes”e iki kez bas. Tek dokunuş için Ayarlar → Tarif sitem → GitHub anahtarı.',
