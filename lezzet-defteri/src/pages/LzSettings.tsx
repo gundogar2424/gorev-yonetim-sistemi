@@ -19,6 +19,7 @@ import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
 import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
 import { placesAnahtari, placesAnahtariKaydet, placesTest } from '../lib/places'
+import { VARSAYILAN_DEPO, tarifDeposu, tarifDeposuKaydet } from '../lib/cookidoo'
 import { gunlukSinir, gunlukSinirAyarla, kullanimOku, tahminiTl, tasarrufModu, tasarrufModuAyarla } from '../lib/ai'
 
 export default function LzSettings() {
@@ -135,6 +136,8 @@ export default function LzSettings() {
         <HarcamaKarti />
 
         <GoogleHaritalarKarti />
+
+        <CookidooKarti />
 
         <section className="lz-card p-4 space-y-3">
           <div className={`font-semibold ${T_BASLIK}`}>Videodaki konuşma</div>
@@ -272,6 +275,54 @@ export default function LzSettings() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Cookidoo'ya linkle aktarma icin kullanicinin GitHub deposu (ucretsiz GitHub Pages)
+function CookidooKarti() {
+  const [depo, setDepo] = useState(tarifDeposu())
+  const [nasil, setNasil] = useState(false)
+  const [sahip, ad] = depo.split('/')
+  return (
+    <section className="lz-card p-4 space-y-3">
+      <div className={`font-semibold ${T_BASLIK}`}>Cookidoo’ya aktarma (Thermomix)</div>
+      <p className={`text-[13px] ${T_SOLUK}`}>
+        Cookidoo, bir internet sayfasındaki tarifi “Mevcut bir tarifi içe aktar” ile tek seferde alabiliyor. Bunun için tariflerin senin GitHub deponda
+        ücretsiz bir sayfaya konur; hesap ya da anahtar girmen gerekmez, telefonun tarayıcısında GitHub’a girmiş olman yeter.
+      </p>
+      <label className="block">
+        <span className="lz-label">GitHub deposu (kullanıcı/depo)</span>
+        <input
+          className="lz-input mt-1 font-mono text-[14px]"
+          value={depo}
+          placeholder={VARSAYILAN_DEPO}
+          onChange={(e) => {
+            setDepo(e.target.value)
+            tarifDeposuKaydet(e.target.value)
+          }}
+        />
+      </label>
+      <button className="text-[13px] text-lz-600 font-semibold underline" onClick={() => setNasil(!nasil)}>
+        {nasil ? 'Gizle' : 'Bir kerelik kurulum (2 dakika)'}
+      </button>
+      {nasil && (
+        <ol className={`text-[13px] space-y-1.5 list-decimal pl-5 ${T_GOVDE}`}>
+          <li>
+            <a href={`https://github.com/new?name=${encodeURIComponent(ad || 'lezzet-tarifler')}&description=Lezzet+Rotas%C4%B1+tarif+sayfalar%C4%B1`} target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
+              GitHub’da yeni depo aç
+            </a>
+            : adı <b>{ad || 'lezzet-tarifler'}</b>, <b>Public</b>, “Add a README file” işaretli → Create repository.
+          </li>
+          <li>
+            <a href={`https://github.com/${sahip}/${ad}/settings/pages`} target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
+              Deponun Pages ayarını aç
+            </a>
+            : Source “Deploy from a branch”, Branch <b>main</b> / (root) → Save.
+          </li>
+          <li>Bitti. Artık Thermomix sayfasındaki “Cookidoo’ya ekle” linkle aktarır. İlk yayın 1–2 dk sürebilir.</li>
+        </ol>
+      )}
+    </section>
   )
 }
 

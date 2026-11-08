@@ -9,6 +9,7 @@ import { adimOzeti, cihazAdimi, cookidooParcalari, gramToplami, sureAdi, termomi
 import { AyarRozetleri } from '../components/TmAyar'
 import { thermomixeUyarla } from './Thermomix'
 import { dosyaPaylas, tmHtml } from '../lib/paylas'
+import { depoUrl, githubYeniDosyaUrl, yayinUrl, yayindaMi } from '../lib/cookidoo'
 
 // Tarifin TM7 surumu: gramlı malzemeler, cihaz ayarli adimlar, uyarilar.
 export default function TmDetail() {
@@ -21,6 +22,7 @@ export default function TmDetail() {
   const [sohbetAc, setSohbetAc] = useState(false)
   const [duzeltme, setDuzeltme] = useState<{ aciklama: string; onceki: TmSurum } | null>(null)
   const [cookidooAc, setCookidooAc] = useState(false)
+  const [yayinDurum, setYayinDurum] = useState('')
 
   if (r === undefined) return null
   if (!r) return <Header title="Tarif bulunamadı" back />
@@ -207,10 +209,47 @@ export default function TmDetail() {
       </div>
       <Sheet open={cookidooAc} onClose={() => setCookidooAc(false)} title="Cookidoo’ya ekle">
         <div className="space-y-2">
+          <div className={`font-semibold ${T_BASLIK}`}>Linkle aktar (önerilen)</div>
           <p className={`text-[13px] ${T_GOVDE}`}>
-            Thermomix’in uygulaması dışarıdan tarif almaz; alanlar elle doldurulur. Her düğme ilgili bölümü kopyalar, sen Cookidoo’daki kutuya yapıştırırsın
-            (çok satırlı yapıştırmayı kabul eder, satırlara böler).
+            Tarif sayfası GitHub depona konur, linki Cookidoo’da “Mevcut bir tarifi içe aktar” kutusuna yapıştırırsın; malzeme ve adımları kendisi alır.
+            Kurulum bir kez Ayarlar’da (“Cookidoo’ya aktarma”).
           </p>
+          <a href={githubYeniDosyaUrl(r)} target="_blank" rel="noreferrer" className="lz-card p-3 w-full flex items-center gap-3 text-left">
+            <span className="w-7 h-7 rounded-full bg-lz-600 text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">1</span>
+            <span className="flex-1 min-w-0">
+              <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>Sayfayı GitHub’a ekle</span>
+              <span className={`block text-[12px] ${T_SOLUK}`}>Açılan ekranda içerik hazır; yeşil “Commit changes”e bas (iki kez)</span>
+            </span>
+          </a>
+          <button
+            className="lz-card p-3 w-full flex items-center gap-3 text-left"
+            onClick={async () => {
+              const url = yayinUrl(r)
+              await kopyala(url, 'Link')
+              setYayinDurum('Kontrol ediliyor…')
+              const d = await yayindaMi(url)
+              setYayinDurum(d === null ? '' : d ? '✓ Sayfa yayında; Cookidoo’ya yapıştırabilirsin.' : 'Henüz yayında değil: GitHub 1–2 dk içinde yayınlar, sonra Cookidoo’ya yapıştır. (Depo ve Pages ayarı doğru mu? Ayarlar’a bak.)')
+            }}
+          >
+            <span className="w-7 h-7 rounded-full bg-lz-600 text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">2</span>
+            <span className="flex-1 min-w-0">
+              <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>Linki kopyala</span>
+              <span className={`block text-[12px] break-all ${T_SOLUK}`}>{yayinUrl(r)}</span>
+            </span>
+          </button>
+          {yayinDurum && <p className={`text-[12.5px] ${T_GOVDE}`}>{yayinDurum}</p>}
+          <a href="https://cookidoo.com.tr/created-recipes/tr-TR" target="_blank" rel="noreferrer" className="lz-card p-3 w-full flex items-center gap-3 text-left">
+            <span className="w-7 h-7 rounded-full bg-lz-600 text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">3</span>
+            <span className="flex-1 min-w-0">
+              <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>Cookidoo’da içe aktar</span>
+              <span className={`block text-[12px] ${T_SOLUK}`}>Oluşturduğum tarifler → Mevcut bir tarifi içe aktar → linki yapıştır</span>
+            </span>
+          </a>
+          <p className={`text-[11.5px] ${T_SOLUK}`}>
+            Sayfa herkese açık olur (fotoğraf konmaz). Depo: <a href={depoUrl()} target="_blank" rel="noreferrer" className="underline">{depoUrl().replace('https://github.com/', '')}</a>
+          </p>
+          <div className={`font-semibold pt-2 ${T_BASLIK}`}>Elle gir (yedek yol)</div>
+          <p className={`text-[12.5px] ${T_SOLUK}`}>Her düğme ilgili bölümü kopyalar; Cookidoo’daki kutuya yapıştırırsın (çok satırlı yapıştırmayı kabul eder).</p>
           {(() => {
             const p = cookidooParcalari(r)
             const satir = [
@@ -232,9 +271,6 @@ export default function TmDetail() {
               ))
           })()}
           <p className={`text-[12px] ${T_SOLUK}`}>Porsiyonu Cookidoo’da “4 porsiyon” satırından {r.servings || '—'} yap. Süre/sıcaklık/hız her adımın sonunda “→ 14 dk/90°C/hız 4” olarak yazılı.</p>
-          <a href="https://cookidoo.com.tr/created-recipes/tr-TR" target="_blank" rel="noreferrer" className="lz-btn-primary w-full text-[14px]">
-            Cookidoo’yu aç
-          </a>
         </div>
       </Sheet>
       <Sheet open={sohbetAc} onClose={() => setSohbetAc(false)} title="Thermomix tarifini düzenle">
