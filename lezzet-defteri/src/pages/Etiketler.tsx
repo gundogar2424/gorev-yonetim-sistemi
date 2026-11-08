@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_SOLUK } from '../components/ui'
+import { esles } from '../lib/arama'
 
 // ETIKETLER: mekan etiketleri ve mekanlarda yenen yemekler tek sayfada; dokununca o mekanlar yakindan uzaga
 export default function Etiketler() {
@@ -13,7 +14,7 @@ export default function Etiketler() {
 
   const etiketSay = new Map<string, number>()
   for (const m of mekanlar) for (const e of m.etiketler) etiketSay.set(e, (etiketSay.get(e) ?? 0) + 1)
-  const etiketler = [...etiketSay.entries()].filter(([e]) => !q || e.toLocaleLowerCase('tr').includes(q)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'tr'))
+  const etiketler = [...etiketSay.entries()].filter(([e]) => esles(q, e)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'tr'))
 
   // Yemekler: onerilenler + benim yediklerim + influencer'larin denedikleri; ayni yemek bir mekanda bir kez sayilir
   const yemekSay = new Map<string, { ad: string; n: number }>()
@@ -28,7 +29,7 @@ export default function Etiketler() {
       yemekSay.set(y, { ad: k?.ad ?? ad.charAt(0).toLocaleUpperCase('tr') + ad.slice(1), n: (k?.n ?? 0) + 1 })
     }
   }
-  const yemekler = [...yemekSay.values()].filter((y) => !q || y.ad.toLocaleLowerCase('tr').includes(q)).sort((a, b) => b.n - a.n || a.ad.localeCompare(b.ad, 'tr'))
+  const yemekler = [...yemekSay.values()].filter((y) => esles(q, y.ad)).sort((a, b) => b.n - a.n || a.ad.localeCompare(b.ad, 'tr'))
 
   return (
     <div>

@@ -5,6 +5,7 @@ import { listRecipes, updateRecipe } from '../db'
 import type { LzRecipe } from '../types'
 import { Header, Icon, T_BASLIK, T_SOLUK, Thumb } from '../components/ui'
 import { aiThermomix, apiAnahtari } from '../lib/ai'
+import { esles } from '../lib/arama'
 
 // Tarifi TM7'ye uyarlayip kaydeder (Tarif ekranindan ve bu sekmeden cagrilir)
 export async function thermomixeUyarla(r: LzRecipe): Promise<void> {
@@ -22,7 +23,7 @@ export default function Thermomix() {
   const aiVar = !!apiAnahtari()
 
   const a = q.trim().toLocaleLowerCase('tr')
-  const uygun = (r: LzRecipe) => !a || r.title.toLocaleLowerCase('tr').includes(a)
+  const uygun = (r: LzRecipe) => esles(a, r.title)
   const uyarlanan = tarifler.filter((r) => r.tm && uygun(r))
   const digerleri = tarifler.filter((r) => !r.tm && r.ingredients.length > 0 && uygun(r))
 

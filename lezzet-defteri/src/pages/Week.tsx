@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { esles } from '../lib/arama'
 import { addPlan, addToShopping, listRecipes, lzDb } from '../db'
 import type { LzMeal, LzPlan, LzRecipe } from '../types'
 import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, useToast } from '../components/ui'
@@ -255,7 +256,7 @@ function SihirliMenu({
 function TarifSec({ open, tarifler, onClose, onSec }: { open: boolean; tarifler: LzRecipe[]; onClose: () => void; onSec: (r: LzRecipe) => void }) {
   const [q, setQ] = useState('')
   const a = q.trim().toLocaleLowerCase('tr')
-  const liste = tarifler.filter((r) => !a || r.title.toLocaleLowerCase('tr').includes(a))
+  const liste = tarifler.filter((r) => esles(a, r.title))
   return (
     <Sheet open={open} onClose={onClose} title="Tarif seç">
       {tarifler.length === 0 ? (

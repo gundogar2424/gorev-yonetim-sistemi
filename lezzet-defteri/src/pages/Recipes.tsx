@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { etkilesimEski, etkilesimGetir } from '../lib/begeni'
+import { esles } from '../lib/arama'
 import { adaylar } from '../lib/hesaplar'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
@@ -65,7 +66,7 @@ export default function Recipes() {
     if (filtre === 'begeni' && !r.etkilesim?.puan) return false
     if (filtre !== 'hepsi' && filtre !== 'yeni' && filtre !== 'favori' && filtre !== 'begeni' && !r.tags.includes(filtre)) return false
     if (!arama) return true
-    return `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')} ${r.author}`.toLocaleLowerCase('tr').includes(arama)
+    return esles(arama, `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')} ${r.author}`)
   })
   // Her listede (arama ve "Yeni" dahil) en begenilen once
   const gorunen = [...gorunenHam].sort(

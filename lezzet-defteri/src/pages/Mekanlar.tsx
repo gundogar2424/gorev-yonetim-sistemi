@@ -11,6 +11,7 @@ import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/u
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { linkAyikla } from '../lib/importer'
+import { esles } from '../lib/arama'
 import {
   puanYaz,
   adrestenKonum,
@@ -107,10 +108,7 @@ export default function Mekanlar() {
       (!sadeceIstek || m.gitmekIstiyorum) &&
       (!sadeceHype || m.hype?.var) &&
       (!yaricap || (konum && m.lat !== undefined && m.lon !== undefined && mesafeKm(konum, { lat: m.lat, lon: m.lon }) <= yaricap)) &&
-      (!q ||
-        `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')} ${m.notlar} ${m.kampanya?.ozet ?? ''} ${m.paylasanYorumu?.begendi ?? ''} ${m.paylasanYorumu?.yedi ?? ''}`
-          .toLocaleLowerCase('tr')
-          .includes(q))
+      (!q || esles(q, `${m.ad} ${m.tur} ${m.ilce} ${m.sehir} ${m.oneriler.join(' ')} ${m.etiketler.join(' ')} ${m.notlar} ${m.kampanya?.ozet ?? ''} ${m.paylasanYorumu?.begendi ?? ''} ${m.paylasanYorumu?.yedi ?? ''}`))
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
   // Etiket ya da yemek secilince bulundugum yerden uzaga dogru; digerlerinde en begenilen once (esitse yakin olan)
