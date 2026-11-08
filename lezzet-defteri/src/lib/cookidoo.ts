@@ -66,13 +66,23 @@ export function cookidooSayfasi(r: LzRecipe): string {
     recipeInstructions: adimlar.map((t) => ({ '@type': 'HowToStep', text: t })),
     ...(r.sourceUrl ? { isBasedOn: r.sourceUrl } : {})
   }
-  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${k(r.title)}</title>
+  const canon = yayinUrl(r)
+  const ana = canon.replace(/t\/[^/]+$/, '')
+  const ozet = [r.servings ? `${r.servings} porsiyon` : '', r.minutes ? `${r.minutes} dk` : '', tm ? `Thermomix · ${tm.category}` : ''].filter(Boolean).join(' · ')
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${k(r.title)} – Lezzet Rotası</title>
+<meta name="description" content="${k((notlar || `${r.title} tarifi: malzemeler ve adım adım hazırlanışı${tm ? ', Thermomix ayarlarıyla' : ''}.`).slice(0, 160))}"><link rel="canonical" href="${canon}"><meta name="lz-tarih" content="${new Date().toISOString().slice(0, 10)}">
+<meta property="og:title" content="${k(r.title)}"><meta property="og:type" content="article"><meta property="og:url" content="${canon}">
 <script type="application/ld+json">${JSON.stringify(veri).replace(/</g, '\\u003c')}</script>
-<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:16px;line-height:1.5;color:#18181b}h1{font-size:24px}li{margin:4px 0}</style></head>
-<body><h1>${k(r.title)}</h1><p>${k([r.servings ? `${r.servings} porsiyon` : '', r.minutes ? `${r.minutes} dk` : '', tm ? `Thermomix · ${tm.category}` : ''].filter(Boolean).join(' · '))}</p>
-<h2>Malzemeler</h2><ul>${malzemeler.map((m) => `<li>${k(m)}</li>`).join('')}</ul>
-<h2>Hazırlanışı</h2><ol>${adimlar.map((a) => `<li>${k(a)}</li>`).join('')}</ol>
-${notlar ? `<p><b>Not:</b> ${k(notlar)}</p>` : ''}<p style="color:#888;font-size:13px">Lezzet Rotası ile hazırlandı${r.sourceUrl ? ` · Kaynak: <a href="${k(r.sourceUrl)}">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a>` : ''}</p></body></html>`
+<style>:root{--bg:#fffaf5;--kart:#fff;--yazi:#1f1a17;--soluk:#7a6f68;--vurgu:#d9480f;--cizgi:#efe3d8}@media(prefers-color-scheme:dark){:root{--bg:#161210;--kart:#211b18;--yazi:#f4ece6;--soluk:#a89b92;--vurgu:#ff8a4c;--cizgi:#342b26}}
+body{margin:0;background:var(--bg);color:var(--yazi);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55}main{max-width:680px;margin:0 auto;padding:16px 16px 48px}
+a.geri{color:var(--soluk);text-decoration:none;font-size:14px}h1{font-size:28px;margin:12px 0 4px;letter-spacing:-.02em}.ozet{color:var(--soluk);margin:0 0 20px}
+section{background:var(--kart);border:1px solid var(--cizgi);border-radius:16px;padding:16px 18px;margin:12px 0}h2{font-size:17px;margin:0 0 10px;color:var(--vurgu)}
+ul,ol{margin:0;padding-left:22px}li{margin:6px 0}ol li{padding-left:4px}.not{color:var(--soluk);font-size:14px}footer{text-align:center;color:var(--soluk);font-size:13px;padding-top:16px}footer a{color:inherit}</style></head>
+<body><main><a class="geri" href="${ana}">← Tüm tarifler</a><h1>${k(r.title)}</h1>${ozet ? `<p class="ozet">${k(ozet)}</p>` : ''}
+<section><h2>Malzemeler</h2><ul>${malzemeler.map((m) => `<li>${k(m)}</li>`).join('')}</ul></section>
+<section><h2>Hazırlanışı</h2><ol>${adimlar.map((a) => `<li>${k(a)}</li>`).join('')}</ol></section>
+${notlar ? `<section><h2>Notlar</h2><p class="not">${k(notlar)}</p></section>` : ''}
+<footer>Lezzet Rotası ile hazırlandı${r.sourceUrl ? ` · Kaynak: <a href="${k(r.sourceUrl)}" rel="nofollow">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a>` : ''}</footer></main></body></html>`
 }
 
 // GitHub "yeni dosya" ekrani: dosya adi ve icerik dolu acilir, kullanici yalnizca Commit der

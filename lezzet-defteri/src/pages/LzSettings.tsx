@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Header, Logo, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { Header, Icon, Logo, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import {
   VARSAYILAN_MODEL,
   anahtarKaydet,
@@ -283,13 +283,21 @@ function CookidooKarti() {
   const [depo, setDepo] = useState(tarifDeposu())
   const [nasil, setNasil] = useState(false)
   const [sahip, ad] = depo.split('/')
+  const site = `https://${sahip}.github.io/${ad}/`
   return (
     <section className="lz-card p-4 space-y-3">
-      <div className={`font-semibold ${T_BASLIK}`}>Cookidoo’ya aktarma (Thermomix)</div>
+      <div className={`font-semibold ${T_BASLIK}`}>Tarif sitem (Cookidoo’ya aktarma)</div>
       <p className={`text-[13px] ${T_SOLUK}`}>
-        Cookidoo, bir internet sayfasındaki tarifi “Mevcut bir tarifi içe aktar” ile tek seferde alabiliyor. Bunun için tariflerin senin GitHub deponda
-        ücretsiz bir sayfaya konur; hesap ya da anahtar girmen gerekmez, telefonun tarayıcısında GitHub’a girmiş olman yeter.
+        “Siteye koy” dediğin tarifler GitHub deponda herkese açık bir sayfa olur: Google’da bulunur, linki Cookidoo’da “Mevcut bir tarifi içe aktar”
+        ile tek seferde alınır. Hesap ya da anahtar girmen gerekmez; telefonun tarayıcısında GitHub’a girmiş olman yeter.
       </p>
+      <a href={site} target="_blank" rel="noreferrer" className="lz-card p-3 flex items-center gap-3">
+        <Icon name="link" className="w-5 h-5 text-lz-600 flex-shrink-0" />
+        <span className="flex-1 min-w-0">
+          <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>Siteyi aç</span>
+          <span className={`block text-[12px] break-all ${T_SOLUK}`}>{site}</span>
+        </span>
+      </a>
       <label className="block">
         <span className="lz-label">GitHub deposu (kullanıcı/depo)</span>
         <input
@@ -303,7 +311,7 @@ function CookidooKarti() {
         />
       </label>
       <button className="text-[13px] text-lz-600 font-semibold underline" onClick={() => setNasil(!nasil)}>
-        {nasil ? 'Gizle' : 'Bir kerelik kurulum (2 dakika)'}
+        {nasil ? 'Gizle' : 'Başka bir depo kurmak istersen'}
       </button>
       {nasil && (
         <ol className={`text-[13px] space-y-1.5 list-decimal pl-5 ${T_GOVDE}`}>
@@ -311,15 +319,14 @@ function CookidooKarti() {
             <a href={`https://github.com/new?name=${encodeURIComponent(ad || 'lezzet-tarifler')}&description=Lezzet+Rotas%C4%B1+tarif+sayfalar%C4%B1`} target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
               GitHub’da yeni depo aç
             </a>
-            : adı <b>{ad || 'lezzet-tarifler'}</b>, <b>Public</b>, “Add a README file” işaretli → Create repository.
+            : <b>Public</b>, “Add a README file” işaretli → Create repository.
           </li>
           <li>
             <a href={`https://github.com/${sahip}/${ad}/settings/pages`} target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
               Deponun Pages ayarını aç
             </a>
-            : Source “Deploy from a branch”, Branch <b>main</b> / (root) → Save.
+            : Branch <b>main</b> / (root) → Save. Ana sayfa, arama ve site haritası için <a href="https://github.com/gundogar2424/lezzet-tarifler" target="_blank" rel="noreferrer" className="underline">lezzet-tarifler</a> deposundaki dosyaları kopyala.
           </li>
-          <li>Bitti. Artık Thermomix sayfasındaki “Cookidoo’ya ekle” linkle aktarır. İlk yayın 1–2 dk sürebilir.</li>
         </ol>
       )}
     </section>
