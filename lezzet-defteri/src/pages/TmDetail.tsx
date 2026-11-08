@@ -5,7 +5,7 @@ import { lzDb, updateRecipe } from '../db'
 import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { DuzenlemeSohbeti } from '../components/TarifSohbet'
 import { aiTmDuzenle } from '../lib/ai'
-import { adimOzeti, cihazAdimi, cookidooMetni, gramToplami, sureAdi, termomiksKodu, tmSurumDenetle, type TmSurum } from '../lib/tm7'
+import { adimOzeti, cihazAdimi, cookidooParcalari, gramToplami, sureAdi, termomiksKodu, tmSurumDenetle, type TmSurum } from '../lib/tm7'
 import { AyarRozetleri } from '../components/TmAyar'
 import { thermomixeUyarla } from './Thermomix'
 import { dosyaPaylas, tmHtml } from '../lib/paylas'
@@ -20,6 +20,7 @@ export default function TmDetail() {
   const [toast, goster] = useToast()
   const [sohbetAc, setSohbetAc] = useState(false)
   const [duzeltme, setDuzeltme] = useState<{ aciklama: string; onceki: TmSurum } | null>(null)
+  const [cookidooAc, setCookidooAc] = useState(false)
 
   if (r === undefined) return null
   if (!r) return <Header title="Tarif bulunamadı" back />
@@ -64,12 +65,11 @@ export default function TmDetail() {
       if (!/cancel|abort|iptal/i.test(m)) goster('Paylaşılamadı: ' + m.slice(0, 60))
     }
   }
-  // Cookidoo (Vorwerk'in uygulamasi) disaridan tarif almaz; metin kopyalanip "Oluşturduğum tarifler"e elle yapistirilir
-  const cookidoo = async () => {
-    const metin = cookidooMetni(r)
+  // Cookidoo (Vorwerk'in uygulamasi) disaridan tarif almaz; alanlari ayri ayri kopyalayip yapistirirsin
+  const kopyala = async (metin: string, ad: string) => {
     try {
       await navigator.clipboard.writeText(metin)
-      goster('Kopyalandı. Cookidoo → Oluşturduğum tarifler → Yeni tarif’e yapıştır')
+      goster(`${ad} kopyalandı; Cookidoo’daki kutuya yapıştır`)
     } catch {
       try {
         if (navigator.share) await navigator.share({ title: r.title, text: metin })
@@ -77,7 +77,6 @@ export default function TmDetail() {
         /* vazgecildi */
       }
     }
-    window.open('https://cookidoo.com.tr/created-recipes/tr-TR', '_blank')
   }
   const aktar = async () => {
     const kod = termomiksKodu(r)
@@ -132,13 +131,9 @@ export default function TmDetail() {
             Termomiks’e aktar
           </button>
         </div>
-        <button className="lz-btn-soft w-full text-sm" onClick={() => void cookidoo()}>
-          Cookidoo’ya ekle (kopyala ve aç)
+        <button className="lz-btn-soft w-full text-sm" onClick={() => setCookidooAc(true)}>
+          Cookidoo’ya ekle
         </button>
-        <p className={`text-[11.5px] px-1 -mt-1 ${T_SOLUK}`}>
-          Thermomix’in kendi uygulaması dışarıdan tarif kabul etmez. Düğme tarifi Cookidoo biçiminde kopyalar ve Cookidoo’yu açar; “Oluşturduğum tarifler → Yeni tarif”te
-          alanlara yapıştırırsın. Tarif Thermomix ekranında da görünür.
-        </p>
 
         {tm.referans && (
           <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>
@@ -210,6 +205,38 @@ export default function TmDetail() {
           Uyarlama yapay zekayla yapıldı; ilk kez pişirirken süre ve devirleri gözle kontrol et.
         </p>
       </div>
+      <Sheet open={cookidooAc} onClose={() => setCookidooAc(false)} title="Cookidoo’ya ekle">
+        <div className="space-y-2">
+          <p className={`text-[13px] ${T_GOVDE}`}>
+            Thermomix’in uygulaması dışarıdan tarif almaz; alanlar elle doldurulur. Her düğme ilgili bölümü kopyalar, sen Cookidoo’daki kutuya yapıştırırsın
+            (çok satırlı yapıştırmayı kabul eder, satırlara böler).
+          </p>
+          {(() => {
+            const p = cookidooParcalari(r)
+            const satir = [
+              ['1', 'Başlığı kopyala', r.title, 'Tarifinize bir başlık verin'],
+              ['2', `Malzemeleri kopyala (${p.malzemeler.split('\n').filter(Boolean).length})`, p.malzemeler, 'Malzemeler ekle'],
+              ['3', `Adımları kopyala (${p.adimlar.split('\n').filter(Boolean).length})`, p.adimlar, 'Adımlar ekle'],
+              ['4', 'İpuçlarını kopyala', p.ipuclari, 'İpuçları']
+            ] as const
+            return satir
+              .filter((x) => x[2])
+              .map(([n, ad, metin, hedef]) => (
+                <button key={n} className="lz-card p-3 w-full flex items-center gap-3 text-left" onClick={() => void kopyala(metin, ad.replace(/ \(.*\)/, ''))}>
+                  <span className="w-7 h-7 rounded-full bg-lz-600 text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">{n}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className={`block font-semibold text-[14px] ${T_BASLIK}`}>{ad}</span>
+                    <span className={`block text-[12px] ${T_SOLUK}`}>Cookidoo’da “{hedef}” kutusuna yapıştır</span>
+                  </span>
+                </button>
+              ))
+          })()}
+          <p className={`text-[12px] ${T_SOLUK}`}>Porsiyonu Cookidoo’da “4 porsiyon” satırından {r.servings || '—'} yap. Süre/sıcaklık/hız her adımın sonunda “→ 14 dk/90°C/hız 4” olarak yazılı.</p>
+          <a href="https://cookidoo.com.tr/created-recipes/tr-TR" target="_blank" rel="noreferrer" className="lz-btn-primary w-full text-[14px]">
+            Cookidoo’yu aç
+          </a>
+        </div>
+      </Sheet>
       <Sheet open={sohbetAc} onClose={() => setSohbetAc(false)} title="Thermomix tarifini düzenle">
         <div className={T_GOVDE}>
           <DuzenlemeSohbeti

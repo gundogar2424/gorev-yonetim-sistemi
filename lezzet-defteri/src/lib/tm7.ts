@@ -313,3 +313,19 @@ export function cookidooMetni(r: LzRecipe): string {
     .filter((x, i, arr) => !(x === '' && arr[i - 1] === ''))
     .join('\n')
 }
+
+// Cookidoo'nun ayri alanlari icin parcalar: malzemeler (satir satir), adimlar (satir satir, numarasiz), ipuclari
+export function cookidooParcalari(r: LzRecipe): { malzemeler: string; adimlar: string; ipuclari: string } {
+  const metin = cookidooMetni(r)
+  const b = metin.split('\n')
+  const kes = (bas: string, son: string) => {
+    const i = b.indexOf(bas)
+    if (i < 0) return []
+    const j = son ? b.indexOf(son, i + 1) : b.length
+    return b.slice(i + 1, j < 0 ? b.length : j).filter(Boolean)
+  }
+  const malzemeler = kes('MALZEMELER', 'HAZIRLANIŞI').map((x) => x.replace(/^- /, ''))
+  const adimlar = kes('HAZIRLANIŞI', '').filter((x) => /^\d+\. /.test(x)).map((x) => x.replace(/^\d+\. /, ''))
+  const ipuclari = b.filter((x) => /^(Not|Referans|Kaynak): /.test(x))
+  return { malzemeler: malzemeler.join('\n'), adimlar: adimlar.join('\n'), ipuclari: ipuclari.join('\n') }
+}
