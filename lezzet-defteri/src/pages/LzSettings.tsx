@@ -19,7 +19,7 @@ import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
 import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
 import { placesAnahtari, placesAnahtariKaydet, placesTest } from '../lib/places'
-import { VARSAYILAN_DEPO, anahtarOlusturUrl, githubAnahtari, githubAnahtariKaydet, tarifDeposu, tarifDeposuKaydet } from '../lib/cookidoo'
+import { VARSAYILAN_DEPO, anahtarOlusturUrl, githubAnahtari, githubAnahtariKaydet, siteyeGonder, tarifDeposu, tarifDeposuKaydet } from '../lib/cookidoo'
 import { gunlukSinir, gunlukSinirAyarla, kullanimOku, tahminiTl, tasarrufModu, tasarrufModuAyarla } from '../lib/ai'
 
 export default function LzSettings() {
@@ -316,6 +316,7 @@ function CookidooKarti() {
           {anahtar ? '✓ Kayıtlı. Yalnızca bu telefonda durur, yedeğe girmez.' : 'Yoksa “Siteye koy” GitHub ekranını açar, Commit’e sen basarsın.'}
         </span>
       </label>
+      {anahtar && <TopluGonder />}
       <button className="text-[13px] text-lz-600 font-semibold underline" onClick={() => setAnahtarNasil(!anahtarNasil)}>
         {anahtarNasil ? 'Gizle' : 'Anahtar nasıl alınır? (1 dakika)'}
       </button>
@@ -368,6 +369,44 @@ function CookidooKarti() {
         </ol>
       )}
     </section>
+  )
+}
+
+// Uygulamadaki tarifleri tek seferde siteye gonderir (Thermomix olanlar ya da hepsi)
+function TopluGonder() {
+  const [durum, setDurum] = useState('')
+  const [calisiyor, setCalisiyor] = useState(false)
+  const gonder = async (sadeceTm: boolean) => {
+    const hepsi = (await lzDb.recipes.toArray()).filter((r) => (sadeceTm ? !!r.tm : true))
+    if (!hepsi.length) return setDurum(sadeceTm ? 'Thermomix uyarlaması olan tarif yok.' : 'Tarif yok.')
+    setCalisiyor(true)
+    let tamam = 0
+    const hatalar: string[] = []
+    for (const r of hepsi) {
+      setDurum(`Gönderiliyor ${tamam + hatalar.length + 1}/${hepsi.length}: ${r.title}`)
+      try {
+        await siteyeGonder(r)
+        tamam++
+      } catch (e) {
+        hatalar.push(`${r.title}: ${e instanceof Error ? e.message : String(e)}`)
+        if (/anahtar|izni/i.test(hatalar[hatalar.length - 1])) break
+      }
+    }
+    setCalisiyor(false)
+    setDurum(`✓ ${tamam} tarif siteye gönderildi. 2–3 dk sonra sitede görünür.${hatalar.length ? `\nGönderilemeyen: ${hatalar.slice(0, 3).join(' · ')}` : ''}`)
+  }
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <button className="lz-btn-primary flex-1 text-[13px]" disabled={calisiyor} onClick={() => void gonder(true)}>
+          Thermomix tariflerini siteye koy
+        </button>
+        <button className="lz-btn-soft flex-1 text-[13px]" disabled={calisiyor} onClick={() => void gonder(false)}>
+          Tüm tarifleri koy
+        </button>
+      </div>
+      {durum && <p className={`text-[12.5px] whitespace-pre-line ${T_GOVDE}`}>{durum}</p>}
+    </div>
   )
 }
 
