@@ -85,9 +85,67 @@ ${notlar ? `<section><h2>Notlar</h2><p class="not">${k(notlar)}</p></section>` :
 <footer>Lezzet Rotası ile hazırlandı${r.sourceUrl ? ` · Kaynak: <a href="${k(r.sourceUrl)}" rel="nofollow">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a>` : ''}</footer></main></body></html>`
 }
 
-// GitHub "yeni dosya" ekrani: dosya adi ve icerik dolu acilir, kullanici yalnizca Commit der
-export function githubYeniDosyaUrl(r: LzRecipe): string {
-  return `https://github.com/${tarifDeposu()}/new/main?filename=${encodeURIComponent(dosyaYolu(r))}&value=${encodeURIComponent(cookidooSayfasi(r))}`
+// GitHub "yeni dosya" ekrani: dosya adi ve icerik dolu acilir, kullanici yalnizca Commit der.
+// Uzun tariflerde link GitHub sinirini (~8 bin karakter) asar; o zaman yalnizca dosya adi dolu acilir.
+export function githubYeniDosyaUrl(r: LzRecipe, icerikle = true): string {
+  const temel = `https://github.com/${tarifDeposu()}/new/main?filename=${encodeURIComponent(dosyaYolu(r))}`
+  return icerikle ? `${temel}&value=${encodeURIComponent(cookidooSayfasi(r))}` : temel
+}
+export function linkSigarMi(r: LzRecipe): boolean {
+  return githubYeniDosyaUrl(r).length < 7500
+}
+
+// GitHub anahtari (yalnizca bu telefonda durur, yedege girmez). Varsa sayfa tek dokunusla yayinlanir.
+const KEY_TOKEN = 'lz-github-token'
+export function githubAnahtari(): string {
+  try {
+    return (localStorage.getItem(KEY_TOKEN) || '').trim()
+  } catch {
+    return ''
+  }
+}
+export function githubAnahtariKaydet(v: string): void {
+  try {
+    if (v.trim()) localStorage.setItem(KEY_TOKEN, v.trim())
+    else localStorage.removeItem(KEY_TOKEN)
+  } catch {
+    /* yok */
+  }
+}
+export function anahtarOlusturUrl(): string {
+  return 'https://github.com/settings/personal-access-tokens/new'
+}
+
+function base64(s: string): string {
+  const b = new TextEncoder().encode(s)
+  let ikili = ''
+  for (let i = 0; i < b.length; i += 0x8000) ikili += String.fromCharCode(...b.subarray(i, i + 0x8000))
+  return btoa(ikili)
+}
+
+// Sayfayi dogrudan depoya yazar (varsa gunceller). Basarida yayin adresini dondurur.
+export async function siteyeGonder(r: LzRecipe): Promise<string> {
+  const anahtar = githubAnahtari()
+  if (!anahtar) throw new Error('GitHub anahtarı yok')
+  const yol = dosyaYolu(r)
+  const api = `https://api.github.com/repos/${tarifDeposu()}/contents/${yol}`
+  const basliklar = { Authorization: `Bearer ${anahtar}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+  let sha: string | undefined
+  const var_ = await fetch(api, { headers: basliklar, cache: 'no-store' })
+  if (var_.ok) sha = ((await var_.json()) as { sha?: string }).sha
+  else if (var_.status === 401) throw new Error('GitHub anahtarı geçersiz ya da süresi dolmuş (Ayarlar → Tarif sitem)')
+  const c = await fetch(api, {
+    method: 'PUT',
+    headers: { ...basliklar, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `${sha ? 'Güncellendi' : 'Eklendi'}: ${r.title}`, content: base64(cookidooSayfasi(r)), ...(sha ? { sha } : {}) })
+  })
+  if (!c.ok) {
+    const m = ((await c.json().catch(() => ({}))) as { message?: string }).message || String(c.status)
+    if (c.status === 401) throw new Error('GitHub anahtarı geçersiz ya da süresi dolmuş (Ayarlar → Tarif sitem)')
+    if (c.status === 403 || c.status === 404) throw new Error(`Anahtarın bu depoya yazma izni yok (${tarifDeposu()}). Anahtarda “Contents: Read and write” seçili olmalı.`)
+    throw new Error(m)
+  }
+  return yayinUrl(r)
 }
 // Yayinlanan sayfanin adresi (GitHub Pages: main dalinin koku)
 export function yayinUrl(r: LzRecipe): string {
@@ -107,5 +165,32 @@ export async function yayindaMi(url: string): Promise<boolean | null> {
     return r.status === 200 && /application\/ld\+json/.test(String(r.data))
   } catch {
     return false
+  }
+}
+
+// "Siteye koy" akisi: anahtar varsa dogrudan yayinlar; yoksa GitHub ekranini acar.
+// Donen metin kullaniciya gosterilir.
+export async function siteyeKoy(r: LzRecipe): Promise<{ tamam: boolean; mesaj: string; url: string }> {
+  const url = yayinUrl(r)
+  if (githubAnahtari()) {
+    try {
+      await siteyeGonder(r)
+      await navigator.clipboard?.writeText(url).catch(() => undefined)
+      return { tamam: true, mesaj: '✓ Siteye gönderildi, link kopyalandı. 1–2 dk sonra açılır.', url }
+    } catch (e) {
+      return { tamam: false, mesaj: 'Gönderilemedi: ' + (e instanceof Error ? e.message : String(e)), url }
+    }
+  }
+  if (linkSigarMi(r)) {
+    window.open(githubYeniDosyaUrl(r), '_blank')
+    return { tamam: true, mesaj: 'GitHub’da yeşil “Commit changes”e iki kez bas; 1–2 dk sonra yayında.', url }
+  }
+  // Uzun tarif: icerik panoya, GitHub bos dosya ekrani acilir
+  await navigator.clipboard?.writeText(cookidooSayfasi(r)).catch(() => undefined)
+  window.open(githubYeniDosyaUrl(r, false), '_blank')
+  return {
+    tamam: true,
+    mesaj: 'Tarif uzun olduğu için sayfa panoya kopyalandı: GitHub’da büyük boş kutuya uzun basıp “Yapıştır”, sonra “Commit changes”e iki kez bas. Tek dokunuş için Ayarlar → Tarif sitem → GitHub anahtarı.',
+    url
   }
 }

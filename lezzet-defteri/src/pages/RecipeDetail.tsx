@@ -12,7 +12,7 @@ import { BesinSatiri } from './Diyetim'
 import { etkilesimEski, etkilesimGetir, kisaSayi } from '../lib/begeni'
 import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
-import { githubYeniDosyaUrl, yayinUrl } from '../lib/cookidoo'
+import { siteyeKoy } from '../lib/cookidoo'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -383,10 +383,9 @@ export default function RecipeDetail() {
           <PaylasSecenek
             baslik="Siteye koy (herkese açık link)"
             alt="Tarif sitende sayfa olur; Google’da bulunur, Cookidoo’ya linkle aktarılır. GitHub’da “Commit”e basman yeter"
-            onClick={() => {
-              window.open(githubYeniDosyaUrl(r), '_blank')
-              void navigator.clipboard?.writeText(yayinUrl(r)).catch(() => undefined)
-              goster('Sayfa linki kopyalandı; GitHub’da Commit’e bas, 1–2 dk sonra yayında')
+            onClick={async () => {
+              setPaylasAc(false)
+              goster((await siteyeKoy(r)).mesaj)
             }}
             ikon="link"
           />

@@ -19,7 +19,7 @@ import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
 import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
 import { placesAnahtari, placesAnahtariKaydet, placesTest } from '../lib/places'
-import { VARSAYILAN_DEPO, tarifDeposu, tarifDeposuKaydet } from '../lib/cookidoo'
+import { VARSAYILAN_DEPO, anahtarOlusturUrl, githubAnahtari, githubAnahtariKaydet, tarifDeposu, tarifDeposuKaydet } from '../lib/cookidoo'
 import { gunlukSinir, gunlukSinirAyarla, kullanimOku, tahminiTl, tasarrufModu, tasarrufModuAyarla } from '../lib/ai'
 
 export default function LzSettings() {
@@ -282,6 +282,8 @@ export default function LzSettings() {
 function CookidooKarti() {
   const [depo, setDepo] = useState(tarifDeposu())
   const [nasil, setNasil] = useState(false)
+  const [anahtar, setAnahtar] = useState(githubAnahtari())
+  const [anahtarNasil, setAnahtarNasil] = useState(false)
   const [sahip, ad] = depo.split('/')
   const site = `https://${sahip}.github.io/${ad}/`
   return (
@@ -298,6 +300,42 @@ function CookidooKarti() {
           <span className={`block text-[12px] break-all ${T_SOLUK}`}>{site}</span>
         </span>
       </a>
+      <label className="block">
+        <span className="lz-label">GitHub anahtarı (tek dokunuşla siteye koymak için)</span>
+        <input
+          className="lz-input mt-1 font-mono text-[14px]"
+          type="password"
+          value={anahtar}
+          placeholder="github_pat_…"
+          onChange={(e) => {
+            setAnahtar(e.target.value)
+            githubAnahtariKaydet(e.target.value)
+          }}
+        />
+        <span className={`block text-[12px] mt-1 ${T_SOLUK}`}>
+          {anahtar ? '✓ Kayıtlı. Yalnızca bu telefonda durur, yedeğe girmez.' : 'Yoksa “Siteye koy” GitHub ekranını açar, Commit’e sen basarsın.'}
+        </span>
+      </label>
+      <button className="text-[13px] text-lz-600 font-semibold underline" onClick={() => setAnahtarNasil(!anahtarNasil)}>
+        {anahtarNasil ? 'Gizle' : 'Anahtar nasıl alınır? (1 dakika)'}
+      </button>
+      {anahtarNasil && (
+        <ol className={`text-[13px] space-y-1.5 list-decimal pl-5 ${T_GOVDE}`}>
+          <li>
+            <a href={anahtarOlusturUrl()} target="_blank" rel="noreferrer" className="text-lz-600 font-semibold underline">
+              GitHub’da yeni anahtar sayfasını aç
+            </a>
+          </li>
+          <li>Ad: <b>lezzet</b>. Süre (Expiration): <b>1 yıl</b> ya da “No expiration”.</li>
+          <li>
+            Repository access: <b>Only select repositories</b> → <b>{ad || 'lezzet-tarifler'}</b>
+          </li>
+          <li>
+            Permissions → Repository permissions → <b>Contents</b>: <b>Read and write</b>
+          </li>
+          <li>En alttaki yeşil “Generate token” → çıkan <b>github_pat_…</b> yazısını kopyala, yukarıdaki kutuya yapıştır.</li>
+        </ol>
+      )}
       <label className="block">
         <span className="lz-label">GitHub deposu (kullanıcı/depo)</span>
         <input
