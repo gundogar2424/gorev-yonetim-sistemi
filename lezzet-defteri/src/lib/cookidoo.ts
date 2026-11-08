@@ -47,8 +47,10 @@ export function cookidooSayfasi(r: LzRecipe): string {
   const malzemeler = tm ? tm.ingredients : r.ingredients
   const adimlar = tm
     ? tm.steps.map((a) => {
-        const ayar = cihazAdimi(a) ? adimOzeti(a).replace(/devir/g, 'hız').replace(/ · /g, ' / ') : ''
-        return [a.kelebek ? 'Kelebeği tak.' : '', a.ingredients ? `${a.ingredients} hazneye ekle.` : '', a.text, ayar ? `(${ayar})` : '', a.tip ? `Not: ${a.tip}` : ''].filter(Boolean).join(' ')
+        const cihaz = cihazAdimi(a)
+        const ayar = cihaz ? adimOzeti(a).replace(/devir/g, 'hız').replace(/ · /g, ' / ') : ''
+        // Yalnizca cihazin calistigi adimda malzeme hazneye girer; digerlerinde (bisküvi dizme, kakao serpme) sadece listelenir
+        return [a.kelebek ? 'Kelebeği tak.' : '', a.ingredients ? (cihaz ? `${a.ingredients} hazneye ekle.` : `Malzemeler: ${a.ingredients}.`) : '', a.text, ayar ? `(${ayar})` : '', a.tip ? `Not: ${a.tip}` : ''].filter(Boolean).join(' ')
       })
     : r.steps
   const notlar = [tm?.warnings.join(' ') ?? '', r.notes].filter(Boolean).join(' ')
