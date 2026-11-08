@@ -16,6 +16,7 @@ export interface TmAdim {
   temp: string // '' | '37'...'160' | 'varoma'
   mode: TmMod
   tip: string
+  kelebek?: boolean // Kelebek (cirpma) aksesuari takili: en fazla devir 4
 }
 
 export interface TmSurum {
@@ -90,24 +91,72 @@ export function adimOzeti(a: TmAdim): string {
 
 // Yapay zekadan gelen ham adimi guvene al (bilinmeyen deger -> bos)
 export function adimTemizle(x: Partial<TmAdim>): TmAdim {
-  const hiz = String(x.speed ?? '') as TmHiz
-  const mod = String(x.mode ?? '') as TmMod
+  let hiz = String(x.speed ?? '').trim().toLowerCase().replace(',', '.') as TmHiz
+  // "4.5", "7,5" gibi ara devirler en yakin tam devire yuvarlanir (bos kalirsa isitma adimi calismaz)
+  if (!HIZLAR.includes(hiz)) {
+    const n = Number(hiz)
+    hiz = Number.isFinite(n) && n > 0 ? (String(Math.min(10, Math.max(1, Math.round(n)))) as TmHiz) : n === 0 ? '' : /yum|soft|gentle/i.test(hiz) ? 'yumusak' : ''
+  }
+  const mod = String(x.mode ?? '').trim().toLowerCase() as TmMod
   const sic = String(x.temp ?? '').toLowerCase().replace(/[^0-9a-z]/g, '')
+  const text = String(x.text ?? '').trim()
+  const tip = String(x.tip ?? '').trim()
   return {
-    text: String(x.text ?? '').trim(),
+    text,
     ingredients: String(x.ingredients ?? '').trim(),
     seconds: Number.isFinite(Number(x.seconds)) ? Math.max(0, Math.round(Number(x.seconds))) : 0,
     speed: HIZLAR.includes(hiz) ? hiz : '',
     reverse: !!x.reverse,
     temp: SICAKLIKLAR.includes(sic) ? sic : /^\d+$/.test(sic) ? String(Math.min(160, Math.max(37, Number(sic)))) : '',
     mode: MODLAR.includes(mod) ? mod : '',
-    tip: String(x.tip ?? '').trim()
+    tip,
+    kelebek: !!x.kelebek || /kelebe[kğ]/i.test(`${text} ${tip}`)
   }
+}
+
+// Pisirme ekranindaki ayar kutulari (uygulama ve paylasilan HTML ayni kaynagi kullanir)
+export function adimKutulari(a: TmAdim): [string, string][] {
+  return (
+    [
+      ['Süre', sureAdi(a.seconds)],
+      ['Sıcaklık', sicaklikAdi(a.temp)],
+      ['Devir', a.speed === 'yumusak' ? 'Yumuşak' : a.speed === 'turbo' ? 'Turbo' : a.speed ? a.speed : ''],
+      ['Yön', a.speed && a.speed !== 'turbo' ? (a.reverse ? '⟲ Ters' : '⟳ Düz') : ''],
+      ['Aksesuar', a.kelebek ? 'Kelebek' : '']
+    ] as [string, string][]
+  ).filter((k) => k[1])
+}
+
+// Adimda cihaz calisiyor mu (ayar var) yoksa elle mi yapiliyor
+export function cihazAdimi(a: TmAdim): boolean {
+  return !!(a.speed || a.temp || a.mode)
+}
+
+// "1000 g süt" gibi satirlardan gram toplami (adet/tutam gibi gramsizlar sayilmaz)
+export function gramToplami(satirlar: string[]): number {
+  let t = 0
+  for (const s of satirlar) {
+    const m = s.replace(',', '.').match(/(\d+(?:\.\d+)?)\s*(kg|g|gr|gram|ml|l)\b/i)
+    if (!m) continue
+    const n = Number(m[1])
+    t += /^(kg|l)$/i.test(m[2]) ? n * 1000 : n
+  }
+  return Math.round(t)
+}
+function malzemeGrami(metin: string, ad: RegExp): number {
+  // "1000 g süt", "süt 1000 g" ya da "1 litre süt"
+  let top = 0
+  for (const p of metin.split(/[,;+\n]| ve /)) {
+    if (!ad.test(p)) continue
+    const m = p.replace(',', '.').match(/(\d+(?:\.\d+)?)\s*(kg|g|gr|gram|ml|l|litre)\b/i)
+    if (m) top += /^(kg|l|litre)$/i.test(m[2]) ? Number(m[1]) * 1000 : Number(m[1])
+  }
+  return top
 }
 
 // Termomiks Defteri'nin "Tarif ekle → kodu yapistir" ekraninin okudugu bicim
 export function termomiksKodu(r: LzRecipe): string {
-  const tm = r.tm!
+  const tm = tmSurumDenetle(r.tm!)
   return JSON.stringify(
     {
       title: r.title,
@@ -116,11 +165,14 @@ export function termomiksKodu(r: LzRecipe): string {
       minutes: r.minutes || 0,
       ingredients: tm.ingredients,
       // Termomiks Defteri'nde Karamelize modu yok: kavurma (sote) olarak aktarilir, metinde belirtilir
-      steps: tm.steps.map((a) =>
-        a.mode === 'karamel'
-          ? { ...a, mode: 'sote', temp: a.temp || '160', text: /karamel/i.test(a.text) ? a.text : `Karamelize: ${a.text}` }
-          : a
-      ),
+      steps: tm.steps.map((a) => {
+        const { kelebek, ...b } = a
+        // Termomiks Defteri'nde kelebek alani yok: metne yazilir
+        const t = kelebek && !/kelebe[kğ]/i.test(b.text) ? `Kelebeği tak. ${b.text}` : b.text
+        return b.mode === 'karamel'
+          ? { ...b, mode: 'sote', temp: b.temp || '160', text: /karamel/i.test(t) ? t : `Karamelize: ${t}` }
+          : { ...b, text: t }
+      }),
       notes: r.notes || '',
       warnings: tm.warnings,
       photo: r.photo || '',
@@ -132,23 +184,92 @@ export function termomiksKodu(r: LzRecipe): string {
   )
 }
 
-// TM7 GUVENLIK KONTROLU: yapay zeka kurala aykiri ayar uretirse duzeltir.
-//  - 120 °C ustu yalnizca Kavurma (sote) modunda olur
-//  - Turbo sicak yemekte (60 °C ustu) calismaz -> devir 10 + uyari
-//  - Sicakta devir 7+ -> "kademeli artir, olcu kabi takili" ipucu
+// TM7 GUVENLIK KONTROLU: yapay zeka kurala aykiri ayar uretirse duzeltir (Vorwerk kurallari).
+// Hem yeni uyarlamada hem eski kayitlar gosterilirken uygulanir; ayni adima iki kez uygulanmasi sonucu degistirmez.
+const PEYNIRLI = /labne|mascarpone|maskarpone|krem ?peynir|süzme yoğurt|suzme yogurt|lor\b/i
+const SUTLU_KREMA = /süt|sut|krema/i
 export function tmKuralDenetle(a: TmAdim): TmAdim {
   const x = { ...a }
-  const derece = /^\d+$/.test(x.temp) ? Number(x.temp) : x.temp === 'varoma' ? 100 : 0
+  const derece = /^\d+$/.test(x.temp) ? Number(x.temp) : x.temp === 'varoma' ? 120 : 0
   const ekle = (t: string) => {
-    if (!x.tip.toLocaleLowerCase('tr').includes(t.slice(0, 12).toLocaleLowerCase('tr'))) x.tip = x.tip ? `${x.tip} ${t}` : t
+    if (!x.tip.toLocaleLowerCase('tr').includes(t.slice(0, 14).toLocaleLowerCase('tr'))) x.tip = x.tip ? `${x.tip} ${t}` : t
   }
+  const metin = `${x.text} ${x.ingredients}`
+  // 1) 120 °C ustu yalnizca Kavurma/Karamelize; sonra modlara ozgu zorunlu ayarlar
   if (derece > 120 && x.mode !== 'sote' && x.mode !== 'karamel') x.mode = 'sote'
-  if (x.speed === 'turbo' && derece >= 60) {
-    x.speed = '10'
-    ekle('Turbo sıcakta çalışmaz; hızı kademeli 10’a çıkar.')
+  if (x.mode === 'hamur') {
+    x.speed = ''
+    x.temp = ''
+    x.reverse = false
   }
+  if (x.mode === 'buhar') {
+    x.temp = 'varoma'
+    if (!x.speed || !['yumusak', '0.5', '1', '2'].includes(x.speed)) x.speed = '1'
+  }
+  if (x.mode === 'sote' || x.mode === 'karamel') {
+    // Kavurma: ters bicak + dusuk devir (parcalar dagilmasin, dibi tutmasin)
+    x.reverse = true
+    if (x.speed && !['yumusak', '0.5', '1', '2'].includes(x.speed)) x.speed = '1'
+    if (!x.speed) x.speed = 'yumusak'
+  }
+  // 2) Isitma icin devir sart: devir bos kalirsa cihaz isitmaz
+  if (x.temp && !x.speed && !x.mode) {
+    x.speed = 'yumusak'
+    x.reverse = true
+  }
+  // 3) Turbo: yalnizca soguk ve 2 sn'ye kadar darbe
+  if (x.speed === 'turbo') {
+    if (derece >= 60) {
+      x.speed = '10'
+      ekle('Turbo sıcakta çalışmaz; hızı kademeli 10’a çıkar.')
+    } else if (x.seconds > 3) {
+      ekle(`Turbo’yu ${Math.min(5, Math.ceil(x.seconds / 2))} kez 1–2 sn darbe olarak uygula.`)
+      x.seconds = 2
+    }
+  }
+  // 4) Kelebek: en fazla devir 4, turbo yok
+  if (x.kelebek) {
+    const h = Number(x.speed)
+    if (x.speed === 'turbo' || h > 4) {
+      x.speed = '4'
+      ekle('Kelebek takılıyken en fazla devir 4.')
+    }
+  }
+  // 5) Sicakta yuksek devir: olcu kabi + kademeli
   const hiz = Number(x.speed)
   if (derece >= 60 && hiz >= 7) ekle('Sıcak: hızı kademeli artır, ölçü kabı takılı olsun.')
-  if (x.mode === 'sote' && x.speed && !['yumusak', '0.5', '1', '2'].includes(x.speed)) x.speed = '1'
+  else if (derece >= 60 && hiz >= 5) ekle('Sıcak sıvı: ölçü kabı takılı olsun.')
+  // 6) Peynirli kremalar (labne, mascarpone…): isitmadan, kisa ve dusuk devir — yoksa sulanir
+  if (!x.temp && PEYNIRLI.test(metin) && x.speed && x.speed !== 'yumusak') {
+    if (hiz > 4) x.speed = x.kelebek ? '3' : '3'
+    if (!x.kelebek) x.reverse = true
+    if (x.seconds > 45) x.seconds = 40
+    ekle('Labne/mascarpone fazla karıştırılırsa sulanır; karışır karışmaz durdur.')
+  }
+  // 7) Sutlu/nisastali krema pisirme: TM once isitir; sut miktarina gore sure
+  if (derece >= 80 && derece <= 100 && x.mode === '' && SUTLU_KREMA.test(x.ingredients) && /un|nişasta|nisasta|irmik|pirinç unu|puding|muhallebi|krema/i.test(metin)) {
+    const sut = malzemeGrami(x.ingredients, SUTLU_KREMA)
+    const enAz = sut >= 900 ? 840 : sut >= 650 ? 660 : sut >= 400 ? 480 : 0
+    if (enAz && x.seconds > 0 && x.seconds < enAz) {
+      x.seconds = enAz
+      ekle(`${Math.round(sut)} g süt için en az ${enAz / 60} dk gerekir (cihaz önce ısıtır).`)
+    }
+    if (x.seconds >= 300) ekle('Koyulaşmadıysa 1–2 dk daha pişir; koyulaşınca hemen durdur.')
+  }
   return x
+}
+
+// Tum surumu denetler: adimlar + kapasite ve gram uyarilari (eksikse eklenir)
+export function tmSurumDenetle(tm: TmSurum): TmSurum {
+  const steps = tm.steps.map(tmKuralDenetle)
+  const uyarilar = [...tm.warnings]
+  const var_ = (k: string) => uyarilar.some((u) => u.toLocaleLowerCase('tr').includes(k))
+  const toplam = gramToplami(tm.ingredients)
+  const isitiliyor = steps.some((a) => a.temp)
+  if (toplam > 2000 && isitiliyor && !var_('2 l') && !var_('böl')) {
+    uyarilar.unshift(`Malzemeler toplam ~${(toplam / 1000).toFixed(1).replace('.', ',')} kg: ısıtılan tarifte hazneye en fazla 2 L konur. Kremayı/çorbayı iki partide pişir.`)
+  } else if (toplam > 2200 && !var_('2,2') && !var_('böl')) {
+    uyarilar.unshift(`Malzemeler toplam ~${(toplam / 1000).toFixed(1).replace('.', ',')} kg; hazne 2,2 L. İki partide yap.`)
+  }
+  return { ...tm, steps, warnings: uyarilar }
 }

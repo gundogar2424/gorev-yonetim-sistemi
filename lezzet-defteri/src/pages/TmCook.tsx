@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, markCooked } from '../db'
-import { Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
-import { hizAdi, modAdi, sicaklikAdi, sureAdi } from '../lib/tm7'
+import { Icon, T_BASLIK, T_SOLUK } from '../components/ui'
+import { adimKutulari, cihazAdimi, modAdi, tmSurumDenetle } from '../lib/tm7'
 
 // TM7 PISIRME MODU: her adimda cihaz ayarlari (sure / sicaklik / devir / yon)
 // buyuk kutucuklarda; sureli adimda tek dokunusla geri sayim. Ekran uyumaz.
@@ -38,9 +38,10 @@ export default function TmCook() {
   }, [sayac])
 
   if (!r?.tm) return null
-  const adimlar = r.tm.steps
+  const adimlar = tmSurumDenetle(r.tm).steps
   const a = adimlar[i]
   const son = i === adimlar.length - 1
+  const sonraki = adimlar[i + 1]
 
   const git = async (n: number) => {
     setSayac(false)
@@ -53,12 +54,7 @@ export default function TmCook() {
     setI(Math.max(0, n))
   }
 
-  const kutular = [
-    { ad: 'Süre', deger: sureAdi(a.seconds) },
-    { ad: 'Sıcaklık', deger: sicaklikAdi(a.temp) },
-    { ad: 'Devir', deger: a.speed === 'yumusak' ? 'Yumuşak' : a.speed ? hizAdi(a.speed).replace('Devir ', '') : '' },
-    { ad: 'Yön', deger: a.speed ? (a.reverse ? '⟲ Ters' : '⟳ Düz') : '' }
-  ].filter((k) => k.deger)
+  const kutular = adimKutulari(a).map(([ad, deger]) => ({ ad, deger }))
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -91,9 +87,10 @@ export default function TmCook() {
           </div>
         )}
         <p className={`text-[23px] leading-[1.45] font-medium ${T_BASLIK}`}>{a.text}</p>
-        {a.mode && <div className="lz-pill text-[14px]">{modAdi(a.mode)}</div>}
+        {!cihazAdimi(a) && <div className={`lz-pill text-[13px] ${T_SOLUK}`}>Cihaz dışı adım</div>}
+        {a.mode && <div className="lz-pill text-[14px] !bg-lz-600 !text-white">{modAdi(a.mode)}</div>}
         {kutular.length > 0 && (
-          <div className={`grid gap-2 ${kutular.length > 2 ? 'grid-cols-4' : 'grid-cols-2'}`}>
+          <div className={`grid gap-2 ${kutular.length >= 4 ? 'grid-cols-4' : kutular.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
             {kutular.map((k) => (
               <div key={k.ad} className="lz-card p-2.5 text-center">
                 <div className={`text-[11px] ${T_SOLUK}`}>{k.ad}</div>
@@ -102,7 +99,7 @@ export default function TmCook() {
             ))}
           </div>
         )}
-        {a.tip && <p className={`text-[14px] ${T_GOVDE}`}>{a.tip}</p>}
+        {a.tip && <p className={`text-[14px] rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-900 dark:text-amber-200 p-3`}>{a.tip}</p>}
         {a.seconds > 0 && (
           <div className="lz-card p-4 flex items-center gap-4">
             <div className={`text-3xl font-bold tabular-nums flex-1 ${T_BASLIK}`}>{sayacYaz(kalan || a.seconds)}</div>
@@ -125,6 +122,12 @@ export default function TmCook() {
         )}
       </div>
 
+      {sonraki && (
+        <p className={`px-5 pb-2 text-[12.5px] truncate ${T_SOLUK}`}>
+          Sıradaki: {sonraki.ingredients ? `${sonraki.ingredients} → ` : ''}
+          {sonraki.text}
+        </p>
+      )}
       <div className="px-4 grid grid-cols-2 gap-3" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
         <button className="lz-btn-soft py-4" disabled={i === 0} onClick={() => void git(i - 1)}>
           ‹ Geri

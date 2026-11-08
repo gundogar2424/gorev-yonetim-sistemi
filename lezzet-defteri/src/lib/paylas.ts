@@ -8,7 +8,7 @@ import type { LzMekan, LzRecipe } from '../types'
 import { kartResmi, type KartBilgi } from './kart'
 import { haritadaAcLinki, yolTarifiLinki, yorumlarLinki } from './mekan'
 import { youtubeId } from './importer'
-import { adimOzeti, hizAdi, modAdi, sicaklikAdi, sureAdi, type TmSurum } from './tm7'
+import { adimKutulari, adimOzeti, modAdi, tmSurumDenetle, type TmSurum } from './tm7'
 
 const GOMULU_ID = 'lezzet-defteri-tarif'
 
@@ -157,18 +157,13 @@ function uyar(){try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}
 
 // Thermomix pisirme modu: genel bakis + tam ekran adim adim pisirme (sayacli)
 export async function tmHtml(r: LzRecipe): Promise<string> {
-  const tm = r.tm as TmSurum
+  const tm = tmSurumDenetle(r.tm as TmSurum)
   const foto = await kucukFoto(r.photo)
   const adimlar = tm.steps.map((a) => ({
     text: a.text,
     kaba: a.ingredients,
     sn: a.seconds,
-    kutular: [
-      ['Süre', sureAdi(a.seconds)],
-      ['Sıcaklık', sicaklikAdi(a.temp)],
-      ['Devir', a.speed === 'yumusak' ? 'Yumuşak' : a.speed ? hizAdi(a.speed).replace('Devir ', '') : ''],
-      ['Yön', a.speed ? (a.reverse ? '⟲ Ters' : '⟳ Düz') : '']
-    ].filter((x) => x[1]),
+    kutular: adimKutulari(a),
     mod: a.mode ? modAdi(a.mode) : '',
     ipucu: a.tip,
     ozet: adimOzeti(a)

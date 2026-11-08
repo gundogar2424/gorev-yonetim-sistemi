@@ -719,7 +719,7 @@ async function tmCagri(
   r: { title: string; servings: number; ingredients: string[]; steps: string[]; notes: string },
   duzenle?: { tm: import('./tm7').TmSurum; istek: string }
 ): Promise<{ tm: import('./tm7').TmSurum; aciklama: string }> {
-  const { HIZLAR, MODLAR, SICAKLIKLAR, TM_KATEGORILER, adimTemizle, adimOzeti, tmKuralDenetle } = await import('./tm7')
+  const { HIZLAR, MODLAR, SICAKLIKLAR, TM_KATEGORILER, adimTemizle, adimOzeti, tmSurumDenetle } = await import('./tm7')
   const schema = {
     type: 'object',
     additionalProperties: false,
@@ -732,7 +732,7 @@ async function tmCagri(
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['text', 'ingredients', 'seconds', 'speed', 'reverse', 'temp', 'mode', 'tip'],
+          required: ['text', 'ingredients', 'seconds', 'speed', 'reverse', 'temp', 'mode', 'kelebek', 'tip'],
           properties: {
             text: { type: 'string', description: 'Kısa, emir kipinde adım' },
             ingredients: { type: 'string', description: 'Bu adımda kaba giren malzemeler gramla; yoksa boş' },
@@ -741,6 +741,7 @@ async function tmCagri(
             reverse: { type: 'boolean' },
             temp: { type: 'string', enum: SICAKLIKLAR },
             mode: { type: 'string', enum: MODLAR },
+            kelebek: { type: 'boolean', description: 'Kelebek (çırpma) aksesuarı takılı mı' },
             tip: { type: 'string', description: 'Kısa ipucu/dikkat; yoksa boş' }
           }
         }
@@ -751,7 +752,7 @@ async function tmCagri(
   const icerik = duzenle
     ? `Mevcut THERMOMIX TM7 tarifi: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\nKategori: ${duzenle.tm.category}\n\nMalzemeler:\n${duzenle.tm.ingredients.join('\n')}` +
       `\n\nAdımlar:\n${duzenle.tm.steps
-        .map((a, i) => `${i + 1}. ${a.text}${a.ingredients ? ` | kaba: ${a.ingredients}` : ''}${adimOzeti(a) ? ` | ayar: ${adimOzeti(a)}` : ''}${a.tip ? ` | ipucu: ${a.tip}` : ''}`)
+        .map((a, i) => `${i + 1}. ${a.text}${a.ingredients ? ` | kaba: ${a.ingredients}` : ''}${adimOzeti(a) ? ` | ayar: ${adimOzeti(a)}` : ''}${a.kelebek ? ' | kelebek takılı' : ''}${a.tip ? ` | ipucu: ${a.tip}` : ''}`)
         .join('\n')}${duzenle.tm.warnings.length ? `\n\nUyarılar:\n${duzenle.tm.warnings.join('\n')}` : ''}` +
       `\n\nKULLANICININ İSTEĞİ:\n${duzenle.istek}\n\nBu TM7 tarifini isteğe göre DÜZENLE: yalnızca gereken yerleri değiştir, geri kalan adım ve ayarları aynen koru; ` +
       'tarifin TAMAMINI döndür. aciklama alanına neyi değiştirdiğini 1-3 cümleyle yaz.'
@@ -759,54 +760,51 @@ async function tmCagri(
         .map((s, i) => `${i + 1}. ${s}`)
         .join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}`
   const v = await jsonCagri<{ category: string; ingredients: string[]; steps: Partial<import('./tm7').TmAdim>[]; warnings: string[]; aciklama?: string }>(
-    'Sen Thermomix TM7 konusunda uzman bir aşçısın. Normal (ocak/fırın) tarifini TM7’de yapılacak adımlara uyarlarsın. ' +
-      'TM7 KURALLARI (Vorwerk): Hazne en fazla 2,2 L; ısıtılan tariflerde toplam 2 L’yi geçme, geçiyorsa miktarı böl ya da azalt ve uyar. ' +
-      'Sıcaklık 37–160 °C; 120 °C üstü YALNIZCA sote (Kavurma/Browning) modunda kullanılır (et mühürleme, soğan karamelize, kavurma: mode "sote", 140–160 °C, ters bıçak, yumuşak/düşük devir). ' +
-      '60 °C üstündeki sıcak yemekte en fazla devir 6; sıcak çorbayı ezerken tek adımda "devir 10" yaz ama tip alanına "hızı kademeli artır, ölçü kabı takılı olsun" ekle. ' +
-      'Turbo YALNIZCA soğuk/kuru malzemede, 0,5–2 sn (turbo 60 °C üstünde çalışmaz). ' +
-      'Isıtarak pişirirken devir 1–2; doğranmış sebze, et parçası, bakliyat, pilav gibi dağılmaması gerekenlerde ters bıçak + "yumuşak" devir. ' +
-      'Süt/krema 90 °C (taşmasın); çorba ve yahni 90–100 °C; kapak açık pişirmede en fazla 120 °C ve devir 2. ' +
-      'Tipik ayarlar: soğan/sarımsak doğrama 5 sn devir 5; havuç/sebze iri doğrama 3–5 sn devir 4–5; maydanoz/dereotu 3–5 sn devir 7 (kuru hazneye); ' +
-      'ceviz/fındık çekme 5–10 sn devir 7–10; pudra şekeri 10–15 sn devir 10; soteleme (yağla soğan) 3–5 dk 120 °C devir 1; ' +
-      'çorba pişirme 20–25 dk 100 °C devir 1; ezme 30–60 sn devir 5→10 kademeli; beşamel/muhallebi 7–10 dk 90 °C devir 4; ' +
-      'kıyma kavurma 8–10 dk 120 °C ters bıçak devir 1 (öncesinde soğanı kavur); hamur yoğurma mode "hamur" 2–3 dk (seconds 120–180, speed boş); ' +
-      'pilav/pirinç mode "pirinc" ya da sepette 100 °C; buharda pişirme mode "buhar", temp "varoma", haznede en az 500 g su (30 dk’ya kadar), daha uzunsa daha fazla su; ' +
-      'yoğurt/mayalama mode "ferment" 37 °C; uzun ağır pişirme mode "yavas" (12 saate kadar); vakumlu poşette mode "sousvide". ' +
-      'Malzemeleri GRAM olarak yaz (su, süt, yağ dahil; 1 ml = 1 g; su bardağı su 200 g, yemek kaşığı yağ ~12 g, 1 su bardağı un ~110 g, şeker ~180 g; silme yemek kaşığı: un ~10 g, buğday/mısır nişastası ~10 g, şeker ~12 g, kakao ~7 g, tuz ~15 g; ' +
-      'tatlı kaşığı bunun yarısı, çay kaşığı ~üçte biri; tepeleme kaşık yaklaşık 1,5 katı). Kaşık/bardakla verilen malzemede asıl ölçüyü parantezde KORU: ' +
-      '"30 g un (3 yemek kaşığı)" ki kullanıcı karşılaştırabilsin; adetle sayılan malzemeler (yumurta, soğan, diş sarımsak…) ADETLE kalsın, yanına gramı parantezle yaz: "4 adet yumurta (~200 g)"; tutam kalabilir; ' +
-      'malzemeler TM7 tartısıyla doğrudan kaba tartılarak eklenir, her adımda o adımda eklenecek malzemeleri gramla yaz. ' +
-      'ÖNCE TM7 İLKESİ: Tarifin TM7’de yapılabilen HER adımını TM7’de yap; orijinal tarif tava, tencere ya da ocak dese bile TM7’de ' +
-      'yapılabiliyorsa TM7’ye uyarla. TM7’de YAPILANLAR: KARAMEL (kuru ya da ıslak karamel, karamel sos: mode "karamel" — TM7 Karamelize modu; ' +
-      'şekeri kaba koy, karamelize modunu çalıştır; karamel sos için ardından krema/tereyağını ekle, 90–100 °C devir 2 karıştır; tip alanına ' +
-      '"Karamelize modu yoksa: Kavurma 160 °C, ters bıçak, yumuşak devir, gözle kontrol et" yaz), çikolata eritme 50 °C devir 2, tereyağı eritme 60–70 °C devir 2, ' +
-      'ganaj, beşamel, muhallebi, puding, krema, sos, reçel/marmelat (Varoma sıcaklığı, ölçü kabı yerine sepet), şurup/şerbet 100 °C, ' +
-      'krem şanti ve beze (kelebek aksesuarı, devir 3–4, ısıtmadan; şantiyi gözle kontrol et, fazla çırpılırsa kesilir), ' +
-      'MASCARPONE / LABNE / KREM PEYNİR içeren kremalar (tiramisu vb.): ISITMADAN, KISA karıştır — ters bıçak devir 3, 15–30 sn ya da kelebekle devir 3, ' +
-      'en fazla 30–40 sn; uzun ya da yüksek devirde karıştırılan mascarpone sulanır/kesilir, tip alanına bunu yaz. Pişen muhallebi/krema tabanı soğumadan mascarponeyi ekleme. ' +
-      'Pişirilen krema/muhallebi/puding (unlu/nişastalı): 90–95 °C, devir 4 (normal yön ya da ters yön devir 3–4); SÜRE SIVI MİKTARINA GÖRE: ' +
-      '~500 g süt 8–10 dk, ~750 g 11–13 dk, ~1000 g 14–16 dk (TM önce ısıtmak zorunda; kısa süre krema pişmez, sulu kalır); nişasta tam pişsin diye ' +
-      'tip alanına "Koyulaşmadıysa 1–2 dk daha pişir; koyulaşınca hemen durdur, uzun karıştırma kıvamı bozar" yaz. Labne/mascarpone soğuduktan sonra ters yön devir 3, 20–30 sn. ' +
-      'ters bıçak yalnızca parçalar bölünmesin istenince (et, sebze parçası, pilav) ya da hassas karıştırmada; mayonez, yumurta haşlama (buhar), soğan karamelize ve et/kıyma kavurma (mode "sote"), ' +
-      'haşlama, buharda pişirme, pilav, hamur yoğurma ve mayalama, doğrama/rendeleme/öğütme/pudra şekeri, smoothie. ' +
-      'TM7 DIŞINDA yalnızca şunlar yapılır: fırında pişirme, derin yağda kızartma, ızgara/mangal, geniş yüzey isteyen tava işleri ' +
-      '(krep, pankek, omlet, büyük et/balık mühürleme), kalıba dökme ve soğutma. Bunlarda bile hamur, harç, sos gibi hazırlığı TM7’de yap; ' +
-      'elle yapılan adımda seconds 0, speed boş, temp boş, metinde nerede yapılacağını yaz. ' +
-      'Kazıma gerekiyorsa ("spatula ile kenarları sıyır") ayrı adım ya da tip olarak yaz. Porsiyonu koru. Adımlar kısa, net ve emir kipinde olsun. ' +
-      'warnings alanına kapasite, sıcak sıvı, taşma ve elle yapılacak adımlarla ilgili gerçekten önemli uyarıları yaz.',
+    [
+      'Sen Thermomix TM7 konusunda uzman bir aşçısın. Normal (ocak/fırın) tarifini TM7’de yapılacak adımlara uyarlarsın. Kurallar (Vorwerk):',
+      '',
+      'CİHAZ: Hazne 2,2 L; ısıtılan tarifte toplam 2 L’yi geçme, geçiyorsa iki partiye böl ve warnings’e yaz. Sıcaklık 37–160 °C. ' +
+        '120 °C üstü YALNIZCA mode "sote" (Kavurma) ya da "karamel" ile. Sıcaklık verdiğin her adımda devir de ver (devirsiz ısıtmaz). ' +
+        'Turbo yalnızca soğuk/kuru malzemede, 0,5–2 sn darbe. 60 °C üstü sıcak yemekte en fazla devir 6; sıcak çorbayı ezerken devir 10 yazabilirsin ama tip’e "hızı kademeli artır, ölçü kabı takılı" ekle.',
+      '',
+      'DEVİR VE YÖN: Isıtarak pişirme devir 1–2. Parçaların dağılmaması gereken her şeyde (et, tavuk, sebze parçası, bakliyat, pilav, makarna) ters bıçak (reverse true) + yumuşak/1. ' +
+        'Doğrama/ezme/çırpma normal yön. Kelebek (kelebek true): krem şanti, beze, yumurta akı, mayonez, köpüren kremalar; kelebekle en fazla devir 4, turbo yok.',
+      '',
+      'MODLAR: sote = kavurma/soteleme/mühürleme (140–160 °C, ters, yumuşak/1; soğan 3–5 dk 120 °C devir 1 de olur). karamel = TM7 Karamelize (şekeri koy, modu çalıştır; sos için ardından krema/tereyağı 90–100 °C devir 2; ' +
+        'tip’e "Karamelize modu yoksa Kavurma 160 °C, ters, yumuşak, gözle kontrol"). hamur = yoğurma 2–4 dk (speed ve temp BOŞ). buhar = Varoma (temp "varoma", haznede en az 500 g su, devir 1; 30 dk’dan uzunsa daha çok su). ' +
+        'pirinc = pilav/pirinç. ferment = yoğurt/mayalama 37 °C. yavas = uzun ağır pişirme (12 saate kadar). sousvide = vakumlu poşet.',
+      '',
+      'TİPİK AYARLAR: soğan/sarımsak doğrama 5 sn devir 5; sebze iri doğrama 3–5 sn devir 4–5; maydanoz/dereotu 3–5 sn devir 7 (kuru hazne); ceviz/fındık 5–10 sn devir 7–10; pudra şekeri 10–15 sn devir 10; ' +
+        'çikolata eritme 50 °C devir 2; tereyağı eritme 60–70 °C devir 2; çorba 20–25 dk 100 °C devir 1, ezme 30–60 sn devir 5→10 kademeli; kıyma kavurma 8–10 dk 120 °C ters devir 1 (önce soğanı kavur); ' +
+        'reçel/marmelat Varoma sıcaklığı, ölçü kabı yerine sepet; şurup/şerbet 100 °C; krem şanti/beze kelebek devir 3–4 ısıtmadan, gözle kontrol (fazla çırpılırsa kesilir).',
+      '',
+      'KREMALAR (en çok hata burada): (1) Unlu/nişastalı pişen krema, muhallebi, puding: 90–95 °C, devir 4 (ya da ters devir 3–4). SÜRE SIVI MİKTARINA GÖRE — cihaz önce ısıtır: ' +
+        '~500 g süt 8–10 dk, ~750 g 11–13 dk, ~1000 g 14–16 dk; kısa süre krema pişmez, sulu kalır. tip’e "Koyulaşmadıysa 1–2 dk daha pişir; koyulaşınca hemen durdur". ' +
+        '(2) Labne / mascarpone / krem peynir / süzme yoğurt: ISITMADAN ve KISA — pişen krema tamamen soğuduktan sonra ters bıçak devir 3, 15–30 sn (kelebekle devir 3, en fazla 40 sn). ' +
+        'Uzun ya da yüksek devirde karıştırılırsa sulanır/kesilir; bunu tip’e yaz. Sıcak kremaya peynir ekleme. (3) Soğutma adımını ayrı adım yaz: seconds 0, speed/temp boş, "tamamen soğut".',
+      '',
+      'ÖLÇÜLER: Malzemeleri GRAM yaz (su/süt/yağ dahil, 1 ml = 1 g). Su bardağı: su/süt 200 g, un ~110 g, şeker ~180 g. Silme yemek kaşığı: un ~10 g, buğday/mısır nişastası ~10 g, şeker ~12 g, kakao ~7 g, tuz ~15 g, yağ ~12 g; ' +
+        'tatlı kaşığı yarısı, çay kaşığı üçte biri; TEPELEME kaşık silmenin ~1,5 katı. Asıl ölçüyü parantezde KORU: "32 g un (2 tepeleme yemek kaşığı)". ' +
+        'Adetle sayılanlar (yumurta, soğan, diş sarımsak) adetle kalsın, gramı parantezde: "4 adet yumurta (~200 g)". Tutam kalabilir. Her adımın ingredients alanına o adımda kaba giren malzemeleri gramla yaz (tartı kaba tartar).',
+      '',
+      'ÖNCE TM7: TM7’de yapılabilen HER adımı TM7’de yap (tarif tava/tencere dese bile). TM7 DIŞINDA yalnızca: fırın, derin yağda kızartma, ızgara, geniş yüzey isteyen tava işleri (krep, pankek, omlet, büyük et/balık mühürleme), kalıba dökme ve soğutma. ' +
+        'Bunlarda bile hamur/harç/sos hazırlığı TM7’de. Elle yapılan adımda seconds 0, speed/temp/mode boş, metinde nerede yapılacağını yaz. Kazıma gerekiyorsa ("spatulayla kenarları sıyır") ayrı adım ya da tip. ' +
+        'Porsiyonu koru. Adımlar kısa, net, emir kipinde. warnings’e yalnızca gerçekten önemli olanı yaz: kapasite, sıcak sıvı/taşma, elle yapılacak adımlar.'
+    ].join('\n'),
     icerik,
     duzenle ? { ...schema, required: [...schema.required, 'aciklama'], properties: { ...schema.properties, aciklama: { type: 'string' } } } : schema,
     6000
   )
-  const steps = (v.steps ?? []).map(adimTemizle).map(tmKuralDenetle).filter((a) => a.text)
+  const steps = (v.steps ?? []).map(adimTemizle).filter((a) => a.text)
   if (!steps.length) throw new Error('Thermomix adımları çıkarılamadı.')
-  const tm = {
+  // Kural denetimi: sicaklik/devir/mod/kelebek/kapasite — modelin hatasi kullaniciya ulasmasin
+  const tm = tmSurumDenetle({
     category: TM_KATEGORILER.includes(v.category) ? v.category : 'Diğer',
     ingredients: (v.ingredients ?? []).map((x) => String(x).trim()).filter(Boolean),
     steps,
     warnings: (v.warnings ?? []).map((x) => String(x).trim()).filter(Boolean),
     createdAt: Date.now()
-  }
+  })
   return { tm, aciklama: String(v.aciklama ?? '').trim() }
 }
 

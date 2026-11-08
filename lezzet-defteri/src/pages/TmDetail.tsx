@@ -5,7 +5,8 @@ import { lzDb, updateRecipe } from '../db'
 import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { DuzenlemeSohbeti } from '../components/TarifSohbet'
 import { aiTmDuzenle } from '../lib/ai'
-import { adimOzeti, termomiksKodu, type TmSurum } from '../lib/tm7'
+import { adimOzeti, cihazAdimi, gramToplami, sureAdi, termomiksKodu, tmSurumDenetle, type TmSurum } from '../lib/tm7'
+import { AyarRozetleri } from '../components/TmAyar'
 import { thermomixeUyarla } from './Thermomix'
 import { dosyaPaylas, tmHtml } from '../lib/paylas'
 
@@ -50,7 +51,10 @@ export default function TmDetail() {
     )
   }
 
-  const tm = r.tm
+  // Eski kayitlar da guncel guvenlik kurallariyla gosterilir (sicaklik/devir/kelebek/sure)
+  const tm = tmSurumDenetle(r.tm)
+  const cihazSn = tm.steps.reduce((t, a) => t + (cihazAdimi(a) ? a.seconds : 0), 0)
+  const toplamG = gramToplami(tm.ingredients)
   const tmPaylas = async () => {
     try {
       goster('Pişirme modu hazırlanıyor…')
@@ -76,7 +80,11 @@ export default function TmDetail() {
 
   return (
     <div>
-      <Header title={r.title} subtitle={`Thermomix TM7 · ${tm.category}`} back />
+      <Header
+        title={r.title}
+        subtitle={[`TM7 · ${tm.category}`, `${tm.steps.length} adım`, cihazSn ? `~${sureAdi(Math.round(cihazSn / 60) * 60) || sureAdi(cihazSn)} cihaz` : '', toplamG ? `~${toplamG >= 1000 ? `${(toplamG / 1000).toFixed(1).replace('.', ',')} kg` : `${toplamG} g`}` : ''].filter(Boolean).join(' · ')}
+        back
+      />
       <div className="px-4 space-y-3 pb-8">
         <Link to={`/thermomix/${r.id}/pisir`} className="lz-btn-primary w-full">
           <Icon name="play" className="w-4 h-4" /> TM7’de pişir
@@ -131,21 +139,25 @@ export default function TmDetail() {
 
         <div className="lz-card p-4">
           <h2 className={`font-bold text-[17px] mb-3 ${T_BASLIK}`}>TM7 adımları</h2>
-          <ol className="space-y-4">
+          <ol className="space-y-3">
             {tm.steps.map((s, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="w-7 h-7 rounded-full bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 text-[13px] font-bold flex items-center justify-center flex-shrink-0">
-                  {i + 1}
-                </span>
-                <div className="min-w-0">
+              <li key={i} className={`flex gap-3 rounded-2xl p-3 ${cihazAdimi(s) ? 'bg-[#f7f7f5] dark:bg-[#1c1c1f]' : 'border border-dashed border-[#e4e3e0] dark:border-[#2e2e33]'}`}>
+                <span className="w-7 h-7 rounded-full bg-lz-600 text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  {s.ingredients && (
+                    <p className={`text-[13.5px] font-semibold ${T_BASLIK}`}>
+                      <span className={`font-normal ${T_SOLUK}`}>Kaba ekle: </span>
+                      {s.ingredients}
+                    </p>
+                  )}
                   <p className={`text-[15px] leading-relaxed ${T_GOVDE}`}>{s.text}</p>
-                  {s.ingredients && <p className={`text-[13px] mt-0.5 ${T_SOLUK}`}>Kaba: {s.ingredients}</p>}
-                  {adimOzeti(s) && <span className="lz-pill mt-1.5">{adimOzeti(s)}</span>}
-                  {s.tip && <p className={`text-[12.5px] mt-1 ${T_SOLUK}`}>{s.tip}</p>}
+                  <AyarRozetleri a={s} />
+                  {s.tip && <p className={`text-[12.5px] ${T_SOLUK}`}>⚠ {s.tip}</p>}
                 </div>
               </li>
             ))}
           </ol>
+          <p className={`text-[11.5px] mt-3 ${T_SOLUK}`}>Kesik çerçeveli adımlar cihaz dışında (elle, fırın, soğutma) yapılır.</p>
         </div>
 
         {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
