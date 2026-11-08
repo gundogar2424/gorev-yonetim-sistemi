@@ -25,6 +25,7 @@ export interface TmSurum {
   warnings: string[]
   category: string
   createdAt: number
+  referans?: string // Uyarlamada ornek alinan resmi Thermomix (Cookidoo) tarifi; yoksa bos
 }
 
 export const HIZLAR: TmHiz[] = ['', 'yumusak', '0.5', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'turbo']

@@ -118,6 +118,11 @@ export default function TmDetail() {
           </button>
         </div>
 
+        {tm.referans && (
+          <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>
+            Ayarlar <b className={T_GOVDE}>{tm.referans}</b> tarifi örnek alınarak verildi.
+          </p>
+        )}
         {tm.warnings.length > 0 && (
           <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-800 dark:text-amber-200 text-[13px] p-3.5 space-y-1">
             {tm.warnings.map((w, i) => (
