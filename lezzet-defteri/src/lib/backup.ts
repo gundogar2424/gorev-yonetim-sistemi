@@ -234,3 +234,32 @@ export async function otomatikYedek(zorla = false): Promise<string> {
   }
   return `✓ Yedeklendi: ${recipes.length} tarif, ${mekanlar.length} mekan (Belgeler/${OTO_KLASOR}/${ad})`
 }
+
+// Telefonda hic tarif yoksa (veri kaybi / yeni kurulum) tarif sitesindeki yedek kendiliginden yuklenir.
+// Bir kez denenir; kullanici sonradan tarifleri silerse tekrar yuklenmez.
+const KEY_SITE_GERI = 'lz-site-geri-yuklendi'
+export async function sitedenGeriYukle(): Promise<number> {
+  try {
+    if (localStorage.getItem(KEY_SITE_GERI)) return 0
+    if ((await lzDb.recipes.count()) > 0) return 0
+    const { tarifDeposu } = await import('./cookidoo')
+    const [sahip, depo] = tarifDeposu().split('/')
+    const url = `https://${sahip}.github.io/${depo}/yedek/tarifler-yedek.json?t=${Date.now()}`
+    let metin = ''
+    const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+    if (Capacitor.isNativePlatform()) {
+      const r = await CapacitorHttp.get({ url, responseType: 'text' })
+      if (r.status !== 200) return 0
+      metin = typeof r.data === 'string' ? r.data : JSON.stringify(r.data)
+    } else {
+      const r = await fetch(url)
+      if (!r.ok) return 0
+      metin = await r.text()
+    }
+    const s = await restoreBackup(new File([metin], 'tarifler-yedek.json', { type: 'application/json' }))
+    localStorage.setItem(KEY_SITE_GERI, String(Date.now()))
+    return s.eklendi
+  } catch {
+    return 0
+  }
+}
