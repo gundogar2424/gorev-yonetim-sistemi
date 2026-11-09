@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { otomatikYedek } from './lib/backup'
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Icon, type IconName } from './components/ui'
 import Recipes from './pages/Recipes'
@@ -79,12 +80,15 @@ export default function LzApp() {
     bekciBaslat()
     // Takip edilen hesaplarin yeni mekanlari (3 gunde bir, tek istek)
     const yeniT = setTimeout(() => void yeniMekanOtoKontrol(), 20000)
+    // Gunluk otomatik yedek (Belgeler/LezzetRotasi; uygulama silinse de kalir)
+    const yedekT = setTimeout(() => void otomatikYedek().catch(() => undefined), 15000)
     // Ayni videodan kaydedilip paylasani bos kalan mekanlar tamamlanir (yapay zekasiz)
     void paylasanTamamla()
     const gorunur = () => document.visibilityState === 'visible' && void siraBekci()
     document.addEventListener('visibilitychange', gorunur)
     return () => {
       clearTimeout(yeniT)
+      clearTimeout(yedekT)
       document.removeEventListener('visibilitychange', gorunur)
     }
   }, [])

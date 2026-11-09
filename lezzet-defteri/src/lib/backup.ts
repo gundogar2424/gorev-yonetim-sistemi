@@ -181,3 +181,56 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
   })
   return { eklendi, atlandi, mekan }
 }
+
+// OTOMATIK YEDEK: gunde bir kez telefonun Belgeler/LezzetRotasi klasorune yazilir.
+// Bu klasor uygulamaya ait degildir: uygulama silinse ya da verileri temizlense bile dosyalar kalir;
+// geri yuklerken "Yedekten geri yukle" ile secilir. Bos veri yedeklenmez (iyi yedegin yerine gecmesin).
+const KEY_OTO = 'lz-oto-yedek-son'
+const OTO_KLASOR = 'LezzetRotasi'
+const SAKLANAN = 10
+
+export function sonOtomatikYedek(): { zaman: number; tarif: number; mekan: number } | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(KEY_OTO) || 'null') as { zaman: number; tarif: number; mekan: number } | null
+    return v && v.zaman ? v : null
+  } catch {
+    return null
+  }
+}
+
+export async function otomatikYedek(zorla = false): Promise<string> {
+  const { Capacitor } = await import('@capacitor/core')
+  if (!Capacitor.isNativePlatform()) return 'Otomatik yedek yalnızca telefonda çalışır'
+  const son = sonOtomatikYedek()
+  if (!zorla && son && Date.now() - son.zaman < 20 * 3600 * 1000) return ''
+  const recipes = await lzDb.recipes.toArray()
+  const mekanlar = await lzDb.mekanlar.toArray()
+  if (!recipes.length && !mekanlar.length) return 'Yedeklenecek veri yok'
+  const data: LzBackup = {
+    app: 'lezzet-defteri',
+    version: 1,
+    exportedAt: Date.now(),
+    recipes,
+    tables: await lzDb.sofralar.toArray(),
+    plans: await lzDb.plans.toArray(),
+    shopping: await lzDb.shopping.toArray(),
+    diyet: await lzDb.diyet.toArray(),
+    mekanlar,
+    ayarlar: ayarlariOku()
+  }
+  const d = new Date()
+  const iki = (n: number) => String(n).padStart(2, '0')
+  const ad = `lezzet-rotasi-oto-${d.getFullYear()}-${iki(d.getMonth() + 1)}-${iki(d.getDate())}-${iki(d.getHours())}${iki(d.getMinutes())}.json`
+  const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
+  await Filesystem.writeFile({ path: `${OTO_KLASOR}/${ad}`, data: JSON.stringify(data), directory: Directory.Documents, encoding: Encoding.UTF8, recursive: true })
+  localStorage.setItem(KEY_OTO, JSON.stringify({ zaman: Date.now(), tarif: recipes.length, mekan: mekanlar.length }))
+  // Eskileri temizle (son 10 gun kalir)
+  try {
+    const l = await Filesystem.readdir({ path: OTO_KLASOR, directory: Directory.Documents })
+    const eski = l.files.map((f) => f.name).filter((n) => /^lezzet-rotasi-oto-.*\.json$/.test(n)).sort().slice(0, -SAKLANAN)
+    for (const n of eski) await Filesystem.deleteFile({ path: `${OTO_KLASOR}/${n}`, directory: Directory.Documents })
+  } catch {
+    /* temizlenemezse sorun degil */
+  }
+  return `✓ Yedeklendi: ${recipes.length} tarif, ${mekanlar.length} mekan (Belgeler/${OTO_KLASOR}/${ad})`
+}

@@ -14,7 +14,7 @@ import {
   saglayiciKaydet,
   type Saglayici
 } from '../lib/ai'
-import { downloadBackup, restoreBackup } from '../lib/backup'
+import { downloadBackup, otomatikYedek, restoreBackup, sonOtomatikYedek } from '../lib/backup'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
 import { SES_MODELLERI, sesModeli, sesModeliKaydet, type SesModeli } from '../lib/video'
@@ -239,6 +239,7 @@ export default function LzSettings() {
               Geri yükle
             </button>
           </div>
+          <OtoYedekSatiri />
           <input
             ref={dosya}
             type="file"
@@ -369,6 +370,34 @@ function CookidooKarti() {
         </ol>
       )}
     </section>
+  )
+}
+
+// Gunluk otomatik yedegin durumu + elle "simdi yedekle"
+function OtoYedekSatiri() {
+  const [son, setSon] = useState(sonOtomatikYedek())
+  const [mesaj, setMesaj] = useState('')
+  return (
+    <div className={`text-[12.5px] space-y-1 ${T_SOLUK}`}>
+      <p>
+        Otomatik yedek: her gün telefonun <b>Belgeler → LezzetRotasi</b> klasörüne (son 10 gün). Uygulama silinse de kalır; geri yüklerken oradan seç.
+        {son ? ` Son: ${new Date(son.zaman).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${son.tarif} tarif, ${son.mekan} mekan.` : ' Henüz alınmadı.'}
+      </p>
+      <button
+        className="text-lz-600 font-semibold underline"
+        onClick={async () => {
+          try {
+            setMesaj(await otomatikYedek(true))
+          } catch (e) {
+            setMesaj('Yedeklenemedi: ' + String((e as Error)?.message ?? e).slice(0, 80))
+          }
+          setSon(sonOtomatikYedek())
+        }}
+      >
+        Şimdi yedekle
+      </button>
+      {mesaj && <p className={T_GOVDE}>{mesaj}</p>}
+    </div>
   )
 }
 
