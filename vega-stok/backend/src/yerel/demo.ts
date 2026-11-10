@@ -34,6 +34,16 @@ export async function demoVerisiYukle(): Promise<number> {
   // Tekrarlanabilir sahte bakiyeler: bir kısmı tükenmiş, bir kısmı kritik eşiğin altında
   stoklariUygula(urunler.map((u) => ({ id: u.id, stok: u.id % 9 === 0 ? 0 : u.id % 5 === 0 ? 8 : (u.id * 37) % 400 })))
 
+  // Örnek tedarik siparişleri: biri gecikmiş, biri yakın terminli, biri terminsiz
+  if ((db.prepare('SELECT COUNT(*) AS n FROM tedarik_siparis').get() as { n: number }).n === 0) {
+    const gun = (fark: number) => new Date(Date.now() + fark * 86_400_000).toLocaleDateString('sv-SE')
+    const ekle = db.prepare('INSERT INTO tedarik_siparis (urun_id, tedarikci, miktar, termin) VALUES (?, ?, ?, ?)')
+    ekle.run(1015, 'Anadolu Hırdavat A.Ş.', 100, gun(-4))
+    ekle.run(1017, 'Anadolu Hırdavat A.Ş.', 50, gun(6))
+    ekle.run(1010, 'Marmara Bağlantı Ltd.', 500, gun(12))
+    ekle.run(1030, 'Ege Teknik Yapı', 10, null)
+  }
+
   // Görseli olmayan her 3 üründen 2'sine renkli örnek görsel üret (WebP hattını da dener)
   const gorselli = new Set((db.prepare('SELECT urun_id AS id FROM urun_gorsel').all() as { id: number }[]).map((s) => s.id))
   for (const u of urunler) {

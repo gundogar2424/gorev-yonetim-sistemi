@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Katalog } from './Katalog'
+import { App } from './App'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Katalog />
+    <App />
   </StrictMode>,
 )

@@ -46,13 +46,18 @@ vega-stok/
 │     └─ yerel/db.ts            SQLite önbellek + anlık arama
 │     ├─ gorsel/servis.ts       yüklenen görseli iki WebP boyutuna çevirir
 │     ├─ yerel/demo.ts          `npm run demo` örnek verisi
+│     ├─ tedarik/               açık siparişler, termin, kritik eşik, kritik stok panosu
 │     (sonraki aşamalar)
-│     ├─ tedarik/               açık siparişler, termin, kritik stok panosu
 │     ├─ teklif/                sepet, iskonto/KDV, PDF, WhatsApp metni
 │     └─ cari/                  bakiye, son alınanlar, ekstre özeti
 └─ frontend/                    React + Vite + Tailwind
    └─ src/
-      ├─ Katalog.tsx            anlık arama, filtreler, ürün kartları, detay + görsel yükleme
+      ├─ App.tsx                sayfa geçişleri + Vega eşitleme göstergesi
+      ├─ Katalog.tsx            anlık arama, filtreler, ürün kartları
+      ├─ UrunDetay.tsx          detay, tedarik siparişleri, kritik eşik, görsel yükleme
+      ├─ KritikStok.tsx         "Sipariş Gerektirenler" panosu
+      ├─ Tedarik.tsx            açık siparişler ve termin takibi
+      ├─ Depo.tsx               el terminali (barkod) sayfası
       └─ api.ts                 backend istemcisi
 ```
 
@@ -97,6 +102,20 @@ veritabanında (`veri/demo/`) çalışır; Vega'ya hiç bağlanmaz.
 **Geliştirme:** bir pencerede `backend` içinde `npm run dev`, diğerinde
 `frontend` içinde `npm run dev` (http://localhost:5173, anında yenileme).
 
+## Tedarik siparişleri nerede tutulur?
+
+Tedarikçi siparişleri, termin tarihleri ve kritik eşikler şimdilik **bu programda
+elle girilir** ve yerel veritabanında durur. Siparişleri Vega'da da giriyorsanız
+oradan otomatik okunabilir; bunun için Vega'daki sipariş tablolarının adları
+(`npm run vega:kesif` çıktısı) gerekiyor. "Teslim alındı" yalnızca siparişi
+"yolda" olmaktan çıkarır; stok artışı Vega'daki mal girişiyle gelir.
+
+## El terminali
+
+Terminalin tarayıcısında `http://SUNUCU-IP:4000/#/depo` adresini açın. Okuyucu
+"Keyboard Wedge" modunda ve sonuna Enter ekleyecek şekilde ayarlı olmalıdır.
+Ekran klavyesi kapalı gelir; elle yazmak için "Klavye" düğmesine basın.
+
 ## Önemli: Vega şema eşlemesi
 
 `src/vega/sema.ts` içindeki tablo/kolon adları VegaWin'in yaygın düzenine göre
@@ -114,6 +133,10 @@ doğrulanmalıdır.
 | `GET /api/urunler?q=&marka=&kategori=&olcu=&limit=` | anlık arama (Türkçe duyarsız, önek eşleşmeli) |
 | `GET /api/filtreler` | marka / kategori / ölçü listeleri |
 | `GET /api/urunler/barkod/:barkod` | el terminali için tek ürün |
+| `GET /api/urunler/:id` | ürün + açık tedarik siparişleri |
+| `PUT /api/urunler/:id/kritik-esik` | kritik eşiği ayarla (`{esik}`; boş = Vega'daki değer) |
+| `GET /api/kritik-stok` | Depo + Yoldaki < Kritik Eşik olan ürünler |
+| `GET/POST /api/siparisler`, `PUT/DELETE /api/siparisler/:id`, `POST .../teslim` | tedarik siparişleri |
 | `PUT /api/urunler/:id/gorsel` | görsel yükle (gövde: dosyanın kendisi); WebP'ye çevrilir |
 | `GET /gorseller/:id/kart.webp`, `/buyuk.webp` | 480 px katalog / 1600 px detay görseli |
 
@@ -124,6 +147,7 @@ yetkilendirme teklif modülüyle birlikte eklenecek.
 
 1. ✅ Mimari, Vega bağlantısı, eşitleme, arama API'si
 2. ✅ Görsel katalog + anlık arama, görsel yükleme (WebP), demo modu
-3. Tedarik & termin, kritik stok panosu
+3. ✅ Tedarik & termin, kritik stok panosu, el terminali (depo) sayfası, eşitleme göstergesi
 4. Teklif: sepet, iskonto/KDV, PDF, WhatsApp özeti
-5. El terminali (depo modu) ve cari hesap kartı
+5. Cari hesap kartı
+6. Kullanıcı girişi, Windows hizmeti olarak kurulum

@@ -12,7 +12,25 @@ export interface Urun {
   kritikEsik: number | null
   stok: number
   gorselSurum: number | null
+  /** Tedarikçiye verilmiş açık siparişlerin toplam adedi */
+  yoldaki: number
+  /** Termini en yakın açık siparişin tedarikçisi ve tarihi (YYYY-AA-GG) */
+  tedarikci: string | null
+  termin: string | null
 }
+
+export interface Siparis {
+  id: number
+  urunId: number
+  tedarikci: string
+  miktar: number
+  termin: string | null
+  gecikti: 0 | 1
+}
+
+export type UrunDetayi = Urun & { siparisler: Siparis[] }
+export type KritikUrun = Urun & { eksik: number }
+export type AcikSiparis = Siparis & { urunAd: string; urunKod: string; stok: number; gorselSurum: number | null }
 
 export interface Filtreler {
   markalar: string[]
@@ -27,6 +45,12 @@ export interface Arama {
   olcu: string
 }
 
+export interface Saglik {
+  urunSayisi: number
+  demo: boolean
+  esitleme: { sonHizliTur: string | null; sonTamTur: string | null; sonHata: string | null }
+}
+
 async function json<T>(yanit: Response): Promise<T> {
   if (!yanit.ok) {
     const govde = (await yanit.json().catch(() => null)) as { hata?: string } | null
@@ -35,16 +59,34 @@ async function json<T>(yanit: Response): Promise<T> {
   return yanit.json() as Promise<T>
 }
 
+const getir = <T,>(adres: string, sinyal?: AbortSignal) => fetch(adres, { signal: sinyal }).then(json<T>)
+
+const gonder = <T = { tamam: true }>(yontem: string, adres: string, govde?: unknown) =>
+  fetch(adres, {
+    method: yontem,
+    ...(govde === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(govde) }),
+  }).then(json<T>)
+
 export function urunleriAra(arama: Arama, sinyal: AbortSignal): Promise<Urun[]> {
   const p = new URLSearchParams()
   for (const [k, v] of Object.entries(arama)) if (v) p.set(k, v)
-  return fetch(`/api/urunler?${p}`, { signal: sinyal }).then(json<Urun[]>)
+  return getir<Urun[]>(`/api/urunler?${p}`, sinyal)
 }
 
-export const filtreleriGetir = (): Promise<Filtreler> => fetch('/api/filtreler').then(json<Filtreler>)
+export const filtreleriGetir = () => getir<Filtreler>('/api/filtreler')
+export const saglikGetir = () => getir<Saglik>('/api/saglik')
+export const urunGetir = (id: number) => getir<UrunDetayi>(`/api/urunler/${id}`)
+export const barkodlaGetir = (barkod: string) => getir<Urun>(`/api/urunler/barkod/${encodeURIComponent(barkod)}`)
+export const kritikStokGetir = () => getir<KritikUrun[]>('/api/kritik-stok')
+export const acikSiparisleriGetir = () => getir<AcikSiparis[]>('/api/siparisler')
+export const tedarikcileriGetir = () => getir<string[]>('/api/tedarikciler')
 
-export const saglikGetir = (): Promise<{ demo: boolean; esitleme: { sonHata: string | null } }> =>
-  fetch('/api/saglik').then(json<{ demo: boolean; esitleme: { sonHata: string | null } }>)
+type SiparisAlanlari = { tedarikci: string; miktar: number; termin: string | null }
+export const siparisEkle = (urunId: number, s: SiparisAlanlari) => gonder('POST', '/api/siparisler', { urunId, ...s })
+export const siparisGuncelle = (id: number, s: SiparisAlanlari) => gonder('PUT', `/api/siparisler/${id}`, s)
+export const siparisTeslim = (id: number) => gonder('POST', `/api/siparisler/${id}/teslim`)
+export const siparisSil = (id: number) => gonder('DELETE', `/api/siparisler/${id}`)
+export const kritikEsikKaydet = (urunId: number, esik: number | null) => gonder('PUT', `/api/urunler/${urunId}/kritik-esik`, { esik })
 
 export function gorselYukle(urunId: number, dosya: File): Promise<{ gorselSurum: number }> {
   return fetch(`/api/urunler/${urunId}/gorsel`, {
@@ -53,6 +95,3 @@ export function gorselYukle(urunId: number, dosya: File): Promise<{ gorselSurum:
     body: dosya,
   }).then(json<{ gorselSurum: number }>)
 }
-
-export const gorselAdresi = (u: Urun, boyut: 'kart' | 'buyuk'): string | null =>
-  u.gorselSurum ? `/gorseller/${u.id}/${boyut}.webp?v=${u.gorselSurum}` : null

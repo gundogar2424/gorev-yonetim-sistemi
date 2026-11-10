@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { config } from './config'
 import { durum, esitlemeyiBaslat } from './esitleme/servis'
 import { BOYUTLAR, gorselKaydet, gorselYolu, type Boyut } from './gorsel/servis'
+import { tedarikRotalari } from './tedarik/rotalar'
 import { vegaKapat } from './vega/baglanti'
 import { db, filtreSecenekleri, urunAra, urunBarkodla, urunVarMi } from './yerel/db'
 import { demoVerisiYukle } from './yerel/demo'
@@ -33,6 +34,8 @@ app.get<{ Params: { barkod: string } }>('/api/urunler/barkod/:barkod', (istek, y
   const urun = urunBarkodla(istek.params.barkod)
   return urun ?? yanit.code(404).send({ hata: 'Ürün bulunamadı' })
 })
+
+app.register(tedarikRotalari)
 
 // --- Görseller ---
 // Dosya ham gövde olarak gelir: fetch(url, { method: 'PUT', body: dosya })

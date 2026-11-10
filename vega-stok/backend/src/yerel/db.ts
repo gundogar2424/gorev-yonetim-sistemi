@@ -29,6 +29,17 @@ db.exec(`
   CREATE VIRTUAL TABLE IF NOT EXISTS urun_ara USING fts5(metin, prefix='1 2 3');
   -- Kendi verimiz: Vega eşitlemesi bu tabloya dokunmaz
   CREATE TABLE IF NOT EXISTS urun_gorsel (urun_id INTEGER PRIMARY KEY, surum INTEGER NOT NULL);
+  CREATE TABLE IF NOT EXISTS urun_ayar (urun_id INTEGER PRIMARY KEY, kritik_esik REAL);
+  CREATE TABLE IF NOT EXISTS tedarik_siparis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    urun_id INTEGER NOT NULL,
+    tedarikci TEXT NOT NULL,
+    miktar REAL NOT NULL,
+    termin TEXT,                       -- YYYY-AA-GG, bilinmiyorsa NULL
+    durum TEXT NOT NULL DEFAULT 'acik', -- acik | teslim
+    olusturma TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE INDEX IF NOT EXISTS tedarik_urun ON tedarik_siparis(urun_id, durum);
   CREATE TABLE IF NOT EXISTS meta (anahtar TEXT PRIMARY KEY, deger TEXT NOT NULL);
 `)
 
@@ -114,9 +125,19 @@ export interface UrunFiltre {
   limit?: number
 }
 
-const SECIM = `u.id, u.kod, u.ad, u.barkod, u.marka, u.kategori, u.olcu, u.raf, u.kdv,
-  u.satis_fiyati AS satisFiyati, u.kritik_esik AS kritikEsik, u.stok,
-  (SELECT g.surum FROM urun_gorsel g WHERE g.urun_id = u.id) AS gorselSurum`
+// Açık siparişler içinde termini en yakın olan (termini girilmemişler en sonda)
+const EN_YAKIN = (alan: string) =>
+  `(SELECT s.${alan} FROM tedarik_siparis s WHERE s.urun_id = u.id AND s.durum = 'acik'
+    ORDER BY s.termin IS NULL, s.termin LIMIT 1)`
+
+// kritikEsik: programda girilen eşik, Vega'dan gelen eşiğin önüne geçer
+export const SECIM = `u.id, u.kod, u.ad, u.barkod, u.marka, u.kategori, u.olcu, u.raf, u.kdv,
+  u.satis_fiyati AS satisFiyati, u.stok,
+  COALESCE((SELECT a.kritik_esik FROM urun_ayar a WHERE a.urun_id = u.id), u.kritik_esik) AS kritikEsik,
+  (SELECT g.surum FROM urun_gorsel g WHERE g.urun_id = u.id) AS gorselSurum,
+  (SELECT COALESCE(SUM(s.miktar), 0) FROM tedarik_siparis s WHERE s.urun_id = u.id AND s.durum = 'acik') AS yoldaki,
+  ${EN_YAKIN('tedarikci')} AS tedarikci,
+  ${EN_YAKIN('termin')} AS termin`
 
 /** Anlık arama: her kelime önek olarak aranır ("civ 4x" → "civi ... 4x40"). */
 export function urunAra(f: UrunFiltre) {
@@ -139,6 +160,8 @@ export function urunAra(f: UrunFiltre) {
 }
 
 /** El terminali: barkod (bulunamazsa stok kodu) ile tek ürün. */
+export const urunGetir = (id: number) => db.prepare(`SELECT ${SECIM} FROM urun u WHERE u.id = ?`).get(id)
+
 export function urunBarkodla(kod: string) {
   return db.prepare(`SELECT ${SECIM} FROM urun u WHERE u.barkod = @kod OR u.kod = @kod LIMIT 1`).get({ kod: kod.trim() })
 }
