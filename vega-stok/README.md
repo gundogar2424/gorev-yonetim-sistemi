@@ -44,13 +44,16 @@ vega-stok/
 │     │  └─ kesif.ts            gerçek şemayı listeler, eşlemeyi doğrular
 │     ├─ esitleme/servis.ts     hızlı tur / tam tur
 │     └─ yerel/db.ts            SQLite önbellek + anlık arama
+│     ├─ gorsel/servis.ts       yüklenen görseli iki WebP boyutuna çevirir
+│     ├─ yerel/demo.ts          `npm run demo` örnek verisi
 │     (sonraki aşamalar)
 │     ├─ tedarik/               açık siparişler, termin, kritik stok panosu
 │     ├─ teklif/                sepet, iskonto/KDV, PDF, WhatsApp metni
-│     ├─ cari/                  bakiye, son alınanlar, ekstre özeti
-│     └─ gorsel/                yükleme + WebP dönüştürme
-└─ frontend/                    (2. aşama) React + Vite + Tailwind
-   └─ src/sayfalar/             Katalog, KritikStok, Teklif, Cari, Depo (el terminali)
+│     └─ cari/                  bakiye, son alınanlar, ekstre özeti
+└─ frontend/                    React + Vite + Tailwind
+   └─ src/
+      ├─ Katalog.tsx            anlık arama, filtreler, ürün kartları, detay + görsel yükleme
+      └─ api.ts                 backend istemcisi
 ```
 
 ## Kurulum (sunucu bilgisayarı, Windows — PowerShell)
@@ -79,8 +82,20 @@ npm install
 copy .env.example .env
 notepad .env            # sunucu, veritabanı, kullanıcı, şifre, firma/dönem
 npm run vega:kesif      # Vega şemasını doğrula (aşağıya bakın)
-npm run dev             # http://localhost:4000/api/saglik
+
+cd ..\frontend
+npm install
+npm run build           # arayüzü derle; backend bunu aynı porttan sunar
+
+cd ..\backend
+npm start               # http://SUNUCU-IP:4000  (ağdaki tüm cihazlardan)
 ```
+
+**Vega olmadan denemek için:** `npm run demo` — örnek ürünlerle, ayrı bir demo
+veritabanında (`veri/demo/`) çalışır; Vega'ya hiç bağlanmaz.
+
+**Geliştirme:** bir pencerede `backend` içinde `npm run dev`, diğerinde
+`frontend` içinde `npm run dev` (http://localhost:5173, anında yenileme).
 
 ## Önemli: Vega şema eşlemesi
 
@@ -91,7 +106,7 @@ gösterir; düzeltme yalnızca `sema.ts` dosyasında yapılır. Bakiye formülü
 `girisKosulu` (giriş/çıkış ayrımı) bir ürünün stoğu Vega ekranıyla karşılaştırılarak
 doğrulanmalıdır.
 
-## API (1. aşama)
+## API
 
 | Uç | Açıklama |
 |---|---|
@@ -99,11 +114,16 @@ doğrulanmalıdır.
 | `GET /api/urunler?q=&marka=&kategori=&olcu=&limit=` | anlık arama (Türkçe duyarsız, önek eşleşmeli) |
 | `GET /api/filtreler` | marka / kategori / ölçü listeleri |
 | `GET /api/urunler/barkod/:barkod` | el terminali için tek ürün |
+| `PUT /api/urunler/:id/gorsel` | görsel yükle (gövde: dosyanın kendisi); WebP'ye çevrilir |
+| `GET /gorseller/:id/kart.webp`, `/buyuk.webp` | 480 px katalog / 1600 px detay görseli |
+
+Not: Henüz kullanıcı girişi yok; ağdaki herkes görsel yükleyebilir. Giriş ve
+yetkilendirme teklif modülüyle birlikte eklenecek.
 
 ## Yol haritası
 
 1. ✅ Mimari, Vega bağlantısı, eşitleme, arama API'si
-2. Frontend: görsel katalog + anlık arama, görsel yükleme (WebP)
+2. ✅ Görsel katalog + anlık arama, görsel yükleme (WebP), demo modu
 3. Tedarik & termin, kritik stok panosu
 4. Teklif: sepet, iskonto/KDV, PDF, WhatsApp özeti
 5. El terminali (depo modu) ve cari hesap kartı

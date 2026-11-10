@@ -27,6 +27,8 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS urun_marka ON urun(marka);
   CREATE INDEX IF NOT EXISTS urun_kategori ON urun(kategori);
   CREATE VIRTUAL TABLE IF NOT EXISTS urun_ara USING fts5(metin, prefix='1 2 3');
+  -- Kendi verimiz: Vega eşitlemesi bu tabloya dokunmaz
+  CREATE TABLE IF NOT EXISTS urun_gorsel (urun_id INTEGER PRIMARY KEY, surum INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS meta (anahtar TEXT PRIMARY KEY, deger TEXT NOT NULL);
 `)
 
@@ -113,7 +115,8 @@ export interface UrunFiltre {
 }
 
 const SECIM = `u.id, u.kod, u.ad, u.barkod, u.marka, u.kategori, u.olcu, u.raf, u.kdv,
-  u.satis_fiyati AS satisFiyati, u.kritik_esik AS kritikEsik, u.stok`
+  u.satis_fiyati AS satisFiyati, u.kritik_esik AS kritikEsik, u.stok,
+  (SELECT g.surum FROM urun_gorsel g WHERE g.urun_id = u.id) AS gorselSurum`
 
 /** Anlık arama: her kelime önek olarak aranır ("civ 4x" → "civi ... 4x40"). */
 export function urunAra(f: UrunFiltre) {
@@ -144,4 +147,17 @@ export function filtreSecenekleri() {
   const liste = (alan: string) =>
     (db.prepare(`SELECT DISTINCT ${alan} AS v FROM urun WHERE ${alan} IS NOT NULL ORDER BY 1`).all() as { v: string }[]).map((s) => s.v)
   return { markalar: liste('marka'), kategoriler: liste('kategori'), olculer: liste('olcu') }
+}
+
+export const urunVarMi = (id: number): boolean => db.prepare('SELECT 1 FROM urun WHERE id = ?').get(id) !== undefined
+
+/** Görsel sürümünü artırır; sürüm, tarayıcı önbelleğini kırmak için adrese eklenir. */
+export function gorselSurumArtir(urunId: number): number {
+  const satir = db
+    .prepare(
+      `INSERT INTO urun_gorsel VALUES (?, 1)
+       ON CONFLICT(urun_id) DO UPDATE SET surum = surum + 1 RETURNING surum`,
+    )
+    .get(urunId) as { surum: number }
+  return satir.surum
 }

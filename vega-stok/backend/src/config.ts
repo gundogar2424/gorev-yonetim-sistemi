@@ -11,9 +11,15 @@ const sayi = (v: string | undefined, varsayilan: number) => {
   return v && Number.isFinite(n) ? n : varsayilan
 }
 
+// Demo modu ayrı veritabanı/klasör kullanır; gerçek önbelleğe örnek veri karışmaz
+const demo = e.DEMO === '1' || process.argv.includes('--demo')
+
 export const config = {
   port: sayi(e.PORT, 4000),
-  yerelDb: e.YEREL_DB || './veri/stok.sqlite',
+  yerelDb: demo ? './veri/demo/stok.sqlite' : e.YEREL_DB || './veri/stok.sqlite',
+  gorselKlasor: demo ? './veri/demo/gorseller' : e.GORSEL_KLASOR || './veri/gorseller',
+  /** `npm run demo`: Vega'ya bağlanmadan örnek ürünlerle çalışır */
+  demo,
   hizliTurSn: sayi(e.ESITLEME_HIZLI_SN, 30),
   tamTurDk: sayi(e.ESITLEME_TAM_DK, 15),
   vega: {
