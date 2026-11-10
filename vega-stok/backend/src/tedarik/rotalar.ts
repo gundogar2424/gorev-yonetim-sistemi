@@ -1,10 +1,9 @@
 import type { FastifyInstance } from 'fastify'
+import { GirdiHatasi } from '../girdi'
 import { urunGetir, urunVarMi } from '../yerel/db'
 import {
   acikSiparisler, kritikEsikAyarla, kritikStok, siparisEkle, siparisGuncelle, siparisSil, siparisTeslim, tedarikciler, urunSiparisleri,
 } from './db'
-
-class GirdiHatasi extends Error {}
 
 /** İstek gövdesinden sipariş alanlarını doğrulayarak okur. */
 function siparisOku(govde: unknown) {
@@ -19,11 +18,6 @@ function siparisOku(govde: unknown) {
 }
 
 export async function tedarikRotalari(app: FastifyInstance) {
-  app.setErrorHandler((hata, _istek, yanit) => {
-    if (hata instanceof GirdiHatasi) return yanit.code(400).send({ hata: hata.message })
-    return yanit.send(hata)
-  })
-
   app.get('/api/kritik-stok', () => kritikStok())
   app.get('/api/siparisler', () => acikSiparisler())
   app.get('/api/tedarikciler', () => tedarikciler())

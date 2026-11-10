@@ -95,3 +95,42 @@ export function gorselYukle(urunId: number, dosya: File): Promise<{ gorselSurum:
     body: dosya,
   }).then(json<{ gorselSurum: number }>)
 }
+
+// --- Teklifler ---
+export interface TeklifKalemi {
+  urunId: number | null
+  kod: string | null
+  ad: string
+  miktar: number
+  birimFiyat: number
+  iskonto: string
+  kdv: number
+}
+
+export interface TeklifGirdi {
+  musteriAd: string
+  musteriTelefon: string | null
+  musteriAdres: string | null
+  genelIskonto: string
+  kdvDahil: boolean
+  gecerlilikGun: number
+  notu: string | null
+  kalemler: TeklifKalemi[]
+}
+
+export type Teklif = Omit<TeklifGirdi, 'kalemler'> & { id: number; no: string; tarih: string; kalemler: (TeklifKalemi & { gorselSurum: number | null })[] }
+export interface TeklifOzeti { id: number; no: string; tarih: string; musteriAd: string; genelToplam: number; kalemSayisi: number }
+export interface Musteri { ad: string; telefon: string | null; adres: string | null }
+export interface Firma { ad: string; adres: string; telefon: string; eposta: string; vergi: string; fiyatlarKdvDahil: boolean }
+
+export const teklifleriGetir = () => getir<TeklifOzeti[]>('/api/teklifler')
+export const teklifGetir = (id: number) => getir<Teklif>(`/api/teklifler/${id}`)
+export const teklifEkle = (t: TeklifGirdi) => gonder<{ id: number }>('POST', '/api/teklifler', t)
+export const teklifGuncelle = (id: number, t: TeklifGirdi) => gonder('PUT', `/api/teklifler/${id}`, t)
+export const teklifSil = (id: number) => gonder('DELETE', `/api/teklifler/${id}`)
+export const teklifMetniGetir = (id: number) => getir<{ metin: string; telefon: string | null }>(`/api/teklifler/${id}/metin`)
+export const musterileriGetir = () => getir<Musteri[]>('/api/musteriler')
+export const ayarlariGetir = () => getir<Firma & { logoVar: boolean }>('/api/ayarlar')
+export const ayarlariKaydet = (f: Firma) => gonder<Firma>('PUT', '/api/ayarlar', f)
+export const logoYukle = (dosya: File) =>
+  fetch('/api/ayarlar/logo', { method: 'PUT', headers: { 'Content-Type': dosya.type || 'image/png' }, body: dosya }).then(json<{ tamam: true }>)

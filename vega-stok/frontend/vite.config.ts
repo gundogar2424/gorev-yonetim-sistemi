@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: true, // geliştirme sırasında yerel ağdan (telefon / el terminali) erişim
-    proxy: { '/api': backend, '/gorseller': backend },
+    fs: { allow: ['..'] }, // ../ortak (backend ile paylaşılan teklif hesabı)
+    proxy: { '/api': backend, '/gorseller': backend, '/logo': backend },
   },
 })

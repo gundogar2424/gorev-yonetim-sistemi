@@ -5,12 +5,18 @@ import { resolve } from 'node:path'
 import { config } from './config'
 import { durum, esitlemeyiBaslat } from './esitleme/servis'
 import { BOYUTLAR, gorselKaydet, gorselYolu, type Boyut } from './gorsel/servis'
+import { GirdiHatasi } from './girdi'
+import { teklifRotalari } from './teklif/rotalar'
 import { tedarikRotalari } from './tedarik/rotalar'
 import { vegaKapat } from './vega/baglanti'
 import { db, filtreSecenekleri, urunAra, urunBarkodla, urunVarMi } from './yerel/db'
 import { demoVerisiYukle } from './yerel/demo'
 
 const app = Fastify({ logger: true })
+
+app.setErrorHandler((hata, _istek, yanit) =>
+  hata instanceof GirdiHatasi ? yanit.code(400).send({ hata: hata.message }) : yanit.send(hata),
+)
 
 app.get('/api/saglik', () => ({
   urunSayisi: (db.prepare('SELECT COUNT(*) AS n FROM urun').get() as { n: number }).n,
@@ -36,6 +42,7 @@ app.get<{ Params: { barkod: string } }>('/api/urunler/barkod/:barkod', (istek, y
 })
 
 app.register(tedarikRotalari)
+app.register(teklifRotalari)
 
 // --- Görseller ---
 // Dosya ham gövde olarak gelir: fetch(url, { method: 'PUT', body: dosya })

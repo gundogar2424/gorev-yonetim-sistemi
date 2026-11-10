@@ -1,16 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { saglikGetir, type Saglik } from './api'
 import { Depo } from './Depo'
 import { Katalog } from './Katalog'
 import { KritikStok } from './KritikStok'
+import { Ayarlar } from './Ayarlar'
 import { Tedarik } from './Tedarik'
+import { Teklifler } from './Teklif'
 
-const SAYFALAR = [
+// Adres: #/sayfa/alt — örn. #/teklif/12. `alt` kısmı sayfaya verilir.
+const SAYFALAR: { yol: string; ad: string; bilesen: (p: { alt: string }) => ReactNode }[] = [
   { yol: '', ad: 'Katalog', bilesen: Katalog },
+  { yol: 'teklif', ad: 'Teklif', bilesen: Teklifler },
   { yol: 'kritik', ad: 'Kritik Stok', bilesen: KritikStok },
   { yol: 'tedarik', ad: 'Tedarik', bilesen: Tedarik },
   { yol: 'depo', ad: 'Depo', bilesen: Depo },
-] as const
+  { yol: 'ayarlar', ad: 'Ayarlar', bilesen: Ayarlar },
+]
 
 const yolOku = () => location.hash.replace(/^#\/?/, '')
 
@@ -55,7 +60,8 @@ export function App() {
     window.addEventListener('hashchange', degisti)
     return () => window.removeEventListener('hashchange', degisti)
   }, [])
-  const sayfa = SAYFALAR.find((s) => s.yol === yol) ?? SAYFALAR[0]
+  const [ilk = '', alt = ''] = yol.split('/')
+  const sayfa = SAYFALAR.find((s) => s.yol === ilk) ?? SAYFALAR[0]!
   const Sayfa = sayfa.bilesen
 
   return (
@@ -75,7 +81,7 @@ export function App() {
         </div>
         <EsitlemeDurumu />
       </nav>
-      <Sayfa />
+      <Sayfa alt={alt} />
     </div>
   )
 }

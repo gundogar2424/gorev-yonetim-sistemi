@@ -13,6 +13,7 @@ import type { VegaUrun } from '../vega/sorgular'
 if (config.yerelDb !== ':memory:') mkdirSync(dirname(config.yerelDb), { recursive: true })
 export const db = new Database(config.yerelDb)
 db.pragma('journal_mode = WAL')
+db.pragma('foreign_keys = ON')
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS urun (
@@ -40,6 +41,27 @@ db.exec(`
     olusturma TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
   CREATE INDEX IF NOT EXISTS tedarik_urun ON tedarik_siparis(urun_id, durum);
+  CREATE TABLE IF NOT EXISTS teklif (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    no TEXT NOT NULL UNIQUE,            -- T-2026-0001
+    tarih TEXT NOT NULL,                -- YYYY-AA-GG
+    musteri_ad TEXT NOT NULL, musteri_telefon TEXT, musteri_adres TEXT,
+    genel_iskonto TEXT NOT NULL DEFAULT '',
+    kdv_dahil INTEGER NOT NULL DEFAULT 0,
+    gecerlilik_gun INTEGER NOT NULL DEFAULT 15,
+    notu TEXT,
+    genel_toplam REAL NOT NULL DEFAULT 0
+  );
+  -- Kalemler ürün adını ve fiyatını KOPYALAR: Vega'da fiyat değişse de eski teklif değişmez
+  CREATE TABLE IF NOT EXISTS teklif_kalem (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teklif_id INTEGER NOT NULL REFERENCES teklif(id) ON DELETE CASCADE,
+    sira INTEGER NOT NULL,
+    urun_id INTEGER, kod TEXT, ad TEXT NOT NULL,
+    miktar REAL NOT NULL, birim_fiyat REAL NOT NULL,
+    iskonto TEXT NOT NULL DEFAULT '', kdv REAL NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS teklif_kalem_teklif ON teklif_kalem(teklif_id);
   CREATE TABLE IF NOT EXISTS meta (anahtar TEXT PRIMARY KEY, deger TEXT NOT NULL);
 `)
 

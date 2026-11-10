@@ -1,5 +1,6 @@
 import { gorselKaydet } from '../gorsel/servis'
 import type { VegaUrun } from '../vega/sorgular'
+import { firmaOku, firmaYaz } from '../teklif/db'
 import { db, stoklariUygula, urunleriUygula } from './db'
 
 /** DEMO=1 için örnek veri: Vega bağlantısı olmadan arayüzü denemeye yarar. */
@@ -33,6 +34,8 @@ export async function demoVerisiYukle(): Promise<number> {
   urunleriUygula(urunler)
   // Tekrarlanabilir sahte bakiyeler: bir kısmı tükenmiş, bir kısmı kritik eşiğin altında
   stoklariUygula(urunler.map((u) => ({ id: u.id, stok: u.id % 9 === 0 ? 0 : u.id % 5 === 0 ? 8 : (u.id * 37) % 400 })))
+
+  if (!firmaOku().ad) firmaYaz({ ad: 'Örnek Yapı Market Ltd. Şti.', adres: 'Sanayi Cad. No: 12, Örnekköy', telefon: '0 (212) 555 00 00', eposta: 'satis@ornek.example', vergi: 'Örnek V.D. 1234567890' })
 
   // Örnek tedarik siparişleri: biri gecikmiş, biri yakın terminli, biri terminsiz
   if ((db.prepare('SELECT COUNT(*) AS n FROM tedarik_siparis').get() as { n: number }).n === 0) {
