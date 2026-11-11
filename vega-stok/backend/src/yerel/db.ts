@@ -62,6 +62,19 @@ db.exec(`
     iskonto TEXT NOT NULL DEFAULT '', kdv REAL NOT NULL
   );
   CREATE INDEX IF NOT EXISTS teklif_kalem_teklif ON teklif_kalem(teklif_id);
+  CREATE TABLE IF NOT EXISTS kullanici (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kullanici_adi TEXT NOT NULL UNIQUE,
+    ad TEXT NOT NULL,
+    rol TEXT NOT NULL,                  -- yonetici | satis | depo
+    sifre_ozet TEXT NOT NULL,           -- scrypt; şifrenin kendisi saklanmaz
+    aktif INTEGER NOT NULL DEFAULT 1
+  );
+  CREATE TABLE IF NOT EXISTS oturum (
+    anahtar_ozet TEXT PRIMARY KEY,      -- çerezdeki anahtarın SHA-256 özeti
+    kullanici_id INTEGER NOT NULL REFERENCES kullanici(id) ON DELETE CASCADE,
+    bitis INTEGER NOT NULL              -- epoch saniye
+  );
   CREATE TABLE IF NOT EXISTS meta (anahtar TEXT PRIMARY KEY, deger TEXT NOT NULL);
 `)
 

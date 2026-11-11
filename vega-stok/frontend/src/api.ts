@@ -51,7 +51,11 @@ export interface Saglik {
   esitleme: { sonHizliTur: string | null; sonTamTur: string | null; sonHata: string | null }
 }
 
+/** Oturum düştüğünde (401) App giriş ekranına döner. */
+export const OTURUM_BITTI = 'oturum-bitti'
+
 async function json<T>(yanit: Response): Promise<T> {
+  if (yanit.status === 401) window.dispatchEvent(new Event(OTURUM_BITTI))
   if (!yanit.ok) {
     const govde = (await yanit.json().catch(() => null)) as { hata?: string } | null
     throw new Error(govde?.hata ?? `Sunucu hatası (${yanit.status})`)
@@ -134,3 +138,24 @@ export const ayarlariGetir = () => getir<Firma & { logoVar: boolean }>('/api/aya
 export const ayarlariKaydet = (f: Firma) => gonder<Firma>('PUT', '/api/ayarlar', f)
 export const logoYukle = (dosya: File) =>
   fetch('/api/ayarlar/logo', { method: 'PUT', headers: { 'Content-Type': dosya.type || 'image/png' }, body: dosya }).then(json<{ tamam: true }>)
+
+// --- Giriş ve kullanıcılar ---
+export type Rol = 'yonetici' | 'satis' | 'depo'
+export const ROL_ADLARI: Record<Rol, string> = { yonetici: 'Yönetici', satis: 'Satış', depo: 'Depo' }
+export interface Kullanici { id: number; kullaniciAdi: string; ad: string; rol: Rol; aktif: boolean }
+
+// Giriş durumu sorgusu 401 dönmez; json() yerine doğrudan okunur
+export const oturumGetir = () => fetch('/api/oturum').then((y) => y.json() as Promise<{ kullanici: Kullanici | null; kurulumGerekli: boolean }>)
+const kimlikGonder = (adres: string, govde: unknown) =>
+  fetch(adres, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(govde) }).then(async (y) => {
+    const g = (await y.json().catch(() => null)) as { kullanici?: Kullanici; hata?: string } | null
+    if (!y.ok || !g?.kullanici) throw new Error(g?.hata ?? `Sunucu hatası (${y.status})`)
+    return g.kullanici
+  })
+export const girisYap = (kullaniciAdi: string, sifre: string) => kimlikGonder('/api/oturum', { kullaniciAdi, sifre })
+export const kurulumYap = (g: { kullaniciAdi: string; ad: string; sifre: string }) => kimlikGonder('/api/kurulum', g)
+export const cikisYap = () => fetch('/api/oturum', { method: 'DELETE' })
+export const sifreDegistir = (eski: string, yeni: string) => gonder('PUT', '/api/oturum/sifre', { eski, yeni })
+export const kullanicilariGetir = () => getir<Kullanici[]>('/api/kullanicilar')
+export const kullaniciEkle = (k: { kullaniciAdi: string; ad: string; rol: Rol; sifre: string }) => gonder<{ id: number }>('POST', '/api/kullanicilar', k)
+export const kullaniciGuncelle = (id: number, k: { ad: string; rol: Rol; aktif: boolean; sifre?: string }) => gonder('PUT', `/api/kullanicilar/${id}`, k)

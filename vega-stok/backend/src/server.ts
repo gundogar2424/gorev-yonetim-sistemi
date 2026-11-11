@@ -7,6 +7,7 @@ import { durum, esitlemeyiBaslat } from './esitleme/servis'
 import { BOYUTLAR, gorselKaydet, gorselYolu, type Boyut } from './gorsel/servis'
 import { GirdiHatasi } from './girdi'
 import { teklifRotalari } from './teklif/rotalar'
+import { kimlikKur } from './kimlik/rotalar'
 import { tedarikRotalari } from './tedarik/rotalar'
 import { vegaKapat } from './vega/baglanti'
 import { db, filtreSecenekleri, urunAra, urunBarkodla, urunVarMi } from './yerel/db'
@@ -17,6 +18,9 @@ const app = Fastify({ logger: true })
 app.setErrorHandler((hata, _istek, yanit) =>
   hata instanceof GirdiHatasi ? yanit.code(400).send({ hata: hata.message }) : yanit.send(hata),
 )
+
+// Giriş ve yetki denetimi: aşağıdaki tüm /api, /gorseller ve /logo adreslerini korur
+kimlikKur(app)
 
 app.get('/api/saglik', () => ({
   urunSayisi: (db.prepare('SELECT COUNT(*) AS n FROM urun').get() as { n: number }).n,

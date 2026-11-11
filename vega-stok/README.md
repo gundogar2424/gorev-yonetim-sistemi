@@ -47,6 +47,7 @@ vega-stok/
 │     ├─ gorsel/servis.ts       yüklenen görseli iki WebP boyutuna çevirir
 │     ├─ yerel/demo.ts          `npm run demo` örnek verisi
 │     ├─ tedarik/               açık siparişler, termin, kritik eşik, kritik stok panosu
+│     ├─ kimlik/                kullanıcılar, roller, oturumlar, yetki denetimi
 │     ├─ teklif/                teklif kaydı, PDF (pdfmake), WhatsApp metni, firma ayarları
 │     (sonraki aşamalar)
 │     └─ cari/                  bakiye, son alınanlar, ekstre özeti
@@ -61,6 +62,8 @@ vega-stok/
       ├─ Depo.tsx               el terminali (barkod) sayfası
       ├─ Teklif.tsx             teklif listesi ve hazırlama ekranı
       ├─ Ayarlar.tsx            firma bilgileri ve logo
+      ├─ Giris.tsx              giriş ve ilk kurulum ekranı
+      ├─ Kullanicilar.tsx       kullanıcı yönetimi (yönetici) ve şifre değiştirme
       └─ api.ts                 backend istemcisi
 ```
 
@@ -113,6 +116,24 @@ oradan otomatik okunabilir; bunun için Vega'daki sipariş tablolarının adlar�
 (`npm run vega:kesif` çıktısı) gerekiyor. "Teslim alındı" yalnızca siparişi
 "yolda" olmaktan çıkarır; stok artışı Vega'daki mal girişiyle gelir.
 
+## Kullanıcılar ve roller
+
+Programı ilk açan kişi yönetici hesabını oluşturur (kurulumdan hemen sonra bunu
+siz yapın). Diğer herkesi yönetici **Kullanıcılar** sayfasından ekler.
+
+| Rol | Erişim |
+|---|---|
+| Yönetici | Her şey; kullanıcılar ve firma ayarları dahil |
+| Satış | Katalog, teklif, tedarik, kritik stok, depo |
+| Depo | Katalog, tedarik, kritik stok, depo — teklifleri göremez |
+
+Yetkiler sunucuda denetlenir (menüden gizlemekle yetinilmez). Şifreler
+veritabanında yalnızca özet (scrypt) olarak durur. Beş hatalı denemede kullanıcı
+adı 1 dakika kilitlenir. Rolü değişen, şifresi sıfırlanan ya da devre dışı
+bırakılan kullanıcının açık oturumları anında kapanır. Oturum 30 gün
+kullanılmazsa sona erer. Bağlantı yerel ağda şifresiz (http) olduğundan program
+internete açılmamalıdır. Demo hesapları: `yonetici`, `satis`, `depo` — şifre `demo1234`.
+
 ## Teklif
 
 İlk iş **Ayarlar** sayfasından firma bilgilerini ve logoyu girin; Vega'daki satış
@@ -156,9 +177,8 @@ doğrulanmalıdır.
 | `GET/PUT /api/ayarlar`, `PUT /api/ayarlar/logo` | firma bilgileri ve logo |
 | `PUT /api/urunler/:id/gorsel` | görsel yükle (gövde: dosyanın kendisi); WebP'ye çevrilir |
 | `GET /gorseller/:id/kart.webp`, `/buyuk.webp` | 480 px katalog / 1600 px detay görseli |
-
-Not: Henüz kullanıcı girişi yok; ağdaki herkes görsel yükleyebilir. Giriş ve
-yetkilendirme teklif modülüyle birlikte eklenecek.
+| `GET/POST/DELETE /api/oturum`, `PUT /api/oturum/sifre`, `POST /api/kurulum` | giriş, çıkış, şifre değiştirme, ilk yönetici |
+| `GET/POST /api/kullanicilar`, `PUT /api/kullanicilar/:id` | kullanıcı yönetimi (yalnızca yönetici) |
 
 ## Yol haritası
 
@@ -167,4 +187,5 @@ yetkilendirme teklif modülüyle birlikte eklenecek.
 3. ✅ Tedarik & termin, kritik stok panosu, el terminali (depo) sayfası, eşitleme göstergesi
 4. ✅ Teklif: sepet, kademeli iskonto/KDV, PDF, WhatsApp özeti
 5. Cari hesap kartı
-6. Kullanıcı girişi, Windows hizmeti olarak kurulum
+6. ✅ Kullanıcı girişi ve roller
+7. Windows hizmeti olarak kurulum, yedekleme
