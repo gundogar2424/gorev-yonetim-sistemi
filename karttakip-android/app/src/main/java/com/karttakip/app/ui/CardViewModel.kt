@@ -25,6 +25,43 @@ class CardViewModel(app: Application) : AndroidViewModel(app) {
     val tracked: StateFlow<List<TrackedCampaign>> = trackedDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /**
+     * Claude'un kaydettigi "katildim" kampanyalarini (campaigns.json -> tracked)
+     * yerel takibe cevirir. Her uzak kayit id'siyle bir kez eklenir; kullanici
+     * silerse geri gelmez. Uygun kart, match anahtarlariyla bulunur.
+     */
+    fun syncTracked() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val app = getApplication<Application>()
+            val data = com.karttakip.app.data.CampaignRepository.fetch(app) ?: return@launch
+            if (data.tracked.isEmpty()) return@launch
+            val imported = com.karttakip.app.data.CampaignRepository.importedIds(app).toMutableSet()
+            val cards = dao.getAll()
+            var changed = false
+            for (rt in data.tracked) {
+                if (rt.id in imported) continue
+                val card = cards.firstOrNull { com.karttakip.app.data.CampaignRepository.matches(it, rt.match) }
+                trackedDao.upsert(
+                    TrackedCampaign(
+                        title = rt.title,
+                        reward = rt.reward,
+                        targetSpend = rt.targetSpend,
+                        deadlineEpochDay = rt.deadlineEpochDay,
+                        joined = rt.joined,
+                        cardId = card?.id ?: 0L,
+                        url = rt.url
+                    )
+                )
+                imported.add(rt.id)
+                changed = true
+            }
+            if (changed) {
+                com.karttakip.app.data.CampaignRepository.setImportedIds(app, imported)
+                NotificationScheduler.scheduleAll(app)
+            }
+        }
+    }
+
     /** Bir kampanyayi takibe al (hedef harcama + son tarih ile). */
     fun track(c: TrackedCampaign) {
         viewModelScope.launch(Dispatchers.IO) {
