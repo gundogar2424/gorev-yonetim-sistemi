@@ -205,7 +205,20 @@ export async function youtubeBilgi(html: string, indir: (url: string) => Promise
 
 const EN_BUYUK_MB = 80
 
+// Indirme toplamda bu kadar surerse vazgecilir; tarif gonderinin aciklamasindan cikarilir
+const INDIRME_SN = 75
 export async function videoIndir(url: string, sayfa: string): Promise<Blob> {
+  let zaman = 0
+  const sinir = new Promise<never>((_, rej) => {
+    zaman = window.setTimeout(() => rej(new Error(`Video ${INDIRME_SN} sn içinde inmedi (Instagram yavaş ya da izin vermedi)`)), INDIRME_SN * 1000)
+  })
+  try {
+    return await Promise.race([videoIndirAsil(url, sayfa), sinir])
+  } finally {
+    window.clearTimeout(zaman)
+  }
+}
+async function videoIndirAsil(url: string, sayfa: string): Promise<Blob> {
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
   if (Capacitor.isNativePlatform()) {
     const r = await CapacitorHttp.get({
