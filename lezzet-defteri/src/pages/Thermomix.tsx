@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listRecipes, updateRecipe } from '../db'
 import type { LzRecipe } from '../types'
-import { Header, Icon, T_BASLIK, T_SOLUK, Thumb } from '../components/ui'
+import { Header, Icon, IskeletKartlar, T_BASLIK, T_SOLUK, Thumb } from '../components/ui'
 import { aiThermomix, apiAnahtari } from '../lib/ai'
 import { esles } from '../lib/arama'
 
@@ -16,7 +16,8 @@ export async function thermomixeUyarla(r: LzRecipe): Promise<void> {
 // THERMOMIX SEKMESI: uyarlanmis tarifler ustte, uyarlanabilecekler altta.
 export default function Thermomix() {
   const navigate = useNavigate()
-  const tarifler = useLiveQuery(() => listRecipes(), [], [] as LzRecipe[]) ?? []
+  const tarifHam = useLiveQuery(() => listRecipes(), [])
+  const tarifler: LzRecipe[] = tarifHam ?? []
   const [calisan, setCalisan] = useState(0)
   const [hata, setHata] = useState('')
   const [q, setQ] = useState('')
@@ -43,13 +44,14 @@ export default function Thermomix() {
     <div>
       <Header title="Thermomix" subtitle="Tariflerini TM7 adımlarına uyarla" />
       <div className="px-4 space-y-3 pb-6">
+        {tarifHam === undefined && <IskeletKartlar adet={3} />}
         {!aiVar && (
           <div className="rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-800 dark:text-amber-200 text-[13px] p-3.5">
             Uyarlama yapay zekayla yapılır.{' '}
             <Link to="/ayarlar" className="font-semibold underline">
               Ayarlar
             </Link>
-            ’dan Gemini anahtarını gir.
+            ’dan Gemini veya Claude anahtarını gir.
           </div>
         )}
         {tarifler.length > 3 && <input className="lz-input" placeholder="Tarif ara…" value={q} onChange={(e) => setQ(e.target.value)} />}

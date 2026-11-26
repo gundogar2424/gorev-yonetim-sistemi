@@ -284,7 +284,7 @@ export default function MekanOner() {
             <Link to="/ayarlar" className="underline font-semibold">
               Ayarlar
             </Link>
-            ’dan Gemini anahtarı gerekli.
+            ’dan Gemini veya Claude anahtarı gerekli.
           </p>
         )}
         {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}

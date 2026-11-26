@@ -126,7 +126,7 @@ export default function TarifDegistir() {
             <Link to="/ayarlar" className="font-semibold underline">
               Ayarlar
             </Link>
-            ’dan Gemini anahtarını gir.
+            ’dan Gemini veya Claude anahtarını gir.
           </div>
         )}
         <SohbetBalonlari sohbet={sohbet} soruyor={soruyor} />

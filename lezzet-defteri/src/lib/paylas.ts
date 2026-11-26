@@ -9,6 +9,7 @@ import { kartResmi, type KartBilgi } from './kart'
 import { haritadaAcLinki, yolTarifiLinki, yorumlarLinki } from './mekan'
 import { youtubeId } from './importer'
 import { adimKutulari, adimOzeti, modAdi, tmSurumDenetle, type TmSurum } from './tm7'
+import { ppAdimOzeti, ppDenetle, type PpSurum } from './pisirici'
 
 const GOMULU_ID = 'lezzet-defteri-tarif'
 
@@ -59,6 +60,7 @@ function gomuluVeri(r: LzRecipe, foto: string): string {
       notes: r.notes,
       tags: r.tags,
       tm: r.tm,
+      pp: r.pp,
       besin: r.besin
     }
   }
@@ -180,7 +182,7 @@ ${tm.warnings.map((w) => `<div class="uyari">⚠️ ${k(w)}</div>`).join('')}
 <div id="pisir" style="display:none">
 <div style="display:flex;align-items:center;gap:10px"><button class="btn y" style="width:auto;padding:10px 16px" onclick="kapat()">✕</button>
 <div><b>${k(r.title)}</b><div class="meta" id="sayi"></div></div></div>
-<div style="height:6px;background:#f1f1ef;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:#d93d20;width:0"></div></div>
+<div style="height:6px;background:#f1f1ef;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:#2E7D5B;width:0"></div></div>
 <div id="kaba" class="kart" style="display:none"><div class="meta">KABA EKLE</div><div id="kabaY" style="font-size:20px;font-weight:700"></div></div>
 <p id="metin" style="font-size:24px;font-weight:600;line-height:1.4;margin:16px 0"></p><div id="mod"></div>
 <div id="kutular" style="display:grid;gap:8px;margin:12px 0"></div><p id="ipucu" class="meta" style="font-size:15px"></p>
@@ -204,6 +206,67 @@ function dur(){if(t){clearInterval(t);t=null}}
 function sayacBas(){if(t){dur();$('sbtn').textContent='⏱ Devam';return}$('sbtn').textContent='Durdur';t=setInterval(function(){kalan--;$('kalan').textContent=yaz(Math.max(0,kalan));if(kalan<=0){dur();$('sbtn').textContent='⏱ Tekrar';kalan=A[i].sn;uyar();setTimeout(function(){$('kalan').textContent=yaz(kalan)},1500)}},1000)}
 function uyar(){try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}try{var c=new(window.AudioContext||window.webkitAudioContext)();for(var n=0;n<3;n++){var o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);var s=c.currentTime+n*.45;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.4,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+.35);o.start(s);o.stop(s+.36)}}catch(e){}}`
   return sayfa(`${r.title} (Thermomix)`, govde, gomuluVeri(r, foto), betik)
+}
+
+// PILAV PISIRICI PISIRME MODU (dosya): Instant Pot adimlari, ikonlu rozetler, dugme sirasi, bitince uyarisi, sayac
+export async function ppHtml(r: LzRecipe): Promise<string> {
+  const pp = ppDenetle(r.pp as PpSurum, r)
+  const foto = await kucukFoto(r.photo)
+  const adimlar = pp.steps.map((a) => ({
+    text: a.text,
+    kaba: a.ingredients,
+    sn: a.dakika * 60,
+    rozet: ppAdimOzeti(a).split(' · ').filter(Boolean),
+    dugme: a.butonlar,
+    bitince: a.bitince ?? '',
+    ipucu: a.tip
+  }))
+  const P = '#B06A4F'
+  const rozetHtml = (l: string[]) => l.map((x) => `<span class="pill" style="background:#f7ece7;color:#8d523c">${k(x)}</span>`).join(' ')
+  const govde = `<div id="genel">${kapak(r, foto, 'Pilav Pişirici · Instant Pot MRRC2001WE')}
+${!pp.uygun ? '<div class="uyari" style="background:#fde8e8;color:#7f1d1d"><b>Bu pişiricide olmaz.</b></div>' : ''}
+${pp.warnings.map((w) => `<div class="uyari">⚠️ ${k(w)}</div>`).join('')}
+<div class="kart"><h2>Malzemeler</h2><ul class="m">${pp.ingredients
+    .map((m, i) => `<li><input type="checkbox" id="m${i}"><label for="m${i}">${k(m)}</label></li>`)
+    .join('')}</ul></div>
+<div class="kart"><h2>${pp.alternatif ? 'Seçenek 1: Slow Cook, 1 sa 30 dk' : 'Pişirici adımları'}</h2><ol class="a">${pp.steps
+    .map(
+      (a) =>
+        `<li><span>${k(a.text)}${a.ingredients ? `<br><small class="meta">Hazneye: ${k(a.ingredients)}</small>` : ''}${
+          a.mod ? `<br>${rozetHtml(ppAdimOzeti(a).split(' · '))}` : ''
+        }${a.butonlar ? `<br><small><b>Düğmeler:</b> ${k(a.butonlar)}</small>` : ''}${a.bitince ? `<br><small style="color:${P}"><b>⏹ Bitince:</b> ${k(a.bitince)}</small>` : ''}</span></li>`
+    )
+    .join('')}</ol></div>
+${pp.alternatif ? `<div class="kart"><h2>${k(pp.alternatif.baslik)}</h2><ol class="a">${pp.alternatif.adimlar.map((x) => `<li><span>${k(x)}</span></li>`).join('')}</ol></div>` : ''}
+<button class="btn" style="background:${P}" onclick="basla()">▶ Pilav pişiricide adım adım pişir</button>${alt(r)}</div>
+<div id="pisir" style="display:none">
+<div style="display:flex;align-items:center;gap:10px;background:${P};color:#fff;margin:-16px -16px 0;padding:14px 16px"><button class="btn y" style="width:auto;padding:10px 16px" onclick="kapat()">✕</button>
+<div><b>${k(r.title)}</b><div id="sayi" style="font-size:13px;opacity:.85"></div></div></div>
+<div style="height:6px;background:#f1f1ef;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:${P};width:0"></div></div>
+<div id="kaba" class="kart" style="display:none"><div class="meta">HAZNEYE</div><div id="kabaY" style="font-size:20px;font-weight:700"></div></div>
+<p id="metin" style="font-size:24px;font-weight:600;line-height:1.5;margin:16px 0"></p><div id="rozet" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+<div id="dugme" class="kart" style="display:none;font-size:17px"></div><div id="bitince" class="kart" style="display:none;border:2px solid ${P};color:${P};font-weight:700"></div>
+<p id="ipucu" class="meta" style="font-size:15px"></p>
+<div id="sayac" class="kart" style="display:none;align-items:center;gap:12px"><div id="kalan" style="font-size:40px;font-weight:800;flex:1;font-variant-numeric:tabular-nums"></div>
+<button class="btn" style="width:auto;padding:12px 20px;background:${P}" id="sbtn" onclick="sayacBas()">⏱ Sayaç</button></div>
+<button class="btn" id="ileri" style="margin-top:20px;min-height:64px;font-size:19px;background:${P}" onclick="git(1)">Sonraki ›</button>
+<button class="btn y" style="margin-top:10px" onclick="git(-1)">‹ Geri</button></div>`
+  const betik = `var A=${JSON.stringify(adimlar).replace(/</g, '\\u003c')},i=0,kalan=0,t=null,kilit=null;
+function $(x){return document.getElementById(x)}
+function basla(){$('genel').style.display='none';$('pisir').style.display='block';i=0;goster();try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(function(l){kilit=l}).catch(function(){})}catch(e){}window.scrollTo(0,0)}
+function kapat(){dur();$('pisir').style.display='none';$('genel').style.display='block';try{kilit&&kilit.release()}catch(e){}}
+function yaz(s){var h=Math.floor(s/3600),d=Math.floor(s%3600/60),x=s%60;return(h?h+':'+(d<10?'0':''):'')+d+':'+(x<10?'0':'')+x}
+function goster(){dur();var a=A[i];$('sayi').textContent='Pilav Pişirici · Adım '+(i+1)+' / '+A.length;$('bar').style.width=((i+1)/A.length*100)+'%';
+$('kaba').style.display=a.kaba?'block':'none';$('kabaY').textContent=a.kaba;$('metin').textContent=a.text;
+var h='';a.rozet.forEach(function(x){h+='<span class="pill" style="background:#f7ece7;color:#8d523c;font-size:14px">'+x+'</span>'});$('rozet').innerHTML=h;
+$('dugme').style.display=a.dugme?'block':'none';$('dugme').textContent=a.dugme?'Düğmeler: '+a.dugme:'';
+$('bitince').style.display=a.bitince?'block':'none';$('bitince').textContent=a.bitince?'⏹ Bitince: '+a.bitince:'';
+$('ipucu').textContent=a.ipucu?'💡 '+a.ipucu:'';kalan=a.sn;$('sayac').style.display=a.sn>0?'flex':'none';$('kalan').textContent=yaz(a.sn);$('sbtn').textContent='⏱ Sayaç';
+$('ileri').textContent=i==A.length-1?'Afiyet olsun! ✓':'Sonraki ›';window.scrollTo(0,0)}
+function git(n){if(i+n>=A.length){kapat();return}i=Math.max(0,i+n);goster()}
+function dur(){if(t){clearInterval(t);t=null}}
+function sayacBas(){if(t){dur();$('sbtn').textContent='⏱ Devam';return}$('sbtn').textContent='Durdur';t=setInterval(function(){kalan--;$('kalan').textContent=yaz(Math.max(0,kalan));if(kalan<=0){dur();$('sbtn').textContent='⏱ Tekrar';kalan=A[i].sn;try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(e){}setTimeout(function(){$('kalan').textContent=yaz(kalan)},1500)}},1000)}`
+  return sayfa(`${r.title} (Pilav Pişirici)`, govde, gomuluVeri(r, foto), betik)
 }
 
 function dosyaAdi(baslik: string, ek: string): string {

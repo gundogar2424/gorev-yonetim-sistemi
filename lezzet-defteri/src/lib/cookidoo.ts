@@ -6,6 +6,7 @@
 // Hesap/anahtar gerekmez: kullanici tarayicida GitHub'a girmis olmali.
 import type { LzRecipe } from '../types'
 import { adimOzeti, cihazAdimi, tmSurumDenetle } from './tm7'
+import { ppAdimOzeti, ppDenetle } from './pisirici'
 
 const KEY_DEPO = 'lz-tarif-depo'
 export const VARSAYILAN_DEPO = 'gundogar2424/lezzet-tarifler'
@@ -64,7 +65,7 @@ export function cookidooSayfasi(r: LzRecipe): string {
     recipeYield: r.servings ? `${r.servings} porsiyon` : undefined,
     totalTime: r.minutes ? `PT${r.minutes}M` : undefined,
     recipeCategory: tm?.category || r.tags[0],
-    keywords: [tm ? 'Thermomix' : '', ...r.tags].filter(Boolean).join(', '),
+    keywords: [tm ? 'Thermomix' : '', r.pp ? 'Pilav Pişirici' : '', ...r.tags].filter(Boolean).join(', '),
     recipeIngredient: malzemeler,
     recipeInstructions: adimlar.map((t) => ({ '@type': 'HowToStep', text: t })),
     ...(r.sourceUrl ? { isBasedOn: r.sourceUrl } : {})
@@ -80,12 +81,47 @@ export function cookidooSayfasi(r: LzRecipe): string {
 body{margin:0;background:var(--bg);color:var(--yazi);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55}main{max-width:680px;margin:0 auto;padding:16px 16px 48px}
 a.geri{color:var(--soluk);text-decoration:none;font-size:14px}h1{font-size:28px;margin:12px 0 4px;letter-spacing:-.02em}.ozet{color:var(--soluk);margin:0 0 20px}
 section{background:var(--kart);border:1px solid var(--cizgi);border-radius:16px;padding:16px 18px;margin:12px 0}h2{font-size:17px;margin:0 0 10px;color:var(--vurgu)}
-ul,ol{margin:0;padding-left:22px}li{margin:6px 0}ol li{padding-left:4px}.not{color:var(--soluk);font-size:14px}footer{text-align:center;color:var(--soluk);font-size:13px;padding-top:16px}footer a{color:inherit}</style></head>
+ul,ol{margin:0;padding-left:22px}li{margin:6px 0}ol li{padding-left:4px}
+.sekme{display:none}.sekmeler{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;background:var(--kart);border:1px solid var(--cizgi);border-radius:14px;padding:4px;margin:8px 0}
+.sekmeler label{text-align:center;font-weight:600;font-size:14px;padding:12px 4px;border-radius:10px;cursor:pointer;min-height:48px;box-sizing:border-box}
+.panel{display:none}#s-n:checked~.sekmeler .l-n{background:#52525b;color:#fff}#s-t:checked~.sekmeler .l-t{background:#2E7D5B;color:#fff}#s-p:checked~.sekmeler .l-p{background:#B06A4F;color:#fff}
+#s-n:checked~.p-n,#s-t:checked~.p-t,#s-p:checked~.p-p{display:block}.p-t h2{color:#2E7D5B}.p-p h2{color:#B06A4F}
+.roz{display:inline-block;font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:8px;background:#f7ece7;color:#8d523c;margin:2px 4px 2px 0}.not{color:var(--soluk);font-size:14px}footer{text-align:center;color:var(--soluk);font-size:13px;padding-top:16px}footer a{color:inherit}</style></head>
 <body><main><a class="geri" href="${ana}">← Tüm tarifler</a><h1>${k(r.title)}</h1>${ozet ? `<p class="ozet">${k(ozet)}</p>` : ''}
-<section><h2>Malzemeler</h2><ul>${malzemeler.map((m) => `<li>${k(m)}</li>`).join('')}</ul></section>
-<section><h2>Hazırlanışı</h2><ol>${adimlar.map((a) => `<li>${k(a)}</li>`).join('')}</ol></section>
+${sekmeliGovde(r, malzemeler, adimlar, !!tm)}
 ${notlar ? `<section><h2>Notlar</h2><p class="not">${k(notlar)}</p></section>` : ''}
 <footer>Lezzet Rotası ile hazırlandı${r.sourceUrl ? ` · Kaynak: <a href="${k(r.sourceUrl)}" rel="nofollow">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a>` : ''}</footer></main></body></html>`
+}
+
+// Sitedeki tarif sayfasinda sekmeler: Normal / Thermomix / Pilav Pisirici (yalnizca CSS, betik yok)
+function sekmeliGovde(r: LzRecipe, tmMalzeme: string[], tmAdim: string[], tmVar: boolean): string {
+  const pp = r.pp ? ppDenetle(r.pp, r) : undefined
+  const bolum = (m: string[], a: string[]) =>
+    `<section><h2>Malzemeler</h2><ul>${m.map((x) => `<li>${k(x)}</li>`).join('')}</ul></section><section><h2>Hazırlanışı</h2><ol>${a.map((x) => `<li>${x}</li>`).join('')}</ol></section>`
+  const normal = bolum(r.ingredients, r.steps.map(k))
+  if (!tmVar && !pp) return normal
+  const sekmeler = [
+    ['n', 'Normal'],
+    ...(tmVar ? [['t', 'Thermomix']] : []),
+    ...(pp ? [['p', 'Pilav Pişirici']] : [])
+  ]
+  const ilk = tmVar ? 't' : 'n'
+  const ppHtml = pp
+    ? `${pp.uygun ? '' : '<section><b>Bu pişiricide olmaz.</b></section>'}${pp.warnings.length ? `<section class="not">${pp.warnings.map((w) => `⚠️ ${k(w)}`).join('<br>')}</section>` : ''}` +
+      bolum(
+        pp.ingredients,
+        pp.steps.map(
+          (a) =>
+            `${a.ingredients ? `<b>Hazneye:</b> ${k(a.ingredients)}. ` : ''}${k(a.text)}${a.mod ? `<br>${ppAdimOzeti(a).split(' · ').map((x) => `<span class="roz">${k(x)}</span>`).join('')}` : ''}${
+              a.butonlar ? `<br><small><b>Düğmeler:</b> ${k(a.butonlar)}</small>` : ''
+            }${a.bitince ? `<br><small><b>Bitince:</b> ${k(a.bitince)}</small>` : ''}${a.tip ? `<br><small>💡 ${k(a.tip)}</small>` : ''}`
+        )
+      ) +
+      (pp.alternatif ? `<section><h2>${k(pp.alternatif.baslik)}</h2><ol>${pp.alternatif.adimlar.map((x) => `<li>${k(x)}</li>`).join('')}</ol></section>` : '')
+    : ''
+  return `${sekmeler.map(([id]) => `<input type="radio" name="sekme" class="sekme" id="s-${id}"${id === ilk ? ' checked' : ''}>`).join('')}
+<div class="sekmeler" style="--n:${sekmeler.length}">${sekmeler.map(([id, ad]) => `<label for="s-${id}" class="l-${id}">${ad}</label>`).join('')}</div>
+<div class="panel p-n">${normal}</div>${tmVar ? `<div class="panel p-t">${bolum(tmMalzeme, tmAdim.map(k))}</div>` : ''}${pp ? `<div class="panel p-p">${ppHtml}</div>` : ''}`
 }
 
 // GitHub "yeni dosya" ekrani: dosya adi ve icerik dolu acilir, kullanici yalnizca Commit der.

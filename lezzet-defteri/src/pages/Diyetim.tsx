@@ -207,7 +207,7 @@ function OgunSekmesi({ i, plan, tarifler }: { i: number; plan: LzDiyet; tarifler
           <Link to="/ayarlar" className="font-semibold underline">
             Ayarlar
           </Link>
-          ’dan Gemini anahtarı gerekli.
+          ’dan Gemini veya Claude anahtarı gerekli.
         </div>
       )}
       {d.calisiyor && (
@@ -391,7 +391,7 @@ function PlanYukle({ onBitti, iptal }: { onBitti: () => void; iptal?: () => void
           <Link to="/ayarlar" className="underline font-semibold">
             Ayarlar
           </Link>
-          ’dan Gemini anahtarı gerekli.
+          ’dan Gemini veya Claude anahtarı gerekli.
         </p>
       )}
       <input

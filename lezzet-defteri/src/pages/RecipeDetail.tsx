@@ -10,7 +10,7 @@ import { GUN_ADI, OGUNLER, gunAnahtari, gunEkle, haftaBasi, kisaTarih } from '..
 import { PLATFORM_AD } from '../lib/importer'
 import { BesinSatiri } from './Diyetim'
 import { etkilesimEski, etkilesimGetir, kisaSayi } from '../lib/begeni'
-import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
+import { dosyaPaylas, ppHtml, tarifHtml, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
 import { siteyeKoy } from '../lib/cookidoo'
 import { TarifSekmeleri } from '../components/TarifSekmeleri'
@@ -54,17 +54,24 @@ export default function RecipeDetail() {
     goster(n ? `${n} malzeme alışveriş listesine eklendi` : 'Hepsi zaten listede')
   }
 
-  const paylasYap = async (tur: 'html' | 'tm') => {
+  const paylasYap = async (tur: 'html' | 'tm' | 'pp') => {
     setPaylasAc(false)
     if (tur === 'tm' && !r.tm) {
       // Once Thermomix onizlemesi (uyarlama) yapilir, oradan paylasilir
       navigate(`/thermomix/${r.id}`)
       return
     }
+    if (tur === 'pp' && !r.pp) {
+      navigate(`/pisirici/${r.id}`)
+      return
+    }
     try {
       if (tur === 'html') {
         goster('Tarif sayfası hazırlanıyor…')
         await dosyaPaylas(r.title, await tarifHtml(r))
+      } else if (tur === 'pp') {
+        goster('Pilav pişirici pişirme modu hazırlanıyor…')
+        await dosyaPaylas(r.title, await ppHtml(r), '-pilav-pisirici')
       } else {
         goster('Pişirme modu hazırlanıyor…')
         await dosyaPaylas(r.title, await tmHtml(r), '-thermomix')
@@ -380,6 +387,12 @@ export default function RecipeDetail() {
                 : 'Önce Thermomix önizlemesi hazırlanır, oradan paylaşırsın'
             }
             onClick={() => void paylasYap('tm')}
+            ikon="pot"
+          />
+          <PaylasSecenek
+            baslik="Pilav Pişirici Pişirme Modu (dosya)"
+            alt={r.pp ? 'Instant Pot adımları: düğme sırası, Cancel uyarıları, sayaç' : 'Önce pilav pişirici uyarlaması hazırlanır, oradan paylaşırsın'}
+            onClick={() => void paylasYap('pp')}
             ikon="pot"
           />
           <PaylasSecenek

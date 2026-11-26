@@ -73,3 +73,30 @@ export function uyumPuani(sorgu: string, metin: string): number {
   if (m.includes(s)) return 2
   return esles(sorgu, metin) ? 1 : 0
 }
+
+// SON ARANANLAR: her ekranin kendi listesi (en fazla 6), telefonda saklanir
+const KEY_SON = 'lz-son-arama-'
+export function sonAramalar(tur: string): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_SON + tur) || '[]') as string[]
+  } catch {
+    return []
+  }
+}
+export function sonAramaEkle(tur: string, q: string): void {
+  const t = q.trim()
+  if (t.length < 2) return
+  try {
+    const l = [t, ...sonAramalar(tur).filter((x) => x.toLocaleLowerCase('tr') !== t.toLocaleLowerCase('tr'))].slice(0, 6)
+    localStorage.setItem(KEY_SON + tur, JSON.stringify(l))
+  } catch {
+    /* yok */
+  }
+}
+export function sonAramaSil(tur: string): void {
+  try {
+    localStorage.removeItem(KEY_SON + tur)
+  } catch {
+    /* yok */
+  }
+}

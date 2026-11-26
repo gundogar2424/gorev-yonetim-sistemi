@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, markCooked } from '../db'
 import { Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMalzemeBolumle, apiAnahtari } from '../lib/ai'
+import { PisirmeAlti, PisirmeUstCubuk, useMutfakModu } from '../components/Pisirme'
 
 // PISIRME MODU: adimlar tek tek, buyuk yazi. Ekran acik kalir. Adimda
 // "10 dakika" gibi bir sure geciyorsa tek dokunusla geri sayim baslatilir.
@@ -17,6 +18,7 @@ export default function Cook() {
   const [hepsiAcik, setHepsiAcik] = useState(false)
   const [bolumluyor, setBolumluyor] = useState('')
   const bitti = useRef(false)
+  const [mutfak, mutfakDegistir] = useMutfakModu()
 
   // Ekran uyumasin (destekleyen cihazlarda)
   useEffect(() => {
@@ -88,27 +90,22 @@ export default function Cook() {
     setI(i + 1)
   }
 
+  const sifirla = () => {
+    setSayac(false)
+    setKalan(0)
+    setHepsiAcik(false)
+  }
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="px-4 pt-5 pb-3 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-white dark:bg-[#1c1c1f] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8]"
-          aria-label="Kapat"
-        >
-          <Icon name="x" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className={`font-semibold truncate ${T_BASLIK}`}>{r.title}</div>
-          <div className={`text-[12px] ${T_SOLUK}`}>{i < 0 ? 'Hazırlık' : `Adım ${i + 1} / ${adimlar.length}`}</div>
-        </div>
-      </div>
-
-      <div className="px-4">
-        <div className="h-1.5 rounded-full bg-[#f1f1ef] dark:bg-[#26262a] overflow-hidden">
-          <div className="h-full bg-lz-600 transition-all" style={{ width: `${((i + 1) / Math.max(1, adimlar.length)) * 100}%` }} />
-        </div>
-      </div>
+    <div className={`min-h-screen flex flex-col ${mutfak ? 'mutfak' : ''}`}>
+      <PisirmeUstCubuk
+        renk="normal"
+        baslik={r.title}
+        alt={i < 0 ? 'Hazırlık' : `Adım ${i + 1} / ${adimlar.length}`}
+        ilerleme={(i + 1) / Math.max(1, adimlar.length)}
+        kapat={() => navigate(-1)}
+        mutfak={mutfak}
+        mutfakDegistir={mutfakDegistir}
+      />
 
       <div className="flex-1 px-5 py-6 overflow-y-auto">
         {i < 0 ? (
@@ -126,10 +123,10 @@ export default function Cook() {
         ) : (
           <div>
             <div className="text-lz-600 font-bold text-lg mb-2">{i + 1}.</div>
-            <p className={`text-[24px] leading-[1.45] font-medium ${T_BASLIK}`}>{adim}</p>
+            <p className={`mutfak-adim text-[24px] leading-[1.55] font-medium ${T_BASLIK}`}>{adim}</p>
             {sureSn > 0 && (
               <div className="mt-6 lz-card p-4 flex items-center gap-4">
-                <div className={`text-3xl font-bold tabular-nums flex-1 ${T_BASLIK}`}>{saat(kalan || sureSn)}</div>
+                <div className={`text-[40px] leading-none font-bold tabular-nums flex-1 ${T_BASLIK}`}>{saat(kalan || sureSn)}</div>
                 {sayac ? (
                   <button className="lz-btn-soft" onClick={() => setSayac(false)}>
                     Durdur
@@ -193,32 +190,22 @@ export default function Cook() {
         )}
       </div>
 
-      <div className="px-4 pb-6 grid grid-cols-2 gap-3" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
-        <button
-          className="lz-btn-soft py-4"
-          disabled={i < 0}
-          onClick={() => {
-            setSayac(false)
-            setKalan(0)
-            setHepsiAcik(false)
-            setI(i - 1)
-          }}
-        >
-          ‹ Geri
-        </button>
-        <button
-          className="lz-btn-primary py-4"
-          disabled={adimlar.length === 0 && i >= 0}
-          onClick={() => {
-            setSayac(false)
-            setKalan(0)
-            setHepsiAcik(false)
-            void ileri()
-          }}
-        >
-          {i < 0 ? 'Başla ›' : son ? 'Afiyet olsun! ✓' : 'Sonraki ›'}
-        </button>
-      </div>
+      <PisirmeAlti
+        renk="normal"
+        ileriEtiket={i < 0 ? 'Başla ›' : son ? 'Afiyet olsun! ✓' : 'Sonraki ›'}
+        ileriKapali={adimlar.length === 0 && i >= 0}
+        ileri={() => {
+          sifirla()
+          void ileri()
+        }}
+        geriKapali={i < 0}
+        geri={() => {
+          sifirla()
+          setI(i - 1)
+        }}
+        buAdim={i < 0 ? `Malzemeler: ${r.ingredients.join(', ')}` : adim}
+        sonrakiAdim={i + 1 < adimlar.length ? `${i + 2}. adım. ${adimlar[i + 1]}` : ''}
+      />
     </div>
   )
 }

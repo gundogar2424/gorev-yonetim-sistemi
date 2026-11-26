@@ -7,11 +7,12 @@ import { sinirsizTeklif } from './Sinirsiz'
 import Buradayim from '../components/Buradayim'
 import { bugunAyYil, odemeler, tlYaz } from '../lib/harcama'
 import type { LzMekan } from '../types'
-import { Header, Icon, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
+import { Header, Icon, IskeletKartlar, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
+import { SonAramalar } from '../components/SonAramalar'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { linkAyikla } from '../lib/importer'
-import { esles } from '../lib/arama'
+import { esles, sonAramaEkle } from '../lib/arama'
 import {
   puanYaz,
   adrestenKonum,
@@ -32,7 +33,8 @@ let sonKonum: Konum | null = null
 // MEKANLARIM: internette gorulen yeme-icme yerleri. Yakinimdakiler en ustte.
 export default function Mekanlar() {
   const navigate = useNavigate()
-  const liste = useLiveQuery(() => lzDb.mekanlar.orderBy('createdAt').reverse().toArray(), [], [] as LzMekan[]) ?? []
+  const listeHam = useLiveQuery(() => lzDb.mekanlar.orderBy('createdAt').reverse().toArray(), [])
+  const liste = listeHam ?? []
   const [konum, setKonum] = useState<Konum | null>(sonKonum)
   const [konumMesaj, setKonumMesaj] = useState('')
   const [semt, setSemt] = useState('')
@@ -40,6 +42,7 @@ export default function Mekanlar() {
   const [ekleniyor, setEkleniyor] = useState('')
   const [hata, setHata] = useState('')
   const [arama, setArama] = useState('')
+  const [aramaOdak, setAramaOdak] = useState(false)
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
   // Mekan sayfasindaki etikete / yemege dokununca buraya ?etiket= / ?yemek= ile gelinir
   const [params] = useSearchParams()
@@ -328,7 +331,7 @@ export default function Mekanlar() {
               <Link to="/ayarlar" className="underline font-semibold">
                 Ayarlar
               </Link>
-              ’dan Gemini anahtarı gerekli.
+              ’dan Gemini veya Claude anahtarı gerekli.
             </p>
           )}
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
@@ -338,11 +341,18 @@ export default function Mekanlar() {
           <>
             <div id="mekan-listesi" className="space-y-2 scroll-mt-24">
               <input
-                className="lz-input py-2 text-[14px] w-full"
+                className="lz-input py-2 text-[14px] w-full min-h-[48px]"
                 placeholder="Ara: ad, semt, yemek…"
                 value={arama}
                 onChange={(e) => setArama(e.target.value)}
+                onFocus={() => setAramaOdak(true)}
+                onBlur={() => {
+                  setTimeout(() => setAramaOdak(false), 150)
+                  sonAramaEkle('mekan', arama)
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('mekan', arama)}
               />
+              {aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
               <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
                 <button className={`lz-chip whitespace-nowrap ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
                   Gitmek istediklerim
@@ -398,6 +408,7 @@ export default function Mekanlar() {
                 {yaricap} km içinde kayıtlı mekan yok. Mesafeyi büyüt ya da “Hepsi”ni seç.
               </div>
             )}
+            {listeHam === undefined && <IskeletKartlar adet={3} />}
             {sirali.map((m) => {
               const km = mesafe(m)
               return (
@@ -450,7 +461,13 @@ export default function Mekanlar() {
                       {[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}
                     </div>
                     {m.hype?.var && <div className="text-[12.5px] text-lz-600 font-semibold truncate">{m.hype.not || 'Şu an sosyal medyada konuşuluyor'}</div>}
-                    {m.oneriler.length > 0 && <div className={`text-[12.5px] truncate ${T_GOVDE}`}>{m.oneriler.slice(0, 3).join(', ')}</div>}
+                    {m.oneriler.length > 0 && (
+                      // Karta yalnizca en one cikan yemek buyuk; digerleri mekan sayfasinda
+                      <div className="flex items-baseline gap-1.5 min-w-0">
+                        <span className={`text-[15px] font-bold truncate ${T_BASLIK}`}>🍽 {m.oneriler[0]}</span>
+                        {m.oneriler.length > 1 && <span className={`text-[12px] flex-shrink-0 ${T_SOLUK}`}>+{m.oneriler.length - 1}</span>}
+                      </div>
+                    )}
                     {m.etiketler.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {m.etiketler.slice(0, 4).map((e) => (
@@ -474,7 +491,8 @@ export default function Mekanlar() {
 }
 
 // Tariflerim ustunde: konum izni daha once verildiyse yakindaki mekanlar icin serit
-export function YakinMekanSeridi() {
+// 3 km icindeki gidilmemis kayitli mekan sayisi (konum izni varsa)
+export function useYakinMekanSayisi(): number {
   const sayi = useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0
   const [yakin, setYakin] = useState(0)
   useEffect(() => {
@@ -498,6 +516,11 @@ export function YakinMekanSeridi() {
       iptal = true
     }
   }, [sayi])
+  return yakin
+}
+
+export function YakinMekanSeridi() {
+  const yakin = useYakinMekanSayisi()
   if (!yakin) return null
   return (
     <Link to="/mekanlar" className="lz-card p-3 flex items-center gap-3 ring-2 ring-lz-500/50">

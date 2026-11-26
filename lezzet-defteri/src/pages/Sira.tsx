@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { anlasilirHata, kalanYaz, siraIlerleme } from '../lib/siraIlerleme'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { temelLink } from '../lib/kopya'
 import { lzDb } from '../db'
@@ -7,11 +9,25 @@ import { Header, Icon, T_BASLIK, T_SOLUK } from '../components/ui'
 import { mekanOlarakTekrar, siraDurdur, siraIsle, siraTekrar } from '../lib/sira'
 
 // Durum isareti: renkli nokta (emojisiz)
-const IKON: Record<LzSira['durum'], string> = { bekliyor: 'bg-[#d4d4d8]', isleniyor: 'bg-amber-400 animate-pulse', bitti: 'bg-emerald-500', hata: 'bg-rose-500' }
+const IKON: Record<LzSira['durum'], string> = { bekliyor: 'bg-[#a1a1aa]', isleniyor: 'bg-amber-400 animate-pulse', bitti: 'bg-emerald-500', hata: 'bg-rose-500' }
+// Nokta tek basina kalmasin: yaninda durum yazisi
+const DURUM_AD: Record<LzSira['durum'], string> = { bekliyor: 'Sırada', isleniyor: 'İşleniyor', bitti: 'Bitti', hata: 'Hata' }
+const DURUM_YAZI: Record<LzSira['durum'], string> = {
+  bekliyor: 'text-[#52525b] dark:text-[#a1a1aa]',
+  isleniyor: 'text-amber-800 dark:text-amber-200',
+  bitti: 'text-emerald-700 dark:text-emerald-300',
+  hata: 'text-rose-700 dark:text-rose-300'
+}
 
 // Arka arkaya paylasilan tariflerin durumu
 export default function Sira() {
   const liste = useLiveQuery(() => lzDb.sira.orderBy('createdAt').reverse().toArray(), [], [] as LzSira[]) ?? []
+  // Yuzde ve kalan sure saniyede bir guncellensin
+  const [simdi, setSimdi] = useState(Date.now())
+  useEffect(() => {
+    const t = window.setInterval(() => setSimdi(Date.now()), 1000)
+    return () => window.clearInterval(t)
+  }, [])
   const bekleyen = liste.filter((x) => x.durum === 'bekliyor' || x.durum === 'isleniyor').length
   const biten = liste.filter((x) => x.durum === 'bitti')
   const hatali = liste.filter((x) => x.durum === 'hata')
@@ -47,16 +63,32 @@ export default function Sira() {
         {liste.length === 0 && <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>Sırada tarif yok.</div>}
         {liste.map((x) => (
           <div key={x.id} className="lz-card p-3.5 flex gap-3 items-start">
-            <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${IKON[x.durum]}`} />
             <div className="flex-1 min-w-0">
-              <div className={`font-semibold text-[14.5px] leading-snug line-clamp-2 break-all ${T_BASLIK}`}>{x.baslik}</div>
-              <div
-                className={`text-[12.5px] mt-0.5 ${
-                  x.durum === 'hata' || x.mesaj.startsWith('⚠️') ? 'text-rose-600 dark:text-rose-300' : T_SOLUK
-                }`}
-              >
-                {x.mesaj}
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${IKON[x.durum]}`} />
+                <span className={`text-[12px] font-bold ${DURUM_YAZI[x.durum]}`}>{DURUM_AD[x.durum]}</span>
               </div>
+              <div className={`font-semibold text-[14.5px] leading-snug line-clamp-2 break-all ${T_BASLIK}`}>{x.baslik}</div>
+              {(() => {
+                const il = x.durum === 'isleniyor' ? siraIlerleme(x.mesaj, x.basladi, x.asamaZamani, simdi) : null
+                return (
+                  <>
+                    <div
+                      className={`text-[12.5px] mt-0.5 ${
+                        x.durum === 'hata' || x.mesaj.startsWith('⚠️') ? 'text-rose-600 dark:text-rose-300' : T_SOLUK
+                      }`}
+                    >
+                      {x.durum === 'hata' ? anlasilirHata(x.mesaj) : x.mesaj.replace(/…$/, '')}
+                      {il ? ` %${il.yuzde} · ${kalanYaz(il.kalanSn)}` : ''}
+                    </div>
+                    {il && (
+                      <div className="mt-1.5 h-1.5 rounded-full bg-[#ececea] dark:bg-[#26262a] overflow-hidden">
+                        <div className="h-full bg-amber-400 transition-all" style={{ width: `${il.yuzde}%` }} />
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               <div className="flex flex-wrap gap-2 mt-2">
                 {x.durum === 'bitti' && !!x.mekanId && !!mekanHedefi(x) && (
                   <Link to={`/mekan/${mekanHedefi(x)}`} className="lz-btn-primary px-3 py-1.5 text-[12.5px]">
@@ -84,10 +116,21 @@ export default function Sira() {
                     ↻ Tekrar dene
                   </button>
                 )}
-                {x.durum === 'isleniyor' && Date.now() - (x.updatedAt ?? 0) > 3 * 60 * 1000 && (
-                  <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void siraDurdur(x.id!)}>
-                    ⏹ Durdur
-                  </button>
+                {x.durum === 'isleniyor' && (
+                  <>
+                    <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void siraDurdur(x.id!)}>
+                      ⏹ Durdur
+                    </button>
+                    <button
+                      className="lz-btn-soft px-3 py-1.5 text-[12.5px]"
+                      onClick={async () => {
+                        await siraDurdur(x.id!)
+                        await siraTekrar(x.id!)
+                      }}
+                    >
+                      ↻ Tekrar dene
+                    </button>
+                  </>
                 )}
                 {x.durum !== 'isleniyor' && (
                   <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void lzDb.sira.delete(x.id!)} aria-label="Sıradan sil">
@@ -121,17 +164,26 @@ export function SiraRozeti() {
 
 // Tariflerim ekraninin ustundeki kucuk durum seridi: sirada ya da yeni
 // eklenmis (henuz temizlenmemis) tarif varsa gorunur.
-export function SiraSeridi() {
+// Sira ozeti: ana sayfadaki birlesik durum seridi de kullanir
+export function useSiraOzeti(): { bekleyen: number; hata: number; biten: number; metin: string } {
   const liste = useLiveQuery(() => lzDb.sira.toArray(), [], [] as LzSira[]) ?? []
   const bekleyen = liste.filter((x) => x.durum === 'bekliyor' || x.durum === 'isleniyor').length
   const hata = liste.filter((x) => x.durum === 'hata').length
   const biten = liste.filter((x) => x.durum === 'bitti').length
-  if (!bekleyen && !hata && !biten) return null
-  const parca = [
+  const metin = [
     bekleyen ? `${bekleyen} tarif sırada işleniyor` : '',
     biten ? `${biten} tarif sıradan eklendi` : '',
     hata ? `${hata} tarif işlenemedi` : ''
-  ].filter(Boolean)
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  return { bekleyen, hata, biten, metin }
+}
+
+export function SiraSeridi() {
+  const { bekleyen, hata, biten, metin } = useSiraOzeti()
+  if (!bekleyen && !hata && !biten) return null
+  const parca = [metin]
   return (
     <Link to="/sira" className="lz-card p-3 flex items-center gap-3">
       <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${hata && !bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${bekleyen ? 'animate-pulse' : ''}`}>

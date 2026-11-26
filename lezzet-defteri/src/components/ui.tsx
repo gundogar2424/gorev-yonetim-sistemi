@@ -306,7 +306,8 @@ export function Thumb({ src, className = 'w-20 h-20 rounded-2xl', emoji = '' }: 
       </div>
     )
   }
-  return <img src={src} alt="" onError={() => setHata(true)} className={`${className} object-cover flex-shrink-0`} />
+  // Tembel yukleme: ekrana gelmeyen fotograf cozulmez, liste hizli acilir
+  return <img src={src} alt="" loading="lazy" decoding="async" onError={() => setHata(true)} className={`${className} object-cover flex-shrink-0`} />
 }
 
 const PLATFORM_RENK: Record<LzPlatform, string> = {
@@ -384,4 +385,19 @@ export function useToast(): [string, (s: string) => void] {
     window.setTimeout(() => setT((cur) => (cur === s ? '' : cur)), 2200)
   }
   return [t, goster]
+}
+
+// Liste yuklenirken bos ekran yerine iskelet kartlar
+export function IskeletKartlar({ adet = 4, izgara = false }: { adet?: number; izgara?: boolean }) {
+  return (
+    <div className={izgara ? 'grid grid-cols-2 gap-3' : 'space-y-3'} aria-busy="true" aria-label="Yükleniyor">
+      {Array.from({ length: adet }, (_, i) => (
+        <div key={i} className="lz-card p-3 space-y-2.5">
+          <div className={`lz-iskelet w-full ${izgara ? 'aspect-[4/3]' : 'h-20'}`} />
+          <div className="lz-iskelet h-4 w-3/4" />
+          <div className="lz-iskelet h-3 w-1/2" />
+        </div>
+      ))}
+    </div>
+  )
 }

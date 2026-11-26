@@ -1779,7 +1779,7 @@ export async function aiPilavPisirici(r: {
             sepet: { type: 'boolean' },
             su: { type: 'string', description: 'Steam adımında hazneye konan su (ör. "1 bardak"); diğerlerinde boş' },
             keepWarm: { type: 'string', enum: ['', 'acik', 'kapali', 'low', 'high'] },
-            butonlar: { type: 'string', description: 'Düğme sırası: "Menu Select ile Slow Cook seç, Time ile 6 sa yap, Start’a bas"' },
+            butonlar: { type: 'string', description: 'Düğme sırası: "Menu Select ile Slow Cook seç, + / - ile 6 sa yap, Start’a bas"' },
             tip: { type: 'string' }
           }
         }
@@ -1796,13 +1796,15 @@ export async function aiPilavPisirici(r: {
     '- Beyaz pilav: White Rice, su oranına uy. Şehriyeli pilavda önce Sauté ile şehriyeyi kavur, sonra pirinç + su ekleyip White Rice’a al.',
     '- Buharda sebze, balık: Steam, sepet + su (su miktarını yaz).',
     '- Güveç, kuru fasulye, et haşlama: Slow Cook.',
-    '- Kek, brownie, fırın tatlısı: White Rice KULLANMA (hamur susuz, makine erken Keep Warm’e geçer, altı yanar). Slow Cook, 1 saat 30 dakika; 1 saatte kürdanla kontrol et, hafif nemli kırıntı kalıyorsa tamam.',
+    '- Kek, brownie, fırın tatlısı: White Rice KULLANMA (hamur susuz, makine erken Keep Warm’e geçer, altı yanar). Slow Cook, 1 saat 30 dakika; 1 saatte kürdanla kontrol et, hafif nemli kırıntı kalıyorsa tamam. (Uygulama ayrıca kalıpla Steam 35–40 dk seçeneğini kendisi ekler.)',
+    '- Fırın dönüşümü: fırın 180 °C 25-30 dk kek = Slow Cook 1 sa 30 dk; fırın 200 °C sebze = Steam 10-15 dk.',
+    '- Sauté kendi durmaz (30 dk varsayılan): adımın sonunda Cancel’a basılır. Slow Cook ve White Rice bitince hemen Cancel; pilavda END yazınca kapağı 10 dakika açma, sonra Cancel.',
     '- Isıtma: Keep Warm Low veya High.',
     '- Derin kızartma isteyen tarif: uygun=false, uyarıya "Bu pişiricide olmaz" yaz, zorlama.',
     '- Fırında çıtır isteyen tarif: "Aynı çıtırlık olmaz, nemli olur" uyarısı ekle.',
     '- Sauté adımında kapak kapalı yazma. Steam adımında sepet ve su miktarını mutlaka yaz. MAX çizgisini aşma.',
-    '- Her cihaz adımında butonlar alanına düğme sırasını yaz (Menu Select, Time, Start, Keep Warm/Cancel).',
-    '- Hazne 5 litre: toplam 1 litreden azsa uyarı ver: "Hazneye göre az, 2 katına çıkarırsan daha düzgün pişer".',
+    '- Her cihaz adımında butonlar alanına düğme sırasını yaz: "Menu Select ile Slow Cook seç, + / - ile 1 sa 30 dk yap, Start’a bas". Bu makinede Time düğmesi YOK, asla yazma.',
+    '- MAX: toplam 2,5 kg’ı geçme. Kek hamuru 1 kg’dan azsa: "Hazneye göre az, 2 katına çıkar ya da kalıpla Steam’de pişir".',
     '- Malzeme hazırlama, kalıba dökme, soğutma gibi cihaz dışı adımlarda mod boş kalsın.'
   ].join('\n')
   const icerik = `TARİF: ${r.title}\nPorsiyon: ${r.servings || '-'}\nMALZEMELER:\n${r.ingredients.join('\n')}\nYAPILIŞI:\n${r.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}${r.notes ? `\nNOT: ${r.notes}` : ''}`

@@ -55,7 +55,7 @@ async function bildirimMetni(): Promise<string> {
 async function siradakiniAl(): Promise<LzSira | undefined> {
   return lzDb.transaction('rw', lzDb.sira, async () => {
     const is = (await lzDb.sira.where('durum').equals('bekliyor').sortBy('createdAt'))[0]
-    if (is) await lzDb.sira.update(is.id!, { durum: 'isleniyor', mesaj: 'Başlıyor…', updatedAt: Date.now() })
+    if (is) await lzDb.sira.update(is.id!, { durum: 'isleniyor', mesaj: 'Başlıyor…', updatedAt: Date.now(), basladi: Date.now(), asamaZamani: Date.now() })
     return is
   })
 }
@@ -87,8 +87,15 @@ async function isci(): Promise<void> {
       const metin = await bildirimMetni()
       servis((e) => e.guncelle({ metin }))
       const iptal = { v: false }
+      let sonMesaj = ''
       const g = async (patch: Partial<LzSira>) => {
-        if (!iptal.v) await lzDb.sira.update(is.id!, { ...patch, updatedAt: Date.now() })
+        if (iptal.v) return
+        const ek: Partial<LzSira> = {}
+        if (patch.mesaj && patch.mesaj !== sonMesaj) {
+          sonMesaj = patch.mesaj
+          ek.asamaZamani = Date.now()
+        }
+        await lzDb.sira.update(is.id!, { ...patch, ...ek, updatedAt: Date.now() })
       }
       let zaman: number | undefined
       let durdur: () => void = () => {}

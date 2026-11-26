@@ -84,7 +84,7 @@ export default function HypeTarifler() {
           )}
           {!aiVar && (
             <p className="text-[12.5px] text-rose-600">
-              Bunun için <Link to="/ayarlar" className="underline font-semibold">Ayarlar</Link>’dan Gemini anahtarı gerekli.
+              Bunun için <Link to="/ayarlar" className="underline font-semibold">Ayarlar</Link>’dan Gemini veya Claude anahtarı gerekli.
             </p>
           )}
         </div>

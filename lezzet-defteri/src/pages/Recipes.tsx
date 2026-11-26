@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { etkilesimEski, etkilesimGetir } from '../lib/begeni'
-import { esles } from '../lib/arama'
+import { esles, sonAramaEkle, sonAramalar } from '../lib/arama'
+import { SonAramalar } from '../components/SonAramalar'
 import { adaylar } from '../lib/hesaplar'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
-import { SiraRozeti, SiraSeridi } from './Sira'
-import { YakinMekanSeridi } from './Mekanlar'
+import { SiraRozeti, useSiraOzeti } from './Sira'
+import { useYakinMekanSayisi } from './Mekanlar'
 import type { LzRecipe, LzTable } from '../types'
-import { Header, Icon, Logo, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
+import { Header, Icon, IskeletKartlar, Logo, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
 
 const SOFRA_EMOJI = ['👩', '👨', '👧', '👦', '👵', '👴', '💑', '👶', '🎉', '🥗', '🏠', '🍽️']
 const YENI_GUN = 7
@@ -18,12 +19,13 @@ let begeniOkundu = false
 type Filtre = 'hepsi' | 'yeni' | 'favori' | string // string = etiket adi
 
 export default function Recipes() {
-  const navigate = useNavigate()
-  const tarifler = useLiveQuery(() => listRecipes(), [], [] as LzRecipe[]) ?? []
+  const tarifHam = useLiveQuery(() => listRecipes(), [])
+  const tarifler = tarifHam ?? []
   const mekanSayisi = useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0
   const sofralar = useLiveQuery(() => lzDb.sofralar.orderBy('name').toArray(), [], [] as LzTable[]) ?? []
   const [sekme, setSekme] = useState<'tarifler' | 'sofralar'>('tarifler')
   const [q, setQ] = useState('')
+  const [aramaOdak, setAramaOdak] = useState(false)
   const [filtre, setFiltre] = useState<Filtre>('hepsi')
   const [sofra, setSofra] = useState<number>(0)
   const [yeniSofra, setYeniSofra] = useState(false)
@@ -118,14 +120,27 @@ export default function Recipes() {
             </Link>
           ))}
         </div>
-        <SiraSeridi />
-        <YakinMekanSeridi />
+        <DurumSeridi />
         <label className="relative block">
           <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${T_SOLUK}`}>
             <Icon name="search" className="w-[18px] h-[18px]" />
           </span>
-          <input className="lz-input pl-11" placeholder="Kaydettiklerinde ara…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input
+            className="lz-input pl-11"
+            placeholder="Kaydettiklerinde ara…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onFocus={() => setAramaOdak(true)}
+            onBlur={() => {
+              setTimeout(() => setAramaOdak(false), 150)
+              sonAramaEkle('tarif', q)
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('tarif', q)}
+          />
         </label>
+        {aramaOdak && !q && sonAramalar('tarif').length > 0 && (
+          <SonAramalar tur="tarif" sec={(x) => setQ(x)} />
+        )}
 
         {/* Tariflerim / Sofralarım */}
         <div className="grid grid-cols-2 bg-[#ececea] dark:bg-[#1c1c1f] rounded-xl p-1">
@@ -173,14 +188,16 @@ export default function Recipes() {
               ))}
             </div>
 
-            {tarifler.length === 0 ? (
+            {tarifHam === undefined ? (
+              <IskeletKartlar adet={4} izgara />
+            ) : tarifler.length === 0 ? (
               <BosDefter />
             ) : gorunen.length === 0 ? (
               <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>
                 {filtre === 'begeni' ? 'Paylaşımların beğeni sayıları okunuyor; biraz sonra burada sıralanır.' : 'Bu seçime uyan tarif yok.'}
               </div>
             ) : (
-              <div className="space-y-2.5 pb-4">
+              <div className="grid grid-cols-2 gap-3 pb-4">
                 {gorunen.map((r) => (
                   <RecipeCard key={r.id} r={r} />
                 ))}
@@ -202,15 +219,6 @@ export default function Recipes() {
         )}
       </div>
 
-      <button
-        onClick={() => navigate('/ekle')}
-        className="fixed z-30 w-14 h-14 rounded-full bg-lz-600 text-white shadow-lg shadow-lz-600/30 flex items-center justify-center active:scale-95 transition"
-        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom))', right: 'max(1.25rem, calc(50vw - 18rem + 1.25rem))' }}
-        aria-label="Tarif ekle"
-      >
-        <Icon name="plus" className="w-7 h-7" />
-      </button>
-
       <YeniSofra open={yeniSofra} onClose={() => setYeniSofra(false)} />
       <YeniSofra open={!!duzenSofra} duzenle={duzenSofra ?? undefined} onClose={() => setDuzenSofra(null)} />
     </div>
@@ -225,29 +233,63 @@ function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () 
   )
 }
 
+// Tarif karti: fotograf ustte buyuk, baslik altinda, ayrintilar kucuk gri
 function RecipeCard({ r }: { r: LzRecipe }) {
-  const meta = [r.ingredients.length ? `${r.ingredients.length} malzeme` : '', sureYaz(r.minutes)].filter(Boolean).join(' · ')
+  const meta = [sureYaz(r.minutes), r.ingredients.length ? `${r.ingredients.length} malzeme` : ''].filter(Boolean).join(' · ')
   return (
-    <div className="lz-card p-2.5 flex items-center gap-3">
-      <Link to={`/tarif/${r.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-        <Thumb src={r.photo} className="w-[76px] h-[76px] rounded-2xl" />
-        <div className="min-w-0 flex-1 py-0.5">
-          <div className={`font-semibold text-[15.5px] leading-snug line-clamp-2 ${T_BASLIK}`}>{r.title}</div>
-          <div className="mt-1">
-            <PlatformLabel r={r} />
-          </div>
-          {meta && <div className={`text-[12px] mt-0.5 ${T_SOLUK}`}>{meta}</div>}
+    <div className="lz-card overflow-hidden flex flex-col min-w-0">
+      <div className="relative">
+        <Link to={`/tarif/${r.id}`} aria-label={r.title}>
+          <Thumb src={r.photo} className="w-full aspect-[4/3] rounded-none" />
+        </Link>
+        <button
+          onClick={() => r.id && toggleFavorite(r.id)}
+          className={`absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-white/85 dark:bg-black/50 backdrop-blur flex items-center justify-center ${r.favorite ? 'text-amber-400' : 'text-[#a1a1aa]'}`}
+          aria-label={r.favorite ? 'Favoriden çıkar' : 'Favoriye ekle'}
+        >
+          <svg viewBox="0 0 24 24" className="w-[20px] h-[20px]" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+            <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8z" strokeLinejoin="round" />
+          </svg>
+        </button>
+        {r.etkilesim?.puan ? (
+          <span className="absolute bottom-1.5 left-1.5 text-[11.5px] font-bold px-2 py-0.5 rounded-full bg-black/60 text-white">★ {r.etkilesim.puan}/10</span>
+        ) : null}
+      </div>
+      <Link to={`/tarif/${r.id}`} className="p-2.5 flex flex-col gap-1 flex-1 min-w-0">
+        <div className={`font-semibold text-[14.5px] leading-snug line-clamp-2 ${T_BASLIK}`}>{r.title}</div>
+        {meta && <div className={`text-[12px] ${T_SOLUK}`}>{meta}</div>}
+        <div className="mt-auto pt-0.5 text-[11.5px] min-w-0 truncate">
+          <PlatformLabel r={r} />
         </div>
       </Link>
-      <button
-        onClick={() => r.id && toggleFavorite(r.id)}
-        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${r.favorite ? 'text-amber-400' : 'text-[#dcdbd7] dark:text-[#3a3a40]'}`}
-        aria-label={r.favorite ? 'Favoriden çıkar' : 'Favoriye ekle'}
-      >
-        <svg viewBox="0 0 24 24" className="w-[22px] h-[22px]" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
-          <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8z" strokeLinejoin="round" />
-        </svg>
-      </button>
+    </div>
+  )
+}
+
+// Sira ve yakindaki mekanlar tek seritte
+function DurumSeridi() {
+  const s = useSiraOzeti()
+  const yakin = useYakinMekanSayisi()
+  const sira = s.bekleyen || s.hata || s.biten
+  if (!sira && !yakin) return null
+  return (
+    <div className="lz-card flex items-stretch divide-x divide-[#ebeae7] dark:divide-[#2a2a2e] overflow-hidden">
+      {sira ? (
+        <Link to="/sira" className="flex-1 min-w-0 flex items-center gap-2.5 p-3 min-h-[56px]">
+          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${s.hata && !s.bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${s.bekleyen ? 'animate-pulse' : ''}`}>
+            <Icon name="inbox" className="w-[17px] h-[17px]" />
+          </span>
+          <span className={`text-[12.5px] font-medium leading-snug ${T_BASLIK}`}>{s.metin}</span>
+        </Link>
+      ) : null}
+      {yakin ? (
+        <Link to="/mekanlar" className={`${sira ? 'flex-none max-w-[48%]' : 'flex-1'} min-w-0 flex items-center gap-2.5 p-3 min-h-[56px]`}>
+          <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-lz-50 text-lz-600 dark:bg-[#3a1d16]">
+            <Icon name="pin" className="w-[17px] h-[17px]" />
+          </span>
+          <span className={`text-[12.5px] font-medium leading-snug ${T_BASLIK}`}>Yakınında {yakin} mekan</span>
+        </Link>
+      ) : null}
     </div>
   )
 }

@@ -97,7 +97,7 @@ export function DuzenlemeSohbeti({
         <Link to="/ayarlar" className="underline font-semibold">
           Ayarlar
         </Link>
-        ’dan Gemini anahtarı gerekli.
+        ’dan Gemini veya Claude anahtarı gerekli.
       </p>
     )
 

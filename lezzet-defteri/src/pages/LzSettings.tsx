@@ -40,6 +40,7 @@ export default function LzSettings() {
     <div>
       <Header title="Ayarlar" />
       <div className="px-4 space-y-3 pb-8">
+        <YedekOzeti />
         <section className="lz-card p-4 space-y-3">
           <div className={`font-semibold ${T_BASLIK}`}>Yapay zeka (isteğe bağlı)</div>
           <p className={`text-[13px] ${T_SOLUK}`}>
@@ -145,7 +146,7 @@ export default function LzSettings() {
           <div className={`font-semibold ${T_BASLIK}`}>Videodaki konuşma</div>
           <p className={`text-[13px] ${T_SOLUK}`}>
             Claude seçiliyken, tarif açıklamada yazmıyorsa videoda söylenenler telefonun içinde yazıya çevrilir (ses hiçbir yere gönderilmez). Model
-            ilk kullanımda bir kez indirilir. Gemini seçiliyse bu gerekmez: Gemini videoyu kendisi dinler (18 MB’tan büyük videolarda yine bu kullanılır).
+            ilk kullanımda bir kez indirilir. Gemini seçiliyse bu gerekmez: Gemini videoyu kendisi dinler (13 MB’tan büyük videolarda yine bu kullanılır).
           </p>
           <div className="space-y-2">
             {SES_MODELLERI.map((m) => (
@@ -417,6 +418,24 @@ function PisiriciKarti() {
         </>
       )}
     </section>
+  )
+}
+
+// Ayarlar'in en ustunde her zaman: son yedek saati, kac tarif, kac mekan
+function YedekOzeti() {
+  const son = sonOtomatikYedek()
+  const iyi = son && Date.now() - son.zaman < 36 * 3600 * 1000
+  return (
+    <div className={`rounded-2xl p-3.5 flex items-center gap-3 ${iyi ? 'bg-emerald-50 dark:bg-[#10261e]' : 'bg-amber-50 dark:bg-[#33270f]'}`}>
+      <span className="text-[22px]" aria-hidden="true">{iyi ? '✓' : '!'}</span>
+      <div className={`text-[13.5px] ${iyi ? 'text-emerald-900 dark:text-emerald-200' : 'text-amber-900 dark:text-amber-200'}`}>
+        <b>Son yedek:</b>{' '}
+        {son
+          ? `${new Date(son.zaman).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${son.tarif} tarif · ${son.mekan} mekan`
+          : 'henüz alınmadı'}
+        <div className="text-[12px] opacity-80">Belgeler → LezzetRotasi klasöründe. Aşağıdaki Yedekleme bölümünden “Şimdi yedekle”.</div>
+      </div>
+    </div>
   )
 }
 

@@ -4,6 +4,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, markCooked } from '../db'
 import { Icon, T_BASLIK, T_SOLUK } from '../components/ui'
 import { adimKutulari, cihazAdimi, modAdi, tmSurumDenetle } from '../lib/tm7'
+import { PisirmeAlti, PisirmeUstCubuk, useMutfakModu } from '../components/Pisirme'
+import { adimOzeti, type TmAdim } from '../lib/tm7'
 
 // TM7 PISIRME MODU: her adimda cihaz ayarlari (sure / sicaklik / devir / yon)
 // buyuk kutucuklarda; sureli adimda tek dokunusla geri sayim. Ekran uyumaz.
@@ -14,6 +16,7 @@ export default function TmCook() {
   const [i, setI] = useState(0)
   const [kalan, setKalan] = useState(0)
   const [sayac, setSayac] = useState(false)
+  const [mutfak, mutfakDegistir] = useMutfakModu()
 
   useEffect(() => {
     let kilit: { release: () => Promise<void> } | null = null
@@ -57,27 +60,16 @@ export default function TmCook() {
   const kutular = adimKutulari(a).map(([ad, deger]) => ({ ad, deger }))
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="px-4 pt-5 pb-3 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-white dark:bg-[#1c1c1f] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8]"
-          aria-label="Kapat"
-        >
-          <Icon name="x" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className={`font-semibold truncate ${T_BASLIK}`}>{r.title}</div>
-          <div className={`text-[12px] ${T_SOLUK}`}>
-            TM7 · Adım {i + 1} / {adimlar.length}
-          </div>
-        </div>
-      </div>
-      <div className="px-4">
-        <div className="h-1.5 rounded-full bg-[#f1f1ef] dark:bg-[#26262a] overflow-hidden">
-          <div className="h-full bg-lz-600 transition-all" style={{ width: `${((i + 1) / adimlar.length) * 100}%` }} />
-        </div>
-      </div>
+    <div className={`min-h-screen flex flex-col ${mutfak ? 'mutfak' : ''}`}>
+      <PisirmeUstCubuk
+        renk="tm"
+        baslik={r.title}
+        alt={`Thermomix TM7 · Adım ${i + 1} / ${adimlar.length}`}
+        ilerleme={(i + 1) / adimlar.length}
+        kapat={() => navigate(-1)}
+        mutfak={mutfak}
+        mutfakDegistir={mutfakDegistir}
+      />
 
       <div className="flex-1 px-5 py-5 overflow-y-auto space-y-4">
         {a.ingredients && (
@@ -86,9 +78,9 @@ export default function TmCook() {
             <div className={`text-[19px] font-semibold ${T_BASLIK}`}>{a.ingredients}</div>
           </div>
         )}
-        <p className={`text-[23px] leading-[1.45] font-medium ${T_BASLIK}`}>{a.text}</p>
+        <p className={`mutfak-adim text-[24px] leading-[1.55] font-medium ${T_BASLIK}`}>{a.text}</p>
         {!cihazAdimi(a) && <div className={`lz-pill text-[13px] ${T_SOLUK}`}>Cihaz dışı adım</div>}
-        {a.mode && <div className="lz-pill text-[14px] !bg-lz-600 !text-white">{modAdi(a.mode)}</div>}
+        {a.mode && <div className="lz-pill text-[14px] !bg-tm !text-white">{modAdi(a.mode)}</div>}
         {kutular.length > 0 && (
           <div className={`grid gap-2 ${kutular.length >= 4 ? 'grid-cols-4' : kutular.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
             {kutular.map((k) => (
@@ -102,7 +94,7 @@ export default function TmCook() {
         {a.tip && <p className={`text-[14px] rounded-2xl bg-amber-50 dark:bg-[#2a2113] text-amber-900 dark:text-amber-200 p-3`}>{a.tip}</p>}
         {a.seconds > 0 && (
           <div className="lz-card p-4 flex items-center gap-4">
-            <div className={`text-3xl font-bold tabular-nums flex-1 ${T_BASLIK}`}>{sayacYaz(kalan || a.seconds)}</div>
+            <div className={`text-[40px] leading-none font-bold tabular-nums flex-1 ${T_BASLIK}`}>{sayacYaz(kalan || a.seconds)}</div>
             {sayac ? (
               <button className="lz-btn-soft" onClick={() => setSayac(false)}>
                 Durdur
@@ -128,17 +120,20 @@ export default function TmCook() {
           {sonraki.text}
         </p>
       )}
-      <div className="px-4 grid grid-cols-2 gap-3" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
-        <button className="lz-btn-soft py-4" disabled={i === 0} onClick={() => void git(i - 1)}>
-          ‹ Geri
-        </button>
-        <button className="lz-btn-primary py-4" onClick={() => void git(i + 1)}>
-          {son ? 'Afiyet olsun! ✓' : 'Sonraki ›'}
-        </button>
-      </div>
+      <PisirmeAlti
+        renk="tm"
+        ileriEtiket={son ? 'Afiyet olsun! ✓' : 'Sonraki ›'}
+        ileri={() => void git(i + 1)}
+        geriKapali={i === 0}
+        geri={() => void git(i - 1)}
+        buAdim={adimMetni(a)}
+        sonrakiAdim={sonraki ? `${i + 2}. adım. ${adimMetni(sonraki)}` : ''}
+      />
     </div>
   )
 }
+
+const adimMetni = (x: TmAdim) => [x.ingredients ? `Kaba ekle: ${x.ingredients}.` : '', x.text, adimOzeti(x) ? `Ayar: ${adimOzeti(x).replace(/ · /g, ', ')}.` : '', x.tip].filter(Boolean).join(' ')
 
 function sayacYaz(sn: number): string {
   const d = Math.floor(sn / 60)

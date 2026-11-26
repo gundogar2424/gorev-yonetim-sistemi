@@ -46,7 +46,7 @@ export default function TmDetail() {
           <TarifSekmeleri id={r.id!} aktif="tm" />
           <p className={`text-sm ${T_SOLUK}`}>Bu tarif henüz Thermomix’e uyarlanmadı.</p>
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
-          <button className="lz-btn-primary w-full" disabled={calisiyor} onClick={() => void yeniden()}>
+          <button className="lz-btn-primary w-full !bg-tm" disabled={calisiyor} onClick={() => void yeniden()}>
             {calisiyor ? 'Uyarlanıyor…' : 'Thermomix’e uyarla'}
           </button>
         </div>
@@ -103,7 +103,7 @@ export default function TmDetail() {
       />
       <div className="px-4 space-y-3 pb-8">
         <TarifSekmeleri id={r.id!} aktif="tm" />
-        <Link to={`/thermomix/${r.id}/pisir`} className="lz-btn-primary w-full">
+        <Link to={`/thermomix/${r.id}/pisir`} className="lz-btn-primary w-full !bg-tm">
           <Icon name="play" className="w-4 h-4" /> TM7’de pişir
         </Link>
         <button className="lz-btn-soft w-full text-[14.5px]" onClick={() => setSohbetAc(true)}>
@@ -167,7 +167,7 @@ export default function TmDetail() {
           <ol className="space-y-3">
             {tm.steps.map((s, i) => (
               <li key={i} className={`flex gap-3 rounded-2xl p-3 ${cihazAdimi(s) ? 'bg-[#f7f7f5] dark:bg-[#1c1c1f]' : 'border border-dashed border-[#e4e3e0] dark:border-[#2e2e33]'}`}>
-                <span className="w-7 h-7 rounded-full bg-lz-600 text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                <span className="w-7 h-7 rounded-full bg-tm text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
                 <div className="min-w-0 flex-1 space-y-1.5">
                   {s.ingredients && (
                     <p className={`text-[13.5px] font-semibold ${T_BASLIK}`}>

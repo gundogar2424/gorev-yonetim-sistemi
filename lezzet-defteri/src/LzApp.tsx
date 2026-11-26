@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { otomatikYedek, sitedenGeriYukle } from './lib/backup'
 import { ppOtoUret } from './lib/ppOto'
-import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { buyukFotolariSikistir } from './lib/image'
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Icon, type IconName } from './components/ui'
 import Recipes from './pages/Recipes'
 import AddRecipe from './pages/AddRecipe'
@@ -15,6 +16,7 @@ import NePisirsem from './pages/NePisirsem'
 import Thermomix from './pages/Thermomix'
 import TmDetail from './pages/TmDetail'
 import PpDetail from './pages/PpDetail'
+import PpCook from './pages/PpCook'
 import TmCook from './pages/TmCook'
 import Diyetim from './pages/Diyetim'
 import Sira from './pages/Sira'
@@ -49,7 +51,7 @@ const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
 export default function LzApp() {
   // Pisirme modu tam ekran: alt menu gizlenir (buyuk Geri/Sonraki dugmeleri ortulmesin)
   const yol = useLocation().pathname
-  const pisirme = yol.startsWith('/pisir') || /^\/thermomix\/\d+\/pisir/.test(yol)
+  const pisirme = /^\/pisir\/\d+/.test(yol) || /^\/(thermomix|pisirici)\/\d+\/pisir/.test(yol)
   const navigate = useNavigate()
 
   // Android "Paylaş" menusu: baska uygulamadan (Instagram, TikTok...) paylasilan
@@ -91,6 +93,8 @@ export default function LzApp() {
     // Telefonda tarif yoksa sitedeki yedekten kendiliginden yukle; yedek ondan sonra alinir
     void sitedenGeriYukle()
     const yedekT = setTimeout(() => void otomatikYedek().catch(() => undefined), 30000)
+    // Buyuk eski fotograflar arka planda sikistirilir (liste hizli acilsin)
+    const fotoT = setTimeout(() => void buyukFotolariSikistir().catch(() => undefined), 45000)
     // Ayni videodan kaydedilip paylasani bos kalan mekanlar tamamlanir (yapay zekasiz)
     void paylasanTamamla()
     const gorunur = () => document.visibilityState === 'visible' && void siraBekci()
@@ -98,6 +102,7 @@ export default function LzApp() {
     return () => {
       clearTimeout(yeniT)
       clearTimeout(yedekT)
+      clearTimeout(fotoT)
       document.removeEventListener('visibilitychange', gorunur)
     }
   }, [])
@@ -115,6 +120,7 @@ export default function LzApp() {
           <Route path="/thermomix" element={<Thermomix />} />
           <Route path="/thermomix/:id" element={<TmDetail />} />
           <Route path="/pisirici/:id" element={<PpDetail />} />
+          <Route path="/pisirici/:id/pisir" element={<PpCook />} />
           <Route path="/thermomix/:id/pisir" element={<TmCook />} />
           <Route path="/sira" element={<Sira />} />
           <Route path="/mekanlar" element={<Mekanlar />} />
@@ -140,11 +146,25 @@ export default function LzApp() {
 
       {!pisirme && (
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-5 z-20 backdrop-blur-xl bg-white/90 dark:bg-[#111113]/90 border-t border-[#e9e8e5] dark:border-[#26262a]"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-6 z-20 backdrop-blur-xl bg-white/90 dark:bg-[#111113]/90 border-t border-[#e9e8e5] dark:border-[#26262a]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {tabs.map((t) => (
-          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1">
+        {tabs.flatMap((t, i) => [
+          ...(i === 2
+            ? [
+                // Tarif ekle: alt menunun ortasinda buyuk yuvarlak dugme
+                <div key="ekle" className="flex items-start justify-center">
+                  <Link
+                    to="/ekle"
+                    aria-label="Tarif ekle"
+                    className="-mt-5 w-[60px] h-[60px] rounded-full bg-lz-600 text-white flex items-center justify-center shadow-lg shadow-lz-600/30 ring-4 ring-white dark:ring-[#111113] active:scale-95 transition"
+                  >
+                    <Icon name="plus" className="w-7 h-7" />
+                  </Link>
+                </div>
+              ]
+            : []),
+          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1 min-h-[56px]">
             {({ isActive }) => (
               <>
                 <span className={`px-4 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
@@ -163,7 +183,7 @@ export default function LzApp() {
               </>
             )}
           </NavLink>
-        ))}
+        ])}
       </nav>
       )}
     </div>

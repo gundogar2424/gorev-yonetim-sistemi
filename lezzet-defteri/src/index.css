@@ -90,7 +90,7 @@ textarea {
     @apply focus:ring-4 focus:ring-lz-100 focus:border-lz-400;
   }
   .lz-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition text-[15px] tracking-[-0.01em];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition text-[15px] tracking-[-0.01em] min-h-[48px];
     @apply active:scale-[0.98] disabled:opacity-45 disabled:active:scale-100;
   }
   .lz-btn-primary {
@@ -107,7 +107,7 @@ textarea {
     @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a8a93];
   }
   .lz-chip {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition whitespace-nowrap;
+    @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition whitespace-nowrap min-h-[48px];
     @apply bg-white text-[#3f3f46] border border-[#e4e3e0];
   }
   .lz-chip-on {
@@ -155,3 +155,28 @@ textarea {
 .lz-app input[type='checkbox'] {
   accent-color: #d93d20;
 }
+
+/* Koyu tema: domates kirmizisi %20 koyu (gece goz almasin) */
+.dark .bg-lz-600 { background-color: #ae311a; }
+.dark .hover\:bg-lz-700:hover { background-color: #8b2715; }
+.dark .bg-lz-500 { background-color: #be3d25; }
+.dark .text-lz-600 { color: #e0583c; }
+.dark .border-lz-600 { border-color: #ae311a; }
+/* Koyu tema uyari kutulari: koyu zemin, okunur acik sari */
+.dark .bg-amber-50 { background-color: #33270f; }
+.dark .text-amber-900, .dark .text-amber-800 { color: #f6dc9c; }
+
+/* MUTFAK MODU: pisirme ekraninda buyuk yazi, yuksek kontrast */
+.mutfak { background: #000 !important; color: #fff !important; }
+.mutfak .mutfak-adim { font-size: 32px !important; line-height: 1.45 !important; color: #fff !important; }
+.mutfak .lz-card { background: #111 !important; border-color: #333 !important; }
+.mutfak .mutfak-sonraki { min-height: 88px !important; font-size: 22px !important; }
+
+/* Iskelet kart (liste yuklenirken) */
+@keyframes lz-parilti { 0% { background-position: -200px 0 } 100% { background-position: 200px 0 } }
+.lz-iskelet { background: linear-gradient(90deg, #ecebe8 0px, #f6f5f3 80px, #ecebe8 160px); background-size: 400px 100%; animation: lz-parilti 1.2s infinite linear; border-radius: 12px; }
+.dark .lz-iskelet { background: linear-gradient(90deg, #1f1f23 0px, #2a2a2f 80px, #1f1f23 160px); background-size: 400px 100%; }
+@media (prefers-reduced-motion: reduce) { .lz-iskelet { animation: none; } }
+.mutfak p, .mutfak li, .mutfak h2, .mutfak .lz-card div, .mutfak .lz-card span { color: #f4f4f5 !important; }
+.mutfak .bg-amber-50 { background-color: #33270f !important; }
+.mutfak .lz-card li { font-size: 22px !important; }

@@ -367,6 +367,7 @@ export default function AddRecipe() {
                 besin: t.besin
               })
               if (t.tm) await updateRecipe(id, { tm: t.tm })
+              if (t.pp) await updateRecipe(id, { pp: t.pp })
               navigate(`/tarif/${id}`)
             } catch (err) {
               setHata((err as Error).message)

@@ -125,7 +125,7 @@ async function yerelleriIsaretle(): Promise<LzMekan[]> {
 
 export async function kampanyaKontrolEt(konum?: { lat: number; lon: number }): Promise<{ bakilan: number; bulunan: LzMekan[] }> {
   if (durum.calisiyor) return { bakilan: 0, bulunan: [] }
-  if (!apiAnahtari()) throw new Error('Kampanya araştırması için Ayarlar’dan Gemini anahtarı gir.')
+  if (!apiAnahtari()) throw new Error('Kampanya araştırması için Ayarlar’dan Gemini veya Claude anahtarı gir.')
   const bulunan: LzMekan[] = await yerelleriIsaretle()
   const liste = await hedefMekanlar(konum)
   durumYaz({ calisiyor: true, mesaj: `${liste.length} mekanın kampanyalarına bakılıyor…` })
@@ -165,6 +165,6 @@ async function tekMekan(m: LzMekan) {
 }
 
 export async function mekanKampanyasi(m: LzMekan): Promise<boolean> {
-  if (!apiAnahtari()) throw new Error('Kampanya araştırması için Ayarlar’dan Gemini anahtarı gir.')
+  if (!apiAnahtari()) throw new Error('Kampanya araştırması için Ayarlar’dan Gemini veya Claude anahtarı gir.')
   return (await tekMekan(m)).var || !!yerelKampanya(m)
 }

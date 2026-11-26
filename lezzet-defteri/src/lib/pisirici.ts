@@ -15,8 +15,9 @@ export interface PpAdim {
   sepet: boolean // buhar sepeti takili
   su: string // Steam'de haznenin dibine konan su ("1 bardak")
   keepWarm: PpKeepWarm
-  butonlar: string // "Menu Select ile Slow Cook seç, Start'a bas"
+  butonlar: string // "Menu Select ile Slow Cook seç, + / - ile 1 sa 30 dk yap, Start'a bas"
   tip: string
+  bitince?: string // cihaz bitince ne yapilacak (Cancel, kapagi acma…); kural denetimi doldurur
 }
 
 export interface PpSurum {
@@ -26,6 +27,7 @@ export interface PpSurum {
   uygun: boolean // false: bu tarif bu cihazda yapilamaz (derin kizartma vb.)
   cihaz: string
   createdAt: number
+  alternatif?: { baslik: string; adimlar: string[] } // kek/brownie icin 2. secenek (kalipla Steam)
 }
 
 export const PP_CIHAZLAR = [{ id: 'mrrc2001we', ad: 'Instant Pot MRRC2001WE (20-Cup Multigrain Rice Cooker + Steamer, 5 L, 860 W)' }] as const
@@ -74,10 +76,12 @@ export const PP_KILAVUZ = [
   'Mixed Grains: 1 bardağa 1.2 bardak su.',
   'Quinoa: 1 bardağa 1.5 bardak su.',
   'Steam: varsayılan 10 dakika, 5 dakika ile 1 saat arası; sepet + en az yarım bardak su şart.',
-  'Slow Cook: varsayılan 6 saat, 30 dakika ile 24 saat arası; Keep Warm varsayılan AÇIK.',
-  'Sauté: varsayılan 30 dakika, 1 ile 30 dakika arası; kapak AÇIK; Keep Warm varsayılan KAPALI.',
+  'Slow Cook: varsayılan 6 saat, 30 dakika ile 24 saat arası; Keep Warm varsayılan AÇIK. Bitince hemen Cancel.',
+  'Sauté: varsayılan 30 dakika, 1 ile 30 dakika arası; kapak AÇIK; Keep Warm varsayılan KAPALI. Kendi durmaz, bitince Cancel.',
   'Keep Warm: Low ya da High (ısıtma/sıcak tutma).',
-  'YOK: Cake, Pressure Cook, Air Fry, derin kızartma. Bunları asla yazma.'
+  'Düğmeler: Menu Select (mod seçimi), + / - (süre), Start, Cancel. Time düğmesi YOK.',
+  'MAX çizgisi: toplam 2,5 kg’ı geçme (hazne MAX çizgisine kadar yaklaşık 2,8 litre).',
+  'YOK: Cake, Pressure Cook, Air Fry, derin kızartma, Time düğmesi. Bunları asla yazma.'
 ]
 
 export function sureYazi(dk: number): string {
@@ -127,25 +131,60 @@ const KEK = /\b(kek|keki|brownie|cake|muffin|cheesecake|pandispanya|fırın tatl
 const DERIN = /(derin yağ|bol yağda|kızgın yağda|kızartma yağında|deep fry|derin kızart|yağda kızart)/
 const CITIR = /(çıtır|fırında kızar|fırında altı kızar|gratin|üstü kızar)/
 const ERIT = /(erit|eriyene)/
+const FIRIN = /fırın/
+const SEBZE = /(sebze|patates|kabak|patlıcan|biber|havuç|brokoli|karnabahar|mantar|domates|soğan|bezelye|fasulye)/
 
 function butonMetni(a: PpAdim): string {
   const s = sureYazi(a.dakika)
+  const sure = s ? `, + / - ile ${s} yap` : ''
   switch (a.mod) {
     case 'saute':
-      return `Kapağı açık bırak. Menu Select ile Sauté seç${s ? `, Time ile ${s} yap` : ''}, Start’a bas. Bitince Keep Warm/Cancel ile Cancel’a bas.`
+      return `Kapağı açık bırak. Menu Select ile Sauté seç${sure}, Start’a bas.`
     case 'steam':
-      return `Hazneye ${a.su || 'en az yarım bardak'} su koy, buhar sepetini yerleştir, kapağı kapat. Menu Select ile Steam seç${s ? `, Time ile ${s} yap` : ''}, Start’a bas.`
+      return `Hazneye ${a.su || 'en az yarım bardak'} su koy, buhar sepetini yerleştir, kapağı kapat. Menu Select ile Steam seç${sure}, Start’a bas.`
     case 'slowCook':
-      return `Kapağı kapat. Menu Select ile Slow Cook seç${s ? `, Time ile ${s} yap` : ''}${a.keepWarm === 'kapali' ? ', Keep Warm’u kapat' : ''}, Start’a bas.`
+      return `Kapağı kapat. Menu Select ile Slow Cook seç${sure}, Start’a bas.`
     case 'carbReduce':
       return 'Pirinci sepete koy, sepeti hazneye yerleştir, kapağı kapat. Menu Select ile CarbReduce seç, Start’a bas (40 dk).'
     case 'keepWarm':
-      return `Keep Warm/Cancel düğmesiyle Keep Warm ${a.keepWarm === 'high' ? 'High' : 'Low'} seç.`
+      return `Menu Select ile Keep Warm ${a.keepWarm === 'high' ? 'High' : 'Low'} seç, Start’a bas.`
     case '':
       return ''
     default:
-      return `Kapağı kapat. Menu Select ile ${ppModAdi(a.mod)} seç, Start’a bas. Bitince kendiliğinden Keep Warm’e geçer.`
+      return `Kapağı kapat. Menu Select ile ${ppModAdi(a.mod)} seç, Start’a bas.`
   }
+}
+
+// Cihaz bitince yapilacak: kullanici Keep Warm'de unutmasin
+function bitinceMetni(a: PpAdim): string {
+  switch (a.mod) {
+    case 'saute':
+      return 'Sauté 30 dk varsayılanla çalışır, kendi durmaz: süre dolunca ya da iş bitince Cancel’a bas.'
+    case 'slowCook':
+      return 'Bitince hemen Cancel’a bas, Keep Warm’de bırakma.'
+    case 'steam':
+      return 'Bitince Cancel’a bas; sepeti çıkarırken buhara dikkat et.'
+    case 'whiteRice':
+    case 'brownRice':
+    case 'mixedGrains':
+    case 'quinoa':
+      return 'END yazınca kapağı 10 dakika açma, sonra Cancel’a bas. Keep Warm’de bırakma.'
+    case 'carbReduce':
+      return 'Bitince hemen Cancel’a bas, Keep Warm’de bırakma.'
+    default:
+      return ''
+  }
+}
+
+// Kek/brownie icin 2. secenek: kalipla Steam (hamur az olsa da duzgun pisirir)
+export const KALIP_STEAM = {
+  baslik: 'Seçenek 2: Kalıpla Steam, 35–40 dk',
+  adimlar: [
+    'Hamuru hazneye sığan, ısıya dayanıklı bir kalıba dök; üzerini folyo ile kapat.',
+    'Hazneye 2 bardak su koy, buhar sepetini yerleştir, kalıbı sepete koy, kapağı kapat.',
+    'Menu Select ile Steam seç, + / - ile 40 dk yap, Start’a bas.',
+    '35. dakikada kürdanla kontrol et; hafif nemli kırıntı kalıyorsa tamamdır. Bitince Cancel’a bas.'
+  ]
 }
 
 // KURAL DENETIMI: cihazin gercek sinirlari ve kullanicinin donusum kurallari
@@ -157,6 +196,10 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
 
   const steps = pp.steps.map((a0, i) => {
     const a = { ...a0 }
+    // Bu makinede Time dugmesi yok: yapay zeka yazdiysa "+ / -" yap
+    const timeYok = (x: string) => x.replace(/\bTime\s*(düğmesi(yle)?\s*)?(ile)?/g, '+ / - ile ').replace(/\s{2,}/g, ' ')
+    a.text = timeYok(a.text)
+    a.tip = timeYok(a.tip)
     const ham = hamModlar[i] ?? ''
     const t = sade(`${a.text} ${a.ingredients}`)
     // Cake / Pressure Cook / Bake gibi olmayan modlar: Slow Cook
@@ -178,6 +221,12 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
       }
       if (!/kürdan/i.test(a.tip)) a.tip = [a.tip, '1 saatte kürdanla kontrol et; üzerinde hafif nemli kırıntı kalıyorsa tamamdır.'].filter(Boolean).join(' ')
     }
+    // Firin donusumu: firin 200 °C sebze -> Steam 10-15 dk (kek ustte Slow Cook'a cevrildi)
+    if (!kek && FIRIN.test(t) && (SEBZE.test(t) || /200/.test(t)) && a.mod !== 'saute') {
+      a.mod = 'steam'
+      a.dakika = Math.min(15, Math.max(10, a.dakika || 15))
+      if (!/kontrol/i.test(a.tip)) a.tip = [a.tip, 'Fırın yerine buhar: 10. dakikada çatalla kontrol et.'].filter(Boolean).join(' ')
+    }
     // Mod sinirlari
     if (a.mod === 'saute') {
       a.kapak = 'acik'
@@ -192,7 +241,8 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
     }
     if (a.mod === 'slowCook') {
       a.kapak = 'kapali'
-      if (!a.keepWarm) a.keepWarm = 'acik'
+      // Cihaz bitince Keep Warm'e gecer; biz Cancel dedirdigimiz icin "Keep Warm acik" rozeti gosterilmez
+      if (a.keepWarm === 'acik') a.keepWarm = ''
       a.dakika = Math.min(24 * 60, Math.max(30, a.dakika || 360))
     }
     if (a.mod === 'carbReduce') {
@@ -210,6 +260,7 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
       a.dakika = 0
     }
     a.butonlar = butonMetni(a)
+    a.bitince = bitinceMetni(a)
     return a
   })
 
@@ -218,11 +269,10 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
     uyari.add('Bu pişiricide olmaz: tarif derin (bol yağda) kızartma istiyor; bu cihazda kızartma modu yok.')
   }
   if (CITIR.test(tumMetin)) uyari.add('Aynı çıtırlık olmaz, nemli olur: bu cihazda fırın ya da air fry yok.')
-  if (kek) uyari.add('Kek/brownie White Rice’ta pişmez (hamur susuz olduğu için erken Keep Warm’e geçer, altı yanar); Slow Cook 1 sa 30 dk kullanılır.')
-  uyari.add('Hazneyi iç yüzdeki MAX çizgisinin üstüne doldurma.')
+  if (kek) uyari.add('Kek/brownie White Rice’ta pişmez (hamur susuz olduğu için erken Keep Warm’e geçer, altı yanar). İki seçenek var: Slow Cook 1 sa 30 dk ya da kalıpla Steam 35–40 dk.')
   const gram = gramToplami(pp.ingredients)
   // Hamur (kek, brownie) 1 litreden azsa hazne genis kalir, ince olur ve kurur
-  if (kek && gram > 0 && gram < 1000) uyari.add('Hazneye göre az: miktarları 2 katına çıkarırsan daha düzgün pişer.')
-  if (gram > 4000) uyari.add('Hazne 5 litre: bu miktar MAX çizgisini aşabilir, yarıya indir ya da iki seferde pişir.')
-  return { ...pp, steps, uygun, warnings: [...uyari] }
+  if (kek && gram > 0 && gram < 1000) uyari.add('Hazneye göre az: hamur ince yayılıp kurur. Miktarları 2 katına çıkar ya da 2. seçenekteki gibi kalıpla Steam’de pişir.')
+  if (gram > 2500) uyari.add('Toplam 2,5 kg’ı geçiyor: MAX çizgisini aşabilir. Yarıya indir ya da iki seferde pişir.')
+  return { ...pp, steps, uygun, warnings: [...uyari], alternatif: kek ? KALIP_STEAM : undefined }
 }

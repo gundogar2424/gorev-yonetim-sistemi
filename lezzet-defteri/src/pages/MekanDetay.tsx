@@ -771,7 +771,7 @@ function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
   const [araniyor, setAraniyor] = useState(false)
   const u = m.unluler
   const ara = async () => {
-    if (!apiAnahtari()) return goster('Ayarlar’dan Gemini anahtarı gir.')
+    if (!apiAnahtari()) return goster('Ayarlar’dan Gemini veya Claude anahtarı gir.')
     setAraniyor(true)
     try {
       const liste = await aiMekanUnluler(m)

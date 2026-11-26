@@ -229,7 +229,7 @@ export async function mekanLinktenEkle(
       return { id: await yeriKaydet(y), yeni: true, digerleri: 0 }
     }
   }
-  if (!apiAnahtari()) throw new Error('Mekanı tanımak için Ayarlar’dan Gemini anahtarı gir.')
+  if (!apiAnahtari()) throw new Error('Mekanı tanımak için Ayarlar’dan Gemini veya Claude anahtarı gir.')
   ilerleme('Mekan paylaşımı okunuyor…')
   let metin = girdi
   let foto = ''
@@ -575,7 +575,7 @@ export function puanYaz(m: Pick<LzMekan, 'puan' | 'yorumSayisi'>): string {
 
 // Guncel menu fiyatlarini arastirir ve mekana yazar; bulunan kalem sayisini doner
 export async function fiyatlariGuncelle(m: LzMekan): Promise<number> {
-  if (!apiAnahtari()) throw new Error('Fiyat araştırması için Ayarlar’dan Gemini anahtarı gir.')
+  if (!apiAnahtari()) throw new Error('Fiyat araştırması için Ayarlar’dan Gemini veya Claude anahtarı gir.')
   const f = await aiMekanFiyatlari(m)
   await lzDb.mekanlar.update(m.id!, { fiyatlar: { ...f, zaman: Date.now() } })
   return f.kalemler.length
