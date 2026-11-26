@@ -8,7 +8,8 @@ import { adaylar } from '../lib/hesaplar'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
 import { SiraRozeti, useSiraOzeti } from './Sira'
-import Mekanlar, { useYakinMekanSayisi } from './Mekanlar'
+import Mekanlar, { YAKIN_SERIT_KM, useYakinMekanSayisi } from './Mekanlar'
+import { merkezAl } from '../lib/merkez'
 import type { LzRecipe, LzTable } from '../types'
 import { Header, Icon, IskeletKartlar, Logo, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
 
@@ -49,7 +50,10 @@ export default function Recipes() {
     setParams(p, { replace: true })
     setTimeout(() => sekmeRef.current?.scrollIntoView({ block: 'start' }), 50)
   }, [])
+  // Durum seridindeki "Yakininda"ya dokunuldu: Mekanlarim "Yakininda" (1 km) suzgeciyle acilir
+  const [yakinIstek, setYakinIstek] = useState(0)
   const setSekme = (x: Sekme) => {
+    setYakinIstek(0)
     setSekmeHam(x)
     try {
       localStorage.setItem(SEKME_ANAHTAR, x)
@@ -214,7 +218,12 @@ export default function Recipes() {
             </Link>
           ))}
         </div>
-        <DurumSeridi mekanlaraGit={() => sekmeyeGec('mekanlar')} />
+        <DurumSeridi
+          yakindakiler={() => {
+            sekmeyeGec('mekanlar')
+            setYakinIstek(Date.now())
+          }}
+        />
 
         {/* Tariflerim / Mekanlarım / Sofralarım: esit genislik, tek satir, 48 px; sayilar gercek kayitlardan */}
         <div ref={sekmeRef} role="tablist" className="grid grid-cols-3 gap-1 bg-[#ececea] dark:bg-[#1c1c1f] rounded-xl p-1 scroll-mt-[150px]">
@@ -227,7 +236,7 @@ export default function Recipes() {
                 aria-selected={sekme === x}
                 data-sekme={x}
                 onClick={() => setSekme(x)}
-                className={`h-[48px] min-w-0 px-1 rounded-[10px] flex items-center justify-center gap-[3px] whitespace-nowrap transition ${
+                className={`h-[48px] min-w-0 px-1 overflow-hidden rounded-[10px] flex items-center justify-center gap-[3px] whitespace-nowrap transition ${
                   sekme === x ? 'bg-white dark:bg-[#2e2e33] text-[#18181b] dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]' : 'text-[#71717a] dark:text-[#8a8a93]'
                 }`}
               >
@@ -287,7 +296,7 @@ export default function Recipes() {
             )}
           </>
         ) : sekme === 'mekanlar' ? (
-          <Mekanlar gomulu disArama={q} />
+          <Mekanlar gomulu disArama={q} yakinIstek={yakinIstek} />
         ) : (
           <>
             {/* Sofra daireleri ve "Sofra ekle" yalnizca burada */}
@@ -395,11 +404,12 @@ function RecipeCard({ r }: { r: LzRecipe }) {
 }
 
 // Sira ve yakindaki mekanlar ayni seritte, iki ayri dokunulabilir parca; sigmazsa 2 satira iner (… ile kesilmez)
-function DurumSeridi({ mekanlaraGit }: { mekanlaraGit: () => void }) {
+function DurumSeridi({ yakindakiler }: { yakindakiler: () => void }) {
   const s = useSiraOzeti()
   const yakin = useYakinMekanSayisi()
+  const mekanVar = (useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0) > 0
   const sira = s.bekleyen || s.hata || s.biten
-  if (!sira && !yakin) return null
+  if (!sira && !mekanVar) return null
   return (
     <div className="lz-card px-3 py-1.5 min-h-[48px] flex items-center gap-2.5" data-durum-seridi>
       <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${s.hata && !s.bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${s.bekleyen ? 'animate-pulse' : ''}`}>
@@ -411,12 +421,24 @@ function DurumSeridi({ mekanlaraGit }: { mekanlaraGit: () => void }) {
             {s.metin}
           </Link>
         ) : null}
-        {sira && yakin ? <span className={T_SOLUK} aria-hidden="true">·</span> : null}
-        {yakin ? (
-          <button onClick={mekanlaraGit} className="py-1 text-left text-lz-600 font-semibold">
-            Yakınında {yakin} mekan var
+        {sira && mekanVar ? <span className={T_SOLUK} aria-hidden="true">·</span> : null}
+        {!mekanVar ? null : yakin.durum === 'kapali' ? (
+          // Konum yoksa sayi uydurulmaz
+          <span className="py-1" data-yakin="kapali">
+            <span className={T_SOLUK}>Konum kapalı · </span>
+            <button onClick={() => void merkezAl(true)} className="text-lz-600 font-semibold">
+              Konumumu bul
+            </button>
+          </span>
+        ) : yakin.durum === 'tamam' ? (
+          <button onClick={yakindakiler} className="py-1 text-left text-lz-600 font-semibold" data-yakin={yakin.sayi}>
+            {yakin.sayi ? `Yakınında ${yakin.sayi} mekan var` : `${YAKIN_SERIT_KM} km içinde mekan yok`}
           </button>
-        ) : null}
+        ) : (
+          <span className={`py-1 ${T_SOLUK}`} data-yakin="aliniyor">
+            Konum alınıyor…
+          </span>
+        )}
       </span>
     </div>
   )

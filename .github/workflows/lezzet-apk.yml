@@ -97,6 +97,9 @@ jobs:
                   super.onCreate(savedInstanceState);
                   // Uygulama gorunmezken de web katmani onemli sayilsin (sira islenirken yavaslamasin)
                   if (Build.VERSION.SDK_INT >= 26) getBridge().getWebView().setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+                  // Telefonun "yazi boyutu" ayari sayfadaki yazilari buyutup alt menu ve sekmeleri ust uste bindirmesin
+                  // (buyuk yazi icin uygulamadaki Mutfak modu var)
+                  getBridge().getWebView().getSettings().setTextZoom(100);
                   paylasimiIsle(getIntent());
                   sayfaAc(getIntent());
               }

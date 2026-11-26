@@ -140,7 +140,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
     <div class="kart"><h3>Uyarı kutuları</h3><p>Sarı zemin biraz koyulaştı, yazı koyu kahve oldu, beyaz kartta okunur. Koyu temada koyu kahve zemin üzerinde açık sarı yazı.</p></div>
     <div class="kart"><h3>Koyu tema</h3><p>Domates kırmızısı koyu temada %20 koyulaşır (#ae311a), gece göz almaz. Ayarlar'dan Otomatik, Açık ya da Koyu seçilir; başlangıçta açık tema.</p></div>
     <div class="kart"><h3>Durum yazıları</h3><p>Renkli noktalar tek başına kalmaz: gri "Sırada", sarı "İşleniyor", yeşil "Bitti", kırmızı "Hata".</p></div>
-    <div class="kart"><h3>Alt menü</h3><p>Beş sekme: Tarifler, TM7, Bu Hafta, Alışveriş, Ayarlar. Yazılar 11 px, simgeyle arası 2 px, en dar ekranda bile üst üste binmez. Yazılar kesilmez, gerekirse 2 satıra iner. Seçili sekme domates kırmızısı, diğerleri gri. Ortada beyaz halkalı, gölgeli büyük <span class="dugme">+</span> Tarif ekle düğmesi. Listelerin sonunda 100 px boşluk var; + düğmesi son kartın üstüne binmez.</p></div>
+    <div class="kart"><h3>Alt menü</h3><p>Beş sekme: Tarifler, TM7, Bu Hafta, Alışveriş, Ayarlar. Yazılar 11 px, simgeyle arası 2 px, en dar ekranda bile üst üste binmez. Yazılar kesilmez, gerekirse 2 satıra iner. Seçili sekme domates kırmızısı, diğerleri gri. Ortada beyaz halkalı, gölgeli büyük <span class="dugme">+</span> Tarif ekle düğmesi. Listelerin sonunda 100 px boşluk var; + düğmesi son kartın üstüne binmez. Telefonun yazı boyutu ayarı büyük olsa da uygulamadaki yazılar büyümez, alt menü ve üst sekmeler üst üste binmez (pişirirken büyük yazı için Mutfak modu var).</p></div>
     <div class="kart"><h3>Üst alan</h3><p>Küçük logo, 28 px "Lezzet Rotası" başlığı ve 13 px "N tarif · M mekan". Arama çubuğu başlıkla birlikte yapışık durur, kaydırınca kaybolmaz. Üst alan ekranın en fazla %15'ini kaplar.</p></div>
     <div class="kart"><h3>Hızlı erişim ve filtreler</h3><p>Ne pişirsem, Hype tarifler, Mekanlar, Influencer, Diyetim, Sıra: 2 satırlık ızgara, simge üstte, yazı altta, hiçbir yazı bölünmez. Tüm Tarifler, Yeni, Favoriler, En beğenilen 2×2 ızgarada tam görünür. Etiketler alt satırlara sarılır; 6'dan fazlası "+N etiket" ile açılır. Hiçbir çip yarım kalmaz. Sıra durumu ve "Yakınında N mekan" aynı şeritte, iki ayrı dokunulabilir parça; sığmazsa 2 satıra iner, "…" ile kesilmez.</p></div>
     <div class="kart"><h3>Üst sekmeler</h3><p>Tariflerim · Mekanlarım · Sofralarım: üçü eşit genişlikte, tek satır, 48 px. Seçili sekme beyaz, diğerleri gri zemin. Her sekmede gerçek sayı yazar, örnek: "Tariflerim (40)".</p></div>
@@ -238,7 +238,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   <p>Başlıkta gerçek toplam tarif ve mekan sayısı yazar, örnek: "13 tarif · 26 mekan".</p>
   <ul>
     <li><b>Hızlı erişim:</b> Ne pişirsem, Hype tarifler, Mekanlar (aynı ekrandaki Mekanlarım sekmesine atlar), Influencer, Diyetim, Sıra. Sıra'da bekleyen, işlenen ve hatalı işlerin sayısı kırmızı rozetle, Influencer'da "takip edilsin mi?" adaylarının sayısı görünür.</li>
-    <li><b>Durum şeridi:</b> "N tarif sırada işleniyor · Yakınında N mekan var". Soldaki kısım ile sağdaki kısım ayrı ayrı dokunulur: soldaki Tarif sırasını, sağdaki Mekanlarım sekmesini açar. Yazı sığmazsa 2 satıra iner, "…" ile kesilmez.</li>
+    <li><b>Durum şeridi:</b> "N tarif sırada işleniyor · Yakınında N mekan var". Soldaki kısım ile sağdaki kısım ayrı ayrı dokunulur: soldaki Tarif sırasını, sağdaki Mekanlarım sekmesini "Yakınında" süzgeciyle açar. Yazı sığmazsa 2 satıra iner, "…" ile kesilmez. Sayı gerçek konuma göre yalnızca 1 km içindeki kayıtlı mekanları sayar; yoksa "1 km içinde mekan yok" yazar. Konum izni yoksa ya da konum alınamadıysa sayı uydurulmaz: "Konum kapalı · <span class="dugme">Konumumu bul</span>".</li>
     <li><b>Üç sekme:</b> Tariflerim (40) · Mekanlarım (48) · Sofralarım (3) (sayılar örnek, gerçek kayıtlardan gelir). Son seçilen sekme hatırlanır, uygulama tekrar açılınca orada açılır. Sekmeler arasında yana kaydırarak da geçilir.</li>
     <li><b>Arama sekmeye göre:</b> arama çubuğu üstte sabit. İpucu Tariflerim'de "Tariflerinde ara…", Mekanlarım'da "Mekanlarında ara…", Sofralarım'da "Sofralarında ara…". Yalnızca o sekmedeki listeyi süzer. Tariflerim'de başlık, malzeme, etiket ve paylaşan kişide arar. Mekanlarım'da ad, semt, yemek, etiket, not, kampanya, influencer yorumu alanlarında arar. Sofralarım'da sofra adı ve tarif başlığında arar.</li>
     <li><b>Mekanlarım sekmesi:</b> ayrı bir ekran değil, Tarifler ekranının ortadaki sekmesi. Ayrı başlığı ve ikinci arama çubuğu yok; üstteki "Lezzet Rotası" başlığı ve tek arama çubuğu kullanılır. Sırası: üst sekmeler, etiketler, süzgeçler (Gitmek istediklerim, Favoriler, Hype, Gitmediklerim), mekan kartları (2 sütun), kısayollar, Şu an buradayım, konum kartı, Mekan ekle. En altta 100 px boşluk. Tarif süzgeçleri bu sekmede görünmez. Ayrıntısı Gezmek → Mekanlarım bölümünde.</li>
@@ -420,6 +420,14 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   </ul>
   <h3>Fiyat</h3>
   <p>Lira simgeleri bazı telefonlarda bozuk göründüğü için ekranda düz yazıyla gösterilir: <b>Uygun</b>, <b>Orta</b>, <b>Pahalı</b>. Rakamın yanındaki işaret "TL" olur. Kayıtlı veri değişmez, eski yedekler aynen çalışır.</p>
+  <h3>Yakınında</h3>
+  <ul>
+    <li><b>Konum önceliği:</b> 1. o anki GPS, 2. senin yazdığın semt, 3. son GPS konumu (yalnızca GPS o an alınamadıysa, en fazla 6 saatlik). Şehir adı, profil şehri, eski bir şehirde kalmış konum ya da mekanlardan çıkarılan semt merkezi asla merkez olmaz. Konum izni yoksa ve semt yazmadıysan konum "kapalı" sayılır.</li>
+    <li><b>100 m kuralı:</b> son konumdan 100 metreden az hareket ettiysen aynı konum kullanılır; daha fazlaysa konum yenilenir. Uygulamaya her dönüşte bakılır.</li>
+    <li><b>Durum şeridindeki "Yakınında N mekan"a dokununca</b> Mekanlarım sekmesi "Yakınında" süzgeciyle açılır: listenin üstünde "1 km içinde ✕" çipi, altında küçük gri yazıyla kullanılan konum, örnek: "Konum: Serdivan, Sakarya · 1 km içinde". Konumun adı koordinattan bulunur, yanlış şehir yazmaz.</li>
+    <li>Liste yakından uzağa sıralıdır; her kartın en altında gerçek mesafe yazar, örnek: "650 m · Orta fiyat".</li>
+    <li><span class="dugme">Daha fazla göster</span> sırayla 3 km, 5 km, 10 km yapar; 10 km birden taranmaz. "✕" ile süzgeç kalkar, tüm mekanlar görünür.</li>
+  </ul>
   <h3>Konum kartı</h3>
   <p>Üstte tam genişlikte "Semt yaz, örn. Serdivan" kutusu (Serdivan yalnızca ipucundaki örnek; kutu boş gelir, konumun ya da yazdığın semt kullanılır). Altında alt alta tam genişlikte <span class="dugme">Konumumu bul</span> (semt yazılıysa <span class="dugme">Bu semti bul</span>) ve <span class="dugme">Yakınımdaki mekanları göster</span>. Mesafe Harita kısmındaki <span class="dugme">Daha fazla göster</span> ile büyütülür; Harita ve Mekanlarım aynı düğmeyi kullanır (1, 3, 5, 10 km). Liste üstündeki "1 km içinde ✕" ile tüm mekanlara dönülür.</p>
   <h3>Mekan ekle</h3>
@@ -593,5 +601,5 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   </main>
 </div>
 
-<footer>Lezzet Rotası · Sürüm 1.0.200 · Kasım 2026</footer>
+<footer>Lezzet Rotası · Sürüm 1.0.201 · Kasım 2026</footer>
 </body></html>

@@ -13,31 +13,30 @@ import { DahaFazlaGoster, MESAFE_KM } from '../components/DahaFazla'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { etiketAdi, fiyatSeviyesi } from '../lib/mekanGoster'
+import { merkezAl, semtMerkezi, useMerkez, yaricapIcinde, type Merkez } from '../lib/merkez'
 import { esles, sonAramaEkle } from '../lib/arama'
 import {
   puanYaz,
   adrestenKonum,
-  konumReddedildi,
-  konumReddiniKaydet,
   mekanLinktenEkle,
   mesafeKm,
   mesafeYaz,
-  telefonKonumu,
   type Konum
 } from '../lib/mekan'
 
 const YAKIN_KM = 3
 
-// Son kullanilan konum (telefon ya da yazilan semt) ekranlar arasi korunur
-let sonKonum: Konum | null = null
 
 // MEKANLARIM: internette gorulen yeme-icme yerleri. Yakinimdakiler en ustte.
 // gomulu: Tarifler ekranindaki "Mekanlarım" sekmesinde; baslik ve arama kutusu disaridan gelir
-export default function Mekanlar({ gomulu = false, disArama }: { gomulu?: boolean; disArama?: string } = {}) {
+// yakinIstek: durum seridindeki "Yakininda N mekan"a dokunuldu (her dokunusta artar) -> "Yakininda" suzgeci (1 km) acilir
+export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: { gomulu?: boolean; disArama?: string; yakinIstek?: number } = {}) {
   const navigate = useNavigate()
   const listeHam = useLiveQuery(() => lzDb.mekanlar.orderBy('createdAt').reverse().toArray(), [])
   const liste = listeHam ?? []
-  const [konum, setKonum] = useState<Konum | null>(sonKonum)
+  // Konum tek kaynaktan: GPS > yazilan semt > son GPS konumu; yoksa kapali (uydurulmaz)
+  const mz = useMerkez()
+  const konum: Konum | null = mz.konum ? { ...mz.konum, ad: mz.ad || (mz.kaynak === 'semt' ? 'Yazdığın semt' : 'Bulunduğun yer') } : null
   const [konumMesaj, setKonumMesaj] = useState('')
   const [semt, setSemt] = useState('')
   const [link, setLink] = useState('')
@@ -54,26 +53,25 @@ export default function Mekanlar({ gomulu = false, disArama }: { gomulu?: boolea
   const [sadeceIstek, setSadeceIstek] = useState(false)
   const [sadeceHype, setSadeceHype] = useState(false)
   const [hypeDurum, setHypeDurum] = useState('')
-  const [yaricap, setYaricap] = useState(0) // 0 = hepsi
+  const [yaricap, setYaricap] = useState(yakinIstek ? MESAFE_KM[0] : 0) // 0 = hepsi
+  // "Yakininda"ya her dokunusta 1 km suzgeci ve listeye kaydirma
+  useEffect(() => {
+    if (!yakinIstek) return
+    setYaricap(MESAFE_KM[0])
+    setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 150)
+  }, [yakinIstek])
   const [kampanyaAcik, setKampanyaAcik] = useState(false)
   const aiVar = !!apiAnahtari()
 
   const konumuAl = async () => {
     setKonumMesaj('Konum alınıyor…')
-    try {
-      const k = await telefonKonumu()
-      sonKonum = { ...k, ad: 'Bulunduğun yer' }
-      setKonum(sonKonum)
-      setKonumMesaj('')
-    } catch (e) {
-      setKonumMesaj(`${(e as Error).message} İstersen bulunduğun semti yaz.`)
-    }
+    const r = await merkezAl(true)
+    setKonumMesaj(r.kaynak === 'gps' ? '' : `${r.hata || 'Konum alınamadı.'} İstersen bulunduğun semti yaz.`)
   }
 
-  // Ekran her acildiginda guncel konum alinir (izin bir kez sorulur); eskisi beklerken gosterilir.
-  // Elle yazilan semt varsa ona dokunulmaz.
+  // Ekran her acildiginda konum guncellenir (100 m'den az hareket edildiyse ayni konum)
   useEffect(() => {
-    if (!sonKonum || sonKonum.ad === 'Bulunduğun yer') void konumuAl()
+    void merkezAl()
   }, [])
 
   const semtBul = async () => {
@@ -83,8 +81,7 @@ export default function Mekanlar({ gomulu = false, disArama }: { gomulu?: boolea
       setKonumMesaj('Bu semt bulunamadı; ilçe ve şehirle dene (ör. “Moda, Kadıköy, İstanbul”).')
       return
     }
-    sonKonum = { ...k, ad: semt.trim() }
-    setKonum(sonKonum)
+    semtMerkezi(k, semt)
     setKonumMesaj('')
   }
 
@@ -118,7 +115,7 @@ export default function Mekanlar({ gomulu = false, disArama }: { gomulu?: boolea
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
   // Etiket ya da yemek secilince bulundugum yerden uzaga dogru; digerlerinde en begenilen once (esitse yakin olan)
   const sirali =
-    etiket || yemek
+    etiket || yemek || yaricap
       ? [...suzulmus].sort((a, b) => (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9) || mekanSkoru(b) - mekanSkoru(a))
       : [...suzulmus].sort((a, b) => mekanSkoru(b) - mekanSkoru(a) || (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
   // Etiket / yemekle gelindiyse liste goruntulenir
@@ -250,7 +247,12 @@ export default function Mekanlar({ gomulu = false, disArama }: { gomulu?: boolea
               )}
             </div>
           )}
-          {(etiket || yemek) && <p className={`text-[12px] ${T_SOLUK}`}>{konum ? 'Yakından uzağa sıralı' : 'Konum alınınca yakından uzağa sıralanır'}</p>}
+          {yaricap > 0 && (
+            <p className={`text-[12px] ${T_SOLUK}`} data-konum-satiri>
+              {konum ? `Konum: ${konum.ad} · ${yaricap} km içinde · yakından uzağa` : mz.durum === 'aliniyor' ? 'Konum alınıyor…' : 'Konum kapalı; aşağıdan konumunu bul ya da semt yaz.'}
+            </p>
+          )}
+          {!yaricap && (etiket || yemek) && <p className={`text-[12px] ${T_SOLUK}`}>{konum ? 'Yakından uzağa sıralı' : 'Konum alınınca yakından uzağa sıralanır'}</p>}
           {hypeDurum && <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>{hypeDurum}</p>}
         </div>
 
@@ -458,37 +460,24 @@ function MekanKarti({ m, km }: { m: LzMekan; km?: number }) {
   )
 }
 
-// Tariflerim ustunde: konum izni daha once verildiyse yakindaki mekanlar icin serit
-// 3 km icindeki gidilmemis kayitli mekan sayisi (konum izni varsa)
-export function useYakinMekanSayisi(): number {
-  const sayi = useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0
-  const [yakin, setYakin] = useState(0)
+// Durum seridi: gercek konuma (GPS > yazilan semt > son GPS) gore 1 km icindeki kayitli mekan sayisi.
+// Konum yoksa sayi uydurulmaz: durum 'kapali'.
+export const YAKIN_SERIT_KM = MESAFE_KM[0]
+export function useYakinMekanSayisi(): { durum: Merkez['durum']; sayi: number } {
+  const hepsi = useLiveQuery(() => lzDb.mekanlar.toArray(), [], [] as LzMekan[]) ?? []
+  const mz = useMerkez()
   useEffect(() => {
-    // Kayitli mekan varsa konum kendiliginden alinir (izin bir kez sorulur; reddedilirse bir daha sorulmaz)
-    if (!sayi || konumReddedildi()) return
-    let iptal = false
-    void (async () => {
-      try {
-        const k = sonKonum ?? (await telefonKonumu(8000))
-        sonKonum = sonKonum ?? { ...k, ad: 'Bulunduğun yer' }
-        const hepsi = await lzDb.mekanlar.toArray()
-        const n = hepsi.filter(
-          (m) => m.lat !== undefined && m.lon !== undefined && !m.gidildi && mesafeKm(k, { lat: m.lat, lon: m.lon }) <= YAKIN_KM
-        ).length
-        if (!iptal) setYakin(n)
-      } catch (e) {
-        if (/izin/i.test((e as Error).message)) konumReddiniKaydet()
-      }
-    })()
-    return () => {
-      iptal = true
-    }
-  }, [sayi])
-  return yakin
+    void merkezAl()
+    // Uygulamaya donulunce konum tazelenir (100 m kurali gecerli)
+    const bak = () => document.visibilityState === 'visible' && void merkezAl()
+    document.addEventListener('visibilitychange', bak)
+    return () => document.removeEventListener('visibilitychange', bak)
+  }, [])
+  return { durum: mz.durum, sayi: yaricapIcinde(hepsi, mz.konum, YAKIN_SERIT_KM).length }
 }
 
 export function YakinMekanSeridi() {
-  const yakin = useYakinMekanSayisi()
+  const { sayi: yakin } = useYakinMekanSayisi()
   if (!yakin) return null
   return (
     <Link to="/mekanlar" className="lz-card p-3 flex items-center gap-3 ring-2 ring-lz-500/50">
