@@ -2,7 +2,7 @@
 // Google Haritalar anahtari varsa oradan (puanli), yoksa OpenStreetMap'ten (ucretsiz) bulunur.
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
-import { googleMekanAra, googleYakindakiler, placesAnahtari } from './places'
+import { googleMekanAra, placesAnahtari } from './places'
 import { adrestenKonum, haritaKoordinati, konumdanAdres, mesafeKm, type Konum } from './mekan'
 
 export interface YakinYer {
@@ -17,6 +17,7 @@ export interface YakinYer {
   puan?: number
   yorumSayisi?: number
   haritaUrl?: string
+  acik?: boolean // su an acik mi (bilinmiyorsa yok)
 }
 
 const TUR: Record<string, string> = {
@@ -47,12 +48,12 @@ async function getir(url: string, ua = UA_TEL): Promise<{ metin: string; son: st
 
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']
 
-async function osmYakindakiler(k: Konum, yaricap: number): Promise<YakinYer[]> {
-  const q = `[out:json][timeout:15];(nwr(around:${yaricap},${k.lat},${k.lon})["amenity"~"^(restaurant|cafe|fast_food|bar|pub|ice_cream|food_court)$"];nwr(around:${yaricap},${k.lat},${k.lon})["shop"~"^(bakery|pastry|confectionery)$"];);out center tags 30;`
+export async function osmYakindakiler(k: Konum, yaricap: number, en = 30, sureMs = 7000): Promise<YakinYer[]> {
+  const q = `[out:json][timeout:15];(nwr(around:${yaricap},${k.lat},${k.lon})["amenity"~"^(restaurant|cafe|fast_food|bar|pub|ice_cream|food_court)$"];nwr(around:${yaricap},${k.lat},${k.lon})["shop"~"^(bakery|pastry|confectionery)$"];);out center tags ${en};`
   let ham = ''
   for (const kok of OVERPASS) {
     try {
-      ham = (await getir(`${kok}?data=${encodeURIComponent(q)}`)).metin
+      ham = (await Promise.race([getir(`${kok}?data=${encodeURIComponent(q)}`), new Promise<never>((_, red) => setTimeout(() => red(new Error('zaman')), sureMs))])).metin
       if (ham.trim().startsWith('{')) break
     } catch {
       /* sonraki sunucu */
@@ -72,28 +73,104 @@ async function osmYakindakiler(k: Konum, yaricap: number): Promise<YakinYer[]> {
         adres: [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(' '),
         lat,
         lon,
-        km: mesafeKm(k, { lat, lon })
+        km: mesafeKm(k, { lat, lon }),
+        acik: acikMi(t.opening_hours)
       }
     })
 }
 
-// Etraftaki mekanlar: once kayitli olanlar (150 m), sonra haritadakiler; en yakindan
-export async function yakindakiYerler(k: Konum): Promise<YakinYer[]> {
-  const kayitli = (await lzDb.mekanlar.toArray()).filter((m) => m.lat !== undefined && m.lon !== undefined && mesafeKm(k, { lat: m.lat, lon: m.lon! }) <= 0.15)
+// OpenStreetMap "opening_hours" yazisindan su an acik mi (yaygin bicimler: "24/7", "Mo-Su 08:00-23:00", "Mo-Fr 09:00-22:00; Sa,Su 10:00-01:00").
+// Cozulemezse undefined (rozet gosterilmez).
+const GUNLER = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+export function acikMi(oh?: string, d = new Date()): boolean | undefined {
+  if (!oh) return undefined
+  const t = oh.trim()
+  if (t === '24/7') return true
+  const gun = d.getDay()
+  const dk = d.getHours() * 60 + d.getMinutes()
+  let bilindi = false
+  let acik = false
+  for (const kural of t.split(';').map((x) => x.trim()).filter(Boolean)) {
+    const m = kural.match(/^((?:[A-Z][a-z](?:-[A-Z][a-z])?,?)+)?\s*((?:\d{1,2}:\d{2}-\d{1,2}:\d{2},?\s*)+|off|closed)$/)
+    if (!m) return bilindi ? acik : undefined
+    const gunler = m[1] ? m[1].split(',').flatMap((p) => {
+      const [a, b] = p.split('-')
+      const ia = GUNLER.indexOf(a)
+      const ib = b ? GUNLER.indexOf(b) : ia
+      if (ia < 0 || ib < 0) return []
+      const l: number[] = []
+      for (let i = ia; ; i = (i + 1) % 7) {
+        l.push(i)
+        if (i === ib) break
+      }
+      return l
+    }) : [0, 1, 2, 3, 4, 5, 6]
+    // Gece yarisini gecen aralik dunku gunun kuralindan da gelebilir
+    const dun = (gun + 6) % 7
+    if (/off|closed/.test(m[2])) {
+      if (gunler.includes(gun)) {
+        bilindi = true
+        acik = false
+      }
+      continue
+    }
+    for (const ar of m[2].split(',').map((x) => x.trim()).filter(Boolean)) {
+      const [b, e] = ar.split('-').map((x) => {
+        const [h, mm] = x.split(':').map(Number)
+        return h * 60 + mm
+      })
+      if (gunler.includes(gun)) {
+        bilindi = true
+        if (e > b ? dk >= b && dk < e : dk >= b) acik = true
+      }
+      if (e <= b && gunler.includes(dun) && dk < e) {
+        bilindi = true
+        acik = true
+      }
+    }
+  }
+  return bilindi ? acik : undefined
+}
+
+// Kayitli mekanlardan yakindakiler: telefondan aninda (ag beklenmez)
+export async function kayitliYakinlar(k: Konum, km = 0.15): Promise<YakinYer[]> {
+  return (await lzDb.mekanlar.toArray())
+    .filter((m) => m.lat !== undefined && m.lon !== undefined && mesafeKm(k, { lat: m.lat, lon: m.lon! }) <= km)
+    .map((m) => ({ ad: m.ad, tur: m.tur, adres: m.adres, lat: m.lat!, lon: m.lon!, km: mesafeKm(k, { lat: m.lat!, lon: m.lon! }), kayitliId: m.id }))
+    .sort((a, b) => a.km - b.km)
+}
+
+// Kayitli ve cevredeki listeleri birlestirir (ayni ad bir kez; kayitli once, sonra en yakindan)
+export function birlestir(kayitli: YakinYer[], dis: YakinYer[], en = 15): YakinYer[] {
+  const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
+  const liste = [...kayitli]
+  for (const d of dis) {
+    const ayni = liste.find((x) => sade(x.ad) === sade(d.ad))
+    if (ayni) {
+      if (ayni.acik === undefined) ayni.acik = d.acik
+    } else liste.push(d)
+  }
+  return liste.sort((a, b) => (a.kayitliId ? -1 : 0) - (b.kayitliId ? -1 : 0) || a.km - b.km).slice(0, en)
+}
+
+// Etraftaki mekanlar (Su an buradayim): once kayitlilar (150 m), sonra cevre (24 saat onbellekli; Google 4 sn, sonra OpenStreetMap)
+export async function yakindakiYerler(k: Konum, yenile = false): Promise<{ liste: YakinYer[]; zaman: number; onbellekten: boolean }> {
+  const { cevreGetir } = await import('./cevre')
+  const kayitli = await kayitliYakinlar(k)
   let dis: YakinYer[] = []
+  let zaman = Date.now()
+  let onbellekten = false
   try {
-    dis = placesAnahtari()
-      ? (await googleYakindakiler(k)).map((g) => ({ ad: g.ad, tur: g.tur, adres: g.adres, lat: g.lat, lon: g.lon, km: mesafeKm(k, g), googleId: g.id, puan: g.puan, yorumSayisi: g.yorumSayisi, haritaUrl: g.haritaUrl }))
-      : await osmYakindakiler(k, 150)
+    let c = await cevreGetir(k, 150, yenile)
     // GPS sapabilir: az sonuc varsa cember buyutulur
-    if (dis.length < 3) dis = placesAnahtari() ? [...dis, ...(await googleYakindakiler(k, 400)).map((g) => ({ ad: g.ad, tur: g.tur, adres: g.adres, lat: g.lat, lon: g.lon, km: mesafeKm(k, g), googleId: g.id, puan: g.puan, yorumSayisi: g.yorumSayisi, haritaUrl: g.haritaUrl }))] : await osmYakindakiler(k, 400)
+    if (c.yerler.length < 3) c = await cevreGetir(k, 400, yenile)
+    dis = c.yerler
+    zaman = c.zaman
+    onbellekten = c.onbellekten
   } catch (e) {
     if (!kayitli.length) throw e
   }
-  const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
-  const liste: YakinYer[] = kayitli.map((m) => ({ ad: m.ad, tur: m.tur, adres: m.adres, lat: m.lat!, lon: m.lon!, km: mesafeKm(k, { lat: m.lat!, lon: m.lon! }), kayitliId: m.id }))
-  for (const d of dis) if (!liste.some((x) => sade(x.ad) === sade(d.ad))) liste.push(d)
-  return liste.sort((a, b) => (a.kayitliId ? -1 : 0) - (b.kayitliId ? -1 : 0) || a.km - b.km).slice(0, 15)
+  return { liste: birlestir(kayitli, dis), zaman, onbellekten }
 }
 
 // Secilen yeri Mekanlarim'a kaydeder (kayitliysa o); adres/semt konumdan doldurulur

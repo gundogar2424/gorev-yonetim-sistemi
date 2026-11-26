@@ -20,6 +20,7 @@
     "dexie": "^4.0.8",
     "dexie-react-hooks": "^1.1.7",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "1.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2"
@@ -28,6 +29,7 @@
     "@capacitor/android": "^8.4.1",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.1",
+    "@types/leaflet.markercluster": "1.5.5",
     "@types/node": "^22.7.4",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",

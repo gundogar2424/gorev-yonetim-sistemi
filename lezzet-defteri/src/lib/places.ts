@@ -35,6 +35,7 @@ export interface GoogleMekan {
   haritaUrl: string
   tur: string
   fiyat: string // ₺ / ₺₺ / ₺₺₺ / ₺₺₺₺
+  acik?: boolean // su an acik mi (Google biliyorsa)
 }
 
 interface HamYer {
@@ -47,6 +48,7 @@ interface HamYer {
   googleMapsUri?: string
   primaryTypeDisplayName?: { text: string }
   priceLevel?: string
+  currentOpeningHours?: { openNow?: boolean }
 }
 
 const FIYAT: Record<string, string> = {
@@ -67,11 +69,12 @@ function cevir(y: HamYer): GoogleMekan {
     yorumSayisi: y.userRatingCount ?? 0,
     haritaUrl: y.googleMapsUri ?? '',
     tur: y.primaryTypeDisplayName?.text ?? '',
-    fiyat: y.priceLevel ? (FIYAT[y.priceLevel] ?? '') : ''
+    fiyat: y.priceLevel ? (FIYAT[y.priceLevel] ?? '') : '',
+    acik: y.currentOpeningHours?.openNow
   }
 }
 
-async function istek(yol: string, yontem: 'GET' | 'POST', alanlar: string, govde?: unknown): Promise<unknown> {
+async function istek(yol: string, yontem: 'GET' | 'POST', alanlar: string, govde?: unknown, sinyal?: AbortSignal): Promise<unknown> {
   const anahtar = placesAnahtari()
   if (!anahtar) throw new Error('Google Haritalar anahtarı girilmemiş.')
   let r: Response
@@ -79,7 +82,8 @@ async function istek(yol: string, yontem: 'GET' | 'POST', alanlar: string, govde
     r = await fetch(`${KOK}/${yol}`, {
       method: yontem,
       headers: { 'content-type': 'application/json', 'X-Goog-Api-Key': anahtar, 'X-Goog-FieldMask': alanlar },
-      body: govde ? JSON.stringify(govde) : undefined
+      body: govde ? JSON.stringify(govde) : undefined,
+      signal: sinyal
     })
   } catch {
     throw new Error('Google Haritalar’a bağlanılamadı. İnterneti kontrol et.')
@@ -127,13 +131,19 @@ export async function placesTest(): Promise<string> {
 }
 
 // Bulundugum yerdeki yeme-icme mekanlari (en yakindan)
-export async function googleYakindakiler(k: { lat: number; lon: number }, yaricap = 150): Promise<GoogleMekan[]> {
-  const j = (await istek('places:searchNearby', 'POST', ALANLAR.map((a) => `places.${a}`).join(','), {
-    includedTypes: ['restaurant', 'cafe', 'bakery', 'bar', 'meal_takeaway', 'fast_food_restaurant', 'ice_cream_shop', 'coffee_shop'],
-    maxResultCount: 12,
-    rankPreference: 'DISTANCE',
-    languageCode: 'tr',
-    locationRestriction: { circle: { center: { latitude: k.lat, longitude: k.lon }, radius: yaricap } }
-  })) as { places?: HamYer[] }
+export async function googleYakindakiler(k: { lat: number; lon: number }, yaricap = 150, en = 12, sinyal?: AbortSignal): Promise<GoogleMekan[]> {
+  const j = (await istek(
+    'places:searchNearby',
+    'POST',
+    [...ALANLAR, 'currentOpeningHours.openNow'].map((a) => `places.${a}`).join(','),
+    {
+      includedTypes: ['restaurant', 'cafe', 'bakery', 'bar', 'meal_takeaway', 'fast_food_restaurant', 'ice_cream_shop', 'coffee_shop'],
+      maxResultCount: Math.min(20, en),
+      rankPreference: 'DISTANCE',
+      languageCode: 'tr',
+      locationRestriction: { circle: { center: { latitude: k.lat, longitude: k.lon }, radius: yaricap } }
+    },
+    sinyal
+  )) as { places?: HamYer[] }
   return (j.places ?? []).map(cevir)
 }

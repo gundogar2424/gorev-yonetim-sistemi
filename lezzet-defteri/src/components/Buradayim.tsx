@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AltSayfa, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from './ui'
-import { haritaLinkiMi, mekanLinktenEkle, telefonKonumu, mesafeYaz, type Konum } from '../lib/mekan'
+import { haritaLinkiMi, mekanLinktenEkle, type Konum } from '../lib/mekan'
 import { linkAyikla } from '../lib/importer'
-import { haritaLinkindenYer, yakindakiYerler, yeriKaydet, type YakinYer } from '../lib/burada'
+import { birlestir, haritaLinkindenYer, kayitliYakinlar, yakindakiYerler, yeriKaydet, type YakinYer } from '../lib/burada'
+import { akilliKonum, onceYaz, yurumeYaz } from '../lib/cevre'
 
 // SU AN BURADAYIM: konumdan etraftaki mekanlar listelenir; secilen yer kaydedilip "Buraya gittim" formu acilir
 export default function Buradayim() {
@@ -15,34 +16,40 @@ export default function Buradayim() {
   const [liste, setListe] = useState<YakinYer[]>([])
   const [konum, setKonum] = useState<Konum>()
   const [ad, setAd] = useState('')
+  const [guncel, setGuncel] = useState(0) // cevre listesinin alindigi an
 
-  // Harita servisinden etraftaki mekanlar (konum varsa yeniden konum sormadan)
-  const haritadanBul = async (k: Konum) => {
+  // Cevredeki mekanlar: kayitlilar hemen listede kalir, cevre arkadan dolar (24 saat onbellek; Yenile sifirdan)
+  const haritadanBul = async (k: Konum, yenile = false) => {
     setHata(null)
-    setDurum('Etraftaki mekanlar bulunuyor…')
+    setDurum('Çevredeki mekanlar yükleniyor…')
+    const yavasT = setTimeout(() => setDurum('Çevre yavaş geliyor; kayıtlı mekanlar listede…'), 3000)
     try {
-      const l = await yakindakiYerler(k)
-      setListe(l)
-      if (!l.length) setHata({ baslik: 'Yakında mekan bulunamadı.', alt: 'Mekanın adını aşağıya yaz, biz bulalım.' })
+      const r = await yakindakiYerler(k, yenile)
+      setListe(r.liste)
+      setGuncel(r.zaman)
+      if (!r.liste.length) setHata({ baslik: 'Yakında mekan bulunamadı.', alt: 'Mekanın adını aşağıya yaz, biz bulalım.' })
     } catch {
       setHata({ baslik: 'Harita servisine ulaşılamadı.', alt: 'İnternetini kontrol et ya da mekanın adını yaz, biz bulalım.', tekrar: 'harita' })
     }
+    clearTimeout(yavasT)
     setDurum('')
   }
   const bul = async () => {
     setAcik(true)
     setHata(null)
-    setListe([])
     setDurum('Konumun alınıyor…')
     let k: Konum
     try {
-      k = await telefonKonumu(12000)
+      k = (await akilliKonum(12000)).konum
       setKonum(k)
     } catch (e) {
+      setListe([])
       setHata({ baslik: 'Konum alınamadı.', alt: `${(e as Error).message || 'Konumu açıp tekrar dene'}. Ya da mekanın adını yaz, biz bulalım.`, tekrar: 'konum' })
       setDurum('')
       return
     }
+    // Kayitli mekanlar telefondan aninda
+    setListe(birlestir(await kayitliYakinlar(k), []))
     await haritadanBul(k)
   }
   // Elle: ad ya da Google Haritalar linki
@@ -121,15 +128,23 @@ export default function Buradayim() {
                 <button
                   className="lz-btn-soft w-full text-[14px]"
                   disabled={!!durum}
-                  onClick={() => void (hata.tekrar === 'harita' && konum ? haritadanBul(konum) : bul())}
+                  onClick={() => void (hata.tekrar === 'harita' && konum ? haritadanBul(konum, true) : bul())}
                 >
                   ↻ Tekrar dene
                 </button>
               )}
             </div>
           )}
+          {guncel > 0 && konum && !durum && (
+            <p className={`text-[12px] ${T_SOLUK}`}>
+              Son güncelleme {onceYaz(guncel)} ·{' '}
+              <button className="text-lz-600 font-semibold underline min-h-[32px]" onClick={() => void haritadanBul(konum, true)}>
+                Yenile
+              </button>
+            </p>
+          )}
           {liste.map((y, i) => (
-            <button key={i} className="lz-card p-3 w-full flex items-center gap-3 text-left min-h-[56px]" disabled={!!durum} onClick={() => void sec(y)}>
+            <button key={i} className="lz-card p-3 w-full flex items-center gap-3 text-left min-h-[56px]" disabled={/kaydediliyor|araştırılıyor|okunuyor/.test(durum)} onClick={() => void sec(y)}>
               <span className="flex-1 min-w-0">
                 <span className={`block font-semibold text-[14.5px] ${T_BASLIK}`}>
                   {y.ad}
@@ -139,7 +154,12 @@ export default function Buradayim() {
                   {[y.puan ? `★ ${y.puan.toFixed(1).replace('.', ',')}` : '', y.tur, y.adres].filter(Boolean).join(' · ')}
                 </span>
               </span>
-              <span className="text-[12.5px] font-semibold text-lz-600 whitespace-nowrap">{mesafeYaz(y.km)}</span>
+              <span className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                <span className="text-[12px] font-semibold text-lz-600 whitespace-nowrap">{yurumeYaz(y.km)}</span>
+                {y.acik !== undefined && (
+                  <span className={`text-[10.5px] font-bold px-1.5 rounded ${y.acik ? 'bg-emerald-600 text-white' : 'bg-[#71717a] text-white'}`}>{y.acik ? 'Açık' : 'Kapalı'}</span>
+                )}
+              </span>
             </button>
           ))}
           {!durum && (
