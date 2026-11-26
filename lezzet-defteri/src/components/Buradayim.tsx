@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK } from './ui'
+import { AltSayfa, Icon, T_BASLIK, T_GOVDE, T_SOLUK } from './ui'
 import { haritaLinkiMi, mekanLinktenEkle, telefonKonumu, mesafeYaz, type Konum } from '../lib/mekan'
 import { linkAyikla } from '../lib/importer'
 import { haritaLinkindenYer, yakindakiYerler, yeriKaydet, type YakinYer } from '../lib/burada'
@@ -10,34 +10,63 @@ export default function Buradayim() {
   const navigate = useNavigate()
   const [acik, setAcik] = useState(false)
   const [durum, setDurum] = useState('')
-  const [hata, setHata] = useState('')
+  // Hata sari uyari olarak gosterilir; tekrar: hangi adim yeniden denenecek
+  const [hata, setHata] = useState<{ baslik: string; alt: string; tekrar?: 'konum' | 'harita' } | null>(null)
   const [liste, setListe] = useState<YakinYer[]>([])
   const [konum, setKonum] = useState<Konum>()
   const [ad, setAd] = useState('')
 
-  const bul = async () => {
-    setAcik(true)
-    setHata('')
-    setListe([])
-    setDurum('Konumun alınıyor…')
+  // Harita servisinden etraftaki mekanlar (konum varsa yeniden konum sormadan)
+  const haritadanBul = async (k: Konum) => {
+    setHata(null)
+    setDurum('Etraftaki mekanlar bulunuyor…')
     try {
-      const k = await telefonKonumu(12000)
-      setKonum(k)
-      setDurum('Etraftaki mekanlar bulunuyor…')
       const l = await yakindakiYerler(k)
       setListe(l)
-      if (!l.length) setHata('Yakında kayıtlı bir mekan bulunamadı. Adını aşağıya yazabilirsin.')
-    } catch (e) {
-      setHata((e as Error).message || 'Konum alınamadı; konumu açıp tekrar dene.')
+      if (!l.length) setHata({ baslik: 'Yakında mekan bulunamadı.', alt: 'Mekanın adını aşağıya yaz, biz bulalım.' })
+    } catch {
+      setHata({ baslik: 'Harita servisine ulaşılamadı.', alt: 'İnternetini kontrol et ya da mekanın adını yaz, biz bulalım.', tekrar: 'harita' })
     }
     setDurum('')
+  }
+  const bul = async () => {
+    setAcik(true)
+    setHata(null)
+    setListe([])
+    setDurum('Konumun alınıyor…')
+    let k: Konum
+    try {
+      k = await telefonKonumu(12000)
+      setKonum(k)
+    } catch (e) {
+      setHata({ baslik: 'Konum alınamadı.', alt: `${(e as Error).message || 'Konumu açıp tekrar dene'}. Ya da mekanın adını yaz, biz bulalım.`, tekrar: 'konum' })
+      setDurum('')
+      return
+    }
+    await haritadanBul(k)
   }
   // Elle: ad ya da Google Haritalar linki
   const elle = async () => {
     const g = ad.trim()
-    if (!haritaLinkiMi(g)) return sec({ ad: g, tur: '', adres: '', lat: konum!.lat, lon: konum!.lon, km: 0 })
+    if (!g) return
+    // Ad yazildi ve konum var: bulundugun yere kaydedilir
+    if (!haritaLinkiMi(g) && konum) return sec({ ad: g, tur: '', adres: '', lat: konum.lat, lon: konum.lon, km: 0 })
+    // Konum yoksa ad yapay zekayla araştırılır (Mekan ekle ile ayni yol)
+    if (!haritaLinkiMi(g)) {
+      setHata(null)
+      setDurum('Mekan araştırılıyor…')
+      try {
+        const s = await mekanLinktenEkle(g, (m) => setDurum(m))
+        setAcik(false)
+        navigate(`/mekan/${s.id}`, { state: { gittim: true } })
+      } catch (e) {
+        setHata({ baslik: 'Mekan bulunamadı.', alt: (e as Error).message || 'Adına semti de ekleyip tekrar dene.' })
+      }
+      setDurum('')
+      return
+    }
     setDurum('Harita linki okunuyor…')
-    setHata('')
+    setHata(null)
     try {
       const y = await haritaLinkindenYer(linkAyikla(g) || g)
       if (y) {
@@ -50,7 +79,7 @@ export default function Buradayim() {
       setAcik(false)
       navigate(`/mekan/${s.id}`, { state: { gittim: true } })
     } catch (e) {
-      setHata((e as Error).message || 'Link okunamadı.')
+      setHata({ baslik: 'Link okunamadı.', alt: (e as Error).message || 'Mekanın adını yazmayı dene.' })
     }
     setDurum('')
   }
@@ -75,17 +104,32 @@ export default function Buradayim() {
         </span>
         <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
       </button>
-      <Sheet open={acik} onClose={() => setAcik(false)} title="Neredesin?">
-        <div className="space-y-2">
+      <AltSayfa open={acik} onClose={() => setAcik(false)} title="Neredesin?">
+        <div className="space-y-2.5">
           {durum && (
             <div className="flex items-center gap-2.5 py-2">
               <span className="w-5 h-5 rounded-full border-[2.5px] border-lz-600 border-t-transparent animate-spin" />
               <span className={`text-[14px] ${T_GOVDE}`}>{durum}</span>
             </div>
           )}
-          {hata && <p className="text-[13px] text-rose-600 dark:text-rose-300">{hata}</p>}
+          {hata && (
+            // Hata kirmizi degil: sari uyari, altinda gri ipucu ve Tekrar dene
+            <div className="rounded-2xl bg-amber-50 dark:bg-[#33270f] p-3 space-y-2">
+              <p className="text-[14px] font-semibold text-amber-900 dark:text-amber-200">{hata.baslik}</p>
+              <p className={`text-[12.5px] ${T_SOLUK}`}>{hata.alt}</p>
+              {hata.tekrar && (
+                <button
+                  className="lz-btn-soft w-full text-[14px]"
+                  disabled={!!durum}
+                  onClick={() => void (hata.tekrar === 'harita' && konum ? haritadanBul(konum) : bul())}
+                >
+                  ↻ Tekrar dene
+                </button>
+              )}
+            </div>
+          )}
           {liste.map((y, i) => (
-            <button key={i} className="lz-card p-3 w-full flex items-center gap-3 text-left" disabled={!!durum} onClick={() => void sec(y)}>
+            <button key={i} className="lz-card p-3 w-full flex items-center gap-3 text-left min-h-[56px]" disabled={!!durum} onClick={() => void sec(y)}>
               <span className="flex-1 min-w-0">
                 <span className={`block font-semibold text-[14.5px] ${T_BASLIK}`}>
                   {y.ad}
@@ -99,22 +143,30 @@ export default function Buradayim() {
             </button>
           ))}
           {!durum && (
-            <div className="pt-2 space-y-2">
-              <div className={`text-[12.5px] ${T_SOLUK}`}>Listede yok mu? Adını yaz ya da Google Haritalar’dan “Paylaş” ile kopyaladığın linki yapıştır:</div>
-              <div className="flex gap-2">
-                <input className="lz-input py-2 text-[14px] flex-1" placeholder="Mekanın adı ya da harita linki" value={ad} onChange={(e) => setAd(e.target.value)} />
-                <button
-                  className="lz-btn-primary px-4 text-[14px]"
-                  disabled={!ad.trim() || (!konum && !haritaLinkiMi(ad))}
-                  onClick={() => void elle()}
-                >
-                  Kaydet
-                </button>
-              </div>
+            <div className="pt-1 space-y-2">
+              <label htmlFor="burada-ad" className={`block text-[13px] font-semibold ${T_BASLIK}`}>
+                Mekan adı ya da harita linki
+              </label>
+              {/* Kutu ve dugme alt alta: dar ekranda da ikisi tam gorunur */}
+              <input
+                id="burada-ad"
+                className="lz-input text-[14.5px] w-full min-h-[48px]"
+                placeholder="Örn. Serdivan’da kebapçı"
+                value={ad}
+                onChange={(e) => setAd(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && ad.trim() && void elle()}
+              />
+              <button
+                className={`w-full min-h-[48px] rounded-xl text-[15px] font-bold text-white transition-transform ${ad.trim() ? 'bg-lz-600 active:scale-[0.98]' : 'bg-lz-600 opacity-40'}`}
+                disabled={!ad.trim()}
+                onClick={() => void elle()}
+              >
+                Kaydet
+              </button>
             </div>
           )}
         </div>
-      </Sheet>
+      </AltSayfa>
     </>
   )
 }

@@ -145,6 +145,20 @@ export default function Mekanlar() {
     }
   }
   const yakinlar = konum ? sirali.filter((m) => (mesafe(m) ?? 1e9) <= YAKIN_KM) : []
+  // Hype suzgeci bos kalinca uyari kucuk kalir, altinda (hype haric ayni suzgeclerle) mekanlar gosterilir
+  const hypeBos = sadeceHype && !hypeDurum && liste.length > 0 && sirali.length === 0
+  const gosterilen = hypeBos
+    ? liste
+        .filter(
+          (m) =>
+            (!sadeceGidilmedi || !m.gidildi) &&
+            (!etiket || m.etiketler.includes(etiket)) &&
+            (!yemek || yemekGeciyor(m, yemek)) &&
+            (!sadeceFavori || m.favori) &&
+            (!sadeceIstek || m.gitmekIstiyorum)
+        )
+        .sort((a, b) => mekanSkoru(b) - mekanSkoru(a) || (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
+    : sirali
   const listeyeGit = () => setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 100)
   const istekSayisi = liste.filter((m) => m.gitmekIstiyorum).length
   const sinirsizSayisi = liste.filter((m) => sinirsizTeklif(m)).length
@@ -159,7 +173,7 @@ export default function Mekanlar() {
   return (
     <div>
       <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />
-      <div className="px-4 space-y-3">
+      <div className="px-4 pt-3 space-y-3">
         {/* ETIKETLER: yalnizca 6 sabit etiket + Tumu (hepsi ayri ekranda) */}
         <div className="flex flex-wrap gap-1.5">
           {SABIT_ETIKETLER.map((e) => {
@@ -199,16 +213,16 @@ export default function Mekanlar() {
           />
           {aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
           <div className="grid grid-cols-2 gap-2">
-            <button className={`lz-chip justify-center ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
+            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
               Gitmek istediklerim
             </button>
-            <button className={`lz-chip justify-center ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
+            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
               Favoriler
             </button>
-            <button className={`lz-chip justify-center ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.endsWith('…')} onClick={() => void hypeKontrol()}>
+            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.endsWith('…')} onClick={() => void hypeKontrol()}>
               Hype
             </button>
-            <button className={`lz-chip justify-center ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}>
+            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}>
               Gitmediklerim
             </button>
           </div>
@@ -241,8 +255,10 @@ export default function Mekanlar() {
         {listeHam !== undefined && liste.length === 0 && (
           <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Henüz mekan yok. Aşağıdaki “Mekan ekle”den ya da Instagram’da Paylaş → Lezzet Rotası: Mekan ile ekle.</div>
         )}
-        {sadeceHype && !hypeDurum && liste.length > 0 && sirali.length === 0 && (
-          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu listede şu an sosyal medyada çok konuşulan mekan yok.</div>
+        {hypeBos && (
+          <p className="rounded-xl bg-amber-50 dark:bg-[#33270f] text-amber-900 dark:text-amber-200 text-[12.5px] px-3 py-2">
+            Şu an sosyal medyada çok konuşulan mekan yok; tüm mekanlar aşağıda.
+          </p>
         )}
         {yaricap > 0 && liste.length > 0 && sirali.length === 0 && (
           <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>{yaricap} km içinde kayıtlı mekan yok. Mesafeyi büyüt ya da “Hepsi”ni seç.</div>
@@ -250,9 +266,9 @@ export default function Mekanlar() {
         {!sadeceHype && !yaricap && liste.length > 0 && sirali.length === 0 && (
           <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu seçime uyan mekan yok.</div>
         )}
-        {sirali.length > 0 && (
+        {gosterilen.length > 0 && (
           <div className="grid grid-cols-2 gap-3 items-start">
-            {sirali.map((m) => (
+            {gosterilen.map((m) => (
               <MekanKarti key={m.id} m={m} km={mesafe(m)} />
             ))}
           </div>
@@ -366,17 +382,20 @@ const SABIT_ETIKETLER = ['Popüler', 'Tatlı', 'Sokak lezzeti', 'Pastane', 'Kahv
 
 // Kisayol karti: baslik + 1 satir aciklama, ok her kartta ayni yerde (sag, ortada)
 function KisaKart({ to, onClick, ikon, baslik, alt, vurgu = false, acik }: { to?: string; onClick?: () => void; ikon: ReactNode; baslik: string; alt: string; vurgu?: boolean; acik?: boolean }) {
+  // Ust satirda simge ve ok (ok her kartta ayni yerde), altta tam genislikte baslik (2 satir) ve tek satir aciklama
   const ic = (
     <>
-      <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${vurgu ? 'bg-lz-600 text-white' : 'bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300'}`}>{ikon}</span>
-      <span className="flex-1 min-w-0">
-        <span className={`block font-semibold text-[13.5px] leading-tight truncate ${T_BASLIK}`}>{baslik}</span>
+      <span className="flex items-center justify-between">
+        <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${vurgu ? 'bg-lz-600 text-white' : 'bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300'}`}>{ikon}</span>
+        <Icon name="back" className={`w-4 h-4 flex-shrink-0 ${acik === undefined ? 'rotate-180' : acik ? 'rotate-90' : '-rotate-90'} ${T_SOLUK}`} />
+      </span>
+      <span className="block min-w-0">
+        <span className={`block font-semibold text-[13.5px] leading-tight line-clamp-2 [overflow-wrap:normal] [word-break:normal] ${T_BASLIK}`}>{baslik}</span>
         <span className={`block text-[11.5px] leading-tight truncate mt-0.5 ${T_SOLUK}`}>{alt}</span>
       </span>
-      <Icon name="back" className={`w-4 h-4 flex-shrink-0 ${acik === undefined ? 'rotate-180' : acik ? 'rotate-90' : '-rotate-90'} ${T_SOLUK}`} />
     </>
   )
-  const cls = 'lz-card p-2.5 pr-2 flex items-center gap-2 min-h-[60px] min-w-0 w-full text-left active:scale-[0.98] transition'
+  const cls = 'lz-card p-2.5 flex flex-col gap-1.5 min-h-[88px] min-w-0 w-full text-left active:scale-[0.98] transition'
   return to ? (
     <Link to={to} className={cls}>
       {ic}

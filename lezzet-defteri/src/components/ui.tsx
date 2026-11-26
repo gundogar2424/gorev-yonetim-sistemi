@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { LzPlatform, LzRecipe } from '../types'
 import { PLATFORM_AD } from '../lib/importer'
@@ -417,5 +417,61 @@ export function IskeletKartlar({ adet = 4, izgara = false }: { adet?: number; iz
         </div>
       ))}
     </div>
+  )
+}
+
+// ALTTAN ACILAN KISA SAYFA: ekranin en fazla %60'i, ustte tutma cubugu, sag ustte X.
+// Arkayi kilitlemez: arkadaki liste kaydirilabilir; disariya kisa bir dokunus (kaydirma degil) pencereyi kapatir.
+export function AltSayfa({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const kutu = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    let bas: { x: number; y: number } | null = null
+    const asagi = (e: PointerEvent) => {
+      bas = kutu.current?.contains(e.target as Node) ? null : { x: e.clientX, y: e.clientY }
+    }
+    const yukari = (e: PointerEvent) => {
+      if (!bas) return
+      const kaydi = Math.abs(e.clientX - bas.x) > 10 || Math.abs(e.clientY - bas.y) > 10
+      bas = null
+      if (!kaydi && !kutu.current?.contains(e.target as Node)) onClose()
+    }
+    const iptal = () => (bas = null)
+    const tus = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('pointerdown', asagi, true)
+    document.addEventListener('pointerup', yukari, true)
+    document.addEventListener('pointercancel', iptal, true)
+    document.addEventListener('keydown', tus)
+    return () => {
+      document.removeEventListener('pointerdown', asagi, true)
+      document.removeEventListener('pointerup', yukari, true)
+      document.removeEventListener('pointercancel', iptal, true)
+      document.removeEventListener('keydown', tus)
+    }
+  }, [open, onClose])
+  if (!open) return null
+  return (
+    <>
+      {/* Hafif karartma; dokunuslari engellemez (arka kaydirilabilir) */}
+      <div className="fixed inset-0 z-30 bg-black/20 pointer-events-none" aria-hidden="true" />
+      <div
+        ref={kutu}
+        role="dialog"
+        aria-label={title}
+        className="fixed z-40 bottom-0 inset-x-0 mx-auto w-full max-w-xl bg-[#f7f7f5] dark:bg-[#18181b] rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] max-h-[60vh] flex flex-col"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="pt-2.5 flex justify-center" aria-hidden="true">
+          <span className="w-10 h-1.5 rounded-full bg-[#d4d4d8] dark:bg-[#3f3f46]" />
+        </div>
+        <div className="flex items-center justify-between pl-5 pr-3 pt-1 pb-2">
+          <h2 className={`text-[17px] font-bold ${T_BASLIK}`}>{title}</h2>
+          <button onClick={onClose} className={`w-11 h-11 rounded-full flex items-center justify-center ${T_SOLUK}`} aria-label="Kapat">
+            <Icon name="x" />
+          </button>
+        </div>
+        <div className="overflow-y-auto overscroll-contain px-5 pb-5">{children}</div>
+      </div>
+    </>
   )
 }
