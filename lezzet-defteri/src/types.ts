@@ -1,5 +1,6 @@
 // Lezzet Defteri veri tipleri.
 import type { TmSurum } from './lib/tm7'
+import type { PpSurum } from './lib/pisirici'
 // Diger programlarla (CRM, Diyet Kocu, Termomiks...) HICBIR tip/tablo paylasmaz.
 
 // Tarifin geldigi yer. Listede kucuk rozet olarak gosterilir.
@@ -21,6 +22,7 @@ export interface LzRecipe {
   tags: string[] // Akşam Yemeği, Tatlı, Pratik...
   tableIds: number[] // Hangi sofralara ait (Kocam, Çocuklar...)
   tm?: TmSurum // Thermomix TM7 uyarlamasi (varsa)
+  pp?: PpSurum // Pilav pisirici (Instant Pot MRRC2001WE) uyarlamasi (varsa)
   besin?: LzBesin // 1 porsiyonun tahmini besin degeri (yapay zeka, onbellek)
   kontrol?: string // Siradan otomatik eklendiyse: kullaniciya gosterilecek "kontrol et" notu
   favorite: 0 | 1 // Dexie boolean indeksleyemez

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { TarifSekmeleri } from '../components/TarifSekmeleri'
 import { lzDb, updateRecipe } from '../db'
 import { Header, Icon, Sheet, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 import { DuzenlemeSohbeti } from '../components/TarifSohbet'
@@ -42,6 +43,7 @@ export default function TmDetail() {
       <div>
         <Header title={r.title} back />
         <div className="px-4 space-y-3">
+          <TarifSekmeleri id={r.id!} aktif="tm" />
           <p className={`text-sm ${T_SOLUK}`}>Bu tarif henüz Thermomix’e uyarlanmadı.</p>
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
           <button className="lz-btn-primary w-full" disabled={calisiyor} onClick={() => void yeniden()}>
@@ -100,6 +102,7 @@ export default function TmDetail() {
         back
       />
       <div className="px-4 space-y-3 pb-8">
+        <TarifSekmeleri id={r.id!} aktif="tm" />
         <Link to={`/thermomix/${r.id}/pisir`} className="lz-btn-primary w-full">
           <Icon name="play" className="w-4 h-4" /> TM7’de pişir
         </Link>

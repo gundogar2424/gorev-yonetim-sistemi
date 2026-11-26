@@ -14,6 +14,7 @@ import {
   saglayiciKaydet,
   type Saglayici
 } from '../lib/ai'
+import { PP_CIHAZLAR, PP_KILAVUZ, ppCihaz, ppCihazKaydet } from '../lib/pisirici'
 import { downloadBackup, otomatikYedek, restoreBackup, sonOtomatikYedek } from '../lib/backup'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
 import { lzDb } from '../db'
@@ -137,6 +138,7 @@ export default function LzSettings() {
 
         <GoogleHaritalarKarti />
 
+        <PisiriciKarti />
         <CookidooKarti />
 
         <section className="lz-card p-4 space-y-3">
@@ -368,6 +370,51 @@ function CookidooKarti() {
             : Branch <b>main</b> / (root) → Save. Ana sayfa, arama ve site haritası için <a href="https://github.com/gundogar2424/lezzet-tarifler" target="_blank" rel="noreferrer" className="underline">lezzet-tarifler</a> deposundaki dosyaları kopyala.
           </li>
         </ol>
+      )}
+    </section>
+  )
+}
+
+// Pilav pisirici secimi: secili cihaza gore tariflere "Pilav Pisiricide" uyarlamasi yapilir
+function PisiriciKarti() {
+  const [cihaz, setCihaz] = useState(ppCihaz())
+  const [kilavuz, setKilavuz] = useState(false)
+  return (
+    <section className="lz-card p-4 space-y-3">
+      <div className={`font-semibold ${T_BASLIK}`}>Pilav Pişiricim</div>
+      <select
+        className="lz-input text-[14px]"
+        value={cihaz}
+        onChange={(e) => {
+          setCihaz(e.target.value)
+          ppCihazKaydet(e.target.value)
+        }}
+      >
+        {PP_CIHAZLAR.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.ad}
+          </option>
+        ))}
+        <option value="yok">Kullanmıyorum</option>
+      </select>
+      <p className={`text-[12.5px] ${T_SOLUK}`}>
+        {cihaz === 'yok'
+          ? 'Kapalı: tariflere pilav pişirici uyarlaması yapılmaz.'
+          : 'Yeni kaydedilen her tarifin “Pilav Pişiricide” sekmesi yapay zekayla kendiliğinden hazırlanır. Eski tarifleri sekmeden tek tek uyarlayabilirsin.'}
+      </p>
+      {cihaz !== 'yok' && (
+        <>
+          <button className="text-[13px] text-lz-600 font-semibold underline" onClick={() => setKilavuz(!kilavuz)}>
+            {kilavuz ? 'Gizle' : 'Cihazın modları'}
+          </button>
+          {kilavuz && (
+            <ul className={`text-[12.5px] space-y-1 ${T_GOVDE}`}>
+              {PP_KILAVUZ.map((x) => (
+                <li key={x}>• {x}</li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </section>
   )

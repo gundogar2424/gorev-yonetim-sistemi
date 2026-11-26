@@ -1744,3 +1744,77 @@ export async function aiMekanUnluler(m: { ad: string; ilce: string; sehir: strin
     .filter((x) => x.kisi)
     .slice(0, 8)
 }
+
+// PILAV PISIRICI UYARLAMASI (Instant Pot MRRC2001WE). Sonuc her zaman kural denetiminden gecer.
+export async function aiPilavPisirici(r: {
+  title: string
+  servings: number
+  ingredients: string[]
+  steps: string[]
+  notes: string
+  tags?: string[]
+}): Promise<import('./pisirici').PpSurum> {
+  const { PP_KILAVUZ, PP_CIHAZLAR, ppAdimTemizle, ppDenetle, ppCihaz } = await import('./pisirici')
+  const cihaz = PP_CIHAZLAR.find((c) => c.id === ppCihaz())?.ad ?? PP_CIHAZLAR[0].ad
+  const schema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['ingredients', 'steps', 'warnings', 'uygun'],
+    properties: {
+      uygun: { type: 'boolean', description: 'Bu tarif bu cihazda yapılabiliyor mu (derin kızartma ise false)' },
+      ingredients: { type: 'array', items: { type: 'string' }, description: 'Malzemeler; ölçüler korunur, mümkünse gram/bardak' },
+      warnings: { type: 'array', items: { type: 'string' } },
+      steps: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['text', 'ingredients', 'mod', 'dakika', 'kapak', 'sepet', 'su', 'keepWarm', 'butonlar', 'tip'],
+          properties: {
+            text: { type: 'string' },
+            ingredients: { type: 'string', description: 'Bu adımda hazneye giren malzemeler; yoksa boş' },
+            mod: { type: 'string', enum: ['', 'whiteRice', 'brownRice', 'carbReduce', 'mixedGrains', 'quinoa', 'steam', 'slowCook', 'saute', 'keepWarm'], description: 'Cihaz dışı adımda boş' },
+            dakika: { type: 'number', description: 'Süre dakika; pirinç modlarında 0' },
+            kapak: { type: 'string', enum: ['', 'acik', 'kapali'] },
+            sepet: { type: 'boolean' },
+            su: { type: 'string', description: 'Steam adımında hazneye konan su (ör. "1 bardak"); diğerlerinde boş' },
+            keepWarm: { type: 'string', enum: ['', 'acik', 'kapali', 'low', 'high'] },
+            butonlar: { type: 'string', description: 'Düğme sırası: "Menu Select ile Slow Cook seç, Time ile 6 sa yap, Start’a bas"' },
+            tip: { type: 'string' }
+          }
+        }
+      }
+    }
+  }
+  const system = [
+    `Sen bir pilav pişirici (rice cooker) uzmanısın. Cihaz: ${cihaz}. Verilen tarifi BU cihazda adım adım yapılacak hale getir. Türkçe yaz.`,
+    'CİHAZIN MODLARI (yalnızca bunlar var, aynen kullan):',
+    ...PP_KILAVUZ.map((x) => `- ${x}`),
+    'DÖNÜŞÜM KURALLARI:',
+    '- Eritme (çikolata, tereyağı): Sauté, kapak açık, 2-3 dakika, sürekli karıştır, sonra Cancel. White Rice ile eritme yapma.',
+    '- Kavurma, soğan, kıyma: Sauté, kapak açık.',
+    '- Beyaz pilav: White Rice, su oranına uy. Şehriyeli pilavda önce Sauté ile şehriyeyi kavur, sonra pirinç + su ekleyip White Rice’a al.',
+    '- Buharda sebze, balık: Steam, sepet + su (su miktarını yaz).',
+    '- Güveç, kuru fasulye, et haşlama: Slow Cook.',
+    '- Kek, brownie, fırın tatlısı: White Rice KULLANMA (hamur susuz, makine erken Keep Warm’e geçer, altı yanar). Slow Cook, 1 saat 30 dakika; 1 saatte kürdanla kontrol et, hafif nemli kırıntı kalıyorsa tamam.',
+    '- Isıtma: Keep Warm Low veya High.',
+    '- Derin kızartma isteyen tarif: uygun=false, uyarıya "Bu pişiricide olmaz" yaz, zorlama.',
+    '- Fırında çıtır isteyen tarif: "Aynı çıtırlık olmaz, nemli olur" uyarısı ekle.',
+    '- Sauté adımında kapak kapalı yazma. Steam adımında sepet ve su miktarını mutlaka yaz. MAX çizgisini aşma.',
+    '- Her cihaz adımında butonlar alanına düğme sırasını yaz (Menu Select, Time, Start, Keep Warm/Cancel).',
+    '- Hazne 5 litre: toplam 1 litreden azsa uyarı ver: "Hazneye göre az, 2 katına çıkarırsan daha düzgün pişer".',
+    '- Malzeme hazırlama, kalıba dökme, soğutma gibi cihaz dışı adımlarda mod boş kalsın.'
+  ].join('\n')
+  const icerik = `TARİF: ${r.title}\nPorsiyon: ${r.servings || '-'}\nMALZEMELER:\n${r.ingredients.join('\n')}\nYAPILIŞI:\n${r.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}${r.notes ? `\nNOT: ${r.notes}` : ''}`
+  const v = await jsonCagri<{ ingredients: string[]; steps: Record<string, unknown>[]; warnings: string[]; uygun: boolean }>(system, icerik, schema, 5000)
+  const temiz = (v.steps ?? []).map((x) => ppAdimTemizle(x as Parameters<typeof ppAdimTemizle>[0]))
+  const pp = {
+    ingredients: (v.ingredients ?? []).map(String).filter(Boolean),
+    steps: temiz.map(({ hamMod: _h, ...a }) => a),
+    warnings: (v.warnings ?? []).map(String).filter(Boolean),
+    uygun: v.uygun !== false,
+    cihaz: ppCihaz(),
+    createdAt: Date.now()
+  }
+  return ppDenetle(pp, { title: r.title, tags: r.tags, steps: r.steps }, temiz.map((a) => a.hamMod))
+}

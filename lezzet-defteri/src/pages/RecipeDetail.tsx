@@ -13,6 +13,7 @@ import { etkilesimEski, etkilesimGetir, kisaSayi } from '../lib/begeni'
 import { dosyaPaylas, tarifHtml, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
 import { siteyeKoy } from '../lib/cookidoo'
+import { TarifSekmeleri } from '../components/TarifSekmeleri'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -103,6 +104,7 @@ export default function RecipeDetail() {
       </div>
 
       <div className="px-4 -mt-6 relative space-y-3 pb-8">
+        <TarifSekmeleri id={r.id!} aktif="normal" />
         {r.kontrol && (
           <div
             className={`rounded-2xl text-[13px] p-3.5 relative z-10 ${

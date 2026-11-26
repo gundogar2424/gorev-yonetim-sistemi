@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { otomatikYedek, sitedenGeriYukle } from './lib/backup'
+import { ppOtoUret } from './lib/ppOto'
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Icon, type IconName } from './components/ui'
 import Recipes from './pages/Recipes'
@@ -13,6 +14,7 @@ import LzSettings from './pages/LzSettings'
 import NePisirsem from './pages/NePisirsem'
 import Thermomix from './pages/Thermomix'
 import TmDetail from './pages/TmDetail'
+import PpDetail from './pages/PpDetail'
 import TmCook from './pages/TmCook'
 import Diyetim from './pages/Diyetim'
 import Sira from './pages/Sira'
@@ -72,7 +74,12 @@ export default function LzApp() {
   useEffect(() => {
     if (tarifSayisi === undefined) return
     const t = setTimeout(() => void tumOgunleriTara(), 8000)
-    return () => clearTimeout(t)
+    // Yeni kaydedilen tariflerin pilav pisirici uyarlamasi (arka planda)
+    const p = setTimeout(() => void ppOtoUret(), 12000)
+    return () => {
+      clearTimeout(t)
+      clearTimeout(p)
+    }
   }, [tarifSayisi])
 
   useEffect(() => {
@@ -107,6 +114,7 @@ export default function LzApp() {
           <Route path="/ne-pisirsem" element={<NePisirsem />} />
           <Route path="/thermomix" element={<Thermomix />} />
           <Route path="/thermomix/:id" element={<TmDetail />} />
+          <Route path="/pisirici/:id" element={<PpDetail />} />
           <Route path="/thermomix/:id/pisir" element={<TmCook />} />
           <Route path="/sira" element={<Sira />} />
           <Route path="/mekanlar" element={<Mekanlar />} />
