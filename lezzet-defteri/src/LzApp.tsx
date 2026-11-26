@@ -171,17 +171,18 @@ export default function LzApp() {
                 </div>
               ]
             : []),
-          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2 pb-2 gap-0.5 min-h-[56px] min-w-0">
+          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2 pb-2 gap-[2px] min-h-[56px] min-w-0 px-0.5">
             {({ isActive }) => (
               <>
-                <span className={`px-3 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
+                <span className={`px-2.5 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
                   <Icon
                     name={t.icon}
                     className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#8a8a93] dark:text-[#71717a]'}`}
                   />
                 </span>
                 <span
-                  className={`text-[11px] leading-none transition-colors whitespace-nowrap truncate max-w-full ${
+                  data-nav-yazi
+                  className={`block text-[11px] leading-[1.15] tracking-[-0.01em] text-center max-w-full transition-colors ${
                     isActive ? 'text-lz-600 dark:text-lz-400 font-semibold' : 'text-[#71717a] dark:text-[#8a8a93] font-medium'
                   }`}
                 >

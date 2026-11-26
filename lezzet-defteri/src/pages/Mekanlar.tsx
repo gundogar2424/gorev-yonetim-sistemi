@@ -32,7 +32,8 @@ const YAKIN_KM = 3
 let sonKonum: Konum | null = null
 
 // MEKANLARIM: internette gorulen yeme-icme yerleri. Yakinimdakiler en ustte.
-export default function Mekanlar() {
+// gomulu: Tarifler ekranindaki "Mekanlarım" sekmesinde; baslik ve arama kutusu disaridan gelir
+export default function Mekanlar({ gomulu = false, disArama }: { gomulu?: boolean; disArama?: string } = {}) {
   const navigate = useNavigate()
   const listeHam = useLiveQuery(() => lzDb.mekanlar.orderBy('createdAt').reverse().toArray(), [])
   const liste = listeHam ?? []
@@ -102,7 +103,7 @@ export default function Mekanlar() {
   // Kayitli mekanlardaki etiketler (cok kullanilan once)
   const sayac = new Map<string, number>()
   liste.forEach((m) => m.etiketler.forEach((e) => sayac.set(e, (sayac.get(e) ?? 0) + 1)))
-  const q = arama.trim().toLocaleLowerCase('tr')
+  const q = (gomulu ? disArama ?? '' : arama).trim().toLocaleLowerCase('tr')
   const suzulmus = liste.filter(
     (m) =>
       (!sadeceGidilmedi || !m.gidildi) &&
@@ -173,8 +174,8 @@ export default function Mekanlar() {
 
   return (
     <div>
-      <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />
-      <div className="px-4 pt-3 space-y-3">
+      {!gomulu && <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />}
+      <div className={gomulu ? 'space-y-3' : 'px-4 pt-3 space-y-3'}>
         {/* ETIKETLER: yalnizca 6 sabit etiket + Tumu (hepsi ayri ekranda) */}
         <div className="flex flex-wrap gap-1.5">
           {SABIT_ETIKETLER.map((e) => {
@@ -200,19 +201,21 @@ export default function Mekanlar() {
 
         {/* ARAMA ve SUZGECLER */}
         <div id="mekan-listesi" className="space-y-2 scroll-mt-24">
-          <input
-            className="lz-input py-2 text-[14px] w-full min-h-[48px]"
-            placeholder="Ara: ad, semt, yemek…"
-            value={arama}
-            onChange={(e) => setArama(e.target.value)}
-            onFocus={() => setAramaOdak(true)}
-            onBlur={() => {
-              setTimeout(() => setAramaOdak(false), 150)
-              sonAramaEkle('mekan', arama)
-            }}
-            onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('mekan', arama)}
-          />
-          {aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
+          {!gomulu && (
+            <input
+              className="lz-input py-2 text-[14px] w-full min-h-[48px]"
+              placeholder="Ara: ad, semt, yemek…"
+              value={arama}
+              onChange={(e) => setArama(e.target.value)}
+              onFocus={() => setAramaOdak(true)}
+              onBlur={() => {
+                setTimeout(() => setAramaOdak(false), 150)
+                sonAramaEkle('mekan', arama)
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('mekan', arama)}
+            />
+          )}
+          {!gomulu && aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
           <div className="grid grid-cols-2 gap-2">
             <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
               Gitmek istediklerim
@@ -415,7 +418,7 @@ function MekanKarti({ m, km }: { m: LzMekan; km?: number }) {
   const alt = [km !== undefined ? mesafeYaz(km) : '', fiyat ? `${fiyat} fiyat` : ''].filter(Boolean).join(' · ')
   const yakin = km !== undefined && km <= YAKIN_KM
   return (
-    <div className={`lz-card overflow-hidden flex flex-col min-w-0 ${yakin ? 'ring-2 ring-lz-500/50' : ''}`}>
+    <div className={`lz-card overflow-hidden flex flex-col min-w-0 ${yakin ? 'ring-1 ring-red-500 dark:ring-red-400' : ''}`}>
       <div className="relative">
         <Link to={`/mekan/${m.id}`} aria-label={m.ad} className="block">
           <Thumb src={m.foto} className="w-full rounded-none aspect-[4/3]" emoji="" />

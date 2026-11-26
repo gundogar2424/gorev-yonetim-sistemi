@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { etkilesimEski, etkilesimGetir } from '../lib/begeni'
@@ -8,7 +8,7 @@ import { adaylar } from '../lib/hesaplar'
 import { addTable, deleteTable, listRecipes, lzDb, toggleFavorite } from '../db'
 import { apiAnahtari } from '../lib/ai'
 import { SiraRozeti, useSiraOzeti } from './Sira'
-import { useYakinMekanSayisi } from './Mekanlar'
+import Mekanlar, { useYakinMekanSayisi } from './Mekanlar'
 import type { LzRecipe, LzTable } from '../types'
 import { Header, Icon, IskeletKartlar, Logo, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_SOLUK, Thumb, sureYaz } from '../components/ui'
 
@@ -16,6 +16,19 @@ const SOFRA_EMOJI = ['👩', '👨', '👧', '👦', '👵', '👴', '💑', '�
 const YENI_GUN = 7
 
 let begeniOkundu = false
+type Sekme = 'tarifler' | 'mekanlar' | 'sofralar'
+const SEKMELER: Sekme[] = ['tarifler', 'mekanlar', 'sofralar']
+const SEKME_ANAHTAR = 'lz-ana-sekme'
+const SEKME_AD: Record<Sekme, string> = { tarifler: 'Tariflerim', mekanlar: 'Mekanlarım', sofralar: 'Sofralarım' }
+const IPUCU: Record<Sekme, string> = { tarifler: 'Tariflerinde ara…', mekanlar: 'Mekanlarında ara…', sofralar: 'Sofralarında ara…' }
+function sonSekme(): Sekme {
+  try {
+    const x = localStorage.getItem(SEKME_ANAHTAR) as Sekme | null
+    return x && SEKMELER.includes(x) ? x : 'tarifler'
+  } catch {
+    return 'tarifler'
+  }
+}
 type Filtre = 'hepsi' | 'yeni' | 'favori' | string // string = etiket adi
 
 export default function Recipes() {
@@ -23,7 +36,37 @@ export default function Recipes() {
   const tarifler = tarifHam ?? []
   const mekanSayisi = useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0
   const sofralar = useLiveQuery(() => lzDb.sofralar.orderBy('name').toArray(), [], [] as LzTable[]) ?? []
-  const [sekme, setSekme] = useState<'tarifler' | 'sofralar'>('tarifler')
+  const [sekme, setSekmeHam] = useState<Sekme>(sonSekme)
+  const setSekme = (x: Sekme) => {
+    setSekmeHam(x)
+    try {
+      localStorage.setItem(SEKME_ANAHTAR, x)
+    } catch {
+      /* hatirlanmasa da calisir */
+    }
+  }
+  const sekmeRef = useRef<HTMLDivElement>(null)
+  const sekmeyeGec = (x: Sekme) => {
+    setSekme(x)
+    setTimeout(() => sekmeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
+  // Sekmeler arasinda yana kaydirarak gecis (yatay kayan seritler haric)
+  const dokunus = useRef<{ x: number; y: number; t: number } | null>(null)
+  const kaydirBasla = (e: React.TouchEvent) => {
+    const hedef = e.target as HTMLElement
+    if (hedef.closest('.overflow-x-auto, input, textarea, .leaflet-container')) return (dokunus.current = null)
+    dokunus.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
+  }
+  const kaydirBitir = (e: React.TouchEvent) => {
+    const d = dokunus.current
+    dokunus.current = null
+    if (!d) return
+    const dx = e.changedTouches[0].clientX - d.x
+    const dy = e.changedTouches[0].clientY - d.y
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || Date.now() - d.t > 800) return
+    const i = SEKMELER.indexOf(sekme) + (dx < 0 ? 1 : -1)
+    if (i >= 0 && i < SEKMELER.length) setSekme(SEKMELER[i])
+  }
   const [q, setQ] = useState('')
   const [aramaOdak, setAramaOdak] = useState(false)
   const [tumEtiket, setTumEtiket] = useState(false)
@@ -32,6 +75,9 @@ export default function Recipes() {
   const [yeniSofra, setYeniSofra] = useState(false)
   const [duzenSofra, setDuzenSofra] = useState<LzTable | null>(null)
 
+  // Her sekmenin aramasi ayri: sekme degisince kutu bosalir, son aramalar da o sekmeninkiler
+  const aramaTuru = sekme === 'tarifler' ? 'tarif' : sekme === 'mekanlar' ? 'mekan' : 'sofra'
+  useEffect(() => setQ(''), [sekme])
   const etiketler = Array.from(new Set(tarifler.flatMap((r) => r.tags))).sort((a, b) => a.localeCompare(b, 'tr'))
   const yeniSinir = Date.now() - YENI_GUN * 86400000
   const arama = q.trim().toLocaleLowerCase('tr')
@@ -62,6 +108,8 @@ export default function Recipes() {
       iptal = true
     }
   }, [filtre])
+  const seciliSofra = sofra ? sofralar.find((t) => t.id === sofra) : undefined
+  const sofralarGorunen = arama ? sofralar.filter((t) => esles(arama, `${t.name} ${t.notes ?? ''}`)) : sofralar
   const gorunenHam = tarifler.filter((r) => {
     if (sofra && !r.tableIds.includes(sofra)) return false
     if (filtre === 'yeni' && r.createdAt < yeniSinir) return false
@@ -95,19 +143,19 @@ export default function Recipes() {
             </span>
             <input
               className="lz-input pl-11"
-              placeholder="Kaydettiklerinde ara…"
+              placeholder={IPUCU[sekme]}
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onFocus={() => setAramaOdak(true)}
               onBlur={() => {
                 setTimeout(() => setAramaOdak(false), 150)
-                sonAramaEkle('tarif', q)
+                sonAramaEkle(aramaTuru, q)
               }}
-              onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('tarif', q)}
+              onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle(aramaTuru, q)}
             />
           </label>
-          {aramaOdak && !q && sonAramalar('tarif').length > 0 && (
-            <SonAramalar tur="tarif" sec={(x) => setQ(x)} />
+          {aramaOdak && !q && sonAramalar(aramaTuru).length > 0 && (
+            <SonAramalar key={aramaTuru} tur={aramaTuru} sec={(x) => setQ(x)} />
           )}
       </Header>
 
@@ -127,6 +175,12 @@ export default function Recipes() {
             <Link
               key={to}
               to={to}
+              onClick={(e) => {
+                // Mekanlar kutusu ayni ekrandaki Mekanlarım sekmesine atlar
+                if (to !== '/mekanlar') return
+                e.preventDefault()
+                sekmeyeGec('mekanlar')
+              }}
               className="lz-card relative flex flex-col items-center justify-center gap-1 px-1.5 py-2 min-h-[64px] min-w-0 text-center active:scale-[0.97] transition"
             >
               {/* Simge ustte, yazi altta tam genislikte: sozcuk ortasindan bolunmez */}
@@ -143,43 +197,41 @@ export default function Recipes() {
             </Link>
           ))}
         </div>
-        <DurumSeridi />
+        <DurumSeridi mekanlaraGit={() => sekmeyeGec('mekanlar')} />
 
-        {/* Tariflerim / Sofralarım */}
-        <div className="grid grid-cols-2 bg-[#ececea] dark:bg-[#1c1c1f] rounded-xl p-1">
-          {(['tarifler', 'sofralar'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSekme(s)}
-              className={`py-2 rounded-[10px] text-sm font-semibold transition ${
-                sekme === s ? 'bg-white dark:bg-[#2e2e33] text-[#18181b] dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]' : 'text-[#71717a] dark:text-[#8a8a93]'
-              }`}
-            >
-              {s === 'tarifler' ? 'Tariflerim' : 'Sofralarım'}
-            </button>
-          ))}
+        {/* Tariflerim / Mekanlarım / Sofralarım: esit genislik, tek satir, 48 px; sayilar gercek kayitlardan */}
+        <div ref={sekmeRef} role="tablist" className="grid grid-cols-3 gap-1 bg-[#ececea] dark:bg-[#1c1c1f] rounded-xl p-1 scroll-mt-[150px]">
+          {SEKMELER.map((x) => {
+            const sayi = x === 'tarifler' ? tarifler.length : x === 'mekanlar' ? mekanSayisi : sofralar.length
+            return (
+              <button
+                key={x}
+                role="tab"
+                aria-selected={sekme === x}
+                data-sekme={x}
+                onClick={() => setSekme(x)}
+                className={`h-[48px] min-w-0 px-1 rounded-[10px] flex items-center justify-center gap-[3px] whitespace-nowrap transition ${
+                  sekme === x ? 'bg-white dark:bg-[#2e2e33] text-[#18181b] dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]' : 'text-[#71717a] dark:text-[#8a8a93]'
+                }`}
+              >
+                <span className="text-[13px] max-[350px]:text-[12px] font-semibold tracking-[-0.02em]">{SEKME_AD[x]}</span>
+                <span className="text-[11px] max-[350px]:text-[10px] font-medium opacity-75 tabular-nums">({sayi})</span>
+              </button>
+            )
+          })}
         </div>
 
+        <div onTouchStart={kaydirBasla} onTouchEnd={kaydirBitir} className="space-y-3 min-h-[50vh]">
         {sekme === 'tarifler' ? (
           <>
-            {/* Sofra (kisi) suzgeci */}
-            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
-              {sofralar.map((t) => {
-                const on = sofra === t.id
-                return (
-                  <button key={t.id} onClick={() => setSofra(on ? 0 : t.id!)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16">
-                    <SofraRozet ad={t.name} className="w-14 h-14 text-[18px]" secili={on} />
-                    <span className={`text-[11.5px] truncate w-full text-center ${on ? 'text-lz-600 font-semibold' : T_SOLUK}`}>{t.name}</span>
-                  </button>
-                )
-              })}
-              <button onClick={() => setYeniSofra(true)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16">
-                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#71717a] dark:border-[#a1a1aa] text-[#52525b] dark:text-[#d4d4d8]">
-                  <Icon name="plus" />
-                </span>
-                <span className={`text-[11.5px] font-semibold whitespace-nowrap ${T_BASLIK}`}>Sofra ekle</span>
-              </button>
-            </div>
+            {/* Sofradan gelindiyse secili sofra (Sofra ekle yalnizca Sofralarım sekmesinde) */}
+            {seciliSofra && (
+              <div className="flex">
+                <button className="lz-chip !bg-lz-600 !border-lz-600 !text-white" onClick={() => setSofra(0)}>
+                  Sofra: {seciliSofra.name} ✕
+                </button>
+              </div>
+            )}
 
             {/* Filtreler: hepsi tam gorunsun (yarim cip yok); satira sigmazsa alta gecer */}
             <div className="grid grid-cols-2 gap-2">
@@ -217,9 +269,39 @@ export default function Recipes() {
               </div>
             )}
           </>
+        ) : sekme === 'mekanlar' ? (
+          <Mekanlar gomulu disArama={q} />
         ) : (
+          <>
+            {/* Sofra daireleri ve "Sofra ekle" yalnizca burada */}
+            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
+              {sofralarGorunen.map((t) => {
+                const on = sofra === t.id
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setSofra(t.id!)
+                      setFiltre('hepsi')
+                      setSekme('tarifler')
+                    }}
+                    className="flex flex-col items-center gap-1 flex-shrink-0 w-16"
+                  >
+                    <SofraRozet ad={t.name} className="w-14 h-14 text-[18px]" secili={on} />
+                    <span className={`text-[11.5px] truncate w-full text-center ${on ? 'text-lz-600 font-semibold' : T_SOLUK}`}>{t.name}</span>
+                  </button>
+                )
+              })}
+              <button onClick={() => setYeniSofra(true)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16" data-sofra-ekle>
+                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#71717a] dark:border-[#a1a1aa] text-[#52525b] dark:text-[#d4d4d8]">
+                  <Icon name="plus" />
+                </span>
+                <span className={`text-[11.5px] font-semibold whitespace-nowrap ${T_BASLIK}`}>Sofra ekle</span>
+              </button>
+            </div>
+            {arama && sofralarGorunen.length === 0 && <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>Bu aramaya uyan sofra yok.</div>}
           <SofraListesi
-            sofralar={sofralar}
+            sofralar={sofralarGorunen}
             tarifler={tarifler}
             onAc={(id) => {
               setSofra(id)
@@ -229,7 +311,9 @@ export default function Recipes() {
             onYeni={() => setYeniSofra(true)}
             onDuzenle={(t) => setDuzenSofra(t)}
           />
+          </>
         )}
+        </div>
       </div>
 
       <YeniSofra open={yeniSofra} onClose={() => setYeniSofra(false)} />
@@ -293,28 +377,28 @@ function RecipeCard({ r }: { r: LzRecipe }) {
   )
 }
 
-// Sira ve yakindaki mekanlar tek seritte, tek satirda: "N tarif sırada işleniyor · Yakınında N mekan var"
-function DurumSeridi() {
+// Sira ve yakindaki mekanlar ayni seritte, iki ayri dokunulabilir parca; sigmazsa 2 satira iner (… ile kesilmez)
+function DurumSeridi({ mekanlaraGit }: { mekanlaraGit: () => void }) {
   const s = useSiraOzeti()
   const yakin = useYakinMekanSayisi()
   const sira = s.bekleyen || s.hata || s.biten
   if (!sira && !yakin) return null
   return (
-    <div className="lz-card px-3 min-h-[48px] flex items-center gap-2.5 overflow-hidden">
+    <div className="lz-card px-3 py-1.5 min-h-[48px] flex items-center gap-2.5" data-durum-seridi>
       <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${s.hata && !s.bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${s.bekleyen ? 'animate-pulse' : ''}`}>
         <Icon name={sira ? 'inbox' : 'pin'} className="w-[16px] h-[16px]" />
       </span>
-      <span className={`flex-1 min-w-0 truncate text-[13px] font-medium ${T_BASLIK}`}>
+      <span className={`flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-snug font-medium ${T_BASLIK}`}>
         {sira ? (
-          <Link to="/sira" className="underline-offset-2 active:underline">
+          <Link to="/sira" className="py-1 underline-offset-2 active:underline">
             {s.metin}
           </Link>
         ) : null}
-        {sira && yakin ? <span className={T_SOLUK}> · </span> : null}
+        {sira && yakin ? <span className={T_SOLUK} aria-hidden="true">·</span> : null}
         {yakin ? (
-          <Link to="/mekanlar" className="text-lz-600 font-semibold">
+          <button onClick={mekanlaraGit} className="py-1 text-left text-lz-600 font-semibold">
             Yakınında {yakin} mekan var
-          </Link>
+          </button>
         ) : null}
       </span>
     </div>
