@@ -78,9 +78,9 @@ export const PP_KILAVUZ = [
   'Steam: varsayılan 10 dakika, 5 dakika ile 1 saat arası; sepet + en az yarım bardak su şart.',
   'Slow Cook: varsayılan 6 saat, 30 dakika ile 24 saat arası; Keep Warm varsayılan AÇIK. Bitince hemen Cancel.',
   'Sauté: varsayılan 30 dakika, 1 ile 30 dakika arası; kapak AÇIK; Keep Warm varsayılan KAPALI. Kendi durmaz, bitince Cancel.',
-  'Keep Warm: Low ya da High (ısıtma/sıcak tutma).',
+  'Keep Warm: pişirme modu değildir, elle seçilen sıcak tutmadır (Low ya da High). Slow Cook ve Sauté bitince makine kendiliğinden Keep Warm’e geçse bile hemen Cancel’a basılır; Keep Warm yalnızca bilerek sıcak tutmak için seçilir.',
   'Düğmeler: Menu Select (mod seçimi), + / - (süre), Start, Cancel. Time düğmesi YOK.',
-  'MAX çizgisi: toplam 2,5 kg’ı geçme (hazne MAX çizgisine kadar yaklaşık 2,8 litre).',
+  'MAX çizgisi hacimle ölçülür: hazne MAX çizgisine kadar yaklaşık 2,8 litre; toplam hacim buna yaklaşıyorsa yarıya indir ya da iki seferde pişir.',
   'YOK: Cake, Pressure Cook, Air Fry, derin kızartma, Time düğmesi. Bunları asla yazma.'
 ]
 
@@ -180,6 +180,33 @@ function bitinceMetni(a: PpAdim): string {
     default:
       return ''
   }
+}
+
+// Tarifin toplam hacmi (litre, yaklasik): g/ml/kg/l satirlari + "su bardagi" (~0,2 L). MAX cizgisi hacimle olculur.
+export const HAZNE_MAX_L = 2.8
+export function hacimLitre(ingredients: string[]): number {
+  let l = 0
+  for (const s of ingredients) {
+    const g = gramToplami([s])
+    if (g > 0) {
+      l += g / 1000
+      continue
+    }
+    const t = s.replace(',', '.').toLocaleLowerCase('tr')
+    const lt = t.match(/(\d+(?:\.\d+)?)\s*(litre|lt)\b/)
+    if (lt) {
+      l += Number(lt[1])
+      continue
+    }
+    const b = t.match(/(\d+(?:\.\d+)?)\s*(?:su\s*)?barda(?:k|ğ)/)
+    if (b) l += Number(b[1]) * 0.2
+  }
+  return Math.round(l * 100) / 100
+}
+// MAX cizimi ve uyarisi yalnizca gerekince: toplam 1,5 litreyi geciyor ya da hazne yaridan fazla doluysa
+export function maxGerekli(ingredients: string[]): boolean {
+  const l = hacimLitre(ingredients)
+  return l > 1.5 || l > HAZNE_MAX_L / 2
 }
 
 // Kek/brownie icin 2. secenek: kalipla Steam (hamur az olsa da duzgun pisirir)
@@ -298,6 +325,8 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
   const gram = gramToplami(pp.ingredients)
   // Hamur (kek, brownie) 1 litreden azsa hazne genis kalir, ince olur ve kurur
   if (kek && gram > 0 && gram < 1000) uyari.add('Hazneye göre az: hamur ince yayılıp kurur. Miktarları 2 katına çıkar ya da 2. seçenekteki gibi kalıpla Steam’de pişir.')
-  if (gram > 2500) uyari.add('Toplam 2,5 kg’ı geçiyor: MAX çizgisini aşabilir. Yarıya indir ya da iki seferde pişir.')
+  // Eski kayitlardaki kg'li MAX uyarisi kaldirilir; MAX hacimle olculur
+  for (const w of [...uyari]) if (/2,5 kg|MAX çizgisini aşabilir|2,8 litreye/.test(w)) uyari.delete(w)
+  if (hacimLitre(pp.ingredients) >= 2.5) uyari.add('Toplam hacim 2,8 litreye yaklaşıyor: MAX çizgisini aşabilir. Yarıya indir ya da iki seferde pişir.')
   return { ...pp, steps, uygun, warnings: [...uyari], alternatif: kek ? KALIP_STEAM : undefined }
 }

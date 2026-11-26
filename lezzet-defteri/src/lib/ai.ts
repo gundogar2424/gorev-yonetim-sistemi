@@ -1804,7 +1804,7 @@ export async function aiPilavPisirici(r: {
     '- Fırında çıtır isteyen tarif: "Aynı çıtırlık olmaz, nemli olur" uyarısı ekle.',
     '- Sauté adımında kapak kapalı yazma. Steam adımında sepet ve su miktarını mutlaka yaz. MAX çizgisini aşma.',
     '- Her cihaz adımında butonlar alanına düğme sırasını yaz: "Menu Select ile Slow Cook seç, + / - ile 1 sa 30 dk yap, Start’a bas". Bu makinede Time düğmesi YOK, asla yazma.',
-    '- MAX: toplam 2,5 kg’ı geçme. Kek hamuru 1 kg’dan azsa: "Hazneye göre az, 2 katına çıkar ya da kalıpla Steam’de pişir".',
+    '- MAX çizgisi hacimle ölçülür (yaklaşık 2,8 litre): toplam hacim buna yaklaşıyorsa yarıya indir ya da iki seferde pişir. Keep Warm pişirme modu değildir; yalnızca bilerek sıcak tutmak için seçilir. Kek hamuru 1 kg’dan azsa: "Hazneye göre az, 2 katına çıkar ya da kalıpla Steam’de pişir".',
     '- Malzeme hazırlama, kalıba dökme, soğutma gibi cihaz dışı adımlarda mod boş kalsın.',
     '- Cancel, Start, Menu Select, Keep Warm kapatma, kapak kapatma ayrı ADIM OLMAZ; bunları ait olduğu adımın butonlar alanına yaz. Adımlar yalnızca gerçek pişirme ve hazırlık işleri.',
     '- "Aynı çıtırlık olmaz" uyarısını yalnızca fırında çıtır, kızartma, airfryer, çıtır, pane, kızarmış istenen tariflerde yaz; tavada, haşlama, soslu, güveç, buharda tariflerde yazma.'
