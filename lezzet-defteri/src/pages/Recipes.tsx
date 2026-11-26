@@ -26,6 +26,7 @@ export default function Recipes() {
   const [sekme, setSekme] = useState<'tarifler' | 'sofralar'>('tarifler')
   const [q, setQ] = useState('')
   const [aramaOdak, setAramaOdak] = useState(false)
+  const [tumEtiket, setTumEtiket] = useState(false)
   const [filtre, setFiltre] = useState<Filtre>('hepsi')
   const [sofra, setSofra] = useState<number>(0)
   const [yeniSofra, setYeniSofra] = useState(false)
@@ -83,11 +84,32 @@ export default function Recipes() {
       <Header
         title={
           <span className="flex items-center gap-2 min-w-0">
-            <Logo className="w-8 h-8 flex-shrink-0" /> <span className="truncate text-[23px]">Lezzet Rotası</span>
+            <Logo className="w-7 h-7 flex-shrink-0" /> <span className="truncate text-[28px] leading-none">Lezzet Rotası</span>
           </span>
         }
         subtitle={`${tarifler.length} tarif · ${mekanSayisi} mekan`}
-      />
+      >
+          <label className="relative block">
+            <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${T_SOLUK}`}>
+              <Icon name="search" className="w-[18px] h-[18px]" />
+            </span>
+            <input
+              className="lz-input pl-11"
+              placeholder="Kaydettiklerinde ara…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onFocus={() => setAramaOdak(true)}
+              onBlur={() => {
+                setTimeout(() => setAramaOdak(false), 150)
+                sonAramaEkle('tarif', q)
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('tarif', q)}
+            />
+          </label>
+          {aramaOdak && !q && sonAramalar('tarif').length > 0 && (
+            <SonAramalar tur="tarif" sec={(x) => setQ(x)} />
+          )}
+      </Header>
 
       <div className="px-4 space-y-3">
         {/* Hizli erisim: emojisiz, ayni boyda simgeli kutular */}
@@ -105,12 +127,13 @@ export default function Recipes() {
             <Link
               key={to}
               to={to}
-              className="lz-card relative flex items-center gap-2.5 px-3 py-2.5 active:scale-[0.97] transition"
+              className="lz-card relative flex flex-col items-center justify-center gap-1 px-1.5 py-2 min-h-[64px] min-w-0 text-center active:scale-[0.97] transition"
             >
-              <span className="w-8 h-8 rounded-lg bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center flex-shrink-0">
-                <Icon name={ikon} className="w-[17px] h-[17px]" />
+              {/* Simge ustte, yazi altta tam genislikte: sozcuk ortasindan bolunmez */}
+              <span className="w-7 h-7 rounded-lg bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center flex-shrink-0">
+                <Icon name={ikon} className="w-[16px] h-[16px]" />
               </span>
-              <span className={`text-[12px] font-semibold leading-tight tracking-[-0.015em] ${T_BASLIK}`}>{ad}</span>
+              <span className={`text-[12px] font-semibold leading-tight tracking-[-0.015em] whitespace-nowrap ${T_BASLIK}`}>{ad}</span>
               {to === '/sira' && <SiraRozeti />}
               {to === '/takip' && adaylar().length > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-lz-600 text-white text-[11px] font-bold flex items-center justify-center">
@@ -121,26 +144,6 @@ export default function Recipes() {
           ))}
         </div>
         <DurumSeridi />
-        <label className="relative block">
-          <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${T_SOLUK}`}>
-            <Icon name="search" className="w-[18px] h-[18px]" />
-          </span>
-          <input
-            className="lz-input pl-11"
-            placeholder="Kaydettiklerinde ara…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onFocus={() => setAramaOdak(true)}
-            onBlur={() => {
-              setTimeout(() => setAramaOdak(false), 150)
-              sonAramaEkle('tarif', q)
-            }}
-            onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('tarif', q)}
-          />
-        </label>
-        {aramaOdak && !q && sonAramalar('tarif').length > 0 && (
-          <SonAramalar tur="tarif" sec={(x) => setQ(x)} />
-        )}
 
         {/* Tariflerim / Sofralarım */}
         <div className="grid grid-cols-2 bg-[#ececea] dark:bg-[#1c1c1f] rounded-xl p-1">
@@ -171,22 +174,32 @@ export default function Recipes() {
                 )
               })}
               <button onClick={() => setYeniSofra(true)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16">
-                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#dcdbd7] dark:border-[#3a3a40] text-[#a1a1aa]">
+                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#71717a] dark:border-[#a1a1aa] text-[#52525b] dark:text-[#d4d4d8]">
                   <Icon name="plus" />
                 </span>
-                <span className={`text-[11.5px] ${T_SOLUK}`}>Sofra</span>
+                <span className={`text-[11.5px] font-semibold whitespace-nowrap ${T_BASLIK}`}>Sofra ekle</span>
               </button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
+            {/* Filtreler: hepsi tam gorunsun (yarim cip yok); satira sigmazsa alta gecer */}
+            <div className="grid grid-cols-2 gap-2">
               <Chip on={filtre === 'hepsi'} onClick={() => setFiltre('hepsi')} label="Tüm Tarifler" />
               <Chip on={filtre === 'yeni'} onClick={() => setFiltre('yeni')} label="Yeni" />
               <Chip on={filtre === 'favori'} onClick={() => setFiltre('favori')} label="★ Favoriler" />
               <Chip on={filtre === 'begeni'} onClick={() => setFiltre('begeni')} label="En beğenilen" />
-              {etiketler.map((e) => (
-                <Chip key={e} on={filtre === e} onClick={() => setFiltre(filtre === e ? 'hepsi' : e)} label={e} />
-              ))}
             </div>
+            {etiketler.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {(tumEtiket ? etiketler : etiketler.slice(0, 6)).map((e) => (
+                  <Chip key={e} on={filtre === e} onClick={() => setFiltre(filtre === e ? 'hepsi' : e)} label={e} />
+                ))}
+                {etiketler.length > 6 && (
+                  <button className={`lz-chip !border-dashed ${T_SOLUK}`} onClick={() => setTumEtiket(!tumEtiket)}>
+                    {tumEtiket ? 'Daha az' : `+${etiketler.length - 6} etiket`}
+                  </button>
+                )}
+              </div>
+            )}
 
             {tarifHam === undefined ? (
               <IskeletKartlar adet={4} izgara />
@@ -197,7 +210,7 @@ export default function Recipes() {
                 {filtre === 'begeni' ? 'Paylaşımların beğeni sayıları okunuyor; biraz sonra burada sıralanır.' : 'Bu seçime uyan tarif yok.'}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 pb-4">
+              <div className="grid grid-cols-2 gap-3 pb-4 items-start">
                 {gorunen.map((r) => (
                   <RecipeCard key={r.id} r={r} />
                 ))}
@@ -227,38 +240,52 @@ export default function Recipes() {
 
 function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`lz-chip flex-shrink-0 ${on ? 'lz-chip-on' : ''}`}>
+    <button onClick={onClick} className={`lz-chip justify-center min-w-0 ${on ? 'lz-chip-on' : ''}`}>
       {label}
     </button>
   )
 }
 
-// Tarif karti: fotograf ustte buyuk, baslik altinda, ayrintilar kucuk gri
+// Tarif karti: fotograf ustte, baslik en fazla 2 satir, sure ve malzeme hep ayni hizada.
+// Fotograf yoksa beyaz bosluk yerine kisa varsayilan kapak (kart da kisalir).
+const VIDEO_PLATFORM = new Set(['instagram', 'tiktok', 'youtube', 'facebook'])
 function RecipeCard({ r }: { r: LzRecipe }) {
   const meta = [sureYaz(r.minutes), r.ingredients.length ? `${r.ingredients.length} malzeme` : ''].filter(Boolean).join(' · ')
+  const fotoVar = !!r.photo
   return (
     <div className="lz-card overflow-hidden flex flex-col min-w-0">
       <div className="relative">
-        <Link to={`/tarif/${r.id}`} aria-label={r.title}>
-          <Thumb src={r.photo} className="w-full aspect-[4/3] rounded-none" />
+        <Link to={`/tarif/${r.id}`} aria-label={r.title} className="block">
+          <Thumb src={r.photo} className={`w-full rounded-none ${fotoVar ? 'aspect-[4/3]' : 'aspect-[16/7]'}`} />
         </Link>
         <button
           onClick={() => r.id && toggleFavorite(r.id)}
-          className={`absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-white/85 dark:bg-black/50 backdrop-blur flex items-center justify-center ${r.favorite ? 'text-amber-400' : 'text-[#a1a1aa]'}`}
+          className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${r.favorite ? 'text-amber-400' : 'text-[#71717a] dark:text-[#d4d4d8]'}`}
           aria-label={r.favorite ? 'Favoriden çıkar' : 'Favoriye ekle'}
         >
-          <svg viewBox="0 0 24 24" className="w-[20px] h-[20px]" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+          <svg viewBox="0 0 24 24" className="w-[16px] h-[16px]" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
             <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8z" strokeLinejoin="round" />
           </svg>
         </button>
+        {fotoVar && VIDEO_PLATFORM.has(r.platform) && (
+          // Videodan gelen tarif: ortada yari saydam oynat isareti (fotografi kapatmaz)
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="w-12 h-12 rounded-full bg-black/45 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 ml-0.5 text-white" fill="currentColor" aria-hidden="true">
+                <path d="M8 5.5v13l11-6.5z" />
+              </svg>
+            </span>
+          </span>
+        )}
         {r.etkilesim?.puan ? (
-          <span className="absolute bottom-1.5 left-1.5 text-[11.5px] font-bold px-2 py-0.5 rounded-full bg-black/60 text-white">★ {r.etkilesim.puan}/10</span>
+          <span className="absolute bottom-2 left-2 text-[11.5px] font-bold px-2 py-0.5 rounded-full bg-black/60 text-white">★ {r.etkilesim.puan}/10</span>
         ) : null}
       </div>
       <Link to={`/tarif/${r.id}`} className="p-2.5 flex flex-col gap-1 flex-1 min-w-0">
-        <div className={`font-semibold text-[14.5px] leading-snug line-clamp-2 ${T_BASLIK}`}>{r.title}</div>
-        {meta && <div className={`text-[12px] ${T_SOLUK}`}>{meta}</div>}
-        <div className="mt-auto pt-0.5 text-[11.5px] min-w-0 truncate">
+        {/* 2 satirlik sabit yukseklik: kisa basliklarda da alttaki bilgiler ayni hizada */}
+        <div className={`font-semibold text-[14.5px] leading-[1.3] line-clamp-2 min-h-[2.6em] ${T_BASLIK}`}>{r.title}</div>
+        <div className={`text-[12px] min-h-[1.4em] truncate ${T_SOLUK}`}>{meta}</div>
+        <div className="mt-auto pt-0.5 min-w-0">
           <PlatformLabel r={r} />
         </div>
       </Link>

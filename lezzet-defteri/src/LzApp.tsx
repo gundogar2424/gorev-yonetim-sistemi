@@ -41,8 +41,8 @@ import { yeniMekanOtoKontrol } from './lib/hesaplar'
 import { paylasanTamamla } from './lib/mekan'
 
 const tabs: { to: string; label: string; icon: IconName; end: boolean }[] = [
-  { to: '/', label: 'Tariflerim', icon: 'book', end: true },
-  { to: '/thermomix', label: 'Thermomix', icon: 'pot', end: false },
+  { to: '/', label: 'Tarifler', icon: 'book', end: true },
+  { to: '/thermomix', label: 'TM7', icon: 'pot', end: false },
   { to: '/hafta', label: 'Bu Hafta', icon: 'calendar', end: false },
   { to: '/alisveris', label: 'Alışveriş', icon: 'cart', end: false },
   { to: '/ayarlar', label: 'Ayarlar', icon: 'settings', end: false }
@@ -108,7 +108,7 @@ export default function LzApp() {
   }, [])
   return (
     <div className="lz-app min-h-full flex flex-col max-w-xl mx-auto">
-      <main className="flex-1" style={{ paddingBottom: pisirme ? 0 : 'calc(5rem + env(safe-area-inset-bottom))' }}>
+      <main className="flex-1" style={{ paddingBottom: pisirme ? 0 : 'calc(4rem + 100px + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<Recipes />} />
           <Route path="/ekle" element={<AddRecipe />} />
@@ -157,24 +157,24 @@ export default function LzApp() {
                   <Link
                     to="/ekle"
                     aria-label="Tarif ekle"
-                    className="-mt-5 w-[60px] h-[60px] rounded-full bg-lz-600 text-white flex items-center justify-center shadow-lg shadow-lz-600/30 ring-4 ring-white dark:ring-[#111113] active:scale-95 transition"
+                    className="-mt-6 w-[60px] h-[60px] rounded-full bg-lz-600 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(0,0,0,0.22)] ring-4 ring-white dark:ring-[#111113] active:scale-95 transition"
                   >
                     <Icon name="plus" className="w-7 h-7" />
                   </Link>
                 </div>
               ]
             : []),
-          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2.5 pb-2 gap-1 min-h-[56px]">
+          <NavLink key={t.to} to={t.to} end={t.end} className="flex flex-col items-center justify-center pt-2 pb-2 gap-0.5 min-h-[56px] min-w-0">
             {({ isActive }) => (
               <>
-                <span className={`px-4 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
+                <span className={`px-3 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
                   <Icon
                     name={t.icon}
                     className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#8a8a93] dark:text-[#71717a]'}`}
                   />
                 </span>
                 <span
-                  className={`text-[10.5px] leading-none transition-colors whitespace-nowrap ${
+                  className={`text-[11px] leading-none transition-colors whitespace-nowrap truncate max-w-full ${
                     isActive ? 'text-lz-600 dark:text-lz-400 font-semibold' : 'text-[#71717a] dark:text-[#8a8a93] font-medium'
                   }`}
                 >

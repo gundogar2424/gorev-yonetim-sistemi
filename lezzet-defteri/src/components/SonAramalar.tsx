@@ -7,7 +7,7 @@ export function SonAramalar({ tur, sec }: { tur: string; sec: (q: string) => voi
   const [liste, setListe] = useState(sonAramalar(tur))
   if (!liste.length) return null
   return (
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+    <div className="flex flex-wrap items-center gap-2">
       <span className={`text-[12px] flex-shrink-0 ${T_SOLUK}`}>Son aranan:</span>
       {liste.map((x) => (
         <button key={x} className="lz-chip" onMouseDown={(e) => e.preventDefault()} onClick={() => sec(x)}>

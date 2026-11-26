@@ -227,11 +227,11 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
   }
 }
 
-export function Header({ title, subtitle, back, right }: { title: ReactNode; subtitle?: string; back?: boolean; right?: ReactNode }) {
+export function Header({ title, subtitle, back, right, children }: { title: ReactNode; subtitle?: string; back?: boolean; right?: ReactNode; children?: ReactNode }) {
   const navigate = useNavigate()
   return (
     <header className="sticky top-0 z-10 backdrop-blur-xl bg-[#f7f7f5]/85 dark:bg-[#111113]/85">
-      <div className="px-5 pt-4 pb-3 flex items-center gap-3">
+      <div className={`px-5 flex items-center gap-3 ${children ? 'pt-2 pb-1' : 'pt-4 pb-3'}`}>
         {back && (
           <button
             onClick={() => navigate(-1)}
@@ -247,6 +247,8 @@ export function Header({ title, subtitle, back, right }: { title: ReactNode; sub
         </div>
         {right && <div className="flex-shrink-0 flex items-center gap-2">{right}</div>}
       </div>
+      {/* Baslikla birlikte yapisik kalan alan (orn. arama cubugu kaydirinca kaybolmasin) */}
+      {children && <div className="px-4 pb-1.5">{children}</div>}
     </header>
   )
 }
@@ -299,15 +301,30 @@ export function Logo({ className = 'w-8 h-8' }: { className?: string }) {
 // Tarif fotografi; yoksa ya da yuklenemezse sicak renkli yer tutucu.
 export function Thumb({ src, className = 'w-20 h-20 rounded-2xl', emoji = '' }: { src: string; className?: string; emoji?: string }) {
   const [hata, setHata] = useState(false)
+  const [yuklendi, setYuklendi] = useState(false)
   if (!src || hata) {
+    // Varsayilan kapak: beyaz bosluk yerine sicak renkli zemin ve tencere
     return (
-      <div className={`${className} bg-[#f1f1ef] dark:bg-[#26262a] flex items-center justify-center flex-shrink-0 text-[#a1a1aa] dark:text-[#71717a]`} data-emoji={emoji}>
-        <Icon name="pot" className="w-1/3 h-1/3 max-w-[48px] max-h-[48px]" />
+      <div
+        className={`${className} bg-gradient-to-br from-[#fbe4dc] to-[#f6d2c4] dark:from-[#2a1d19] dark:to-[#3a241d] flex items-center justify-center flex-shrink-0 text-lz-600/70 dark:text-lz-300/70`}
+        data-emoji={emoji}
+      >
+        <Icon name="pot" className="w-1/3 h-1/3 max-w-[44px] max-h-[44px]" />
       </div>
     )
   }
-  // Tembel yukleme: ekrana gelmeyen fotograf cozulmez, liste hizli acilir
-  return <img src={src} alt="" loading="lazy" decoding="async" onError={() => setHata(true)} className={`${className} object-cover flex-shrink-0`} />
+  // Tembel yukleme: ekrana gelmeyen fotograf cozulmez, liste hizli acilir; yuklenene kadar iskelet
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onLoad={() => setYuklendi(true)}
+      onError={() => setHata(true)}
+      className={`${className} object-cover flex-shrink-0 ${yuklendi ? '' : 'lz-iskelet'}`}
+    />
+  )
 }
 
 const PLATFORM_RENK: Record<LzPlatform, string> = {
@@ -324,11 +341,12 @@ export function PlatformDot({ platform }: { platform: LzPlatform }) {
   return <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: PLATFORM_RENK[platform] }} />
 }
 
-export function PlatformLabel({ r }: { r: Pick<LzRecipe, 'platform' | 'author'> }) {
+// tam: tarif sayfasinda paylasanin adi kisaltilmadan (alt satira gecebilir)
+export function PlatformLabel({ r, tam = false }: { r: Pick<LzRecipe, 'platform' | 'author'>; tam?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[12px] ${T_SOLUK} min-w-0`}>
+    <span className={`flex items-center gap-1.5 text-[12px] ${T_SOLUK} min-w-0 max-w-full`} title={r.author ? `${PLATFORM_AD[r.platform]} · ${r.author}` : undefined}>
       <PlatformDot platform={r.platform} />
-      <span className="truncate">
+      <span className={tam ? 'break-words min-w-0' : 'truncate min-w-0'}>
         {PLATFORM_AD[r.platform]}
         {r.author ? ` · ${r.author}` : ''}
       </span>

@@ -353,7 +353,7 @@ export default function Mekanlar() {
                 onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('mekan', arama)}
               />
               {aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
-              <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+              <div className="flex flex-wrap gap-2">
                 <button className={`lz-chip whitespace-nowrap ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
                   Gitmek istediklerim
                 </button>
@@ -391,7 +391,7 @@ export default function Mekanlar() {
               </div>
             )}
             {tumEtiketler.length > 0 && (
-              <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4">
+              <div className="flex flex-wrap gap-1.5">
                 {tumEtiketler.map(([e, n]) => (
                   <button
                     key={e}

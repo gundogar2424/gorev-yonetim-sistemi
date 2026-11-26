@@ -135,7 +135,7 @@ export default function RecipeDetail() {
         <div className="lz-card p-4">
           <h1 className={`text-[23px] font-bold leading-tight ${T_BASLIK}`}>{r.title}</h1>
           <div className="mt-2 flex items-center gap-3 flex-wrap">
-            <PlatformLabel r={r} />
+            <PlatformLabel r={r} tam />
             {r.minutes > 0 && (
               <span className={`inline-flex items-center gap-1 text-[12px] ${T_SOLUK}`}>
                 <Icon name="clock" className="w-3.5 h-3.5" /> {sureYaz(r.minutes)}
