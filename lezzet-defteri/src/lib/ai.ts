@@ -1805,7 +1805,9 @@ export async function aiPilavPisirici(r: {
     '- Sauté adımında kapak kapalı yazma. Steam adımında sepet ve su miktarını mutlaka yaz. MAX çizgisini aşma.',
     '- Her cihaz adımında butonlar alanına düğme sırasını yaz: "Menu Select ile Slow Cook seç, + / - ile 1 sa 30 dk yap, Start’a bas". Bu makinede Time düğmesi YOK, asla yazma.',
     '- MAX: toplam 2,5 kg’ı geçme. Kek hamuru 1 kg’dan azsa: "Hazneye göre az, 2 katına çıkar ya da kalıpla Steam’de pişir".',
-    '- Malzeme hazırlama, kalıba dökme, soğutma gibi cihaz dışı adımlarda mod boş kalsın.'
+    '- Malzeme hazırlama, kalıba dökme, soğutma gibi cihaz dışı adımlarda mod boş kalsın.',
+    '- Cancel, Start, Menu Select, Keep Warm kapatma, kapak kapatma ayrı ADIM OLMAZ; bunları ait olduğu adımın butonlar alanına yaz. Adımlar yalnızca gerçek pişirme ve hazırlık işleri.',
+    '- "Aynı çıtırlık olmaz" uyarısını yalnızca fırında çıtır, kızartma, airfryer, çıtır, pane, kızarmış istenen tariflerde yaz; tavada, haşlama, soslu, güveç, buharda tariflerde yazma.'
   ].join('\n')
   const icerik = `TARİF: ${r.title}\nPorsiyon: ${r.servings || '-'}\nMALZEMELER:\n${r.ingredients.join('\n')}\nYAPILIŞI:\n${r.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}${r.notes ? `\nNOT: ${r.notes}` : ''}`
   const v = await jsonCagri<{ ingredients: string[]; steps: Record<string, unknown>[]; warnings: string[]; uygun: boolean }>(system, icerik, schema, 5000)

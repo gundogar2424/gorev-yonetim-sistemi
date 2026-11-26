@@ -129,7 +129,13 @@ export function ppAdimTemizle(x: Partial<PpAdim> & { mod?: string }): PpAdim & {
 const sade = (s: string) => s.toLocaleLowerCase('tr')
 const KEK = /\b(kek|keki|brownie|cake|muffin|cheesecake|pandispanya|fırın tatlı|revani|islak kek|ıslak kek|browni)/
 const DERIN = /(derin yağ|bol yağda|kızgın yağda|kızartma yağında|deep fry|derin kızart|yağda kızart)/
-const CITIR = /(çıtır|fırında kızar|fırında altı kızar|gratin|üstü kızar)/
+// Citirlik uyarisi yalnizca gercekten citir istenen tariflerde ("tavada" tek basina citir demek degil)
+const CITIR = /(fırında çıtır|kızartma|air ?fryer|çıtır|\bpane\b|kızarmış)/
+const CITIR_DEGIL = /(haşlama|maden suyu|soslu|yumuşak|güveç|buharda)/
+// Yalnizca dugme isi olan adim (Cancel, Start, Menu Select, Keep Warm kapatma, kapak): ayri adim olamaz
+const DUGME_ISI = /(cancel|start|menu select|keep warm|kapağı (kapat|aç)|düğme)/
+// Gercek pisirme/hazirlik isi: bunlar varsa adim dugme adimi sayilmaz
+const GERCEK_IS = /(ekle|karıştır|koy|dök|doğra|süz|dinlendir|servis|pişir|kavur|haşla|ısıt|çırp|yoğur|ser|kes|bekle|soğut|aktar)/
 const ERIT = /(erit|eriyene)/
 const FIRIN = /fırın/
 const SEBZE = /(sebze|patates|kabak|patlıcan|biber|havuç|brokoli|karnabahar|mantar|domates|soğan|bezelye|fasulye)/
@@ -159,7 +165,7 @@ function butonMetni(a: PpAdim): string {
 function bitinceMetni(a: PpAdim): string {
   switch (a.mod) {
     case 'saute':
-      return 'Sauté 30 dk varsayılanla çalışır, kendi durmaz: süre dolunca ya da iş bitince Cancel’a bas.'
+      return `Sauté ${sureYazi(a.dakika) || '30 dk'} ile çalışır, kendi durmaz: süre dolunca ya da iş bitince Cancel’a bas.`
     case 'slowCook':
       return 'Bitince hemen Cancel’a bas, Keep Warm’de bırakma.'
     case 'steam':
@@ -194,7 +200,7 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
   const kek = KEK.test(sade(`${tarif.title} ${(tarif.tags ?? []).join(' ')}`))
   let uygun = pp.uygun
 
-  const steps = pp.steps.map((a0, i) => {
+  const steps: PpAdim[] = pp.steps.map((a0, i) => {
     const a = { ...a0 }
     // Bu makinede Time dugmesi yok: yapay zeka yazdiysa "+ / -" yap
     const timeYok = (x: string) => x.replace(/\bTime\s*(düğmesi(yle)?\s*)?(ile)?/g, '+ / - ile ').replace(/\s{2,}/g, ' ')
@@ -265,11 +271,29 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
     return a
   })
 
+  // Cancel / Start / Menu Select gibi dugme isleri ayri adim olamaz: onceki adimin "Bitince" kutusuna tasinir
+  const gercek: PpAdim[] = []
+  for (const a of steps) {
+    const t = sade(`${a.text} ${a.tip}`)
+    const dugmeAdimi = !a.ingredients && DUGME_ISI.test(t) && !GERCEK_IS.test(sade(a.text.replace(/cancel[’']?[ae] bas\w*|start[’']?[ae] bas\w*/gi, ''))) && (!a.mod || (/cancel/i.test(a.text) && !/menu select ile/i.test(a.text)))
+    if (dugmeAdimi && gercek.length) {
+      const once = gercek[gercek.length - 1]
+      const ek = a.text.trim()
+      // Ayni sey zaten yaziyorsa (ör. "Cancel'a bas") tekrar eklenmez
+      if (ek && !(/cancel/i.test(ek) && /cancel/i.test(once.bitince ?? ''))) once.bitince = [once.bitince, ek].filter(Boolean).join(' ')
+      continue
+    }
+    gercek.push(a)
+  }
+  steps.splice(0, steps.length, ...gercek)
+
   if (DERIN.test(tumMetin)) {
     uygun = false
     uyari.add('Bu pişiricide olmaz: tarif derin (bol yağda) kızartma istiyor; bu cihazda kızartma modu yok.')
   }
-  if (CITIR.test(tumMetin)) uyari.add('Aynı çıtırlık olmaz, nemli olur: bu cihazda fırın ya da air fry yok.')
+  // Eski kayitlardaki citirlik uyarisi da kurala gore yeniden degerlendirilir
+  for (const w of [...uyari]) if (/çıtırlık/i.test(w)) uyari.delete(w)
+  if (CITIR.test(tumMetin) && !CITIR_DEGIL.test(tumMetin)) uyari.add('Aynı çıtırlık olmaz, nemli olur: bu cihazda fırın ya da air fry yok.')
   if (kek) uyari.add('Kek/brownie White Rice’ta pişmez (hamur susuz olduğu için erken Keep Warm’e geçer, altı yanar). İki seçenek var: Slow Cook 1 sa 30 dk ya da kalıpla Steam 35–40 dk.')
   const gram = gramToplami(pp.ingredients)
   // Hamur (kek, brownie) 1 litreden azsa hazne genis kalir, ince olur ve kurur
