@@ -9,6 +9,7 @@ import { bugunAyYil, odemeler, tlYaz } from '../lib/harcama'
 import type { LzMekan } from '../types'
 import { Header, Icon, IskeletKartlar, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from '../components/ui'
 import { SonAramalar } from '../components/SonAramalar'
+import { DahaFazlaGoster, MESAFE_KM } from '../components/DahaFazla'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { etiketAdi, fiyatSeviyesi } from '../lib/mekanGoster'
@@ -238,12 +239,12 @@ export default function Mekanlar() {
                   {etiketAdi(etiket)} ✕
                 </button>
               )}
-              {yaricap > 0 &&
-                [1, 3, 5, 10, 0].map((km) => (
-                  <button key={km} className={`lz-chip text-[12.5px] ${yaricap === km ? 'lz-chip-on' : ''}`} onClick={() => setYaricap(km)}>
-                    {km ? `${km} km` : 'Hepsi'}
-                  </button>
-                ))}
+              {yaricap > 0 && (
+                // Mesafe tek yontemle buyur (listenin altindaki "Daha fazla goster"); X ile hepsi
+                <button className="lz-chip !bg-lz-600 !border-lz-600 !text-white" onClick={() => setYaricap(0)}>
+                  {yaricap} km içinde ✕
+                </button>
+              )}
             </div>
           )}
           {(etiket || yemek) && <p className={`text-[12px] ${T_SOLUK}`}>{konum ? 'Yakından uzağa sıralı' : 'Konum alınınca yakından uzağa sıralanır'}</p>}
@@ -261,7 +262,7 @@ export default function Mekanlar() {
           </p>
         )}
         {yaricap > 0 && liste.length > 0 && sirali.length === 0 && (
-          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>{yaricap} km içinde kayıtlı mekan yok. Mesafeyi büyüt ya da “Hepsi”ni seç.</div>
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>{yaricap} km içinde kayıtlı mekan yok. Aşağıdaki “Daha fazla göster” ile büyüt.</div>
         )}
         {!sadeceHype && !yaricap && liste.length > 0 && sirali.length === 0 && (
           <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu seçime uyan mekan yok.</div>
@@ -273,6 +274,7 @@ export default function Mekanlar() {
             ))}
           </div>
         )}
+        {yaricap > 0 && <DahaFazlaGoster simdiKm={yaricap} buyut={(km) => setYaricap(km)} />}
 
         {/* KISAYOLLAR: 2 sutun kucuk kartlar */}
         <div className="grid grid-cols-2 gap-2.5 pt-2">
@@ -333,7 +335,7 @@ export default function Mekanlar() {
             className="lz-btn-primary w-full text-[14.5px]"
             onClick={async () => {
               if (!konum) await konumuAl()
-              setYaricap(yaricap || YAKIN_KM)
+              setYaricap(yaricap || MESAFE_KM[0])
               listeyeGit()
             }}
           >

@@ -8,6 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, Icon, T_BASLIK, T_SOLUK } from '../components/ui'
+import { DahaFazlaGoster } from '../components/DahaFazla'
 import { mesafeKm, type Konum } from '../lib/mekan'
 import { yeriKaydet, type YakinYer } from '../lib/burada'
 import { YARICAPLAR, akilliKonum, cevreGetir, onceYaz, sonKonum, yurumeYaz } from '../lib/cevre'
@@ -472,11 +473,7 @@ export default function Harita() {
             {!liste.length && !yukleniyor && (
               <p className={`text-[13px] text-center py-4 ${T_SOLUK}`}>Bu alanda mekan yok. {sonraki ? 'Daha geniş bakmayı dene.' : ''}</p>
             )}
-            {sonraki && !sehir && merkez && (
-              <button className="lz-btn-soft w-full text-[14px]" disabled={yukleniyor} onClick={() => setAdim(adim + 1)}>
-                Daha fazla göster ({sonraki / 1000} km)
-              </button>
-            )}
+            {!sehir && merkez && <DahaFazlaGoster simdiKm={yaricap / 1000} kapali={yukleniyor} buyut={() => setAdim(adim + 1)} />}
             {!merkez && (
               <button className="lz-btn-soft w-full text-[14px]" onClick={() => navigate('/mekanlar')}>
                 Mekanlarım’a dön
