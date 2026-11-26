@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { mutfakModu, mutfakModuKaydet, sesiDurdur, sesliOku } from '../lib/ses'
 
 // Pisirme ekranlarinin ortak parcalari: Mutfak Modu, sesli okuma, buyuk Sonraki dugmesi.
@@ -94,6 +94,8 @@ export function PisirmeAlti({
   sonrakiAdim: string
 }) {
   const [okuyor, setOkuyor] = useState('')
+  const uzun = useRef(false)
+  const zaman = useRef<number | undefined>(undefined)
   const oku = async (metin: string, ad: string) => {
     setOkuyor(ad)
     try {
@@ -117,9 +119,10 @@ export function PisirmeAlti({
       >
         {ileriEtiket}
       </button>
-      <div className="grid grid-cols-3 gap-2">
+      {/* Iki dugme: Geri ve Oku. Oku'ya dokununca bu adim, uzun basinca siradaki adim okunur */}
+      <div className="grid grid-cols-2 gap-2">
         <button
-          className="lz-btn-soft text-[14px] px-2"
+          className="lz-btn-soft text-[15px] px-2"
           disabled={geriKapali}
           onClick={() => {
             void sesiDurdur()
@@ -128,13 +131,29 @@ export function PisirmeAlti({
         >
           ‹ Geri
         </button>
-        <button className="lz-btn-soft text-[13.5px] px-2" disabled={!buAdim} onClick={() => void oku(buAdim, 'bu')}>
-          🔊 Bu adımı oku
-        </button>
-        <button className="lz-btn-soft text-[13.5px] px-2" disabled={!sonrakiAdim} onClick={() => void oku(sonrakiAdim, 'sonraki')}>
-          🔊 Sıradaki adımı oku
+        <button
+          className="lz-btn-soft text-[15px] px-2 select-none [-webkit-touch-callout:none]"
+          disabled={!buAdim && !sonrakiAdim}
+          aria-label="Oku: dokun bu adımı, uzun bas sıradaki adımı okusun"
+          onPointerDown={() => {
+            uzun.current = false
+            zaman.current = window.setTimeout(() => {
+              uzun.current = true
+              if (sonrakiAdim) void oku(sonrakiAdim, 'sonraki')
+            }, 550)
+          }}
+          onPointerUp={() => window.clearTimeout(zaman.current)}
+          onPointerLeave={() => window.clearTimeout(zaman.current)}
+          onContextMenu={(e) => e.preventDefault()}
+          onClick={() => {
+            if (uzun.current) return
+            if (buAdim) void oku(buAdim, 'bu')
+          }}
+        >
+          🔊 Oku
         </button>
       </div>
+      <p className="text-[11.5px] text-center text-[#8a8a93]">🔊 Oku: dokun bu adım, uzun bas sıradaki adım</p>
       {okuyor && okuyor !== 'bu' && okuyor !== 'sonraki' && <p className="text-[12.5px] text-center text-rose-600">{okuyor}</p>}
     </div>
   )

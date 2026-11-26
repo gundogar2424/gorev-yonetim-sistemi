@@ -21,7 +21,7 @@ export default function Etiketler() {
   const yemekSay = new Map<string, { ad: string; n: number }>()
   for (const m of mekanlar) {
     const parca = [...m.oneriler, ...(m.ziyaretler ?? []).map((z) => z.yedim), m.paylasanYorumu?.yedi ?? '', ...(m.paylasimlar ?? []).map((p) => p.yorum?.yedi ?? '')]
-      .flatMap((x) => x.split(/[,;\n]| ve /))
+      .flatMap((x) => String(x ?? "").split(/[,;\n]| ve /))
       .map((x) => x.replace(/\([^)]*\)/g, '').trim())
       .filter((x) => x.length >= 3 && x.length <= 40)
     for (const y of new Set(parca.map((x) => x.toLocaleLowerCase('tr')))) {

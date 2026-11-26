@@ -210,7 +210,7 @@ export default function Recipes() {
                 {filtre === 'begeni' ? 'Paylaşımların beğeni sayıları okunuyor; biraz sonra burada sıralanır.' : 'Bu seçime uyan tarif yok.'}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 pb-4 items-start">
+              <div className="grid grid-cols-2 gap-3 pb-4">
                 {gorunen.map((r) => (
                   <RecipeCard key={r.id} r={r} />
                 ))}
@@ -247,7 +247,7 @@ function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () 
 }
 
 // Tarif karti: fotograf ustte, baslik en fazla 2 satir, sure ve malzeme hep ayni hizada.
-// Fotograf yoksa beyaz bosluk yerine kisa varsayilan kapak (kart da kisalir).
+// Fotograf yoksa ayni boyda varsayilan kapak; ayni satirdaki iki kart ayni yukseklikte.
 const VIDEO_PLATFORM = new Set(['instagram', 'tiktok', 'youtube', 'facebook'])
 function RecipeCard({ r }: { r: LzRecipe }) {
   const meta = [sureYaz(r.minutes), r.ingredients.length ? `${r.ingredients.length} malzeme` : ''].filter(Boolean).join(' · ')
@@ -256,7 +256,7 @@ function RecipeCard({ r }: { r: LzRecipe }) {
     <div className="lz-card overflow-hidden flex flex-col min-w-0">
       <div className="relative">
         <Link to={`/tarif/${r.id}`} aria-label={r.title} className="block">
-          <Thumb src={r.photo} className={`w-full rounded-none ${fotoVar ? 'aspect-[4/3]' : 'aspect-[16/7]'}`} />
+          <Thumb src={r.photo} className="w-full rounded-none aspect-[4/3]" />
         </Link>
         <button
           onClick={() => r.id && toggleFavorite(r.id)}
@@ -293,30 +293,30 @@ function RecipeCard({ r }: { r: LzRecipe }) {
   )
 }
 
-// Sira ve yakindaki mekanlar tek seritte
+// Sira ve yakindaki mekanlar tek seritte, tek satirda: "N tarif sırada işleniyor · Yakınında N mekan var"
 function DurumSeridi() {
   const s = useSiraOzeti()
   const yakin = useYakinMekanSayisi()
   const sira = s.bekleyen || s.hata || s.biten
   if (!sira && !yakin) return null
   return (
-    <div className="lz-card flex items-stretch divide-x divide-[#ebeae7] dark:divide-[#2a2a2e] overflow-hidden">
-      {sira ? (
-        <Link to="/sira" className="flex-1 min-w-0 flex items-center gap-2.5 p-3 min-h-[56px]">
-          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${s.hata && !s.bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${s.bekleyen ? 'animate-pulse' : ''}`}>
-            <Icon name="inbox" className="w-[17px] h-[17px]" />
-          </span>
-          <span className={`text-[12.5px] font-medium leading-snug ${T_BASLIK}`}>{s.metin}</span>
-        </Link>
-      ) : null}
-      {yakin ? (
-        <Link to="/mekanlar" className={`${sira ? 'flex-none max-w-[48%]' : 'flex-1'} min-w-0 flex items-center gap-2.5 p-3 min-h-[56px]`}>
-          <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-lz-50 text-lz-600 dark:bg-[#3a1d16]">
-            <Icon name="pin" className="w-[17px] h-[17px]" />
-          </span>
-          <span className={`text-[12.5px] font-medium leading-snug ${T_BASLIK}`}>Yakınında {yakin} mekan</span>
-        </Link>
-      ) : null}
+    <div className="lz-card px-3 min-h-[48px] flex items-center gap-2.5 overflow-hidden">
+      <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${s.hata && !s.bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${s.bekleyen ? 'animate-pulse' : ''}`}>
+        <Icon name={sira ? 'inbox' : 'pin'} className="w-[16px] h-[16px]" />
+      </span>
+      <span className={`flex-1 min-w-0 truncate text-[13px] font-medium ${T_BASLIK}`}>
+        {sira ? (
+          <Link to="/sira" className="underline-offset-2 active:underline">
+            {s.metin}
+          </Link>
+        ) : null}
+        {sira && yakin ? <span className={T_SOLUK}> · </span> : null}
+        {yakin ? (
+          <Link to="/mekanlar" className="text-lz-600 font-semibold">
+            Yakınında {yakin} mekan var
+          </Link>
+        ) : null}
+      </span>
     </div>
   )
 }

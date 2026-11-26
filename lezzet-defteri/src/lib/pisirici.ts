@@ -72,7 +72,7 @@ const PIRINC: PpMod[] = ['whiteRice', 'brownRice', 'mixedGrains', 'quinoa']
 export const PP_KILAVUZ = [
   'White Rice: 1 bardak pirince 1.5 bardak su, kapak kapalı, bitince kendiliğinden Keep Warm’e geçer.',
   'Brown Rice: 1 bardak pirince 1.2 bardak su, kapak kapalı.',
-  'CarbReduce: 40 dakika, sepetli.',
+  'CarbReduce: 40 dakika. Sepetin altına (hazneye) 2 bardak su, pirinç sepetin içinde.',
   'Mixed Grains: 1 bardağa 1.2 bardak su.',
   'Quinoa: 1 bardağa 1.5 bardak su.',
   'Steam: varsayılan 10 dakika, 5 dakika ile 1 saat arası; sepet + en az yarım bardak su şart.',
@@ -145,7 +145,7 @@ function butonMetni(a: PpAdim): string {
     case 'slowCook':
       return `Kapağı kapat. Menu Select ile Slow Cook seç${sure}, Start’a bas.`
     case 'carbReduce':
-      return 'Pirinci sepete koy, sepeti hazneye yerleştir, kapağı kapat. Menu Select ile CarbReduce seç, Start’a bas (40 dk).'
+      return `Hazneye (sepetin altına) ${a.su || '2 bardak'} su koy, pirinci sepete koy, sepeti yerleştir, kapağı kapat. Menu Select ile CarbReduce seç, Start’a bas (40 dk).`
     case 'keepWarm':
       return `Menu Select ile Keep Warm ${a.keepWarm === 'high' ? 'High' : 'Low'} seç, Start’a bas.`
     case '':
@@ -180,7 +180,7 @@ function bitinceMetni(a: PpAdim): string {
 export const KALIP_STEAM = {
   baslik: 'Seçenek 2: Kalıpla Steam, 35–40 dk',
   adimlar: [
-    'Hamuru hazneye sığan, ısıya dayanıklı bir kalıba dök; üzerini folyo ile kapat.',
+    'Hamuru hazneye sığan, ısıya dayanıklı bir kalıba dök. Kalıbın üstünü folyo ile kapat, buhar damlamasın.',
     'Hazneye 2 bardak su koy, buhar sepetini yerleştir, kalıbı sepete koy, kapağı kapat.',
     'Menu Select ile Steam seç, + / - ile 40 dk yap, Start’a bas.',
     '35. dakikada kürdanla kontrol et; hafif nemli kırıntı kalıyorsa tamamdır. Bitince Cancel’a bas.'
@@ -247,6 +247,7 @@ export function ppDenetle(pp: PpSurum, tarif: { title: string; tags?: string[]; 
     }
     if (a.mod === 'carbReduce') {
       a.sepet = true
+      if (!a.su) a.su = '2 bardak'
       a.kapak = 'kapali'
       a.dakika = 40
     }

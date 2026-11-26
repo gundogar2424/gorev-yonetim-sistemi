@@ -267,7 +267,7 @@ export default function Mekanlar() {
           <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu seçime uyan mekan yok.</div>
         )}
         {gosterilen.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 items-start">
+          <div className="grid grid-cols-2 gap-3">
             {gosterilen.map((m) => (
               <MekanKarti key={m.id} m={m} km={mesafe(m)} />
             ))}
@@ -416,7 +416,7 @@ function MekanKarti({ m, km }: { m: LzMekan; km?: number }) {
     <div className={`lz-card overflow-hidden flex flex-col min-w-0 ${yakin ? 'ring-2 ring-lz-500/50' : ''}`}>
       <div className="relative">
         <Link to={`/mekan/${m.id}`} aria-label={m.ad} className="block">
-          <Thumb src={m.foto} className={`w-full rounded-none ${m.foto ? 'aspect-[4/3]' : 'aspect-[16/7]'}`} emoji="" />
+          <Thumb src={m.foto} className="w-full rounded-none aspect-[4/3]" emoji="" />
         </Link>
         <button
           className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${m.favori ? 'text-amber-400' : 'text-[#71717a] dark:text-[#d4d4d8]'}`}
