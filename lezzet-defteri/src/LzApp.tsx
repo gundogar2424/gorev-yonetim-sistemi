@@ -3,7 +3,7 @@ import { otomatikYedek, sitedenGeriYukle } from './lib/backup'
 import { ppOtoUret } from './lib/ppOto'
 import { buyukFotolariSikistir } from './lib/image'
 import { yakinIzle } from './lib/yakinBildirim'
-import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Icon, type IconName } from './components/ui'
 import Recipes from './pages/Recipes'
 import AddRecipe from './pages/AddRecipe'
@@ -22,7 +22,6 @@ import TmCook from './pages/TmCook'
 import Diyetim from './pages/Diyetim'
 import Sira from './pages/Sira'
 import TarifDegistir from './pages/TarifDegistir'
-import Mekanlar from './pages/Mekanlar'
 import MekanDetay from './pages/MekanDetay'
 import GeziPlani from './pages/GeziPlani'
 import Harita from './pages/Harita'
@@ -130,7 +129,7 @@ export default function LzApp() {
           <Route path="/pisirici/:id/pisir" element={<PpCook />} />
           <Route path="/thermomix/:id/pisir" element={<TmCook />} />
           <Route path="/sira" element={<Sira />} />
-          <Route path="/mekanlar" element={<Mekanlar />} />
+          <Route path="/mekanlar" element={<MekanlarSekmesi />} />
           <Route path="/mekan/:id" element={<MekanDetay />} />
           <Route path="/gezi" element={<GeziPlani />} />
           <Route path="/harita" element={<Harita />} />
@@ -196,4 +195,12 @@ export default function LzApp() {
       )}
     </div>
   )
+}
+
+// Mekanlarim ayri ekran degil: Tarifler ekraninin ortadaki sekmesi. Eski /mekanlar linkleri (etiket, yemek dahil) oraya gider.
+function MekanlarSekmesi() {
+  const { search } = useLocation()
+  const p = new URLSearchParams(search)
+  p.set('sekme', 'mekanlar')
+  return <Navigate to={`/?${p.toString()}`} replace />
 }

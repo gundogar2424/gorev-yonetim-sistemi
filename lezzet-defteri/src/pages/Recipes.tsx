@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { etkilesimEski, etkilesimGetir } from '../lib/begeni'
 import { esles, sonAramaEkle, sonAramalar } from '../lib/arama'
@@ -36,7 +36,19 @@ export default function Recipes() {
   const tarifler = tarifHam ?? []
   const mekanSayisi = useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0
   const sofralar = useLiveQuery(() => lzDb.sofralar.orderBy('name').toArray(), [], [] as LzTable[]) ?? []
-  const [sekme, setSekmeHam] = useState<Sekme>(sonSekme)
+  // ?sekme=mekanlar ile gelindiyse (Etiketler, mekan sayfasi vb.) o sekme acilir; hatirlanan sekme degismez
+  const [params, setParams] = useSearchParams()
+  const [sekme, setSekmeHam] = useState<Sekme>(() => {
+    const x = params.get('sekme') as Sekme | null
+    return x && SEKMELER.includes(x) ? x : sonSekme()
+  })
+  useEffect(() => {
+    if (!params.get('sekme')) return
+    const p = new URLSearchParams(params)
+    p.delete('sekme')
+    setParams(p, { replace: true })
+    setTimeout(() => sekmeRef.current?.scrollIntoView({ block: 'start' }), 50)
+  }, [])
   const setSekme = (x: Sekme) => {
     setSekmeHam(x)
     try {
@@ -283,7 +295,7 @@ export default function Recipes() {
                     onClick={() => {
                       setSofra(t.id!)
                       setFiltre('hepsi')
-                      setSekme('tarifler')
+                      setSekmeHam('tarifler') // hatirlanan sekme degismez
                     }}
                     className="flex flex-col items-center gap-1 flex-shrink-0 w-16"
                   >
@@ -306,7 +318,7 @@ export default function Recipes() {
             onAc={(id) => {
               setSofra(id)
               setFiltre('hepsi')
-              setSekme('tarifler')
+              setSekmeHam('tarifler') // hatirlanan sekme degismez
             }}
             onYeni={() => setYeniSofra(true)}
             onDuzenle={(t) => setDuzenSofra(t)}
