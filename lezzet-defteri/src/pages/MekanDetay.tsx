@@ -14,6 +14,7 @@ import { temelLink } from '../lib/kopya'
 import { PLATFORM_AD } from '../lib/importer'
 import { dosyaPaylas, mekanHtml } from '../lib/paylas'
 import { hesapFoto, hesapNormal, hesapTakipEt, hesaplariOku, takipEdiliyor } from '../lib/hesaplar'
+import { etiketAdi, fiyatYazi } from '../lib/mekanGoster'
 
 // Paylasanin influencer sayfasi anahtari: takip ediliyorsa listedeki kaydi, degilse ad (+ platform)
 function influencerAnahtari(m: LzMekan): string {
@@ -404,7 +405,7 @@ export default function MekanDetay() {
             {m.fiyat && (
               <div>
                 <div className="lz-label mb-0.5">Fiyat</div>
-                <p className={`text-[14px] ${T_GOVDE}`}>{m.fiyat}</p>
+                <p className={`text-[14px] ${T_GOVDE}`}>{fiyatYazi(m.fiyat)}</p>
               </div>
             )}
             {m.notlar && (
@@ -417,7 +418,7 @@ export default function MekanDetay() {
               <div className="flex flex-wrap gap-1.5">
                 {m.etiketler.map((e) => (
                   <Link key={e} to={`/mekanlar?etiket=${encodeURIComponent(e)}`} className="lz-pill">
-                    {e} ›
+                    {etiketAdi(e)} ›
                   </Link>
                 ))}
               </div>
@@ -462,7 +463,7 @@ export default function MekanDetay() {
                       className={`lz-chip text-[12.5px] ${secili ? 'lz-chip-on' : ''}`}
                       onClick={() => setForm({ ...form, etiketler: secili ? form.etiketler.filter((x) => x !== e) : [...form.etiketler, e] })}
                     >
-                      {e}
+                      {etiketAdi(e)}
                     </button>
                   )
                 })}

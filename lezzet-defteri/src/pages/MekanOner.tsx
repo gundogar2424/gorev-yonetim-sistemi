@@ -8,6 +8,7 @@ import { aiMekanOner, apiAnahtari, type MekanOnerisi } from '../lib/ai'
 import { ReklamRozeti, guvenSkoru } from './Takip'
 import { hesapAdi, hesaplariOku, hesaplariYaz, otoKontrol, otoKontrolAyarla, sonYeniKontrol, yeniMekanlariBul } from '../lib/hesaplar'
 import { adrestenKonum, instagramLinki, konumdanAdres, oneriKaydet, mesafeKm, mesafeYaz, telefonKonumu, type Konum } from '../lib/mekan'
+import { fiyatYazi } from '../lib/mekanGoster'
 
 const ORNEKLER = [
   'Bu akşam iyi bir lahmacun',
@@ -519,7 +520,7 @@ export default function MekanOner() {
                 </b>
               ) : null}
               {o.puan && o.fiyat ? ' · ' : ''}
-              {o.fiyat}
+              {fiyatYazi(o.fiyat)}
             </div>
             {aktifYemek && o.yemek_fiyati && (
               <div className="rounded-xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-1.5 text-[14px] font-semibold text-lz-600">

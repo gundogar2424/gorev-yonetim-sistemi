@@ -5,6 +5,7 @@ import { lzDb } from '../db'
 import type { LzMekan } from '../types'
 import { Header, T_BASLIK, T_SOLUK } from '../components/ui'
 import { esles } from '../lib/arama'
+import { etiketAdi } from '../lib/mekanGoster'
 
 // ETIKETLER: mekan etiketleri ve mekanlarda yenen yemekler tek sayfada; dokununca o mekanlar yakindan uzaga
 export default function Etiketler() {
@@ -43,8 +44,8 @@ export default function Etiketler() {
           {!etiketler.length && <p className={`text-[13px] ${T_SOLUK}`}>Etiket yok. Mekan sayfasında “Düzenle” ile etiket ekleyebilirsin.</p>}
           <div className="flex flex-wrap gap-1.5">
             {etiketler.map(([e, n]) => (
-              <Link key={e} to={`/mekanlar?etiket=${encodeURIComponent(e)}`} className="lz-chip text-[13.5px]">
-                {e} <span className="opacity-60 ml-1">{n}</span>
+              <Link key={e} to={`/mekanlar?etiket=${encodeURIComponent(e)}`} className="lz-chip text-[13.5px] !text-[#18181b] dark:!text-white">
+                {etiketAdi(e)} <span className="text-[11px] text-[#8a8a93]">{n}</span>
               </Link>
             ))}
           </div>
@@ -57,7 +58,7 @@ export default function Etiketler() {
           <div className="flex flex-wrap gap-1.5">
             {yemekler.slice(0, 150).map((y) => (
               <Link key={y.ad} to={`/mekanlar?yemek=${encodeURIComponent(y.ad)}`} className="lz-chip text-[13.5px]">
-                {y.ad} {y.n > 1 && <span className="opacity-60 ml-1">{y.n}</span>}
+                {y.ad} {y.n > 1 && <span className="text-[11px] text-[#8a8a93]">{y.n}</span>}
               </Link>
             ))}
           </div>

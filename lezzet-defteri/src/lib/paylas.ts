@@ -10,6 +10,7 @@ import { haritadaAcLinki, yolTarifiLinki, yorumlarLinki } from './mekan'
 import { youtubeId } from './importer'
 import { adimKutulari, adimOzeti, modAdi, tmSurumDenetle, type TmSurum } from './tm7'
 import { ppAdimOzeti, ppDenetle, type PpSurum } from './pisirici'
+import { fiyatYazi } from './mekanGoster'
 
 const GOMULU_ID = 'lezzet-defteri-tarif'
 
@@ -344,7 +345,7 @@ export async function mekanHtml(m: LzMekan): Promise<string> {
   const py = m.paylasanYorumu
   const satir = (b: string, d: string) => (d ? `<li><label><b>${k(b)}:</b> ${k(d)}</label></li>` : '')
   const govde = `${gorsel}
-<h1>${k(m.ad)}</h1><div class="meta">${k([m.tur, m.ilce, m.sehir].filter(Boolean).join(' · '))}${m.fiyat ? ` · ${k(m.fiyat)}` : ''}</div>
+<h1>${k(m.ad)}</h1><div class="meta">${k([m.tur, m.ilce, m.sehir].filter(Boolean).join(' · '))}${m.fiyat ? ` · ${k(fiyatYazi(m.fiyat))}` : ''}</div>
 <div style="margin-top:8px">${m.puan ? `<span class="pill">Google ★ ${m.puan.toFixed(1).replace('.', ',')}${m.yorumSayisi ? ` (${m.yorumSayisi.toLocaleString('tr')})` : ''}</span>` : ''}${benim ? `<span class="pill">Benim puanım ${benim.toFixed(1).replace('.', ',')} / 5</span>` : ''}</div>
 <div class="kart" style="display:grid;gap:8px"><a class="btn" href="${k(yolTarifiLinki(m))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Yol tarifi</a>
 <a class="btn y" href="${k(haritadaAcLinki(m))}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Haritada aç</a>

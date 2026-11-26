@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
-import { ReklamRozeti, guvenSkoru } from './Takip'
+import { guvenSkoru } from './Takip'
 import { sinirsizTeklif } from './Sinirsiz'
 import Buradayim from '../components/Buradayim'
 import { bugunAyYil, odemeler, tlYaz } from '../lib/harcama'
@@ -11,7 +11,7 @@ import { Header, Icon, IskeletKartlar, T_BASLIK, T_GOVDE, T_SOLUK, Thumb } from 
 import { SonAramalar } from '../components/SonAramalar'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
-import { linkAyikla } from '../lib/importer'
+import { etiketAdi, fiyatSeviyesi } from '../lib/mekanGoster'
 import { esles, sonAramaEkle } from '../lib/arama'
 import {
   puanYaz,
@@ -53,6 +53,7 @@ export default function Mekanlar() {
   const [sadeceHype, setSadeceHype] = useState(false)
   const [hypeDurum, setHypeDurum] = useState('')
   const [yaricap, setYaricap] = useState(0) // 0 = hepsi
+  const [kampanyaAcik, setKampanyaAcik] = useState(false)
   const aiVar = !!apiAnahtari()
 
   const konumuAl = async () => {
@@ -100,7 +101,6 @@ export default function Mekanlar() {
   // Kayitli mekanlardaki etiketler (cok kullanilan once)
   const sayac = new Map<string, number>()
   liste.forEach((m) => m.etiketler.forEach((e) => sayac.set(e, (sayac.get(e) ?? 0) + 1)))
-  const tumEtiketler = [...sayac.entries()].sort((a, b) => b[1] - a[1])
   const q = arama.trim().toLocaleLowerCase('tr')
   const suzulmus = liste.filter(
     (m) =>
@@ -145,185 +145,205 @@ export default function Mekanlar() {
     }
   }
   const yakinlar = konum ? sirali.filter((m) => (mesafe(m) ?? 1e9) <= YAKIN_KM) : []
+  const listeyeGit = () => setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 100)
+  const istekSayisi = liste.filter((m) => m.gitmekIstiyorum).length
+  const sinirsizSayisi = liste.filter((m) => sinirsizTeklif(m)).length
+  const gidilenSayisi = liste.filter((m) => m.gidildi).length
+  const kampanyaSayisi = liste.filter((m) => m.kampanya && Date.now() - m.kampanya.zaman < 7 * 24 * 3600 * 1000).length
+  const harcama = (() => {
+    const { ay } = bugunAyYil()
+    const l = odemeler(liste)
+    return l.length ? `Bu ay ${tlYaz(l.filter((o) => o.tarih.startsWith(ay)).reduce((t, o) => t + o.tutar, 0))}` : 'Ödediğin hesaplar'
+  })()
 
   return (
     <div>
       <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />
-      <div className="px-4 space-y-3 pb-8">
-        {/* ETIKETLER: en ustte; dokununca o etiketteki mekanlar yakindan uzaga listelenir */}
-        {tumEtiketler.length > 0 && (
-          <div className="lz-card p-3.5 space-y-2">
-            <div className="flex items-center">
-              <span className={`flex-1 font-semibold ${T_BASLIK}`}>Etiketler</span>
-              <Link to="/etiketler" className="text-[12.5px] font-semibold text-lz-600">
-                Tümü ve yemekler ›
-              </Link>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {tumEtiketler.slice(0, 14).map(([e, n]) => (
-                <button
-                  key={e}
-                  className={`lz-chip text-[13px] ${etiket === e ? 'lz-chip-on' : ''}`}
-                  onClick={() => {
-                    setEtiket(etiket === e ? '' : e)
-                    setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 100)
-                  }}
-                >
-                  {e} <span className="opacity-60 ml-0.5">{n}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-2.5">
-          <Link to="/oner" className="lz-btn-primary text-[14px] px-2">
-            <Icon name="sparkle" className="w-[18px] h-[18px]" /> Bana mekan öner
-          </Link>
-          <Link to="/gezi" className="lz-btn-soft text-[14px] px-2">
-            <Icon name="pin" className="w-[18px] h-[18px]" /> Yemek gezisi
+      <div className="px-4 space-y-3">
+        {/* ETIKETLER: yalnizca 6 sabit etiket + Tumu (hepsi ayri ekranda) */}
+        <div className="flex flex-wrap gap-1.5">
+          {SABIT_ETIKETLER.map((e) => {
+            const on = etiket === e
+            return (
+              <button
+                key={e}
+                className={`lz-chip text-[13px] ${on ? '!bg-lz-600 !border-lz-600 !text-white' : '!text-[#18181b] dark:!text-white'}`}
+                onClick={() => {
+                  setEtiket(on ? '' : e)
+                  listeyeGit()
+                }}
+              >
+                {e}
+                <span className={`text-[11px] ${on ? 'text-white/80' : 'text-[#8a8a93]'}`}>{sayac.get(e) ?? 0}</span>
+              </button>
+            )
+          })}
+          <Link to="/etiketler" className="lz-chip text-[13px] !text-lz-600 font-semibold">
+            Tümü ›
           </Link>
         </div>
-        <Link to="/harita" className="lz-btn-soft w-full text-[14px]">
-          <Icon name="pin" className="w-[18px] h-[18px]" /> Mekanlarımı haritada gör
-        </Link>
+
+        {/* ARAMA ve SUZGECLER */}
+        <div id="mekan-listesi" className="space-y-2 scroll-mt-24">
+          <input
+            className="lz-input py-2 text-[14px] w-full min-h-[48px]"
+            placeholder="Ara: ad, semt, yemek…"
+            value={arama}
+            onChange={(e) => setArama(e.target.value)}
+            onFocus={() => setAramaOdak(true)}
+            onBlur={() => {
+              setTimeout(() => setAramaOdak(false), 150)
+              sonAramaEkle('mekan', arama)
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('mekan', arama)}
+          />
+          {aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
+          <div className="grid grid-cols-2 gap-2">
+            <button className={`lz-chip justify-center ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
+              Gitmek istediklerim
+            </button>
+            <button className={`lz-chip justify-center ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
+              Favoriler
+            </button>
+            <button className={`lz-chip justify-center ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.endsWith('…')} onClick={() => void hypeKontrol()}>
+              Hype
+            </button>
+            <button className={`lz-chip justify-center ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}>
+              Gitmediklerim
+            </button>
+          </div>
+          {(yemek || (etiket && !SABIT_ETIKETLER.includes(etiket)) || yaricap > 0) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {yemek && (
+                <button className="lz-chip !bg-lz-600 !border-lz-600 !text-white" onClick={() => setYemek('')}>
+                  Yemek: {yemek} ✕
+                </button>
+              )}
+              {etiket && !SABIT_ETIKETLER.includes(etiket) && (
+                <button className="lz-chip !bg-lz-600 !border-lz-600 !text-white" onClick={() => setEtiket('')}>
+                  {etiketAdi(etiket)} ✕
+                </button>
+              )}
+              {yaricap > 0 &&
+                [1, 3, 5, 10, 0].map((km) => (
+                  <button key={km} className={`lz-chip text-[12.5px] ${yaricap === km ? 'lz-chip-on' : ''}`} onClick={() => setYaricap(km)}>
+                    {km ? `${km} km` : 'Hepsi'}
+                  </button>
+                ))}
+            </div>
+          )}
+          {(etiket || yemek) && <p className={`text-[12px] ${T_SOLUK}`}>{konum ? 'Yakından uzağa sıralı' : 'Konum alınınca yakından uzağa sıralanır'}</p>}
+          {hypeDurum && <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>{hypeDurum}</p>}
+        </div>
+
+        {/* MEKAN KARTLARI: Tarifler kartiyla ayni, 2 sutun */}
+        {listeHam === undefined && <IskeletKartlar adet={4} izgara />}
+        {listeHam !== undefined && liste.length === 0 && (
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Henüz mekan yok. Aşağıdaki “Mekan ekle”den ya da Instagram’da Paylaş → Lezzet Rotası: Mekan ile ekle.</div>
+        )}
+        {sadeceHype && !hypeDurum && liste.length > 0 && sirali.length === 0 && (
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu listede şu an sosyal medyada çok konuşulan mekan yok.</div>
+        )}
+        {yaricap > 0 && liste.length > 0 && sirali.length === 0 && (
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>{yaricap} km içinde kayıtlı mekan yok. Mesafeyi büyüt ya da “Hepsi”ni seç.</div>
+        )}
+        {!sadeceHype && !yaricap && liste.length > 0 && sirali.length === 0 && (
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu seçime uyan mekan yok.</div>
+        )}
+        {sirali.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 items-start">
+            {sirali.map((m) => (
+              <MekanKarti key={m.id} m={m} km={mesafe(m)} />
+            ))}
+          </div>
+        )}
+
+        {/* KISAYOLLAR: 2 sutun kucuk kartlar */}
+        <div className="grid grid-cols-2 gap-2.5 pt-2">
+          <KisaKart to="/oner" ikon={<Icon name="sparkle" className="w-[17px] h-[17px]" />} baslik="Bana mekan öner" alt="Yakında, isteğine göre" vurgu />
+          <KisaKart to="/gezi" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Yemek gezisi" alt="Rota kur, yola çık" />
+          <KisaKart to="/harita" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Harita" alt="Mekanlarım haritada" />
+          <KisaKart to="/takip" ikon={<Icon name="users" className="w-[17px] h-[17px]" />} baslik="Influencer’lar" alt="Gittikleri yerler" />
+          <KisaKart
+            onClick={() => {
+              setSadeceIstek(true)
+              listeyeGit()
+            }}
+            ikon={<Icon name="bookmark" className="w-[17px] h-[17px]" />}
+            baslik="Gitmek istediğim"
+            alt={istekSayisi ? `${istekSayisi} yer` : 'İşaretle, burada topla'}
+          />
+          <KisaKart to="/sinirsiz" ikon={<span className="text-[17px] font-bold leading-none">∞</span>} baslik="Sınırsız" alt={sinirsizSayisi ? `${sinirsizSayisi} mekanda teklif` : 'Pizza, köfte, açık büfe'} />
+          <KisaKart to="/gittiklerim" ikon={<Icon name="check" className="w-[17px] h-[17px]" />} baslik="Gittiğim yerler" alt={gidilenSayisi ? `${gidilenSayisi} mekan` : 'Puanına göre sıralı'} />
+          <KisaKart to="/harcamalarim" ikon={<span className="text-[14px] font-bold leading-none">TL</span>} baslik="Harcamalarım" alt={harcama} />
+          <KisaKart
+            onClick={() => {
+              setKampanyaAcik(!kampanyaAcik)
+              setTimeout(() => document.getElementById('kampanya-karti')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100)
+            }}
+            ikon={<Icon name="sparkle" className="w-[17px] h-[17px]" />}
+            baslik={`Kampanyalar${kampanyaSayisi ? ` · ${kampanyaSayisi}` : ''}`}
+            alt={kampanyaSayisi ? 'Yakından uzağa gör' : 'Yakındakileri kontrol et'}
+            acik={kampanyaAcik}
+          />
+        </div>
+        {kampanyaAcik && (
+          <div id="kampanya-karti">
+            <KampanyaKarti liste={liste} konum={konum} acikBasla />
+          </div>
+        )}
         <Buradayim />
-        <Link to="/takip" className="lz-card p-3.5 flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
-            <Icon name="users" className="w-[18px] h-[18px]" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className={`block font-semibold ${T_BASLIK}`}>Influencer’lar</span>
-            <span className={`block text-[12.5px] ${T_SOLUK}`}>Fenomenlerin gittiği yerler · gittin / gitmedin · yeni yerleri</span>
-          </span>
-          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
-        </Link>
-        <button
-          className="lz-card p-3.5 flex items-center gap-3 w-full text-left"
-          onClick={() => {
-            setSadeceIstek(true)
-            setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 80)
-          }}
-        >
-          <span className="w-9 h-9 rounded-xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 flex items-center justify-center">
-            <Icon name="bookmark" className="w-[18px] h-[18px]" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className={`block font-semibold ${T_BASLIK}`}>Gitmek istediğim yerler</span>
-            <span className={`block text-[12.5px] ${T_SOLUK}`}>
-              {liste.filter((m) => m.gitmekIstiyorum).length ? `${liste.filter((m) => m.gitmekIstiyorum).length} yer · yakından uzağa` : 'Mekanlardaki işaret simgesiyle ekle'}
-            </span>
-          </span>
-          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
-        </button>
-        <Link to="/sinirsiz" className="lz-card p-3.5 flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-[#2a2113] text-amber-600 dark:text-amber-300 flex items-center justify-center text-[18px] font-bold">∞</span>
-          <span className="flex-1 min-w-0">
-            <span className={`block font-semibold ${T_BASLIK}`}>Sınırsız</span>
-            <span className={`block text-[12.5px] ${T_SOLUK}`}>
-              {liste.filter((m) => sinirsizTeklif(m)).length
-                ? `${liste.filter((m) => sinirsizTeklif(m)).length} kayıtlı mekanda sınırsız teklif · yakında ara`
-                : 'Sınırsız pizza, köfte, açık büfe… yakınında ara'}
-            </span>
-          </span>
-          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
-        </Link>
-        <Link to="/gittiklerim" className="lz-card p-3.5 flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-[#10261e] text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
-            <Icon name="check" className="w-[18px] h-[18px]" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className={`block font-semibold ${T_BASLIK}`}>Gittiğim yerler</span>
-            <span className={`block text-[12.5px] ${T_SOLUK}`}>
-              {liste.filter((m) => m.gidildi).length
-                ? `${liste.filter((m) => m.gidildi).length} mekan · şehir ve semte göre, puanıma göre sıralı`
-                : 'Şehir ve semte göre, verdiğin puana göre sıralı'}
-            </span>
-          </span>
-          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
-        </Link>
-        <Link to="/harcamalarim" className="lz-card p-3.5 flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-[#10261e] text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-[15px] font-bold">
-            ₺
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className={`block font-semibold ${T_BASLIK}`}>Harcamalarım</span>
-            <span className={`block text-[12.5px] ${T_SOLUK}`}>
-              {(() => {
-                const { ay, yil } = bugunAyYil()
-                const l = odemeler(liste)
-                const t = (k: string) => l.filter((o) => o.tarih.startsWith(k)).reduce((s, o) => s + o.tutar, 0)
-                return l.length ? `Bu ay ${tlYaz(t(ay))} · bu yıl ${tlYaz(t(yil))}` : 'Gittiğin yerlerde ödediğin hesaplar'
-              })()}
-            </span>
-          </span>
-          <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
-        </Link>
-        <KampanyaKarti liste={liste} konum={konum} />
-        {/* Nerede oldugun */}
+
+        {/* KONUM: arama kutusu ustte tam genislik, dugmeler alt alta */}
         <div className="lz-card p-4 space-y-2.5">
           <div className={`font-semibold ${T_BASLIK}`}>{konum ? `Konum: ${konum.ad ?? 'Bulunduğun yer'}` : 'Neredesin?'}</div>
           {konum && (
             <p className={`text-[13px] ${T_GOVDE}`}>
-              {yakinlar.length
-                ? `${YAKIN_KM} km içinde kayıtlı ${yakinlar.length} mekan var`
-                : `${YAKIN_KM} km içinde kayıtlı mekan yok; en yakınlar aşağıda.`}
+              {yakinlar.length ? `${YAKIN_KM} km içinde kayıtlı ${yakinlar.length} mekan var` : `${YAKIN_KM} km içinde kayıtlı mekan yok.`}
             </p>
           )}
-          <div className="grid grid-cols-[auto_1fr] gap-2">
-            <button className="lz-btn-primary px-3 text-[13px]" onClick={() => void konumuAl()}>
-              Konumumu bul
-            </button>
-            <div className="flex gap-1.5">
-              <input
-                className="lz-input py-2 text-[14px] min-w-0"
-                placeholder="konum kapalıysa semt"
-                value={semt}
-                onChange={(e) => setSemt(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && void semtBul()}
-              />
-              <button className="lz-btn-soft px-3 text-[13px]" disabled={!semt.trim()} onClick={() => void semtBul()}>
-                Bul
-              </button>
-            </div>
-          </div>
+          <input
+            className="lz-input text-[14px] w-full min-h-[48px]"
+            placeholder="Semt yaz, örn. Serdivan"
+            value={semt}
+            onChange={(e) => setSemt(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && semt.trim() && void semtBul()}
+          />
+          <button className="lz-btn-soft w-full text-[14.5px]" onClick={() => void (semt.trim() ? semtBul() : konumuAl())}>
+            {semt.trim() ? 'Bu semti bul' : 'Konumumu bul'}
+          </button>
           {konumMesaj && <p className={`text-[12.5px] ${T_SOLUK}`}>{konumMesaj}</p>}
           <button
-            className="lz-btn-primary w-full text-[15px]"
+            className="lz-btn-primary w-full text-[14.5px]"
             onClick={async () => {
               if (!konum) await konumuAl()
               setYaricap(yaricap || YAKIN_KM)
-              setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 100)
+              listeyeGit()
             }}
           >
             Yakınımdaki mekanları göster
           </button>
-          {yaricap > 0 && (
-            <div className="flex gap-1.5 flex-wrap">
-              {[1, 3, 5, 10, 0].map((km) => (
-                <button key={km} className={`lz-chip text-[12.5px] ${yaricap === km ? 'lz-chip-on' : ''}`} onClick={() => setYaricap(km)}>
-                  {km ? `${km} km` : 'Hepsi'}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Yeni mekan */}
+        {/* MEKAN EKLE: kisa yazi, aciklama acilir satirda, kutu ve dugme alt alta */}
         <div className="lz-card p-4 space-y-2.5">
           <div className={`font-semibold ${T_BASLIK}`}>Mekan ekle</div>
-          <p className={`text-[12.5px] ${T_SOLUK}`}>
-            Instagram, TikTok, YouTube ya da Google Haritalar linkini yapıştır; ya da sadece adını ve semtini yaz (“Karaköy Lokantası, İstanbul”).
-            Konum yazmasa da yapay zeka Google’da araştırıp yerini kendisi bulur. En kolayı: Instagram’da Paylaş → Lezzet Rotası; hiçbir şey yazmana
-            gerek yok.
-          </p>
+          <p className={`text-[13px] ${T_GOVDE}`}>Link yapıştır ya da ad + semt yaz.</p>
+          <details className={`text-[12.5px] ${T_SOLUK}`}>
+            <summary className="cursor-pointer font-semibold text-lz-600 min-h-[32px] flex items-center">Nasıl çalışır?</summary>
+            <p className="pt-1">
+              Instagram, TikTok, YouTube ya da Google Haritalar linkini yapıştır; ya da sadece adını ve semtini yaz (“Karaköy Lokantası, İstanbul”). Konum yazmasa
+              da yapay zeka Google’da araştırıp yerini kendisi bulur. En kolayı: Instagram’da Paylaş → Lezzet Rotası: Mekan; hiçbir şey yazmana gerek yok.
+            </p>
+          </details>
           <textarea
-            className="lz-input min-h-[60px] text-[14px]"
+            className="lz-input min-h-[64px] text-[14px] w-full"
             placeholder="Link ya da mekan adı + semt"
             value={link}
             onChange={(e) => setLink(e.target.value)}
           />
           <button className="lz-btn-primary w-full" disabled={!aiVar || !link.trim() || !!ekleniyor} onClick={() => void ekle()}>
-            {ekleniyor || (linkAyikla(link) ? 'Mekanı kaydet' : 'Mekanı araştır ve kaydet')}
+            {ekleniyor || 'Mekan ekle'}
           </button>
           {!aiVar && (
             <p className="text-[12.5px] text-rose-600 dark:text-rose-300">
@@ -336,156 +356,80 @@ export default function Mekanlar() {
           )}
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3">{hata}</div>}
         </div>
-
-        {liste.length > 0 && (
-          <>
-            <div id="mekan-listesi" className="space-y-2 scroll-mt-24">
-              <input
-                className="lz-input py-2 text-[14px] w-full min-h-[48px]"
-                placeholder="Ara: ad, semt, yemek…"
-                value={arama}
-                onChange={(e) => setArama(e.target.value)}
-                onFocus={() => setAramaOdak(true)}
-                onBlur={() => {
-                  setTimeout(() => setAramaOdak(false), 150)
-                  sonAramaEkle('mekan', arama)
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && sonAramaEkle('mekan', arama)}
-              />
-              {aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
-              <div className="flex flex-wrap gap-2">
-                <button className={`lz-chip whitespace-nowrap ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
-                  Gitmek istediklerim
-                </button>
-                <button className={`lz-chip whitespace-nowrap ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
-                  Favoriler
-                </button>
-                <button className={`lz-chip whitespace-nowrap ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.endsWith('…')} onClick={() => void hypeKontrol()}>
-                  Hype
-                </button>
-                <button
-                  className={`lz-chip whitespace-nowrap ${sadeceGidilmedi ? 'lz-chip-on' : ''}`}
-                  onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}
-                >
-                  Gitmediklerim
-                </button>
-              </div>
-            </div>
-            {hypeDurum && <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>{hypeDurum}</p>}
-            {sadeceHype && !hypeDurum && sirali.length === 0 && (
-              <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu listede şu an sosyal medyada çok konuşulan mekan yok.</div>
-            )}
-            {(yemek || etiket) && (
-              <div className="flex items-center gap-2 flex-wrap">
-                {yemek && (
-                  <button className="lz-chip lz-chip-on whitespace-nowrap" onClick={() => setYemek('')}>
-                    Yemek: {yemek} ✕
-                  </button>
-                )}
-                {etiket && (
-                  <button className="lz-chip lz-chip-on whitespace-nowrap" onClick={() => setEtiket('')}>
-                    {etiket} ✕
-                  </button>
-                )}
-                <span className={`text-[12px] ${T_SOLUK}`}>{konum ? 'Yakından uzağa sıralı' : 'Konum alınınca yakından uzağa sıralanır'}</span>
-              </div>
-            )}
-            {tumEtiketler.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {tumEtiketler.map(([e, n]) => (
-                  <button
-                    key={e}
-                    className={`lz-chip whitespace-nowrap flex-shrink-0 text-[12.5px] ${etiket === e ? 'lz-chip-on' : ''}`}
-                    onClick={() => setEtiket(etiket === e ? '' : e)}
-                  >
-                    {e} <span className="opacity-60 ml-0.5">{n}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {yaricap > 0 && sirali.length === 0 && (
-              <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>
-                {yaricap} km içinde kayıtlı mekan yok. Mesafeyi büyüt ya da “Hepsi”ni seç.
-              </div>
-            )}
-            {listeHam === undefined && <IskeletKartlar adet={3} />}
-            {sirali.map((m) => {
-              const km = mesafe(m)
-              return (
-                <Link
-                  key={m.id}
-                  to={`/mekan/${m.id}`}
-                  className={`lz-card p-3 flex gap-3 relative ${km !== undefined && km <= YAKIN_KM ? 'ring-2 ring-lz-500/60' : ''}`}
-                >
-                  <button
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-[17px]"
-                    aria-label={m.favori ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      void lzDb.mekanlar.update(m.id!, { favori: !m.favori })
-                    }}
-                  >
-                    <Icon name="heart" className={`w-5 h-5 ${m.favori ? 'text-lz-600 fill-current' : 'text-[#a1a1aa]'}`} />
-                  </button>
-                  <button
-                    className="absolute top-2 right-10 w-8 h-8 rounded-full flex items-center justify-center"
-                    aria-label={m.gitmekIstiyorum ? 'Gitmek istediklerimden çıkar' : 'Gitmek istiyorum'}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      void lzDb.mekanlar.update(m.id!, { gitmekIstiyorum: !m.gitmekIstiyorum })
-                    }}
-                  >
-                    <Icon name="bookmark" className={`w-5 h-5 ${m.gitmekIstiyorum ? 'text-lz-600 fill-current' : 'text-[#a1a1aa]'}`} />
-                  </button>
-                  <Thumb src={m.foto} className="w-16 h-16 rounded-2xl" emoji="" />
-                  <div className="flex-1 min-w-0">
-                    <div className={`font-semibold leading-snug pr-16 ${T_BASLIK}`}>
-                      {m.ad} {m.gidildi && <span className="text-[12px] text-emerald-600">✓</span>}
-                      {m.reklam && <ReklamRozeti />}
-                      {(() => {
-                        const z = [...(m.ziyaretler ?? [])].sort((a, b) => b.tarih.localeCompare(a.tarih))
-                        const p = z.filter((x) => x.puan)
-                        return z.length ? (
-                          <span className={`block text-[11.5px] font-normal ${T_SOLUK}`}>
-                            Son gidiş {z[0].tarih.split('-').reverse().join('.')}
-                            {p.length ? ` · puanım ★ ${(p.reduce((t, x) => t + x.puan, 0) / p.length).toFixed(1).replace('.', ',')}` : ''}
-                          </span>
-                        ) : null
-                      })()}
-                      {m.sourceUrl && <span className="text-[11px] ml-1 opacity-60">▶</span>}
-                    </div>
-                    <div className={`text-[12.5px] ${T_SOLUK}`}>
-                      {m.puan ? <b className="text-amber-600 dark:text-amber-300 font-semibold">{puanYaz(m)} · </b> : null}
-                      {[m.tur, m.ilce, m.sehir].filter(Boolean).join(' · ')}
-                    </div>
-                    {m.hype?.var && <div className="text-[12.5px] text-lz-600 font-semibold truncate">{m.hype.not || 'Şu an sosyal medyada konuşuluyor'}</div>}
-                    {m.oneriler.length > 0 && (
-                      // Karta yalnizca en one cikan yemek buyuk; digerleri mekan sayfasinda
-                      <div className="flex items-baseline gap-1.5 min-w-0">
-                        <span className={`text-[15px] font-bold truncate ${T_BASLIK}`}>🍽 {m.oneriler[0]}</span>
-                        {m.oneriler.length > 1 && <span className={`text-[12px] flex-shrink-0 ${T_SOLUK}`}>+{m.oneriler.length - 1}</span>}
-                      </div>
-                    )}
-                    {m.etiketler.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {m.etiketler.slice(0, 4).map((e) => (
-                          <span key={e} className="lz-pill !text-[11px] !py-0.5">
-                            {e}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {km !== undefined && <div className="text-[12.5px] font-semibold text-lz-600 whitespace-nowrap self-end">{mesafeYaz(km)}</div>}
-                  {m.lat === undefined && <div className={`text-[11px] self-end ${T_SOLUK}`}>yer?</div>}
-                </Link>
-              )
-            })}
-          </>
-        )}
       </div>
+    </div>
+  )
+}
+
+// En ustteki sabit etiketler (hepsi "Tumu" ekraninda)
+const SABIT_ETIKETLER = ['Popüler', 'Tatlı', 'Sokak lezzeti', 'Pastane', 'Kahve', 'Kahvaltı']
+
+// Kisayol karti: baslik + 1 satir aciklama, ok her kartta ayni yerde (sag, ortada)
+function KisaKart({ to, onClick, ikon, baslik, alt, vurgu = false, acik }: { to?: string; onClick?: () => void; ikon: ReactNode; baslik: string; alt: string; vurgu?: boolean; acik?: boolean }) {
+  const ic = (
+    <>
+      <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${vurgu ? 'bg-lz-600 text-white' : 'bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300'}`}>{ikon}</span>
+      <span className="flex-1 min-w-0">
+        <span className={`block font-semibold text-[13.5px] leading-tight truncate ${T_BASLIK}`}>{baslik}</span>
+        <span className={`block text-[11.5px] leading-tight truncate mt-0.5 ${T_SOLUK}`}>{alt}</span>
+      </span>
+      <Icon name="back" className={`w-4 h-4 flex-shrink-0 ${acik === undefined ? 'rotate-180' : acik ? 'rotate-90' : '-rotate-90'} ${T_SOLUK}`} />
+    </>
+  )
+  const cls = 'lz-card p-2.5 pr-2 flex items-center gap-2 min-h-[60px] min-w-0 w-full text-left active:scale-[0.98] transition'
+  return to ? (
+    <Link to={to} className={cls}>
+      {ic}
+    </Link>
+  ) : (
+    <button className={cls} onClick={onClick}>
+      {ic}
+    </button>
+  )
+}
+
+// Mekan karti: Tarifler kartiyla ayni duzen (fotograf ustte, sag ustte 32 px yildiz, ad 2 satir)
+function MekanKarti({ m, km }: { m: LzMekan; km?: number }) {
+  const fiyat = fiyatSeviyesi(m)
+  const alt = [km !== undefined ? mesafeYaz(km) : '', fiyat ? `${fiyat} fiyat` : ''].filter(Boolean).join(' · ')
+  const yakin = km !== undefined && km <= YAKIN_KM
+  return (
+    <div className={`lz-card overflow-hidden flex flex-col min-w-0 ${yakin ? 'ring-2 ring-lz-500/50' : ''}`}>
+      <div className="relative">
+        <Link to={`/mekan/${m.id}`} aria-label={m.ad} className="block">
+          <Thumb src={m.foto} className={`w-full rounded-none ${m.foto ? 'aspect-[4/3]' : 'aspect-[16/7]'}`} emoji="" />
+        </Link>
+        <button
+          className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${m.favori ? 'text-amber-400' : 'text-[#71717a] dark:text-[#d4d4d8]'}`}
+          aria-label={m.favori ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+          onClick={() => void lzDb.mekanlar.update(m.id!, { favori: !m.favori })}
+        >
+          <svg viewBox="0 0 24 24" className="w-[16px] h-[16px]" fill={m.favori ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+            <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8z" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <button
+          className={`absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${m.gitmekIstiyorum ? 'text-lz-600' : 'text-[#71717a] dark:text-[#d4d4d8]'}`}
+          aria-label={m.gitmekIstiyorum ? 'Gitmek istediklerimden çıkar' : 'Gitmek istiyorum'}
+          onClick={() => void lzDb.mekanlar.update(m.id!, { gitmekIstiyorum: !m.gitmekIstiyorum })}
+        >
+          <Icon name="bookmark" className={`w-[15px] h-[15px] ${m.gitmekIstiyorum ? 'fill-current' : ''}`} />
+        </button>
+        <div className="absolute bottom-2 left-2 flex gap-1">
+          {m.gidildi && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white">✓ Gittin</span>}
+          {m.hype?.var && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-lz-600 text-white">Hype</span>}
+          {m.reklam && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-black/60 text-white">Reklam</span>}
+        </div>
+      </div>
+      <Link to={`/mekan/${m.id}`} className="p-2.5 flex flex-col gap-1 flex-1 min-w-0">
+        <div className={`font-semibold text-[14.5px] leading-[1.3] line-clamp-2 min-h-[2.6em] ${T_BASLIK}`}>{m.ad}</div>
+        <div className={`text-[12px] truncate ${T_SOLUK}`}>
+          {m.puan ? <b className="text-amber-700 dark:text-amber-300 font-semibold">{puanYaz(m)}</b> : null}
+          {m.puan && (m.tur || m.ilce) ? ' · ' : ''}
+          {[m.tur, m.ilce].filter(Boolean).join(' · ')}
+        </div>
+        <div className={`text-[12px] font-semibold min-h-[1.4em] truncate ${km !== undefined ? 'text-lz-600' : T_SOLUK}`}>{alt || (m.lat === undefined ? 'Yeri belirsiz' : '')}</div>
+      </Link>
     </div>
   )
 }
@@ -532,7 +476,7 @@ export function YakinMekanSeridi() {
 }
 
 // Kampanyalar: dugmeye basinca favori (yoksa tum) mekanlarin guncel kampanyalarina bakilir
-function KampanyaKarti({ liste, konum }: { liste: LzMekan[]; konum: Konum | null }) {
+function KampanyaKarti({ liste, konum, acikBasla = false }: { liste: LzMekan[]; konum: Konum | null; acikBasla?: boolean }) {
   const [sonuc, setSonuc] = useState('')
   const d = useKampanyaDurumu()
   // Kampanyalar bulundugum yerden uzaga dogru (konumu olmayanlar en sonda)
@@ -542,7 +486,7 @@ function KampanyaKarti({ liste, konum }: { liste: LzMekan[]; konum: Konum | null
     .sort((a, b) => (uzaklik(a) ?? 1e9) - (uzaklik(b) ?? 1e9))
   const favSayisi = liste.filter((m) => m.favori).length
   // Varsayilan kapali (cok yer kapliyordu); basinca acilir
-  const [acik, setAcik] = useState(false)
+  const [acik, setAcik] = useState(acikBasla)
   if (!liste.length) return null
   const son = sonKontrol()
   if (!acik && !d.calisiyor)
