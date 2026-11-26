@@ -121,7 +121,12 @@ export default function Recipes() {
     }
   }, [filtre])
   const seciliSofra = sofra ? sofralar.find((t) => t.id === sofra) : undefined
-  const sofralarGorunen = arama ? sofralar.filter((t) => esles(arama, `${t.name} ${t.notes ?? ''}`)) : sofralar
+  // Sofralarim aramasi: sofra adi (ve notu) ile o sofradaki tariflerin basliklari
+  const sofralarGorunen = arama
+    ? sofralar.filter((t) =>
+        esles(arama, `${t.name} ${t.notes ?? ''} ${tarifler.filter((r) => r.tableIds.includes(t.id!)).map((r) => r.title).join(' ')}`)
+      )
+    : sofralar
   const gorunenHam = tarifler.filter((r) => {
     if (sofra && !r.tableIds.includes(sofra)) return false
     if (filtre === 'yeni' && r.createdAt < yeniSinir) return false

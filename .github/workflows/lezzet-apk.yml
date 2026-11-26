@@ -68,6 +68,9 @@ jobs:
           grep -q 'FOREGROUND_SERVICE_DATA_SYNC' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
           grep -q 'RECORD_AUDIO' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <queries><intent><action android:name="android.speech.RecognitionService" /></intent></queries>\n</manifest>#' "$f"
           grep -q 'ACCESS_COARSE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>#' "$f"
+          # Yakindaki sevdigin mekan: geofence (uygulama kapaliyken de), telefon yeniden baslayinca yeniden kurulur
+          grep -q 'ACCESS_BACKGROUND_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n</manifest>#' "$f"
+          grep -q 'YakinAlici' "$f" || sed -i 's#</application>#    <receiver android:name=".YakinAlici" android:exported="false" />\n        <receiver android:name=".YakinEylem" android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED" />\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />\n            </intent-filter>\n        </receiver>\n    </application>#' "$f"
           grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter android:label="Lezzet Rotası: Tarif">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
           # Paylas menusunde ikinci secenek: "Lezzet: Mekan" (ayni uygulama, mekan olarak kaydeder)
           grep -q 'MekanPaylas' "$f" || sed -i 's#</application>#    <activity-alias android:name=".MekanPaylas" android:targetActivity=".MainActivity" android:exported="true" android:label="Lezzet Rotası: Mekan" android:icon="@mipmap/ic_launcher">\n            <intent-filter android:label="Lezzet Rotası: Mekan">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity-alias>\n    </application>#' "$f"
@@ -90,6 +93,7 @@ jobs:
               public void onCreate(Bundle savedInstanceState) {
                   registerPlugin(SiraEklentisi.class); // web katmani sira servisini buradan acar/kapatir
                   registerPlugin(SesEklentisi.class); // pisirme ekraninda "Sonraki / Geri / Tekrar" sesli komutlari
+                  registerPlugin(YakinEklentisi.class); // yakindaki sevdigin mekan: telefonun geofence ozelligi
                   super.onCreate(savedInstanceState);
                   // Uygulama gorunmezken de web katmani onemli sayilsin (sira islenirken yavaslamasin)
                   if (Build.VERSION.SDK_INT >= 26) getBridge().getWebView().setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
@@ -449,6 +453,335 @@ jobs:
           }
           JAVA
           sed -i 's/^          //' "$d/SesEklentisi.java"
+          cat > "$d/YakinMotor.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.Manifest;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.content.pm.PackageManager;
+          import android.graphics.Bitmap;
+          import android.graphics.BitmapFactory;
+          import android.location.Location;
+          import android.media.AudioAttributes;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.util.Base64;
+          import androidx.core.app.NotificationCompat;
+          import androidx.core.content.ContextCompat;
+          import com.google.android.gms.location.Geofence;
+          import com.google.android.gms.location.GeofencingClient;
+          import com.google.android.gms.location.GeofencingRequest;
+          import com.google.android.gms.location.LocationServices;
+          import java.text.SimpleDateFormat;
+          import java.util.ArrayList;
+          import java.util.Date;
+          import java.util.List;
+          import java.util.Locale;
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+
+          // YAKINDA SEVDIGIN MEKAN: telefonun geofence ozelligiyle (konum surekli izlenmez).
+          // Her mekana iki cember: secilen mesafe (yuruyus) ve 2 kati (araba). Yalnizca cembere GIRERKEN tetiklenir.
+          // Kurallar web tarafindaki yakinBildirim.ts ile ayni: gece 22-09 yok, gunde en fazla 2, ayni mekan gunde 1.
+          public class YakinMotor {
+              static final String PREF = "lz_yakin";
+              static final String KANAL = "lz_yakin_ozel";
+              static final float ARABA_HIZ = 5.5f;
+              static final int GUNLUK = 2;
+
+              static SharedPreferences p(Context c) {
+                  return c.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+              }
+
+              static boolean konumIzni(Context c) {
+                  return ContextCompat.checkSelfPermission(c, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+              }
+
+              static PendingIntent geofenceIntent(Context c) {
+                  Intent i = new Intent(c, YakinAlici.class);
+                  int f = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                  return PendingIntent.getBroadcast(c, 7100, i, f);
+              }
+
+              // Kayitli listeye gore cemberleri yeniden kur (uygulama acilisi, ayar degisimi, telefon yeniden baslayinca)
+              static void kur(Context c) {
+                  GeofencingClient g = LocationServices.getGeofencingClient(c);
+                  try {
+                      g.removeGeofences(geofenceIntent(c));
+                  } catch (Exception e) {
+                      // yok
+                  }
+                  SharedPreferences s = p(c);
+                  if (!s.getBoolean("acik", true) || !konumIzni(c)) return;
+                  int metre = s.getInt("metre", 200);
+                  List<Geofence> l = new ArrayList<>();
+                  try {
+                      JSONArray a = new JSONArray(s.getString("liste", "[]"));
+                      for (int i = 0; i < a.length() && l.size() < 98; i++) {
+                          JSONObject m = a.getJSONObject(i);
+                          for (int halka = 1; halka <= 2; halka++) {
+                              l.add(new Geofence.Builder()
+                                  .setRequestId("y_" + m.getInt("id") + "_" + halka)
+                                  .setCircularRegion(m.getDouble("lat"), m.getDouble("lon"), metre * halka)
+                                  .setExpirationDuration(Geofence.NEVER_EXPIRE)
+                                  .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+                                  .build());
+                          }
+                      }
+                  } catch (Exception e) {
+                      return;
+                  }
+                  if (l.isEmpty()) return;
+                  GeofencingRequest r = new GeofencingRequest.Builder().setInitialTrigger(0).addGeofences(l).build();
+                  try {
+                      g.addGeofences(r, geofenceIntent(c));
+                  } catch (SecurityException e) {
+                      // izin yok
+                  }
+              }
+
+              static String bugun() {
+                  return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+              }
+
+              // Gunluk kayit (gun degisince sifirlanir)
+              static SharedPreferences gunluk(Context c) {
+                  SharedPreferences s = p(c);
+                  if (!bugun().equals(s.getString("gun", ""))) {
+                      s.edit().putString("gun", bugun()).putInt("sayi", 0).putString("bildirilen", ",").putString("gizli", ",").apply();
+                  }
+                  return s;
+              }
+
+              static void bugunGosterme(Context c, int id) {
+                  SharedPreferences s = gunluk(c);
+                  s.edit().putString("gizli", s.getString("gizli", ",") + id + ",").apply();
+              }
+
+              // Cembere girildi: kurallara uyuyorsa ozel bildirim
+              static void girildi(Context c, String istekId, Location konum) {
+                  try {
+                      String[] parca = istekId.split("_");
+                      int id = Integer.parseInt(parca[1]);
+                      int halka = Integer.parseInt(parca[2]);
+                      SharedPreferences s = gunluk(c);
+                      if (!s.getBoolean("acik", true) || !konumIzni(c)) return;
+                      int saat = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+                      if (saat >= 22 || saat < 9) return;
+                      if (s.getInt("sayi", 0) >= GUNLUK) return;
+                      if (s.getString("bildirilen", ",").contains("," + id + ",") || s.getString("gizli", ",").contains("," + id + ",")) return;
+                      JSONObject m = null;
+                      JSONArray a = new JSONArray(s.getString("liste", "[]"));
+                      for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).getInt("id") == id) m = a.getJSONObject(i);
+                      if (m == null) return;
+                      boolean hizVar = konum != null && konum.hasSpeed();
+                      boolean araba = hizVar && konum.getSpeed() >= ARABA_HIZ;
+                      // Dis cember (2 kat) yalnizca arabada; yuruyuste ic cemberi bekle
+                      if (halka == 2 && !araba) return;
+                      float metre = s.getInt("metre", 200) * halka;
+                      if (konum != null) {
+                          Location hedef = new Location("mekan");
+                          hedef.setLatitude(m.getDouble("lat"));
+                          hedef.setLongitude(m.getDouble("lon"));
+                          metre = konum.distanceTo(hedef);
+                          // Uzaklasiyorsa (mekani gectiyse) gelmez: gidis yonu mekana 90 dereceden fazla ters
+                          if (konum.hasBearing() && hizVar && konum.getSpeed() > 0.8f) {
+                              float fark = Math.abs(((konum.bearingTo(hedef) - konum.getBearing()) % 360 + 540) % 360 - 180);
+                              if (fark > 90) return;
+                          }
+                      }
+                      s.edit().putInt("sayi", s.getInt("sayi", 0) + 1).putString("bildirilen", s.getString("bildirilen", ",") + id + ",").apply();
+                      goster(c, m, Math.round(metre), araba);
+                  } catch (Exception e) {
+                      // sessizce gec
+                  }
+              }
+
+              static void kanal(Context c, NotificationManager nm) {
+                  if (Build.VERSION.SDK_INT < 26 || nm.getNotificationChannel(KANAL) != null) return;
+                  NotificationChannel k = new NotificationChannel(KANAL, "Yakında sevdiğin mekan", NotificationManager.IMPORTANCE_DEFAULT);
+                  k.setDescription("Gitmek istediğin ya da favori mekana yaklaşınca");
+                  Uri ses = Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin");
+                  k.setSound(ses, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+                  k.enableVibration(true);
+                  k.setVibrationPattern(new long[] { 0, 70, 80, 70 });
+                  nm.createNotificationChannel(k);
+              }
+
+              static void goster(Context c, JSONObject m, int metre, boolean araba) throws Exception {
+                  if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(c, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
+                  NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+                  kanal(c, nm);
+                  int id = m.getInt("id");
+                  int no = 7000 + (id % 1000);
+                  String baslik = m.optBoolean("favori") ? "★ Favori mekanın yakınında" : "Gitmek istediğin mekan yakınında";
+                  String puan = m.optString("puan", "");
+                  String metin = Math.max(10, Math.round(metre / 10f) * 10) + " m ileride " + m.optString("ad") + " var" + (puan.isEmpty() ? "" : " · " + puan);
+                  int f = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
+                  Intent ac = new Intent(c, MainActivity.class);
+                  ac.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                  ac.putExtra("lz_ac", "/mekan/" + id);
+                  PendingIntent goster = PendingIntent.getActivity(c, no, ac, f);
+                  Intent yol = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination="
+                      + m.getDouble("lat") + "," + m.getDouble("lon") + "&travelmode=" + (araba ? "driving" : "walking")));
+                  yol.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  PendingIntent yolPi = PendingIntent.getActivity(c, no + 1000, yol, f);
+                  Intent gizle = new Intent(c, YakinEylem.class);
+                  gizle.putExtra("id", id);
+                  gizle.putExtra("no", no);
+                  PendingIntent gizlePi = PendingIntent.getBroadcast(c, no + 2000, gizle, f);
+                  NotificationCompat.Builder b = new NotificationCompat.Builder(c, KANAL)
+                      .setSmallIcon(android.R.drawable.ic_dialog_map)
+                      .setContentTitle(baslik)
+                      .setContentText(metin)
+                      .setColor(0xFFD93D20)
+                      .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+                      .setVibrate(new long[] { 0, 70, 80, 70 })
+                      .setSound(Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin"))
+                      .setAutoCancel(true)
+                      .setContentIntent(goster)
+                      .addAction(0, "Göster", goster)
+                      .addAction(0, "Yol tarifi", yolPi)
+                      .addAction(0, "Bugün gösterme", gizlePi);
+                  Bitmap foto = null;
+                  String f64 = m.optString("foto", "");
+                  if (f64.startsWith("data:")) {
+                      byte[] bayt = Base64.decode(f64.substring(f64.indexOf(',') + 1), Base64.DEFAULT);
+                      foto = BitmapFactory.decodeByteArray(bayt, 0, bayt.length);
+                  }
+                  if (foto != null) {
+                      b.setLargeIcon(foto).setStyle(new NotificationCompat.BigPictureStyle().bigPicture(foto).bigLargeIcon((Bitmap) null).setSummaryText(metin));
+                  } else {
+                      b.setStyle(new NotificationCompat.BigTextStyle().bigText(metin));
+                  }
+                  nm.notify(no, b.build());
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/YakinMotor.java"
+          cat > "$d/YakinAlici.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import com.google.android.gms.location.Geofence;
+          import com.google.android.gms.location.GeofencingEvent;
+
+          // Telefon bir mekan cemberine girildigini bildirince (uygulama kapali olsa da)
+          public class YakinAlici extends BroadcastReceiver {
+              @Override
+              public void onReceive(Context c, Intent intent) {
+                  GeofencingEvent e = GeofencingEvent.fromIntent(intent);
+                  if (e == null || e.hasError() || e.getGeofenceTransition() != Geofence.GEOFENCE_TRANSITION_ENTER || e.getTriggeringGeofences() == null) return;
+                  for (Geofence g : e.getTriggeringGeofences()) YakinMotor.girildi(c, g.getRequestId(), e.getTriggeringLocation());
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/YakinAlici.java"
+          cat > "$d/YakinEylem.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.app.NotificationManager;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+
+          // Bildirimdeki "Bugün gösterme": o mekan o gun bir daha bildirilmez; telefon yeniden baslayinca cemberler yeniden kurulur
+          public class YakinEylem extends BroadcastReceiver {
+              @Override
+              public void onReceive(Context c, Intent intent) {
+                  if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()) || "android.intent.action.MY_PACKAGE_REPLACED".equals(intent.getAction())) {
+                      YakinMotor.kur(c);
+                      return;
+                  }
+                  int id = intent.getIntExtra("id", -1);
+                  if (id >= 0) YakinMotor.bugunGosterme(c, id);
+                  NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+                  nm.cancel(intent.getIntExtra("no", 0));
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/YakinEylem.java"
+          cat > "$d/YakinEklentisi.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.Manifest;
+          import android.content.pm.PackageManager;
+          import android.os.Build;
+          import androidx.core.app.ActivityCompat;
+          import androidx.core.content.ContextCompat;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          // Web katmanindan: yakindaki mekan cemberlerini kur, konum iznine bak / iste
+          @CapacitorPlugin(name = "LzYakin")
+          public class YakinEklentisi extends Plugin {
+              @PluginMethod
+              public void kur(PluginCall call) {
+                  try {
+                      YakinMotor.p(getContext()).edit()
+                          .putBoolean("acik", Boolean.TRUE.equals(call.getBoolean("acik", true)))
+                          .putInt("metre", call.getInt("metre", 200))
+                          .putString("liste", call.getArray("mekanlar").toString())
+                          .apply();
+                      YakinMotor.kur(getContext());
+                  } catch (Exception e) {
+                      // sessizce gec
+                  }
+                  call.resolve();
+              }
+
+              @PluginMethod
+              public void izinDurumu(PluginCall call) {
+                  JSObject r = new JSObject();
+                  r.put("konum", YakinMotor.konumIzni(getContext()));
+                  r.put("arkaPlan", Build.VERSION.SDK_INT < 29
+                      || ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED);
+                  call.resolve(r);
+              }
+
+              // Once konum, sonra (Android 10+) "her zaman izin ver"
+              @PluginMethod
+              public void izinIste(PluginCall call) {
+                  if (getActivity() != null) {
+                      if (!YakinMotor.konumIzni(getContext())) {
+                          ActivityCompat.requestPermissions(getActivity(), new String[] { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION }, 4713);
+                      } else if (Build.VERSION.SDK_INT >= 29
+                          && ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                          ActivityCompat.requestPermissions(getActivity(), new String[] { Manifest.permission.ACCESS_BACKGROUND_LOCATION }, 4714);
+                      }
+                  }
+                  call.resolve();
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/YakinEklentisi.java"
+          # Yakindaki mekan bildirimi icin ozel, yumusak kisa ton (iki nota)
+          mkdir -p android/app/src/main/res/raw
+          python3 - <<'PY'
+          import math, struct, wave
+          sr = 22050
+          ornek = []
+          for f, sure in ((880, 0.12), (0, 0.05), (1175, 0.16)):
+              n = int(sr * sure)
+              for i in range(n):
+                  zarf = min(1, i / (sr * 0.01)) * min(1, (n - i) / (sr * 0.06))
+                  ornek.append(0.22 * zarf * math.sin(2 * math.pi * f * i / sr) if f else 0)
+          w = wave.open('android/app/src/main/res/raw/lz_yakin.wav', 'wb')
+          w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+          w.writeframes(b''.join(struct.pack('<h', int(x * 32767)) for x in ornek))
+          w.close()
+          PY
+          ls -la android/app/src/main/res/raw
           head -5 "$d/MainActivity.java"
 
       - name: Uygulama simgesi
@@ -460,6 +793,9 @@ jobs:
           sed -i -E "s/compileSdkVersion = [0-9]+/compileSdkVersion = 36/" "$v"
           sed -i -E "s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/" "$v"
           sed -i -E "s/minSdkVersion = [0-9]+/minSdkVersion = 24/" "$v"
+          # Geofence (yakindaki sevdigin mekan) icin Google konum kutuphanesi
+          grep -q 'play-services-location' android/app/build.gradle || printf "\ndependencies {\n    implementation 'com.google.android.gms:play-services-location:21.3.0'\n}\n" >> android/app/build.gradle
+          tail -4 android/app/build.gradle
 
       - name: Sürüm kodunu artır
         run: |

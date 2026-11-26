@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Header, Icon, Logo, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import {
   VARSAYILAN_MODEL,
@@ -15,7 +15,7 @@ import {
   type Saglayici
 } from '../lib/ai'
 import { sesleIlerleIzinli, sesleIlerleKaydet } from '../lib/sesKomut'
-import { yakinBildirimAcik, yakinBildirimKaydet } from '../lib/yakinBildirim'
+import { MESAFE_SECENEK, yakinBildirimAcik, yakinBildirimKaydet, yakinIzinDurumu, yakinIzinIste, yakinMesafe, yakinMesafeKaydet } from '../lib/yakinBildirim'
 import { bildirimIzniIste } from '../lib/kampanya'
 import { PP_CIHAZLAR, PP_KILAVUZ, ppCihaz, ppCihazKaydet } from '../lib/pisirici'
 import { downloadBackup, otomatikYedek, restoreBackup, sonOtomatikYedek } from '../lib/backup'
@@ -384,6 +384,15 @@ function CookidooKarti() {
 function KolaylikKarti() {
   const [ses, setSes] = useState(sesleIlerleIzinli())
   const [yakin, setYakin] = useState(yakinBildirimAcik())
+  const [mesafe, setMesafe] = useState(yakinMesafe())
+  const [izin, setIzin] = useState<boolean | null>(null)
+  // Konum izni: uygulamaya donulunce (izin ekranindan) yeniden bakilir
+  useEffect(() => {
+    const bak = () => void yakinIzinDurumu().then(setIzin)
+    bak()
+    document.addEventListener('visibilitychange', bak)
+    return () => document.removeEventListener('visibilitychange', bak)
+  }, [])
   const Satir = ({ id, acik, degis, baslik, alt }: { id: string; acik: boolean; degis: (v: boolean) => void; baslik: string; alt: string }) => (
     <label htmlFor={id} className="flex items-start gap-3 min-h-[48px] cursor-pointer">
       <input id={id} type="checkbox" className="mt-1 w-5 h-5 accent-[#d93d20] flex-shrink-0" checked={acik} onChange={(e) => degis(e.target.checked)} />
@@ -415,8 +424,42 @@ function KolaylikKarti() {
           if (v) void bildirimIzniIste()
         }}
         baslik="Yakında sevdiğin mekan bildirimi"
-        alt="Gitmek istediğin ya da favori bir mekana 200 m yaklaşınca sessiz bildirim. Günde en fazla 2, aynı mekan günde 1 kez, 22.00–09.00 arası yok."
+        alt={`Gitmek istediğin ya da favori bir mekana yaklaşırken özel bildirim: yürürken ${mesafe} m, arabada ${mesafe * 2} m. Uzaklaşırken gelmez. Günde en fazla 2, aynı mekan günde 1 kez, 22.00–09.00 arası yok.`}
       />
+      {yakin && (
+        <div className="pl-8 space-y-2" data-yakin-ayar>
+          <div className={`text-[13px] font-semibold ${T_BASLIK}`}>Mesafe</div>
+          <div className="grid grid-cols-3 gap-2">
+            {MESAFE_SECENEK.map((m) => (
+              <button
+                key={m}
+                className={`lz-chip justify-center min-h-[44px] ${mesafe === m ? 'lz-chip-on' : ''}`}
+                onClick={() => {
+                  setMesafe(m)
+                  yakinMesafeKaydet(m)
+                }}
+              >
+                {m} m
+              </button>
+            ))}
+          </div>
+          <p className={`text-[12px] ${T_SOLUK}`}>Konum sürekli izlenmez; telefonun bölge (geofence) özelliği kullanılır, pil yemez.</p>
+          {izin === false && (
+            <div className="rounded-xl bg-amber-50 dark:bg-[#33270f] p-3 space-y-2">
+              <p className="text-[12.5px] text-amber-900 dark:text-amber-200">Konum izni yok; bu bildirim çalışmaz. Uygulama kapalıyken de çalışsın diye “Her zaman izin ver”i seç.</p>
+              <button
+                className="lz-btn-primary w-full text-[14px]"
+                onClick={async () => {
+                  await yakinIzinIste()
+                  setIzin(await yakinIzinDurumu())
+                }}
+              >
+                Konum izni ver
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   )
 }
