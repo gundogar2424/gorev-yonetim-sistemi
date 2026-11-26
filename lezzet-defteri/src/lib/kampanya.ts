@@ -12,7 +12,7 @@ const KEY_SON = 'lz-kampanya-son'
 const EN_FAZLA = 15 // bir kontrolde en fazla bu kadar mekana bakilir (maliyet)
 
 type Yerel = {
-  bildir(o: { baslik: string; metin: string; no?: number }): Promise<void>
+  bildir(o: { baslik: string; metin: string; no?: number; yol?: string; sessiz?: boolean }): Promise<void>
   bildirimIzni(): Promise<void>
 }
 const yerel = registerPlugin<Yerel>('LzSira')
@@ -45,17 +45,21 @@ export async function bildirimIzniIste(): Promise<void> {
   }
 }
 
-export async function bildir(baslik: string, metin: string, no: number): Promise<void> {
+// yol: bildirime dokununca acilacak sayfa; sessiz: ses ve titresim yok
+export async function bildir(baslik: string, metin: string, no: number, yol = '', sessiz = false): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     try {
-      await yerel.bildir({ baslik, metin, no })
+      await yerel.bildir({ baslik, metin, no, yol, sessiz })
     } catch {
       /* izin yok */
     }
     return
   }
   try {
-    if ('Notification' in window && Notification.permission === 'granted') new Notification(baslik, { body: metin })
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const n = new Notification(baslik, { body: metin, silent: sessiz })
+      if (yol) n.onclick = () => (location.hash = `#${yol}`)
+    }
   } catch {
     /* yok */
   }

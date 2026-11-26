@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { otomatikYedek, sitedenGeriYukle } from './lib/backup'
 import { ppOtoUret } from './lib/ppOto'
 import { buyukFotolariSikistir } from './lib/image'
+import { yakinIzle } from './lib/yakinBildirim'
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Icon, type IconName } from './components/ui'
 import Recipes from './pages/Recipes'
@@ -64,10 +65,16 @@ export default function LzApp() {
       void siraEkle(t, tur === 'mekan' ? 'mekan' : tur === 'tarif' ? 'tarif' : undefined)
       navigate('/sira')
     }
+    // Bildirime dokununca ilgili sayfa (ör. yakindaki mekan)
+    const a = window as unknown as { __lzAc?: (yol: string) => void }
+    a.__lzAc = (yol: string) => navigate(yol)
     return () => {
       delete w.__lzPaylasim
+      delete a.__lzAc
     }
   }, [navigate])
+  // Yakinda sevdigin mekan bildirimi (konum izni varsa, uygulama calisirken)
+  useEffect(() => yakinIzle(), [])
 
   // Acilista yarim kalan sirayi surdur; uygulama one gelince de kontrol et
   // Diyet plani varsa: yeni eklenen tarifler arka planda kendiliginden ogunlerle

@@ -14,6 +14,9 @@ import {
   saglayiciKaydet,
   type Saglayici
 } from '../lib/ai'
+import { sesleIlerleIzinli, sesleIlerleKaydet } from '../lib/sesKomut'
+import { yakinBildirimAcik, yakinBildirimKaydet } from '../lib/yakinBildirim'
+import { bildirimIzniIste } from '../lib/kampanya'
 import { PP_CIHAZLAR, PP_KILAVUZ, ppCihaz, ppCihazKaydet } from '../lib/pisirici'
 import { downloadBackup, otomatikYedek, restoreBackup, sonOtomatikYedek } from '../lib/backup'
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme'
@@ -140,6 +143,7 @@ export default function LzSettings() {
         <GoogleHaritalarKarti />
 
         <PisiriciKarti />
+        <KolaylikKarti />
         <CookidooKarti />
 
         <section className="lz-card p-4 space-y-3">
@@ -372,6 +376,47 @@ function CookidooKarti() {
           </li>
         </ol>
       )}
+    </section>
+  )
+}
+
+// Kolayliklar: sesle ilerleme dugmesi ve yakindaki sevdigin mekan bildirimi (ikisi de kapatilabilir)
+function KolaylikKarti() {
+  const [ses, setSes] = useState(sesleIlerleIzinli())
+  const [yakin, setYakin] = useState(yakinBildirimAcik())
+  const Satir = ({ id, acik, degis, baslik, alt }: { id: string; acik: boolean; degis: (v: boolean) => void; baslik: string; alt: string }) => (
+    <label htmlFor={id} className="flex items-start gap-3 min-h-[48px] cursor-pointer">
+      <input id={id} type="checkbox" className="mt-1 w-5 h-5 accent-[#d93d20] flex-shrink-0" checked={acik} onChange={(e) => degis(e.target.checked)} />
+      <span className="min-w-0">
+        <span className={`block font-semibold text-[14.5px] ${T_BASLIK}`}>{baslik}</span>
+        <span className={`block text-[12.5px] ${T_SOLUK}`}>{alt}</span>
+      </span>
+    </label>
+  )
+  return (
+    <section className="lz-card p-4 space-y-3">
+      <div className={`font-semibold ${T_BASLIK}`}>Kolaylıklar</div>
+      <Satir
+        id="ayar-sesle"
+        acik={ses}
+        degis={(v) => {
+          setSes(v)
+          sesleIlerleKaydet(v)
+        }}
+        baslik="Pişirirken “Sesle ilerle” düğmesi"
+        alt="Pişirme ekranında 🎙 düğmesi; açınca “Sonraki”, “Geri”, “Tekrar” dersin. Düğme her pişirmede kapalı başlar."
+      />
+      <Satir
+        id="ayar-yakin"
+        acik={yakin}
+        degis={(v) => {
+          setYakin(v)
+          yakinBildirimKaydet(v)
+          if (v) void bildirimIzniIste()
+        }}
+        baslik="Yakında sevdiğin mekan bildirimi"
+        alt="Gitmek istediğin ya da favori bir mekana 200 m yaklaşınca sessiz bildirim. Günde en fazla 2, aynı mekan günde 1 kez, 22.00–09.00 arası yok."
+      />
     </section>
   )
 }

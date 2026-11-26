@@ -66,6 +66,7 @@ jobs:
           # Sira islenirken uygulama arka planda donmasin: bildirimli on plan servisi
           grep -q 'SiraServisi' "$f" || sed -i 's#</application>#    <service android:name=".SiraServisi" android:exported="false" android:foregroundServiceType="dataSync" />\n    </application>#' "$f"
           grep -q 'FOREGROUND_SERVICE_DATA_SYNC' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
+          grep -q 'RECORD_AUDIO' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <queries><intent><action android:name="android.speech.RecognitionService" /></intent></queries>\n</manifest>#' "$f"
           grep -q 'ACCESS_COARSE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>#' "$f"
           grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter android:label="Lezzet Rotası: Tarif">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
           # Paylas menusunde ikinci secenek: "Lezzet: Mekan" (ayni uygulama, mekan olarak kaydeder)
@@ -88,10 +89,12 @@ jobs:
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   registerPlugin(SiraEklentisi.class); // web katmani sira servisini buradan acar/kapatir
+                  registerPlugin(SesEklentisi.class); // pisirme ekraninda "Sonraki / Geri / Tekrar" sesli komutlari
                   super.onCreate(savedInstanceState);
                   // Uygulama gorunmezken de web katmani onemli sayilsin (sira islenirken yavaslamasin)
                   if (Build.VERSION.SDK_INT >= 26) getBridge().getWebView().setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
                   paylasimiIsle(getIntent());
+                  sayfaAc(getIntent());
               }
 
 
@@ -100,6 +103,17 @@ jobs:
                   super.onNewIntent(intent);
                   setIntent(intent);
                   paylasimiIsle(intent);
+                  sayfaAc(intent);
+              }
+
+              // Bildirime dokununca ilgili sayfa (ör. mekan) acilir
+              private void sayfaAc(Intent intent) {
+                  if (intent == null) return;
+                  String yol = intent.getStringExtra("lz_ac");
+                  if (yol == null || yol.isEmpty()) return;
+                  intent.removeExtra("lz_ac");
+                  final String js = "(function(){if(typeof window.__lzAc==='function'){window.__lzAc(" + JSONObject.quote(yol) + ");return 'ok'}return 'bekle'})()";
+                  dene(js, 0);
               }
 
               private void paylasimiIsle(Intent intent) {
@@ -254,7 +268,8 @@ jobs:
               @PluginMethod
               public void bildir(PluginCall call) {
                   try {
-                      Bildirim.goster(getContext(), call.getString("baslik", "Lezzet Rotası"), call.getString("metin", ""), call.getInt("no", 5000));
+                      Bildirim.goster(getContext(), call.getString("baslik", "Lezzet Rotası"), call.getString("metin", ""), call.getInt("no", 5000),
+                          call.getString("yol", ""), Boolean.TRUE.equals(call.getBoolean("sessiz", false)));
                   } catch (Exception e) {
                       // izin yoksa sessizce gec
                   }
@@ -289,15 +304,28 @@ jobs:
           public class Bildirim {
               static final String KANAL = "lz_kampanya";
 
-              static void goster(Context c, String baslik, String metin, int no) {
+              static final String KANAL_YAKIN = "lz_yakin";
+
+              // yol: dokununca acilacak sayfa (ör. /mekan/12); sessiz: ses ve titresim yok (yakindaki mekan)
+              static void goster(Context c, String baslik, String metin, int no, String yol, boolean sessiz) {
                   NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-                  if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(KANAL) == null) {
-                      nm.createNotificationChannel(new NotificationChannel(KANAL, "Mekan kampanyaları", NotificationManager.IMPORTANCE_DEFAULT));
+                  String kanal = sessiz ? KANAL_YAKIN : KANAL;
+                  if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(kanal) == null) {
+                      NotificationChannel k = sessiz
+                          ? new NotificationChannel(KANAL_YAKIN, "Yakındaki sevdiğin mekanlar", NotificationManager.IMPORTANCE_LOW)
+                          : new NotificationChannel(KANAL, "Mekan kampanyaları", NotificationManager.IMPORTANCE_DEFAULT);
+                      if (sessiz) {
+                          k.setSound(null, null);
+                          k.enableVibration(false);
+                      }
+                      nm.createNotificationChannel(k);
                   }
                   Intent ac = new Intent(c, MainActivity.class);
                   ac.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                  if (yol != null && !yol.isEmpty()) ac.putExtra("lz_ac", yol);
                   PendingIntent pi = PendingIntent.getActivity(c, no, ac, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-                  nm.notify(no, new NotificationCompat.Builder(c, KANAL)
+                  nm.notify(no, new NotificationCompat.Builder(c, kanal)
+                      .setSilent(sessiz)
                       .setSmallIcon(android.R.drawable.star_on)
                       .setContentTitle(baslik)
                       .setContentText(metin)
@@ -309,6 +337,118 @@ jobs:
           }
           JAVA
           sed -i 's/^          //' "$d/Bildirim.java"
+          cat > "$d/SesEklentisi.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.Manifest;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.speech.RecognitionListener;
+          import android.speech.RecognizerIntent;
+          import android.speech.SpeechRecognizer;
+          import androidx.core.app.ActivityCompat;
+          import androidx.core.content.ContextCompat;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+          import java.util.ArrayList;
+
+          // SESLE ILERLE: telefonun konusma tanima servisi, cevrimdisi tercihli (Turkce paket yukluyse internet gerekmez).
+          // Dinleme bitince (sessizlik) kendiliginden yeniden baslar; duyulan metin web katmanina "duydu" olayi olarak gider.
+          @CapacitorPlugin(name = "LzSes")
+          public class SesEklentisi extends Plugin {
+              private SpeechRecognizer tanima;
+              private boolean acik = false;
+              private final Handler el = new Handler(Looper.getMainLooper());
+
+              @PluginMethod
+              public void izinIste(PluginCall call) {
+                  if (getActivity() != null && ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                      ActivityCompat.requestPermissions(getActivity(), new String[] { Manifest.permission.RECORD_AUDIO }, 4713);
+                  }
+                  JSObject r = new JSObject();
+                  r.put("izin", ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED);
+                  r.put("var", SpeechRecognizer.isRecognitionAvailable(getContext()));
+                  call.resolve(r);
+              }
+
+              @PluginMethod
+              public void basla(PluginCall call) {
+                  acik = true;
+                  el.post(this::dinle);
+                  call.resolve();
+              }
+
+              @PluginMethod
+              public void dur(PluginCall call) {
+                  acik = false;
+                  el.post(() -> {
+                      if (tanima != null) {
+                          tanima.destroy();
+                          tanima = null;
+                      }
+                  });
+                  call.resolve();
+              }
+
+              private void dinle() {
+                  if (!acik) return;
+                  if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return;
+                  if (tanima == null) {
+                      tanima = SpeechRecognizer.createSpeechRecognizer(getContext());
+                      tanima.setRecognitionListener(new RecognitionListener() {
+                          public void onReadyForSpeech(Bundle b) {}
+                          public void onBeginningOfSpeech() {}
+                          public void onRmsChanged(float v) {}
+                          public void onBufferReceived(byte[] b) {}
+                          public void onEndOfSpeech() {}
+                          public void onEvent(int t, Bundle b) {}
+                          public void onPartialResults(Bundle b) { gonder(b); }
+                          public void onResults(Bundle b) {
+                              gonder(b);
+                              yeniden(250);
+                          }
+                          public void onError(int hata) { yeniden(hata == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ? 800 : 300); }
+                      });
+                  }
+                  Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                  i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                  i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR");
+                  i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+                  i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+                  i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+                  try {
+                      tanima.startListening(i);
+                  } catch (Exception e) {
+                      yeniden(800);
+                  }
+              }
+
+              private void yeniden(int ms) {
+                  if (acik) el.postDelayed(this::dinle, ms);
+              }
+
+              private void gonder(Bundle b) {
+                  ArrayList<String> l = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                  if (l == null || l.isEmpty()) return;
+                  JSObject r = new JSObject();
+                  r.put("metin", android.text.TextUtils.join(" | ", l));
+                  notifyListeners("duydu", r);
+              }
+
+              @Override
+              protected void handleOnDestroy() {
+                  acik = false;
+                  if (tanima != null) tanima.destroy();
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/SesEklentisi.java"
           head -5 "$d/MainActivity.java"
 
       - name: Uygulama simgesi

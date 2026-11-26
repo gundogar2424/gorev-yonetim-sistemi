@@ -12,6 +12,7 @@ import { DahaFazlaGoster } from '../components/DahaFazla'
 import { mesafeKm, type Konum } from '../lib/mekan'
 import { yeriKaydet, type YakinYer } from '../lib/burada'
 import { YARICAPLAR, akilliKonum, cevreGetir, onceYaz, sonKonum, yurumeYaz } from '../lib/cevre'
+import { OnbellekliKaro, evCevresiniSakla } from '../lib/karoOnbellek'
 
 // HARITA: iki katman.
 //  1) Kayitli mekanlar telefondan aninda (ag beklenmez)
@@ -148,10 +149,12 @@ export default function Harita() {
     let yuklendi = false
     const kur = (): L.TileLayer => {
       const [url, ayar] = altliklar[sira]
-      const t = L.tileLayer(url, ayar)
+      // Ilk altlik telefondaki karo onbellegiyle (internet yokken de sokaklar gorunur)
+      const t = sira === 0 ? new OnbellekliKaro(url, ayar) : L.tileLayer(url, ayar)
       t.on('tileload', () => (yuklendi = true))
       t.on('tileerror', () => {
-        if (yuklendi || ++hata < 4 || sira >= altliklar.length - 1) return
+        // Internet yokken baska altliga gecilmez (onbellekteki karolar kalsin)
+        if (!navigator.onLine || yuklendi || ++hata < 4 || sira >= altliklar.length - 1) return
         sira++
         hata = 0
         h.removeLayer(t)
@@ -161,6 +164,8 @@ export default function Harita() {
     }
     kur()
     setTimeout(() => h.invalidateSize(), 300)
+    // Ev cevresinin karolari haftada bir arka planda saklanir
+    setTimeout(() => void evCevresiniSakla().catch(() => undefined), 5000)
     // Yogun yerde pinler kume olur, ustunde sayi yazar; kumeye dokununca yakinlasir
     kume.current = L.markerClusterGroup({
       showCoverageOnHover: false,

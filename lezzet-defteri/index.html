@@ -36,7 +36,8 @@
             if (window.caches && caches.keys) {
               caches.keys().then(function (keys) {
                 keys.forEach(function (k) {
-                  caches.delete(k)
+                  // Harita karolari (lz-karolar-*) kalir: internet yokken harita bunlarla acilir
+                  if (k.indexOf('lz-karolar') !== 0) caches.delete(k)
                 })
               })
             }
