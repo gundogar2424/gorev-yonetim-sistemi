@@ -95,7 +95,6 @@ export default function Recipes() {
   const aramaTuru = sekme === 'tarifler' ? 'tarif' : sekme === 'mekanlar' ? 'mekan' : 'sofra'
   useEffect(() => setQ(''), [sekme])
   const etiketler = Array.from(new Set(tarifler.flatMap((r) => r.tags))).sort((a, b) => a.localeCompare(b, 'tr'))
-  const yeniSinir = Date.now() - YENI_GUN * 86400000
   const arama = q.trim().toLocaleLowerCase('tr')
 
   // En begenilen: puani olanlar puana gore; eksik puanlar arka planda sirayla okunur
@@ -133,16 +132,17 @@ export default function Recipes() {
     : sofralar
   const gorunenHam = tarifler.filter((r) => {
     if (sofra && !r.tableIds.includes(sofra)) return false
-    if (filtre === 'yeni' && r.createdAt < yeniSinir) return false
+    if (filtre === 'yeni' && !yeniMi(r)) return false
     if (filtre === 'favori' && !r.favorite) return false
     if (filtre === 'begeni' && !r.etkilesim?.puan) return false
     if (filtre !== 'hepsi' && filtre !== 'yeni' && filtre !== 'favori' && filtre !== 'begeni' && !r.tags.includes(filtre)) return false
     if (!arama) return true
     return esles(arama, `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')} ${r.author}`)
   })
-  // Her listede (arama ve "Yeni" dahil) en begenilen once
+  // "Yeni"de en yeni en ustte; diger listelerde (arama dahil) en begenilen once
   const gorunen = [...gorunenHam].sort(
           (a, b) =>
+            filtre === 'yeni' ? b.createdAt - a.createdAt :
             (b.etkilesim?.puan ?? 0) - (a.etkilesim?.puan ?? 0) ||
             (b.etkilesim?.begeni ?? 0) - (a.etkilesim?.begeni ?? 0) ||
             b.createdAt - a.createdAt
@@ -266,7 +266,7 @@ export default function Recipes() {
             {/* Filtreler: hepsi tam gorunsun (yarim cip yok); satira sigmazsa alta gecer */}
             <div className="grid grid-cols-2 gap-2">
               <Chip on={filtre === 'hepsi'} onClick={() => setFiltre('hepsi')} label="Tüm Tarifler" />
-              <Chip on={filtre === 'yeni'} onClick={() => setFiltre('yeni')} label="Yeni" />
+              <Chip on={filtre === 'yeni'} onClick={() => setFiltre('yeni')} label="Yeni" aciklama={YENI_ACIKLAMA} />
               <Chip on={filtre === 'favori'} onClick={() => setFiltre('favori')} label="★ Favoriler" />
               <Chip on={filtre === 'begeni'} onClick={() => setFiltre('begeni')} label="En beğenilen" />
             </div>
@@ -285,13 +285,18 @@ export default function Recipes() {
               </div>
             )}
 
+            {filtre === 'yeni' && <p className={`text-[12.5px] px-1 -mb-1 ${T_SOLUK}`} data-yeni-not>{YENI_ACIKLAMA}</p>}
             {tarifHam === undefined ? (
               <IskeletKartlar adet={4} izgara />
             ) : tarifler.length === 0 ? (
               <BosDefter />
             ) : gorunen.length === 0 ? (
               <div className={`lz-card p-6 text-center text-sm ${T_SOLUK}`}>
-                {filtre === 'begeni' ? 'Paylaşımların beğeni sayıları okunuyor; biraz sonra burada sıralanır.' : 'Bu seçime uyan tarif yok.'}
+                {filtre === 'begeni'
+                  ? 'Paylaşımların beğeni sayıları okunuyor; biraz sonra burada sıralanır.'
+                  : filtre === 'yeni' && !arama && !sofra
+                    ? 'Son 7 günde yeni tarif yok'
+                    : 'Bu seçime uyan tarif yok.'}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 pb-4">
@@ -354,11 +359,49 @@ export default function Recipes() {
   )
 }
 
-function Chip({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+// "Yeni": son 7 gunde (siradan otomatik) eklenmis ve henuz "✓ Kontrol ettim"e basilmamis tarif.
+// Elle yazilan/formda kaydedilen tarif kaydederken kontrol edilmis sayilir (kontrol notu yoktur).
+const YENI_ACIKLAMA = 'Son 7 günde eklenen, kontrol etmediklerin'
+function yeniMi(r: LzRecipe, simdi = Date.now()): boolean {
+  return !!r.kontrol && r.createdAt >= simdi - YENI_GUN * 86400000
+}
+
+// aciklama: uzun basinca (0,5 sn) altinda kisa aciklama baloncugu
+function Chip({ label, on, onClick, aciklama }: { label: string; on: boolean; onClick: () => void; aciklama?: string }) {
+  const [balon, setBalon] = useState(false)
+  const zaman = useRef<ReturnType<typeof setTimeout>>()
+  const uzun = useRef(false)
+  const bitir = () => clearTimeout(zaman.current)
   return (
-    <button onClick={onClick} className={`lz-chip justify-center min-w-0 ${on ? 'lz-chip-on' : ''}`}>
-      {label}
-    </button>
+    <span className="relative min-w-0 flex">
+      <button
+        onClick={() => {
+          if (uzun.current) return (uzun.current = false)
+          onClick()
+        }}
+        onPointerDown={() => {
+          if (!aciklama) return
+          uzun.current = false
+          zaman.current = setTimeout(() => {
+            uzun.current = true
+            setBalon(true)
+            setTimeout(() => setBalon(false), 3000)
+          }, 500)
+        }}
+        onPointerUp={bitir}
+        onPointerLeave={bitir}
+        onContextMenu={(e) => aciklama && e.preventDefault()}
+        title={aciklama}
+        className={`lz-chip justify-center min-w-0 w-full select-none ${on ? 'lz-chip-on' : ''}`}
+      >
+        {label}
+      </button>
+      {balon && aciklama && (
+        <span role="tooltip" className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-1.5 w-max max-w-[240px] rounded-xl bg-[#18181b] text-white text-[12.5px] font-semibold px-3 py-2 shadow-lg dark:bg-white dark:text-[#18181b]" data-balon>
+          {aciklama}
+        </span>
+      )}
+    </span>
   )
 }
 
@@ -383,6 +426,12 @@ function RecipeCard({ r }: { r: LzRecipe }) {
             <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9L3.5 9.7l5.9-.8z" strokeLinejoin="round" />
           </svg>
         </button>
+        {yeniMi(r) && (
+          // Yeni (son 7 gun, kontrol edilmemis): yildizin solunda kucuk kirmizi rozet
+          <span className="absolute top-3 right-12 text-[10.5px] font-extrabold tracking-[0.04em] px-1.5 py-0.5 rounded-md bg-lz-600 text-white shadow-sm" data-yeni-rozet>
+            YENİ
+          </span>
+        )}
         {fotoVar && VIDEO_PLATFORM.has(r.platform) && (
           // Videodan gelen tarif: ortada yari saydam oynat isareti (fotografi kapatmaz)
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
