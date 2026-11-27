@@ -17,6 +17,7 @@ const SOFRA_EMOJI = ['👩', '👨', '👧', '👦', '👵', '👴', '💑', '�
 const YENI_GUN = 7
 
 let begeniOkundu = false
+const ACILIS_BEGENI = 5 // acilista en fazla bu kadar tarifin begeni sayisi yenilenir
 type Sekme = 'tarifler' | 'mekanlar' | 'sofralar'
 const SEKMELER: Sekme[] = ['tarifler', 'mekanlar', 'sofralar']
 const SEKME_ANAHTAR = 'lz-ana-sekme'
@@ -103,8 +104,8 @@ export default function Recipes() {
     if (begeniOkundu || !tarifler.length) return
     begeniOkundu = true
     void (async () => {
-      // Instagram'i yormamak icin aralikli
-      for (const r of tarifler.filter(etkilesimEski)) {
+      // Instagram'i yormamak icin aralikli; acilista en fazla 5 tarif (kalanlar sonraki acilislarda), arka planda
+      for (const r of tarifler.filter(etkilesimEski).slice(0, ACILIS_BEGENI)) {
         await etkilesimGetir(r)
         await new Promise((x) => setTimeout(x, 1500))
       }

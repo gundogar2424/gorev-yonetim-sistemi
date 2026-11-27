@@ -760,14 +760,19 @@ async function tmCagri(
     : `Tarif: ${r.title}${r.servings ? ` (${r.servings} kişilik)` : ''}\n\nMalzemeler:\n${r.ingredients.join('\n')}\n\nYapılışı:\n${r.steps
         .map((s, i) => `${i + 1}. ${s}`)
         .join('\n')}${r.notes ? `\n\nNotlar: ${r.notes}` : ''}`
+  const cookidooAramasi = !duzenle && saglayici() === 'gemini'
   const v = await jsonCagri<{ category: string; ingredients: string[]; steps: Partial<import('./tm7').TmAdim>[]; warnings: string[]; referans?: string; aciklama?: string }>(
     [
       'Sen Thermomix TM7 konusunda uzman bir aşçısın. Normal (ocak/fırın) tarifini, Vorwerk’in kendi tarifleri (Cookidoo) nasıl yazıyorsa o biçimde TM7 adımlarına uyarlarsın.',
       '',
-      'ÖNCE COOKIDOO’YA BAK: Google’da bu yemeğin (ya da en yakın benzerinin: muhallebi, krema, pastacı kreması, sote, çorba…) RESMİ Thermomix / Cookidoo tarifini ara ' +
-        '(cookidoo.com.tr, cookidoo.international, "thermomix tarifi"). Bulursan süre, sıcaklık, devir, yön, aksesuar ve adım SIRASINI o tarife göre ver; miktar farkını orantıla ' +
-        '(örneğin Cookidoo 500 g süte 7 dk veriyorsa 1000 g süte 12–14 dk). referans alanına "Cookidoo: <tarif adı>" yaz. Bulamazsan aşağıdaki Cookidoo kalıplarını kullan, referans boş kalsın. ' +
-        'Kullanıcının MALZEMELERİNİ ve miktarlarını değiştirme; yalnızca cihaz ayarlarını ve sırayı Cookidoo’dan al.',
+      // Cookidoo ornegi aramasi yalnizca Gemini'de (Google aramasi gerekir). Claude'da arama yapilmaz, ayarlar modelden gelir, referans yazilmaz.
+      cookidooAramasi
+        ? 'ÖNCE COOKIDOO’YA BAK: Google’da bu yemeğin (ya da en yakın benzerinin: muhallebi, krema, pastacı kreması, sote, çorba…) RESMİ Thermomix / Cookidoo tarifini ara ' +
+          '(cookidoo.com.tr, cookidoo.international, "thermomix tarifi"). Bulursan süre, sıcaklık, devir, yön, aksesuar ve adım SIRASINI o tarife göre ver; miktar farkını orantıla ' +
+          '(örneğin Cookidoo 500 g süte 7 dk veriyorsa 1000 g süte 12–14 dk). referans alanına "Cookidoo: <tarif adı>" yaz. Bulamazsan aşağıdaki Cookidoo kalıplarını kullan, referans boş kalsın. ' +
+          'Kullanıcının MALZEMELERİNİ ve miktarlarını değiştirme; yalnızca cihaz ayarlarını ve sırayı Cookidoo’dan al.'
+        : 'İnternette arama YAPMA (arama yok). Ayarları aşağıdaki Cookidoo biçimi ve kalıplarına göre kendi bilginle ver; referans alanını BOŞ bırak, hiçbir tarifi örnek aldığını yazma. ' +
+          'Kullanıcının MALZEMELERİNİ ve miktarlarını değiştirme.',
       '',
       'COOKIDOO BİÇİMİ: Her adım "malzemeleri hazneye koy, X dk / Y °C / devir Z" şeklindedir. Doğramadan sonra "spatulayla kenarları sıyır" ayrı adım olur. Sıcakta ölçü kabı takılıdır. ' +
         'Krem şanti/beze kelebekle devir 3–4; çırpma süreleri kıvama göre "gözle" verilir. Pişen krema en sonda kaba aktarılıp soğutulur (ayrı adım). Yoğurma "hamur modu 2–3 dk". ' +
@@ -805,8 +810,9 @@ async function tmCagri(
     icerik,
     duzenle ? { ...schema, required: [...schema.required, 'aciklama'], properties: { ...schema.properties, aciklama: { type: 'string' } } } : schema,
     6000,
-    !duzenle // yeni uyarlamada Google aramasiyla Cookidoo referansi bulunur
+    cookidooAramasi // yalnizca Gemini'de: yeni uyarlamada Google aramasiyla Cookidoo referansi bulunur
   )
+  if (!cookidooAramasi && !duzenle) v.referans = '' // Claude'da ornek alinan tarif yazilmaz
   const steps = (v.steps ?? []).map(adimTemizle).filter((a) => a.text)
   if (!steps.length) throw new Error('Thermomix adımları çıkarılamadı.')
   // Kural denetimi: sicaklik/devir/mod/kelebek/kapasite — modelin hatasi kullaniciya ulasmasin

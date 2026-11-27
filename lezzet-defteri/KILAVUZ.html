@@ -264,7 +264,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
       <tr><td class="n">300 bin ve üstü</td><td class="n">10</td></tr>
     </tbody>
   </table></div>
-  <p>Aradaki değerler üst aralığa yuvarlanmaz, bulunduğu aralığın puanını alır (örnek: 50 beğeni 2, 500 beğeni 3 puan). Eski puanlar bu tabloya göre kendiliğinden düzeltilir. Beğeni yoksa izlenmenin %4'ü sayılır. Yorumlar beğenilerin %2'sini geçiyorsa puana 1 eklenir. Puanı olmayan ya da 30 günden eski olan tarifler her açılışta 1,5 saniye arayla yenilenir.</p>
+  <p>Aradaki değerler üst aralığa yuvarlanmaz, bulunduğu aralığın puanını alır (örnek: 50 beğeni 2, 500 beğeni 3 puan). Eski puanlar bu tabloya göre kendiliğinden düzeltilir. Beğeni yoksa izlenmenin %4'ü sayılır. Yorumlar beğenilerin %2'sini geçiyorsa puana 1 eklenir. Puanı olmayan ya da 30 günden eski olan tarifler yenilenir: Her açılışta en fazla 5 tarif yenilenir, 1,5 saniye arayla, kalanlar sonraki açılışlarda yenilenir. Açılışta liste kilitlenmez, yenileme arka planda olur.</p>
   <h3>Sıralama</h3>
   <p>Her zaman önce puan, sonra beğeni sayısı, sonra en yeni. Arama yaparken ve filtre seçiliyken de aynı.</p>
   <h3>Yazım hatasını affeden arama</h3>
@@ -308,7 +308,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   <h3>Pişirme modu</h3>
   <ul>
     <li>Tam ekran, alt menü gizlenir, ekran kararmaz. Üst çubuk cihaz renginde (normal tarifte gri), sağında Mutfak Modu düğmesi.</li>
-        <li>Altta tam genişlikte Sonraki, altında iki düğme: <span class="dugme">‹ Geri</span> ve <span class="dugme">🔊 Oku</span>. Oku'ya dokununca o anki adım, uzun basınca sıradaki adım okunur. Okuma telefonun Türkçe sesiyle yapılır.</li>
+        <li>Altta tam genişlikte Sonraki, altında iki düğme: <span class="dugme">‹ Geri</span> ve <span class="dugme">🔊 Oku</span>. Oku'ya dokununca o anki adım, uzun basınca sıradaki adım okunur. Oku'ya uzun basınca sıradaki adım yalnızca okunur, adım ilerlemez. İlerlemek için Sonraki'ye basılır ya da Sesle ilerle ile 'Sonraki' denir. Okuma telefonun Türkçe sesiyle yapılır.</li>
         <li><b>Sesle ilerle:</b> Üst çubuktaki 🎙 düğmesi (varsayılan kapalı) açılınca telefon "Sonraki", "Geri" ve "Tekrar" sözlerini dinler; ekrana dokunmadan adım ilerler, geri döner ya da o anki adım yeniden okunur. Telefonun kendi konuşma tanıması kullanılır, ses telefondan çıkmaz; Türkçe çevrimdışı paket yüklüyse internet gerekmez, düğme Ayarlar → Kolaylıklar'dan kapatılabilir.</li>
     <li>Önce "Malzemeleri hazırla" adımı, sonra her adım büyük yazıyla. Üstte "Adım 3 / 7" ve ilerleme çubuğu.</li>
     <li>Adımda süre geçiyorsa (dakika, saat, saniye) sayaç kartı çıkar. Bitince telefon titrer ve üç kez bip sesi çalar.</li>
@@ -325,7 +325,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
       <h2>Thermomix</h2>
       <p>Her tarif TM7 adımlarına çevrilebilir. Malzemeler gram olur, her adımda hazneye ne gireceği ve cihaz ayarları yazılır: süre, sıcaklık, hız, ters yön, mod (sote, karamelize, hamur, Varoma, yavaş pişirme, sous-vide, fermente…) ve kelebek.</p>
       <ul>
-        <li>Yeni uyarlamada yapay zeka önce Google'da resmi Cookidoo tarifini arar, ayarları ona göre verir ve hangi tarifi örnek aldığını yazar.</li>
+        <li>Yeni uyarlamada yapay zeka önce Google'da resmi Cookidoo tarifini arar, ayarları ona göre verir ve hangi tarifi örnek aldığını yazar. Cookidoo örneği araması yalnızca Gemini'de çalışır, Google araması gerektirir. Claude seçiliyse Cookidoo araması yapılmaz, ayarlar modelden gelir ve hangi tarifin örnek alındığı yazılmaz.</li>
         <li>Thermomix sekmesinde "TM7’ye uyarlananlar" ve "Uyarlanabilecek tarifler" listeleri var; her birinde tek dokunuşla <span class="dugme">Uyarla</span>.</li>
         <li>Üstte adım sayısı, toplam cihaz süresi ve toplam ağırlık özeti. Cihaz dışı adımlar kesik çerçeveyle gösterilir.</li>
         <li>Thermomix sayfası, rozetleri ve düğmeleri koyu yeşil. <span class="dugme">TM7'de pişir</span>: yeşil üst çubuk, Mutfak Modu, sesli okuma (ayarlar da okunur), adım kutuları (Süre, Sıcaklık, Hız, Yön, Aksesuar), sıradaki adımın önizlemesi, sarı kutuda ipuçları.</li>
@@ -425,7 +425,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
     <li>Üstte fotoğraf; yoksa aynı boyda varsayılan kapak, beyaz boşluk yok. Aynı satırdaki iki kart aynı yükseklikte olur, uzun ad 2 satırda kesilir.</li>
     <li>Sağ üstte 32 px favori yıldızı, sol üstte "gitmek istiyorum" işareti. Fotoğrafın altında "✓ Gittin", "Hype", "Reklam" rozetleri.</li>
     <li>Mekan adı en fazla 2 satır. Altında örnek: "★ 4,6 (1.234) · Tür · İlçe". En altta örnek: "1,2 km · Uygun fiyat".</li>
-    <li>3 km içindeki mekanlar ince kırmızı çerçeveli.</li>
+    <li>3 km içindeki mekanlar ince kırmızı çerçeveli. İnce kırmızı çerçeve yalnızca normal listede 3 km içindekilerde görünür. Yakınında süzgeci açıkken çerçeve kullanılmaz, çünkü listedeki herkes zaten 1 km içindedir.</li>
   </ul>
   <h3>Fiyat</h3>
   <p>Lira simgeleri bazı telefonlarda bozuk göründüğü için ekranda düz yazıyla gösterilir: <b>Uygun</b>, <b>Orta</b>, <b>Pahalı</b>. Rakamın yanındaki işaret "TL" olur. Kayıtlı veri değişmez, eski yedekler aynen çalışır.</p>
@@ -478,6 +478,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
         <li><b>3 düğme:</b> <span class="dugme">Göster</span> mekan sayfasını açar, <span class="dugme">Yol tarifi</span> Google Haritalar'ı açar, <span class="dugme">Bugün gösterme</span> o mekanı o gün bir daha bildirmez.</li>
         <li><b>Ses:</b> 2 kez uzun titreşim ve yüksek, ayırt edici özel ton. İstenirse sesli söyleme açılır. Ayarlar → Kolaylıklar → <b>Bildirim sesi</b>: Yumuşak (hafif titreşim, kısa yumuşak ton), <b>Güçlü</b> (varsayılan: yüksek öncelikli kanal, diğer bildirimlerden farklı yüksek ton, kilit ekranında tam görünür, telefon sessizdeyken de titrer), Sesli söyle (telefon Türkçe söyler: "Favori mekanın yakınında, X var" ya da "Gitmek istediğin mekan yakınında, X var"; yazının yanında ses de çıkar). Gece kuralı ve günlük sınırlar sesli söylemede de aynen geçerli.</li>
         <li><b>Sınırlar:</b> günde en fazla 2 bildirim, aynı mekan için günde 1 kez, 22.00–09.00 arası hiç gelmez.</li>
+        <li><b>Çift çember:</b> İki çembere de girilse aynı mekan için aynı gün yalnızca 1 bildirim gelir. Dış çemberde (400 m) bildirim geldiyse iç çembere (200 m) girince ikinci bildirim gelmez. Günlük 2 bildirim ve aynı mekan için günde 1 kez kuralı aynen geçerlidir.</li>
         <li><b>Pil ve izin:</b> konum sürekli izlenmez; telefonun bölge (geofence) özelliği kullanılır, pil yemez, uygulama kapalıyken de çalışır. Konum izni yoksa bildirim hiç çalışmaz ve Ayarlar → Kolaylıklar'da <span class="dugme">Konum izni ver</span> düğmesi çıkar ("Her zaman izin ver" seçilmeli). Ayarlar'dan kapatılabilir.</li>
       </ul></div>
     <div class="kart"><h3>Harita</h3>
@@ -490,7 +491,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
         <li><b>Düzen:</b> Harita üstte tam genişlik, liste altta sürüklenen panelde (tutma çubuğuyla küçült, büyüt). Pine dokununca o mekanın kartı panelde en üste gelir. Harita kaydırılınca ortada <span class="dugme">Bu bölgede ara</span> çıkar, otomatik arama yapılmaz. Yoğun yerde pinler kümelenir, üstünde sayı yazar, kümeye dokununca yakınlaşır.</li>
         <li><b>Pin ve kart:</b> Biliniyorsa pinde "Açık" ya da "Kapalı" rozeti. Kartta mesafe ve yürüme süresi: örnek: "850 m · 10 dk yürüme". Haritada 1 km çemberi ince kesik çizgiyle. Kayıtlı olmayan mekanın kartında tek dokunuşla <span class="dugme">+ Gitmek istiyorum</span>.</li>
         <li><b>Renkler:</b> mavi sen, kırmızı gitmek istediğin ya da favori, yeşil gittiğin, mor kampanyalı, gri diğer kayıtlılar, turuncu kahve kesik kenarlı çevredeki yeni yerler. Süzgeçler: Hepsi, Gitmek istediklerim, Favoriler, Gittiklerim, Kampanyalı. Şehir seçilirse o şehrin kayıtlı mekanları gösterilir.</li>
-        <li><b>Karo önbelleği:</b> Açtığın bölgelerin ve ev çevrenin (son konumun ~1,2 km çevresi, haftada bir) harita karoları telefonda saklanır. İnternet yokken ya da çok zayıfken harita gri boşluk kalmaz; sokak çizgileri ve kayıtlı pinler çevre listesiyle aynı mantıkla önce telefondan gelir.</li>
+        <li><b>Karo önbelleği:</b> Açtığın bölgelerin ve son konumunun ~1,2 km çevresinin harita karoları telefonda saklanır, haftada bir tazelenir. İnternet yokken ya da çok zayıfken harita gri boşluk kalmaz; sokak çizgileri ve kayıtlı pinler çevre listesiyle aynı mantıkla önce telefondan gelir.</li>
       </ul></div>
     <div class="kart"><h3>Etiketler</h3><p>Mekan etiketleri sayılarıyla ve mekanlardan toplanan en fazla 150 yemek. Dokununca Mekanlarım sekmesi o etiketle, yakından uzağa açılır.</p></div>
     <div class="kart"><h3>Bana mekan öner</h3><p>Mesafe 1–10 km ya da sınırsız. Sekmeler: <b>Öner</b> ("Bu akşam iyi bir lahmacun", "Manzaralı kahvaltı"…), <b>Yemek</b> (canının çektiği yemeğin en iyisini bulur, fiyatıyla), <b>Hesaplar</b> (takip ettiklerinin önerdikleri, hype mekanları, son gittikleri), <b>Diyet</b> (öğününe uygun restoran ve sipariş, tahmini kalori). Google'da gerçek puan ve yorum sayısıyla 5 öneri, aynı arama 24 saat ücretsiz tekrar gösterilir. <span class="dugme">Git</span>, <span class="dugme">Yorumlar</span>, <span class="dugme">＋ Gitmek istiyorum</span>, <span class="dugme">Gittim</span>.</p></div>
@@ -610,5 +611,5 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   </main>
 </div>
 
-<footer>Lezzet Rotası · Sürüm 1.0.210 · Kasım 2026</footer>
+<footer>Lezzet Rotası · Sürüm 1.0.211 · Kasım 2026</footer>
 </body></html>

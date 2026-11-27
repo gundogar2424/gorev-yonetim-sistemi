@@ -287,7 +287,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
         {gosterilen.length > 0 && (
           <div className="grid grid-cols-2 gap-3">
             {gosterilen.map((m) => (
-              <MekanKarti key={m.id} m={m} km={mesafe(m)} />
+              <MekanKarti key={m.id} m={m} km={mesafe(m)} cerceve={!yaricap} />
             ))}
           </div>
         )}
@@ -427,10 +427,11 @@ function KisaKart({ to, onClick, ikon, baslik, alt, vurgu = false, acik }: { to?
 }
 
 // Mekan karti: Tarifler kartiyla ayni duzen (fotograf ustte, sag ustte 32 px yildiz, ad 2 satir)
-function MekanKarti({ m, km }: { m: LzMekan; km?: number }) {
+// cerceve: ince kirmizi cerceve yalnizca normal listede 3 km icindekilerde (Yakininda acikken hepsi zaten 1 km icinde)
+function MekanKarti({ m, km, cerceve = true }: { m: LzMekan; km?: number; cerceve?: boolean }) {
   const fiyat = fiyatSeviyesi(m)
   const alt = [km !== undefined ? mesafeYaz(km) : '', fiyat ? `${fiyat} fiyat` : ''].filter(Boolean).join(' · ')
-  const yakin = km !== undefined && km <= YAKIN_KM
+  const yakin = cerceve && km !== undefined && km <= YAKIN_KM
   return (
     <div className={`lz-card overflow-hidden flex flex-col min-w-0 ${yakin ? 'ring-1 ring-red-500 dark:ring-red-400' : ''}`}>
       <div className="relative">
