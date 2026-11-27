@@ -170,19 +170,14 @@ export function useSiraOzeti(): { bekleyen: number; hata: number; biten: number;
   const bekleyen = liste.filter((x) => x.durum === 'bekliyor' || x.durum === 'isleniyor').length
   const hata = liste.filter((x) => x.durum === 'hata').length
   const biten = liste.filter((x) => x.durum === 'bitti').length
-  const metin = [
-    bekleyen ? `${bekleyen} tarif sırada işleniyor` : '',
-    biten ? `${biten} tarif sıradan eklendi` : '',
-    hata ? `${hata} tarif işlenemedi` : ''
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  // Durum seridi her yerde ayni dil: yalnizca "N tarif sırada işleniyor" (biten ve hatali isler Sıra ekraninda / rozetinde)
+  const metin = bekleyen ? `${bekleyen} tarif sırada işleniyor` : ''
   return { bekleyen, hata, biten, metin }
 }
 
 export function SiraSeridi() {
-  const { bekleyen, hata, biten, metin } = useSiraOzeti()
-  if (!bekleyen && !hata && !biten) return null
+  const { bekleyen, hata, metin } = useSiraOzeti()
+  if (!bekleyen) return null
   const parca = [metin]
   return (
     <Link to="/sira" className="lz-card p-3 flex items-center gap-3">

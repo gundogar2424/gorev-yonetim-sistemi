@@ -427,8 +427,9 @@ function RecipeCard({ r }: { r: LzRecipe }) {
           </svg>
         </button>
         {yeniMi(r) && (
-          // Yeni (son 7 gun, kontrol edilmemis): yildizin solunda kucuk kirmizi rozet
-          <span className="absolute top-3 right-12 text-[10.5px] font-extrabold tracking-[0.04em] px-1.5 py-0.5 rounded-md bg-lz-600 text-white shadow-sm" data-yeni-rozet>
+          // Yeni (son 7 gun, kontrol edilmemis): kucuk kirmizi rozet
+          // Sol ust kose: yildizdan (sag ust, 32 px) ayri yerde
+          <span className="absolute top-2 left-2 text-[11px] font-extrabold tracking-[0.04em] px-2 py-1 rounded-md bg-lz-600 text-white shadow-sm" data-yeni-rozet>
             YENİ
           </span>
         )}
@@ -463,7 +464,7 @@ function DurumSeridi({ yakindakiler }: { yakindakiler: () => void }) {
   const s = useSiraOzeti()
   const yakin = useYakinMekanSayisi()
   const mekanVar = (useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0) > 0
-  const sira = s.bekleyen || s.hata || s.biten
+  const sira = s.bekleyen // yalnizca "N tarif sırada işleniyor"
   if (!sira && !mekanVar) return null
   // Ayrac: iki parca ayri dokunulabilir; arada ince dikey cizgi
   const ayrac = <span className="w-px my-2 bg-[#D8D0C8] dark:bg-[#4a4a52]" aria-hidden="true" />

@@ -40,14 +40,38 @@ export function etkilesimCikar(html: string): { begeni: number; yorum: number; i
   }
 }
 
-// Begeni sayisina gore logaritmik puan: 100 -> 3, 1 bin -> 5, 10 bin -> 7, 100 bin -> 9, 300 bin+ -> 10.
-// Begeni yoksa izlenmeden tahmin (izlenmelerin ~%4'u begenir). Yorum orani yuksekse +1.
+// Begeni sayisina gore ARALIKLI puan (ust araliga yuvarlanmaz, bulundugu araligin puanini alir):
+// 1-99 -> 2, 100-999 -> 3, 1.000-9.999 -> 5, 10.000-99.999 -> 7, 100.000-299.999 -> 9, 300.000+ -> 10.
+// Begeni yoksa izlenmeden tahmin (izlenmelerin ~%4'u begenir). Yorum orani yuksekse (%2+) +1 (en fazla 10).
+export const BEGENI_ARALIK: [number, number][] = [
+  [300000, 10],
+  [100000, 9],
+  [10000, 7],
+  [1000, 5],
+  [100, 3],
+  [0, 2]
+]
 export function puanHesapla(e: { begeni: number; yorum: number; izlenme: number }): number {
   const b = e.begeni || Math.round(e.izlenme * 0.04)
   if (b <= 0) return 0
-  let p = 2 * Math.log10(b) - 1
+  let p = BEGENI_ARALIK.find(([alt]) => b >= alt)![1]
   if (e.yorum && e.begeni && e.yorum / e.begeni >= 0.02) p += 1
-  return Math.max(1, Math.min(10, Math.round(p)))
+  return Math.min(10, p)
+}
+
+// Eski formulle kaydedilmis puanlar yeni araliklara gore bir kez duzeltilir (sayilar ayni kalir)
+export async function puanlariYenile(): Promise<number> {
+  let n = 0
+  for (const r of await lzDb.recipes.toArray()) {
+    const e = r.etkilesim
+    if (!e || !r.id) continue
+    const p = puanHesapla(e)
+    if (p !== e.puan) {
+      await lzDb.recipes.update(r.id, { etkilesim: { ...e, puan: p } })
+      n++
+    }
+  }
+  return n
 }
 
 // Tarifin paylasim sayfasindan sayilari okuyup kaydeder

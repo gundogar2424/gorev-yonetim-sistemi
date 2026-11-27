@@ -3,6 +3,7 @@ import { otomatikYedek, sitedenGeriYukle } from './lib/backup'
 import { ppOtoUret } from './lib/ppOto'
 import { buyukFotolariSikistir } from './lib/image'
 import { yakinIzle } from './lib/yakinBildirim'
+import { puanlariYenile } from './lib/begeni'
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Icon, type IconName } from './components/ui'
 import Recipes from './pages/Recipes'
@@ -103,6 +104,8 @@ export default function LzApp() {
     const fotoT = setTimeout(() => void buyukFotolariSikistir().catch(() => undefined), 45000)
     // Ayni videodan kaydedilip paylasani bos kalan mekanlar tamamlanir (yapay zekasiz)
     void paylasanTamamla()
+    // Begeni puanlari yeni araliklara gore (bir kez, sayilar degismez)
+    void puanlariYenile().catch(() => undefined)
     const gorunur = () => document.visibilityState === 'visible' && void siraBekci()
     document.addEventListener('visibilitychange', gorunur)
     return () => {

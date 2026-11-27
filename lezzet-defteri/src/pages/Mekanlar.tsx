@@ -226,6 +226,18 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}>
               Gitmediklerim
             </button>
+            {/* Yakininda: ayri ekran degil; ayni liste 1 km icindekilerle, yakindan uzaga (Daha fazla goster ile 3, 5, 10 km) */}
+            <button
+              className={`lz-chip col-span-2 justify-center !whitespace-normal text-center leading-tight ${yaricap > 0 ? 'lz-chip-on' : ''}`}
+              onClick={() => {
+                if (yaricap) return setYaricap(0)
+                setYaricap(MESAFE_KM[0])
+                if (!konum) void merkezAl(true)
+              }}
+              data-yakininda
+            >
+              <Icon name="pin" className="w-4 h-4" /> Yakınında
+            </button>
           </div>
           {(yemek || (etiket && !SABIT_ETIKETLER.includes(etiket)) || yaricap > 0) && (
             <div className="flex items-center gap-2 flex-wrap">
