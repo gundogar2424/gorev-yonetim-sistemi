@@ -159,11 +159,11 @@ export default function Recipes() {
         subtitle={`${tarifler.length} tarif · ${mekanSayisi} mekan`}
       >
           <label className="relative block">
-            <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${T_SOLUK}`}>
-              <Icon name="search" className="w-[18px] h-[18px]" />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#444] dark:text-[#d4d4d8]">
+              <Icon name="search" className="w-[20px] h-[20px]" />
             </span>
             <input
-              className="lz-input pl-11"
+              className="lz-arama"
               placeholder={IPUCU[sekme]}
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -182,7 +182,7 @@ export default function Recipes() {
 
       <div className="px-4 space-y-3">
         {/* Hizli erisim: emojisiz, ayni boyda simgeli kutular */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
           {(
             [
               ['/ne-pisirsem', 'sparkle', 'Ne pişirsem'],
@@ -202,16 +202,17 @@ export default function Recipes() {
                 e.preventDefault()
                 sekmeyeGec('mekanlar')
               }}
-              className="lz-card relative flex flex-col items-center justify-center gap-1 px-1.5 py-2 min-h-[64px] min-w-0 text-center active:scale-[0.97] transition"
+              className="lz-card relative flex flex-col items-center justify-center gap-1.5 px-1.5 py-2.5 min-h-[76px] min-w-0 text-center active:scale-[0.97] transition"
             >
               {/* Simge ustte, yazi altta tam genislikte: sozcuk ortasindan bolunmez */}
-              <span className="w-7 h-7 rounded-lg bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center flex-shrink-0">
-                <Icon name={ikon} className="w-[16px] h-[16px]" />
+              <span className="lz-ikon-kutu w-8 h-8">
+                <Icon name={ikon} className="w-[18px] h-[18px]" />
               </span>
-              <span className={`text-[12px] font-semibold leading-tight tracking-[-0.015em] whitespace-nowrap ${T_BASLIK}`}>{ad}</span>
+              {/* 14 px siyah kalin; sigmazsa bosluktan 2 satira iner (sozcuk bolunmez) */}
+              <span className="text-[14px] font-bold leading-tight tracking-[-0.02em] text-black dark:text-white [overflow-wrap:normal] [word-break:normal]">{ad}</span>
               {to === '/sira' && <SiraRozeti />}
               {to === '/takip' && adaylar().length > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-lz-600 text-white text-[11px] font-bold flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-lz-600 text-white text-[12px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#111113] shadow-sm">
                   {adaylar().length}
                 </span>
               )}
@@ -415,32 +416,35 @@ function DurumSeridi({ yakindakiler }: { yakindakiler: () => void }) {
   const mekanVar = (useLiveQuery(() => lzDb.mekanlar.count(), [], 0) ?? 0) > 0
   const sira = s.bekleyen || s.hata || s.biten
   if (!sira && !mekanVar) return null
+  // Ayrac: iki parca ayri dokunulabilir; arada ince dikey cizgi
+  const ayrac = <span className="w-px my-2 bg-[#D8D0C8] dark:bg-[#4a4a52]" aria-hidden="true" />
+  const parca = 'min-h-[44px] px-1 flex items-center text-left text-[13.5px] leading-snug font-bold active:opacity-70'
   return (
-    <div className="lz-card px-3 py-1.5 min-h-[48px] flex items-center gap-2.5" data-durum-seridi>
-      <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${s.hata && !s.bekleyen ? 'bg-rose-50 text-rose-600 dark:bg-[#2a1a1d]' : 'bg-lz-50 text-lz-600 dark:bg-[#3a1d16]'} ${s.bekleyen ? 'animate-pulse' : ''}`}>
-        <Icon name={sira ? 'inbox' : 'pin'} className="w-[16px] h-[16px]" />
+    <div className="lz-card !border-l-4 !border-l-lz-600 pl-2.5 pr-2 py-1 min-h-[52px] flex items-center gap-2.5" data-durum-seridi>
+      <span className={`lz-ikon-kutu w-8 h-8 ${s.hata && !s.bekleyen ? '!bg-rose-50 !text-rose-700 dark:!bg-[#2a1a1d]' : ''} ${s.bekleyen ? 'animate-pulse' : ''}`}>
+        <Icon name={sira ? 'inbox' : 'pin'} className="w-[18px] h-[18px]" />
       </span>
-      <span className={`flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-snug font-medium ${T_BASLIK}`}>
+      {/* Iki parca yan yana iki sutun (arada ince dikey cizgi); yazi sigmazsa kendi sutununda alt satira iner */}
+      <span className={`flex-1 min-w-0 grid items-stretch gap-x-2 ${sira && mekanVar ? 'grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]' : 'grid-cols-1'}`}>
         {sira ? (
-          <Link to="/sira" className="py-1 underline-offset-2 active:underline">
+          <Link to="/sira" className={`${parca} text-black dark:text-white`} data-serit-sira>
             {s.metin}
           </Link>
         ) : null}
-        {sira && mekanVar ? <span className={T_SOLUK} aria-hidden="true">·</span> : null}
+        {sira && mekanVar ? ayrac : null}
         {!mekanVar ? null : yakin.durum === 'kapali' ? (
           // Konum yoksa sayi uydurulmaz
-          <span className="py-1" data-yakin="kapali">
-            <span className={T_SOLUK}>Konum kapalı · </span>
-            <button onClick={() => void merkezAl(true)} className="text-lz-600 font-semibold">
-              Konumumu bul
-            </button>
-          </span>
+          <button onClick={() => void merkezAl(true)} className={`${parca} text-lz-700 dark:text-[#ff9f88]`} data-yakin="kapali">
+            <span>
+              <span className="text-[#333] dark:text-[#d4d4d8] font-semibold">Konum kapalı · </span>Konumumu bul
+            </span>
+          </button>
         ) : yakin.durum === 'tamam' ? (
-          <button onClick={yakindakiler} className="py-1 text-left text-lz-600 font-semibold" data-yakin={yakin.sayi}>
+          <button onClick={yakindakiler} className={`${parca} text-lz-700 dark:text-[#ff9f88]`} data-yakin={yakin.sayi}>
             {yakin.sayi ? `Yakınında ${yakin.sayi} mekan var` : `${YAKIN_SERIT_KM} km içinde mekan yok`}
           </button>
         ) : (
-          <span className={`py-1 ${T_SOLUK}`} data-yakin="aliniyor">
+          <span className={`${parca} font-semibold ${T_SOLUK}`} data-yakin="aliniyor">
             Konum alınıyor…
           </span>
         )}
@@ -488,7 +492,7 @@ function SofraListesi({
         Sofralar, tarifleri sevdiklerine göre toplar: “Kocam”, “Canım Kızım”, “Misafir sofrası”… Her sofraya sevmediklerini ve alerjilerini
         yazarsan “Ne pişirsem?” ve sihirli haftalık menü bunlara uyar.
       </p>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-3">
         {sofralar.map((t) => {
           const icindekiler = tarifler.filter((r) => r.tableIds.includes(t.id!))
           return (

@@ -230,8 +230,8 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
 export function Header({ title, subtitle, back, right, children }: { title: ReactNode; subtitle?: string; back?: boolean; right?: ReactNode; children?: ReactNode }) {
   const navigate = useNavigate()
   return (
-    <header className="sticky top-0 z-10 backdrop-blur-xl bg-[#f7f7f5]/85 dark:bg-[#111113]/85">
-      <div className={`px-5 flex items-center gap-3 ${children ? 'pt-2 pb-1' : 'pt-4 pb-3'}`}>
+    <header className="sticky top-0 z-10 backdrop-blur-xl bg-[#F7F3EF]/85 dark:bg-[#111113]/85">
+      <div className={`px-5 flex items-center gap-3 ${children ? 'pt-2 pb-0' : 'pt-4 pb-3'}`}>
         {back && (
           <button
             onClick={() => navigate(-1)}
@@ -243,12 +243,16 @@ export function Header({ title, subtitle, back, right, children }: { title: Reac
         )}
         <div className="min-w-0 flex-1">
           <h1 className={`text-[24px] font-[750] leading-tight tracking-[-0.025em] truncate ${T_BASLIK}`}>{title}</h1>
-          {subtitle && <p className={`text-[13px] mt-0.5 truncate ${T_SOLUK}`}>{subtitle}</p>}
+          {subtitle && (
+            <p className="mt-1 truncate">
+              <span className="lz-hap">{subtitle}</span>
+            </p>
+          )}
         </div>
         {right && <div className="flex-shrink-0 flex items-center gap-2">{right}</div>}
       </div>
       {/* Baslikla birlikte yapisik kalan alan (orn. arama cubugu kaydirinca kaybolmasin) */}
-      {children && <div className="px-4 pb-1.5">{children}</div>}
+      {children && <div className="px-4 pt-3 pb-2">{children}</div>}
     </header>
   )
 }
@@ -265,7 +269,7 @@ export function SofraRozet({ ad, className = 'w-6 h-6 text-[10px]', secili = fal
   const renk = ROZET_RENK[h % ROZET_RENK.length]
   return (
     <span
-      className={`${className} ${kare ? 'rounded-[22%]' : 'rounded-full'} inline-flex items-center justify-center font-bold tracking-[-0.02em] flex-shrink-0 ${secili ? 'ring-[3px] ring-offset-2 ring-offset-[#f7f7f5] dark:ring-offset-[#111113]' : ''}`}
+      className={`${className} ${kare ? 'rounded-[22%]' : 'rounded-full'} inline-flex items-center justify-center font-bold tracking-[-0.02em] flex-shrink-0 ${secili ? 'ring-[3px] ring-offset-2 ring-offset-[#F7F3EF] dark:ring-offset-[#111113]' : ''}`}
       style={{ background: `${renk}1f`, color: renk, ...(secili ? { ['--tw-ring-color' as string]: renk } : {}) }}
     >
       {basHarfler(ad)}
@@ -369,7 +373,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     <div className="fixed inset-0 z-40 flex items-end justify-center" role="dialog" aria-modal>
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative w-full max-w-xl bg-[#f7f7f5] dark:bg-[#18181b] rounded-t-[28px] max-h-[85vh] flex flex-col"
+        className="relative w-full max-w-xl bg-[#F7F3EF] dark:bg-[#18181b] rounded-t-[28px] max-h-[85vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
@@ -458,7 +462,7 @@ export function AltSayfa({ open, onClose, title, children }: { open: boolean; on
         ref={kutu}
         role="dialog"
         aria-label={title}
-        className="fixed z-40 bottom-0 inset-x-0 mx-auto w-full max-w-xl bg-[#f7f7f5] dark:bg-[#18181b] rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] max-h-[60vh] flex flex-col"
+        className="fixed z-40 bottom-0 inset-x-0 mx-auto w-full max-w-xl bg-[#F7F3EF] dark:bg-[#18181b] rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] max-h-[60vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="pt-2.5 flex justify-center" aria-hidden="true">

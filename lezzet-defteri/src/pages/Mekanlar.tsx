@@ -282,7 +282,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
         {yaricap > 0 && <DahaFazlaGoster simdiKm={yaricap} buyut={(km) => setYaricap(km)} />}
 
         {/* KISAYOLLAR: 2 sutun kucuk kartlar */}
-        <div className="grid grid-cols-2 gap-2.5 pt-2">
+        <div className="grid grid-cols-2 gap-3 pt-2">
           <KisaKart to="/oner" ikon={<Icon name="sparkle" className="w-[17px] h-[17px]" />} baslik="Bana mekan öner" alt="Yakında, isteğine göre" vurgu />
           <KisaKart to="/gezi" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Yemek gezisi" alt="Rota kur, yola çık" />
           <KisaKart to="/harita" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Harita" alt="Mekanlarım haritada" />

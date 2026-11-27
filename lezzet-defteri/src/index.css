@@ -38,7 +38,7 @@ body {
 body {
   margin: 0;
   -webkit-tap-highlight-color: transparent;
-  background: #f7f7f5;
+  background: #F7F3EF; /* sicak acik gri zemin */
   color: #18181b;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   /* Inter'in daha duzgun rakam ve harf bicimleri */
@@ -75,15 +75,33 @@ textarea {
 }
 /* Bilesen siniflari: sade notr zemin, ince cerceveli kartlar, domates kirmizisi vurgu. */
 .lz-app {
-  background-color: #f7f7f5;
+  background-color: #F7F3EF;
 }
 .dark .lz-app {
   background-color: #111113;
 }
 @layer components {
+  /* Kart: beyaz, 1 px #E5DDD6 cerceve, 16 px kose, hafif golge (zeminden net ayrilir) */
   .lz-card {
-    @apply bg-white rounded-[18px] border border-[#ebeae7];
-    box-shadow: 0 1px 2px rgba(16, 16, 20, 0.04);
+    @apply bg-white rounded-[16px] border border-[#E5DDD6];
+    box-shadow: 0 1px 3px rgba(70, 45, 25, 0.08), 0 1px 2px rgba(70, 45, 25, 0.04);
+  }
+  /* Ust arama cubugu: 56 px, 2 px #D8D0C8, 16 px kose, golgeli; odakta domates */
+  .lz-arama {
+    @apply w-full h-[56px] rounded-[16px] bg-white pl-12 pr-4 text-[16px] text-[#18181b] outline-none transition border-2 border-[#D8D0C8] placeholder:text-[#666];
+    box-shadow: 0 2px 6px rgba(70, 45, 25, 0.07);
+  }
+  .lz-arama:focus {
+    border-color: #d93d20;
+    box-shadow: 0 0 0 4px rgba(217, 61, 32, 0.12);
+  }
+  /* Ust alan sayac hapi: "41 tarif · 49 mekan" */
+  .lz-hap {
+    @apply inline-flex items-center rounded-full px-2.5 py-[3px] text-[12.5px] font-semibold bg-[#EDEDED] text-[#333];
+  }
+  /* Hizli erisim simge kutusu: tok acik domates */
+  .lz-ikon-kutu {
+    @apply rounded-[10px] flex items-center justify-center flex-shrink-0 bg-[#FDE8E0] text-[#C73E1D];
   }
   .lz-input {
     @apply w-full rounded-xl bg-white px-4 py-3 text-[#18181b] outline-none transition border border-[#e4e3e0] placeholder:text-[#6b6b73];
@@ -98,10 +116,10 @@ textarea {
     box-shadow: 0 1px 2px rgba(181, 47, 23, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
   .lz-btn-soft {
-    @apply lz-btn bg-white text-[#27272a] border border-[#e4e3e0] hover:bg-[#f4f4f2];
+    @apply lz-btn bg-white text-[#27272a] border-[1.5px] border-[#C9BFB6] hover:bg-[#f4f4f2];
   }
   .lz-btn-danger {
-    @apply lz-btn bg-rose-50 text-rose-700 hover:bg-rose-100;
+    @apply lz-btn bg-rose-50 text-rose-700 hover:bg-rose-100 border-[1.5px] border-rose-200;
   }
   .lz-label {
     @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f5f68];
@@ -131,9 +149,28 @@ textarea {
   }
 }
 .dark .lz-card {
-  background-color: #1c1c1f;
-  border-color: #2a2a2e;
-  box-shadow: none;
+  background-color: #1f1f23;
+  border-color: #3a3a41;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.dark .lz-arama {
+  background-color: #1f1f23;
+  border-color: #4a4a52;
+  color: #f4f4f5;
+}
+.dark .lz-arama::placeholder {
+  color: #b4b4bc;
+}
+.dark .lz-arama:focus {
+  border-color: #ff7a5c;
+}
+.dark .lz-hap {
+  background-color: #2e2e33;
+  color: #ececef;
+}
+.dark .lz-ikon-kutu {
+  background-color: #3a1d16;
+  color: #ff9f88;
 }
 .dark .lz-input {
   background-color: #1c1c1f;
@@ -141,8 +178,8 @@ textarea {
   color: #f4f4f5;
 }
 .dark .lz-btn-soft {
-  background-color: #1c1c1f;
-  border-color: #2e2e33;
+  background-color: #1f1f23;
+  border-color: #55555d;
   color: #e4e4e7;
 }
 .dark .lz-btn-danger {
@@ -218,4 +255,8 @@ textarea {
 }
 .dark .lz-input::placeholder {
   color: #a1a1aa;
+}
+/* Koyu temada domates yazi koyu zeminde silik kalmasin (en az 4,5:1) */
+.dark .text-lz-600 {
+  color: #ff8566;
 }

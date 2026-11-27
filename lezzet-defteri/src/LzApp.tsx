@@ -114,7 +114,8 @@ export default function LzApp() {
   }, [])
   return (
     <div className="lz-app min-h-full flex flex-col max-w-xl mx-auto">
-      <main className="flex-1" style={{ paddingBottom: pisirme ? 0 : 'calc(4rem + 100px + env(safe-area-inset-bottom))' }}>
+      {/* Liste sonu: + dugmesinin (menunun 24 px ustune tasar) altinda en az 100 px bosluk */}
+      <main className="flex-1" style={{ paddingBottom: pisirme ? 0 : 'calc(4rem + 24px + 100px + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={<Recipes />} />
           <Route path="/ekle" element={<AddRecipe />} />
@@ -182,7 +183,7 @@ export default function LzApp() {
                 <span
                   data-nav-yazi
                   className={`block text-[11px] leading-[1.15] tracking-[-0.01em] text-center max-w-full [overflow-wrap:anywhere] transition-colors ${
-                    isActive ? 'text-lz-600 dark:text-lz-400 font-bold' : 'text-[#555] dark:text-[#b4b4bc] font-medium'
+                    isActive ? 'text-lz-700 dark:text-lz-400 font-bold' : 'text-[#555] dark:text-[#b4b4bc] font-medium'
                   }`}
                 >
                   {t.label}

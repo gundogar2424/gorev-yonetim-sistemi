@@ -377,7 +377,7 @@ export default function Harita() {
 
         {/* Liste: alttan surüklenen panel */}
         <div
-          className="absolute inset-x-0 bottom-0 z-[600] bg-[#f7f7f5] dark:bg-[#18181b] rounded-t-[22px] shadow-[0_-6px_24px_rgba(0,0,0,0.18)] flex flex-col transition-[height] duration-200"
+          className="absolute inset-x-0 bottom-0 z-[600] bg-[#F7F3EF] dark:bg-[#18181b] rounded-t-[22px] shadow-[0_-6px_24px_rgba(0,0,0,0.18)] flex flex-col transition-[height] duration-200"
           style={{ height: PANEL_H[panel] }}
         >
           <div
