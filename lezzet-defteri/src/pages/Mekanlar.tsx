@@ -552,7 +552,7 @@ function KampanyaKarti({ liste, konum, acikBasla = false }: { liste: LzMekan[]; 
       </button>
       <p className={`text-[12px] ${T_SOLUK}`}>
         {konum ? 'Sana en yakın 15 mekanın' : favSayisi ? `${Math.min(favSayisi, 15)} favori mekanının` : 'Mekanlarının'} önümüzdeki 7 gündeki (hafta sonu dahil) kampanya, indirim ve etkinliklerine
-        yapay zeka Google’da bakar; bulursa bildirim gelir.{son ? ` Son kontrol: ${new Date(son).toLocaleDateString('tr')}.` : ''}
+        yapay zeka Google’da bakar; bulunanlar aşağıda listelenir, günde en fazla 2 kampanya bildirimi gelir.{son ? ` Son kontrol: ${new Date(son).toLocaleDateString('tr')}.` : ''}
       </p>
       {sonuc && <p className={`text-[13px] font-medium ${T_GOVDE}`}>{sonuc}</p>}
       {kampanyali.map((m) => (

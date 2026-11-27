@@ -10,6 +10,27 @@ import { mesafeKm } from './mekan'
 
 const KEY_SON = 'lz-kampanya-son'
 const EN_FAZLA = 15 // bir kontrolde en fazla bu kadar mekana bakilir (maliyet)
+const KEY_BILDIRIM = 'lz-kampanya-bildirim-gun' // {gun, sayi}
+export const GUNLUK_KAMPANYA_BILDIRIM = 2
+const bugunAnahtar = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+function kampanyaBildirimSayisi(d = new Date()): number {
+  try {
+    const k = JSON.parse(localStorage.getItem(KEY_BILDIRIM) || 'null') as { gun: string; sayi: number } | null
+    return k && k.gun === bugunAnahtar(d) ? k.sayi : 0
+  } catch {
+    return 0
+  }
+}
+export function kampanyaBildirimHakki(d = new Date()): boolean {
+  return kampanyaBildirimSayisi(d) < GUNLUK_KAMPANYA_BILDIRIM
+}
+function kampanyaBildirimSay(d = new Date()): void {
+  try {
+    localStorage.setItem(KEY_BILDIRIM, JSON.stringify({ gun: bugunAnahtar(d), sayi: kampanyaBildirimSayisi(d) + 1 }))
+  } catch {
+    /* yok */
+  }
+}
 
 type Yerel = {
   bildir(o: { baslik: string; metin: string; no?: number; yol?: string; sessiz?: boolean }): Promise<void>
@@ -141,7 +162,11 @@ export async function kampanyaKontrolEt(konum?: { lat: number; lon: number }): P
         const k = await tekMekan(m)
         if (k.var) {
           if (!bulunan.some((x) => x.id === m.id)) bulunan.push(m)
-          await bildir(`${m.ad}`, `${k.ozet}${k.gecerlilik ? ` (${k.gecerlilik})` : ''}`, 5000 + (m.id ?? 0))
+          // Sonuclar listede gosterilir; bildirim olarak gunde en fazla 2 kampanya bildirimi gelir
+          if (kampanyaBildirimHakki()) {
+            await bildir(`${m.ad}`, `${k.ozet}${k.gecerlilik ? ` (${k.gecerlilik})` : ''}`, 5000 + (m.id ?? 0))
+            kampanyaBildirimSay()
+          }
         }
       } catch {
         /* tek mekan hatasi digerlerini durdurmaz */
