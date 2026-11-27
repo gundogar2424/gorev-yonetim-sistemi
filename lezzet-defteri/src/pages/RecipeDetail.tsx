@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { aiTarifBesin, apiAnahtari } from '../lib/ai'
-import { addPlan, addToShopping, deleteRecipe, lzDb, toggleFavorite, updateRecipe } from '../db'
+import { addPlan, addToShopping, deleteRecipe, lzDb, markCooked, toggleFavorite, updateRecipe } from '../db'
 import type { LzMeal, LzTable } from '../types'
 import { Icon, type IconName, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
 import { olcekle } from '../lib/qty'
@@ -25,6 +25,7 @@ export default function RecipeDetail() {
   const [isaretli, setIsaretli] = useState<Set<number>>(new Set())
   const [planAc, setPlanAc] = useState(false)
   const [paylasAc, setPaylasAc] = useState(false)
+  const [pisirdimBekle, setPisirdimBekle] = useState(false)
   const [acilamadi, setAcilamadi] = useState(false) // kaynak link acilamadi: link kopyalandi ve gosterilir
   const [toast, goster] = useToast()
   const [besinHesap, setBesinHesap] = useState(false)
@@ -260,12 +261,26 @@ export default function RecipeDetail() {
           <Icon name="back" className={`w-5 h-5 rotate-180 ${T_SOLUK}`} />
         </Link>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <Link to={`/pisir/${r.id}`} className="lz-btn-primary">
+        {/* Pisir adim adim modu acar; kucuk "✓ Pisirdim" modu acmadan isaretler (Afiyet olsun ile ayni is: sayi +1, son pisirme tarihi) */}
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
+          <Link to={`/pisir/${r.id}`} className="lz-btn-primary !px-3">
             <Icon name="play" className="w-4 h-4" /> Pişir
           </Link>
-          <button className="lz-btn-soft" onClick={() => setPlanAc(true)}>
-            <Icon name="calendar" className="w-4 h-4" /> Haftaya ekle
+          <button
+            className="lz-btn-soft !px-3 !gap-1 text-[14px] whitespace-nowrap"
+            disabled={pisirdimBekle}
+            data-pisirdim
+            onClick={async () => {
+              setPisirdimBekle(true)
+              await markCooked(r.id!)
+              goster(`Pişirdim olarak işaretlendi (${(r.cookCount ?? 0) + 1}. kez) · Yaptıklarım’da`)
+              setTimeout(() => setPisirdimBekle(false), 1500) // yanlislikla cift dokunma sayilmasin
+            }}
+          >
+            ✓ Pişirdim
+          </button>
+          <button className="lz-btn-soft !px-3 whitespace-nowrap" onClick={() => setPlanAc(true)}>
+            <Icon name="calendar" className="w-4 h-4 max-[359px]:hidden" /> Haftaya ekle
           </button>
         </div>
 
