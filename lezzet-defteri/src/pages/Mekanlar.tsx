@@ -187,11 +187,11 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
                 }}
               >
                 {e}
-                <span className={`text-[11px] ${on ? 'text-white/80' : 'text-[#8a8a93]'}`}>{sayac.get(e) ?? 0}</span>
+                <span className={`text-[11px] ${on ? 'text-white/80' : 'text-[#5f5f68] dark:text-[#a1a1aa]'}`}>{sayac.get(e) ?? 0}</span>
               </button>
             )
           })}
-          <Link to="/etiketler" className="lz-chip text-[13px] !text-lz-600 font-semibold">
+          <Link to="/etiketler" className="lz-chip text-[13px] !text-lz-700 dark:!text-[#ff9f88] font-semibold">
             Tümü ›
           </Link>
         </div>

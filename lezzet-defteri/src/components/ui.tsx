@@ -6,7 +6,7 @@ import { PLATFORM_AD } from '../lib/importer'
 // Sik kullanilan metin renkleri (acik / koyu tema)
 export const T_BASLIK = 'text-[#18181b] dark:text-[#f4f4f5]'
 export const T_GOVDE = 'text-[#3f3f46] dark:text-[#d4d4d8]'
-export const T_SOLUK = 'text-[#86868f] dark:text-[#8a8a93]'
+export const T_SOLUK = 'text-[#5f5f68] dark:text-[#a1a1aa]' // en az 4,5:1 kontrast (beyaz ve krem zeminde)
 
 export type IconName =
   | 'book'

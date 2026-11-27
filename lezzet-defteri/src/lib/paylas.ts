@@ -222,7 +222,7 @@ export async function ppHtml(r: LzRecipe): Promise<string> {
     bitince: a.bitince ?? '',
     ipucu: a.tip
   }))
-  const P = '#B06A4F'
+  const P = '#A0603F'
   const rozetHtml = (l: string[]) => l.map((x) => `<span class="pill" style="background:#f7ece7;color:#8d523c">${k(x)}</span>`).join(' ')
   const govde = `<div id="genel">${kapak(r, foto, 'Pilav Pişirici · Instant Pot MRRC2001WE')}
 ${!pp.uygun ? '<div class="uyari" style="background:#fde8e8;color:#7f1d1d"><b>Bu pişiricide olmaz.</b></div>' : ''}

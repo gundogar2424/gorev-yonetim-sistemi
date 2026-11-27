@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { ppModAdi, sureYazi, type PpAdim } from '../lib/pisirici'
 
 // PILAV PISIRICI gorsel parcalari: ikonlu rozetler, MAX cizgili tencere, adim karti.
-// Renk: turuncu kahve (#B06A4F)
+// Renk: turuncu kahve (#A0603F)
 const IKON = 'w-[15px] h-[15px] flex-shrink-0'
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 

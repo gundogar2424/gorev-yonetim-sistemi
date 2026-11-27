@@ -176,13 +176,13 @@ export default function LzApp() {
                 <span className={`px-2.5 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
                   <Icon
                     name={t.icon}
-                    className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#8a8a93] dark:text-[#71717a]'}`}
+                    className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#555] dark:text-[#b4b4bc]'}`}
                   />
                 </span>
                 <span
                   data-nav-yazi
                   className={`block text-[11px] leading-[1.15] tracking-[-0.01em] text-center max-w-full [overflow-wrap:anywhere] transition-colors ${
-                    isActive ? 'text-lz-600 dark:text-lz-400 font-semibold' : 'text-[#71717a] dark:text-[#8a8a93] font-medium'
+                    isActive ? 'text-lz-600 dark:text-lz-400 font-bold' : 'text-[#555] dark:text-[#b4b4bc] font-medium'
                   }`}
                 >
                   {t.label}

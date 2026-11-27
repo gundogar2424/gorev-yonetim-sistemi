@@ -20,7 +20,7 @@ export default {
         },
         // Cihaz renkleri: hangi cihazda oldugun bir bakista anlasilsin
         tm: { DEFAULT: '#2E7D5B', 50: '#e8f4ee', 700: '#23634a' },
-        pp: { DEFAULT: '#B06A4F', 50: '#f7ece7', 700: '#8d523c' },
+        pp: { DEFAULT: '#A0603F', 50: '#f7ece7', 700: '#8d523c' },
         // Uyari kutulari: beyaz kartta okunur koyu kahve yazi, biraz koyu sari zemin
         amber: {
           50: '#fbe9b7',

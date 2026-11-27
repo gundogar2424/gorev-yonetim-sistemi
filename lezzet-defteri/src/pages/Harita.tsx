@@ -256,7 +256,7 @@ export default function Harita() {
       sinir.push([m.lat!, m.lon!])
     }
     for (const sat of satirlar.filter((x) => x.yer)) {
-      const mk = L.marker([sat.lat, sat.lon], { icon: pinIkonu('#B06A4F', sat.acik, secili === sat.anahtar, true), title: sat.ad })
+      const mk = L.marker([sat.lat, sat.lon], { icon: pinIkonu('#A0603F', sat.acik, secili === sat.anahtar, true), title: sat.ad })
       mk.on('click', () => sec(sat.anahtar))
       g.addLayer(mk)
     }
@@ -440,7 +440,7 @@ export default function Harita() {
                   harita.current?.setView([s.lat, s.lon], Math.max(harita.current.getZoom(), 16))
                 }}
               >
-                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: s.kayitli ? renk(s.kayitli) : '#B06A4F' }} />
+                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: s.kayitli ? renk(s.kayitli) : '#A0603F' }} />
                 <div className="flex-1 min-w-0">
                   <div className={`font-semibold text-[14px] leading-snug line-clamp-2 ${T_BASLIK}`}>{s.ad}</div>
                   <div className={`text-[12px] truncate ${T_SOLUK}`}>

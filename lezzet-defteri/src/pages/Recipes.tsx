@@ -226,7 +226,7 @@ export default function Recipes() {
         />
 
         {/* Tariflerim / Mekanlarım / Sofralarım: esit genislik, tek satir, 48 px; sayilar gercek kayitlardan */}
-        <div ref={sekmeRef} role="tablist" className="grid grid-cols-3 gap-1 bg-[#ececea] dark:bg-[#1c1c1f] rounded-xl p-1 scroll-mt-[150px]">
+        <div ref={sekmeRef} role="tablist" className="grid grid-cols-3 gap-1 bg-[#EDEDED] dark:bg-[#26262a] rounded-xl p-1 scroll-mt-[150px]">
           {SEKMELER.map((x) => {
             const sayi = x === 'tarifler' ? tarifler.length : x === 'mekanlar' ? mekanSayisi : sofralar.length
             return (
@@ -237,11 +237,14 @@ export default function Recipes() {
                 data-sekme={x}
                 onClick={() => setSekme(x)}
                 className={`h-[48px] min-w-0 px-1 overflow-hidden rounded-[10px] flex items-center justify-center gap-[3px] whitespace-nowrap transition ${
-                  sekme === x ? 'bg-white dark:bg-[#2e2e33] text-[#18181b] dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]' : 'text-[#71717a] dark:text-[#8a8a93]'
+                  // Secili: beyaz, siyah kalin, altta 3 px domates cizgi. Degil: #EDEDED, #222 kalin (sayi da ayni koyulukta)
+                  sekme === x
+                    ? 'bg-white dark:bg-[#3a3a40] text-black dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.12),inset_0_-3px_0_#d93d20]'
+                    : 'bg-[#EDEDED] dark:bg-[#26262a] text-[#222] dark:text-[#e4e4e7]'
                 }`}
               >
-                <span className="text-[13px] max-[350px]:text-[12px] font-semibold tracking-[-0.02em]">{SEKME_AD[x]}</span>
-                <span className="text-[11px] max-[350px]:text-[10px] font-medium opacity-75 tabular-nums">({sayi})</span>
+                <span className="text-[13px] max-[350px]:text-[12px] font-bold tracking-[-0.02em]">{SEKME_AD[x]}</span>
+                <span className="text-[11.5px] max-[350px]:text-[10.5px] font-bold tabular-nums">({sayi})</span>
               </button>
             )
           })}
@@ -269,10 +272,12 @@ export default function Recipes() {
             {etiketler.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {(tumEtiket ? etiketler : etiketler.slice(0, 6)).map((e) => (
-                  <Chip key={e} on={filtre === e} onClick={() => setFiltre(filtre === e ? 'hepsi' : e)} label={e} />
+                  <button key={e} className={`lz-etiket ${filtre === e ? 'lz-etiket-on' : ''}`} onClick={() => setFiltre(filtre === e ? 'hepsi' : e)} data-etiket>
+                    {e}
+                  </button>
                 ))}
                 {etiketler.length > 6 && (
-                  <button className={`lz-chip !border-dashed ${T_SOLUK}`} onClick={() => setTumEtiket(!tumEtiket)}>
+                  <button className="lz-etiket lz-etiket-daha" onClick={() => setTumEtiket(!tumEtiket)} data-etiket-daha>
                     {tumEtiket ? 'Daha az' : `+${etiketler.length - 6} etiket`}
                   </button>
                 )}
@@ -513,7 +518,7 @@ function SofraListesi({
         })}
         <button
           onClick={onYeni}
-          className="rounded-[22px] border-2 border-dashed border-[#dcdbd7] dark:border-[#3a3a40] p-3 flex flex-col items-center justify-center gap-1 min-h-[120px] text-[#a1a1aa]"
+          className="rounded-[22px] border-2 border-dashed border-[#dcdbd7] dark:border-[#3a3a40] p-3 flex flex-col items-center justify-center gap-1 min-h-[120px] text-[#5f5f68] dark:text-[#a1a1aa]"
         >
           <Icon name="plus" className="w-6 h-6" />
           <span className="text-sm font-medium">Yeni sofra</span>

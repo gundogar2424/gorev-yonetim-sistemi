@@ -45,7 +45,7 @@ export default function Etiketler() {
           <div className="flex flex-wrap gap-1.5">
             {etiketler.map(([e, n]) => (
               <Link key={e} to={`/mekanlar?etiket=${encodeURIComponent(e)}`} className="lz-chip text-[13.5px] !text-[#18181b] dark:!text-white">
-                {etiketAdi(e)} <span className="text-[11px] text-[#8a8a93]">{n}</span>
+                {etiketAdi(e)} <span className="text-[11px] text-[#5f5f68] dark:text-[#a1a1aa]">{n}</span>
               </Link>
             ))}
           </div>
@@ -58,7 +58,7 @@ export default function Etiketler() {
           <div className="flex flex-wrap gap-1.5">
             {yemekler.slice(0, 150).map((y) => (
               <Link key={y.ad} to={`/mekanlar?yemek=${encodeURIComponent(y.ad)}`} className="lz-chip text-[13.5px]">
-                {y.ad} {y.n > 1 && <span className="text-[11px] text-[#8a8a93]">{y.n}</span>}
+                {y.ad} {y.n > 1 && <span className="text-[11px] text-[#5f5f68] dark:text-[#a1a1aa]">{y.n}</span>}
               </Link>
             ))}
           </div>

@@ -51,7 +51,7 @@ export default function PpDetail() {
           <TarifSekmeleri id={r.id!} aktif="pp" />
           <p className={`text-sm ${T_SOLUK}`}>Bu tarif henüz pilav pişiriciye uyarlanmadı. Yeni kaydedilen tarifler kendiliğinden uyarlanır.</p>
           {hata && <div className="rounded-2xl bg-rose-50 dark:bg-[#2a1a1d] text-rose-700 dark:text-rose-300 text-sm p-3.5">{hata}</div>}
-          <button className="lz-btn-primary w-full" disabled={calisiyor} onClick={() => void uyarla()} style={{ background: '#B06A4F' }}>
+          <button className="lz-btn-primary w-full" disabled={calisiyor} onClick={() => void uyarla()} style={{ background: '#A0603F' }}>
             {calisiyor ? 'Uyarlanıyor…' : 'Pilav pişiriciye uyarla'}
           </button>
           <p className={`text-[12px] ${T_SOLUK}`}>{cihazAd}</p>

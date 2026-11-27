@@ -111,7 +111,7 @@ export default function Week() {
                         })}
                         <button
                           onClick={() => setSecim({ date: anahtar, meal: o.id })}
-                          className="w-8 h-8 rounded-full border border-dashed border-[#dcdbd7] dark:border-[#3a3a40] text-[#a1a1aa] flex items-center justify-center"
+                          className="w-8 h-8 rounded-full border border-dashed border-[#dcdbd7] dark:border-[#3a3a40] text-[#5f5f68] dark:text-[#a1a1aa] flex items-center justify-center"
                           aria-label={`${o.ad} ekle`}
                         >
                           <Icon name="plus" className="w-4 h-4" />
