@@ -117,20 +117,10 @@ export default function Sira() {
                   </button>
                 )}
                 {x.durum === 'isleniyor' && (
-                  <>
-                    <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void siraDurdur(x.id!)}>
-                      ⏹ Durdur
-                    </button>
-                    <button
-                      className="lz-btn-soft px-3 py-1.5 text-[12.5px]"
-                      onClick={async () => {
-                        await siraDurdur(x.id!)
-                        await siraTekrar(x.id!)
-                      }}
-                    >
-                      ↻ Tekrar dene
-                    </button>
-                  </>
+                  // Tek "Tekrar dene" hatali islerde: isleneni Durdur'la durdurunca hata olur, Tekrar dene orada cikar
+                  <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void siraDurdur(x.id!)}>
+                    ⏹ Durdur
+                  </button>
                 )}
                 {x.durum !== 'isleniyor' && (
                   <button className="lz-btn-soft px-3 py-1.5 text-[12.5px]" onClick={() => void lzDb.sira.delete(x.id!)} aria-label="Sıradan sil">

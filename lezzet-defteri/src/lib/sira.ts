@@ -32,7 +32,8 @@ function kisaLink(url: string): string {
 
 // Sira isleyici: ayni anda yalnizca bir tane calisir.
 const AYNI_ANDA = 2 // ayni anda islenen paylasim
-const EN_UZUN_DK = 8 // tek bir paylasim en fazla bu kadar surer; takilirsa siradakine gecilir
+const EN_UZUN_DK = 8 // TEK KURAL: bir paylasim en fazla 8 dk surer; dolunca is durur, "Takıldı" olur, siradakine gecilir
+const TAKILDI_MESAJ = `Takıldı (${EN_UZUN_DK} dakikada bitmedi: bağlantı yavaş ya da video çok büyük). Tekrar dene.`
 
 let aktif = 0
 
@@ -108,7 +109,7 @@ async function isci(): Promise<void> {
       window.clearTimeout(zaman)
       islenen.delete(is.id!)
       if (sonuc === 'sure') {
-        await g({ durum: 'hata', mesaj: `${EN_UZUN_DK} dakikada bitmedi (bağlantı yavaş ya da video çok büyük). Tekrar dene.` })
+        await g({ durum: 'hata', mesaj: TAKILDI_MESAJ })
         iptal.v = true
       }
     }
@@ -132,13 +133,14 @@ export async function siraDurdur(id: number, mesaj = 'Durduruldu. Tekrar dene.')
   void siraIsle()
 }
 
-// BEKCI: 10 dakikadir hic ilerlemeyen (ör. uygulama arka planda donunca kalan) isleri
-// hataya cevirir ki sira kilitlenmesin. Acilista, one gelince ve dakikada bir calisir.
-const TAKILMA_DK = 10
+// BEKCI: ayni 8 dakika kurali — islemeye baslayali 8 dakikayi gecen (ör. uygulama arka planda donunca kalan) isler
+// durdurulur ve "Takıldı" olur ki sira kilitlenmesin. Acilista, one gelince ve dakikada bir calisir.
 export async function siraBekci(): Promise<void> {
   const simdi = Date.now()
-  const takili = (await lzDb.sira.where('durum').equals('isleniyor').toArray()).filter((x) => simdi - (x.updatedAt ?? 0) > TAKILMA_DK * 60 * 1000)
-  for (const x of takili) await siraDurdur(x.id!, 'Takıldı (uzun süre ilerlemedi). Tekrar dene.')
+  const takili = (await lzDb.sira.where('durum').equals('isleniyor').toArray()).filter(
+    (x) => simdi - (x.basladi ?? x.updatedAt ?? 0) > EN_UZUN_DK * 60 * 1000
+  )
+  for (const x of takili) await siraDurdur(x.id!, TAKILDI_MESAJ)
   if (!takili.length) void siraIsle()
 }
 let bekciKuruldu = false
