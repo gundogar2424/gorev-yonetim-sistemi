@@ -973,7 +973,25 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon -I ../../signing.gradle
+          # Maven Central zaman zaman GitHub sunucularina 429 (cok fazla istek) donuyor: once Google'in Maven Central aynasi kullanilir
+          cat > ayna.gradle <<'GRADLE'
+          def ayna = 'https://maven-central.storage-download.googleapis.com/maven2/'
+          def cevir = { RepositoryHandler r ->
+              r.withType(MavenArtifactRepository).configureEach { m ->
+                  if (m.url.toString().startsWith('https://repo.maven.apache.org') || m.url.toString().startsWith('https://repo1.maven.org')) m.url = ayna
+              }
+          }
+          settingsEvaluated { st ->
+              cevir(st.pluginManagement.repositories)
+              cevir(st.dependencyResolutionManagement.repositories)
+          }
+          allprojects {
+              cevir(buildscript.repositories)
+              cevir(repositories)
+          }
+          GRADLE
+          sed -i 's/^          //' ayna.gradle
+          ./gradlew assembleDebug --no-daemon -I ../../signing.gradle -I ayna.gradle || { echo "Tekrar deneniyor (ag hatasi)"; sleep 30; ./gradlew assembleDebug --no-daemon -I ../../signing.gradle -I ayna.gradle; }
 
       - name: APK'yı adlandır ve ziple
         run: |
