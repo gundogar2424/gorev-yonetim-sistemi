@@ -9,6 +9,9 @@ on:
     paths:
       - 'lezzet-defteri/**'
       - '.github/workflows/lezzet-apk.yml'
+      # Yalnizca kilavuz degisince APK yeniden derlenmez (surum numarasi bosuna artmasin)
+      - '!lezzet-defteri/KILAVUZ.html'
+      - '!lezzet-defteri/PROMPT.md'
 
 permissions:
   contents: write
