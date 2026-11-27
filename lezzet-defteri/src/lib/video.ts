@@ -13,10 +13,12 @@ import type { LzPlatform } from '../types'
 
 export type SesModeli = 'kapali' | 'base' | 'small'
 const KEY_SES = 'lz-ses-model'
+// Indirilen model her zaman ~80 MB'lik 'base' (eski 'small' ~250 MB'ti; artik indirilmez)
+const MODEL_DOSYASI = 'base'
 
 export const SES_MODELLERI: { id: SesModeli; ad: string; aciklama: string }[] = [
   { id: 'base', ad: 'Hızlı', aciklama: 'Bir kez ~80 MB indirilir; çoğu tarif videosu için yeterli.' },
-  { id: 'small', ad: 'Daha doğru', aciklama: 'Bir kez ~250 MB indirilir; daha yavaş ama Türkçeyi daha iyi anlar.' },
+  { id: 'small', ad: 'Daha doğru', aciklama: '80 MB sınırı içinde, daha uzun ses parçası kullanılır, indirme boyutu 80 MB’ı geçmez.' },
   { id: 'kapali', ad: 'Kapalı', aciklama: 'Videodaki konuşma dinlenmez; yalnızca açıklama ve ekrandaki yazılar okunur.' }
 ]
 
@@ -218,8 +220,32 @@ export async function videoIndir(url: string, sayfa: string): Promise<Blob> {
     window.clearTimeout(zaman)
   }
 }
+// Indirmeden once boyuta bakilir (Content-Length): 80 MB'i gecen video hic indirilmez
+const SINIR_BAYT = EN_BUYUK_MB * 1024 * 1024
+const BUYUK_HATA = `Video ${EN_BUYUK_MB} MB’tan büyük; indirilmedi.`
+async function boyutUygunMu(url: string, sayfa: string): Promise<boolean> {
+  try {
+    const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+    let uzunluk = 0
+    if (Capacitor.isNativePlatform()) {
+      const r = await CapacitorHttp.request({ method: 'HEAD', url, connectTimeout: 10000, readTimeout: 10000, headers: { Referer: sayfa } })
+      const h = Object.fromEntries(Object.entries(r.headers ?? {}).map(([k, v]) => [k.toLowerCase(), String(v)]))
+      uzunluk = Number(h['content-length'] || 0)
+    } else {
+      const r = await fetch(url, { method: 'HEAD', referrer: sayfa, signal: AbortSignal.timeout(10000) })
+      uzunluk = Number(r.headers.get('content-length') || 0)
+    }
+    return !(uzunluk > SINIR_BAYT)
+  } catch {
+    return true // boyut ogrenilemezse indirilir, sonra yine 80 MB'a bakilir
+  }
+}
+export function boyutKontrol(bayt: number): void {
+  if (bayt > SINIR_BAYT) throw new Error(BUYUK_HATA)
+}
 async function videoIndirAsil(url: string, sayfa: string): Promise<Blob> {
   const { Capacitor, CapacitorHttp } = await import('@capacitor/core')
+  if (!(await boyutUygunMu(url, sayfa))) throw new Error(BUYUK_HATA)
   if (Capacitor.isNativePlatform()) {
     const r = await CapacitorHttp.get({
       url,
@@ -234,13 +260,17 @@ async function videoIndirAsil(url: string, sayfa: string): Promise<Blob> {
       }
     })
     if (r.status >= 400 || typeof r.data !== 'string' || !r.data) throw new Error('Video indirilemedi.')
-    if (r.data.length > EN_BUYUK_MB * 1.37 * 1024 * 1024) throw new Error('Video çok büyük.')
+    if (r.data.length > EN_BUYUK_MB * 1.37 * 1024 * 1024) throw new Error(BUYUK_HATA)
     const b = await (await fetch(`data:video/mp4;base64,${r.data}`)).blob()
+    boyutKontrol(b.size)
     return b
   }
   const r = await fetch(url, { referrer: sayfa, signal: AbortSignal.timeout(120000) })
   if (!r.ok) throw new Error('Video indirilemedi.')
-  return r.blob()
+  if (Number(r.headers.get('content-length') || 0) > SINIR_BAYT) throw new Error(BUYUK_HATA)
+  const b = await r.blob()
+  boyutKontrol(b.size)
+  return b
 }
 
 // --- Kareler ------------------------------------------------------------------
@@ -351,10 +381,11 @@ export async function konusmayiYaziyaCevir(
   for (let i = 0; i < ses.length; i += 160) enYuksek = Math.max(enYuksek, Math.abs(ses[i]))
   if (enYuksek < 0.01) return ''
 
-  if (!yuklu || yuklu.model !== model) {
+  if (!yuklu) {
     ilerleme('Ses modeli hazırlanıyor…')
     const { pipeline } = await import('@huggingface/transformers')
-    const fn = (await pipeline('automatic-speech-recognition', `onnx-community/whisper-${model}`, {
+    // Her iki secenek de ayni ~80 MB modeli kullanir (80 MB'i gecen indirme yok); "Daha doğru" daha uzun ortusen ses parcasiyla calisir
+    const fn = (await pipeline('automatic-speech-recognition', `onnx-community/whisper-${MODEL_DOSYASI}`, {
       dtype: 'q8',
       device: 'wasm',
       progress_callback: (p: { status: string; progress?: number }) => {
@@ -369,7 +400,12 @@ export async function konusmayiYaziyaCevir(
   }
   ilerleme(`Konuşma yazıya çevriliyor (${Math.round(ses.length / 16000)} sn)…`)
   try {
-    const r = await yuklu.fn(ses, { task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 })
+    const r = await yuklu.fn(
+      ses,
+      model === 'small'
+        ? { task: 'transcribe', language: 'turkish', chunk_length_s: 30, stride_length_s: 8 } // daha uzun ortusme: kelime kaybi azalir
+        : { task: 'transcribe', chunk_length_s: 30, stride_length_s: 5 }
+    )
     return (r.text ?? '').trim()
   } catch {
     throw new Error('konuşma çözümlenemedi')

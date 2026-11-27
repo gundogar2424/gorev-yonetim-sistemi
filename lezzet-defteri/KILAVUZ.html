@@ -271,6 +271,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   <ul>
     <li>Türkçe harfler ayırt edilmez: ı-i, ş-s, ç-c, ğ-g, ö-o, ü-u, â-a.</li>
     <li>Yazdığın her sözcük bir yerde eşleşmeli. Sözcüğün başı tutması yeter, 4 harften uzunsa içinde geçmesi de yeter.</li>
+    <li>Her sözcük tarifin herhangi bir alanında eşleşebilir, aynı alanda olması gerekmez. Örnek: 'kabak tatlısı' aramasında 'kabak' malzemede, 'tatlısı' başlıkta olsa da tarif bulunur.</li>
     <li>Hata payı: 3 harfe kadar 0, 4–7 harfte 1, 8 ve üstünde 2 harf. Yer değiştirmiş iki harf tek hata sayılır. "kofteci" yazınca "köfte" bulunur.</li>
     <li>Tariflerim, Bu Hafta'nın tarif seçicisi, Thermomix listesi, Mekanlarım ve Etiketler'de çalışır.</li>
         <li>Son aramalar: arama kutusuna dokununca son 6 arama çip olarak çıkar, tek dokunuşla tekrar aranır. Tariflerim ve Mekanlarım'da ayrı listeler.</li>
@@ -430,7 +431,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   <p>Lira simgeleri bazı telefonlarda bozuk göründüğü için ekranda düz yazıyla gösterilir: <b>Uygun</b>, <b>Orta</b>, <b>Pahalı</b>. Rakamın yanındaki işaret "TL" olur. Kayıtlı veri değişmez, eski yedekler aynen çalışır.</p>
   <h3>Yakınında</h3>
   <ul>
-    <li><b>Konum önceliği:</b> 1. o anki GPS, 2. senin yazdığın semt, 3. son GPS konumu (yalnızca GPS o an alınamadıysa, en fazla 6 saatlik). Şehir adı, profil şehri, eski bir şehirde kalmış konum ya da mekanlardan çıkarılan semt merkezi asla merkez olmaz. Konum izni yoksa ve semt yazmadıysan konum "kapalı" sayılır.</li>
+    <li><b>Konum önceliği:</b> 1. o anki GPS, 2. senin yazdığın semt, 3. son GPS konumu (yalnızca GPS o an alınamadıysa, en fazla 6 saatlik). Şehir adı, profil şehri, eski bir şehirde kalmış konum ya da mekanlardan çıkarılan semt merkezi asla merkez olmaz. Bu yasak senin konumun içindir. Konum izni yoksa ve semt yazmadıysan konum "kapalı" sayılır.</li>
     <li><b>100 m kuralı:</b> son konumdan 100 metreden az hareket ettiysen aynı konum kullanılır; daha fazlaysa konum yenilenir. Uygulamaya her dönüşte bakılır.</li>
     <li><b>Durum şeridindeki "Yakınında N mekan"a dokununca</b> Mekanlarım sekmesi "Yakınında" süzgeciyle açılır: listenin üstünde "1 km içinde ✕" çipi, altında küçük gri yazıyla kullanılan konum, örnek: "Konum: Serdivan, Sakarya · 1 km içinde". Konumun adı koordinattan bulunur, yanlış şehir yazmaz.</li>
     <li>Liste yakından uzağa sıralıdır; her kartın en altında gerçek mesafe yazar, örnek: "650 m · Orta fiyat".</li>
@@ -448,7 +449,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
     <li>Reklam: #işbirliği, #reklam, #sponsor, "paid partnership", "davetli" gibi ifadelerden de anlaşılır, kartta "Reklam" rozeti çıkar.</li>
     <li>Paylaşan kişi "Takip edilsin mi?" adayı olur, kendiliğinden takip edilmez.</li>
     <li>Aynı mekan kontrolü: aynı ad (restoran, cafe, lokantası, şubesi gibi sözcükler atılarak) ve aynı şehir ya da 300 metre yakınlık. Başka bir influencer'ın paylaşımı "Başka paylaşanlar" altına, aynı kişinin başka platformdaki paylaşımı ek link olarak eklenir.</li>
-    <li>Konum önceliği: harita linki, adres, yapay zekanın verdiği konum, ad ve semt, en son semt merkezi. Google Places anahtarı varsa bilgiler Google'dan alınır.</li>
+    <li>Konum önceliği: harita linki, adres, yapay zekanın verdiği konum, ad ve semt. Mekanın kendi konumu bulunamazsa en son çare olarak mekanın semt merkezi kullanılır. Bu yalnızca mekanın konumu içindir, senin konumun için semt merkezi asla kullanılmaz. Google Places anahtarı varsa bilgiler Google'dan alınır.</li>
   </ol>
   <h3>Liste</h3>
   <ul>
@@ -466,12 +467,12 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
     <li>Ziyaretlerim: tarih, 1–5 yıldız, ne yedim, notum, ödediğim tutar, "Bir daha gelirsem…". <span class="dugme">Fişten oku</span> fiş fotoğrafından toplam tutarı okur. Ziyaret kaydedilince mekan "gittim" olur, gitmek istediklerimden çıkar.</li>
   </ul>
   <div class="izgara">
-    <div class="kart"><h3>Şu an buradayım ve "Neredesin?"</h3><p>Yapay zekasız. Dokununca "Neredesin?" penceresi alttan açılır: ekranın en fazla %60'ı, üstte tutma çubuğu, sağ üstte X. Pencere arkayı kilitlemez, arkadaki liste kaydırılabilir; dışarıya kısa bir dokunuş pencereyi kapatır. Konuma göre 150 metre içindeki kayıtlı mekanlar "KAYITLI" diye anında listelenir; çevredeki restoran, kafe, fırın, bar ve dondurmacılar arka planda Google (4 saniye sınırla) ya da OpenStreetMap'ten gelir ve 24 saat önbellekte durur ("Son güncelleme · Yenile"). Her satırda yürüme süresi ve biliniyorsa Açık/Kapalı rozeti var; birine dokununca kaydeder ve ziyaret formunu açar.</p>
+    <div class="kart"><h3>Şu an buradayım ve "Neredesin?"</h3><p>Yapay zekasız. Dokununca "Neredesin?" penceresi alttan açılır: ekranın en fazla %60'ı, üstte tutma çubuğu, sağ üstte X. Pencere arkayı kilitlemez. Dışarıya kısa dokunuş pencereyi kapatır, dışarıda sürükleyerek kaydırma pencereyi kapatmaz, arkadaki listeyi kaydırır. Konuma göre 150 metre içindeki kayıtlı mekanlar "KAYITLI" diye anında listelenir; çevredeki restoran, kafe, fırın, bar ve dondurmacılar arka planda Google (4 saniye sınırla) ya da OpenStreetMap'ten gelir ve 24 saat önbellekte durur ("Son güncelleme · Yenile"). Her satırda yürüme süresi ve biliniyorsa Açık/Kapalı rozeti var; birine dokununca kaydeder ve ziyaret formunu açar.</p>
       <p>Harita servisine ulaşılamazsa kırmızı hata değil, sarı uyarı çıkar: "Harita servisine ulaşılamadı." Altında küçük gri yazı: "İnternetini kontrol et ya da mekanın adını yaz, biz bulalım." ve <span class="dugme">↻ Tekrar dene</span> düğmesi; harita servisi yeniden denenir. Konum alınamazsa da aynı şekilde.</p>
       <p>Altta "Mekan adı ya da harita linki" etiketli kutu (ipucu, örnek: "Örn. Serdivan'da kebapçı"; kutu boş gelir) ve altında tam genişlikte <span class="dugme">Kaydet</span>: domates kırmızısı, beyaz kalın yazı; kutu boşken soluk, doluyken canlı. Konum yoksa yazılan ad yapay zekayla araştırılıp kaydedilir.</p>
       <p><b>Yakında sevdiğin mekan (özel bildirim):</b> Gitmek istediğin ya da favori bir mekana yaklaşınca normal bildirimden farklı, özel bir bildirim gelir.</p>
       <ul>
-        <li><b>Mesafe:</b> varsayılan 200 m; Ayarlar → Kolaylıklar'dan 100 m, 200 m ya da 500 m seçilir. Yürüyüş hızında seçilen mesafe, araba hızında (yaklaşık 20 km/sa üstü) 2 katı kullanılır: 200 m seçiliyse arabada 400 m.</li>
+        <li><b>Mesafe:</b> varsayılan 200 m; Ayarlar → Kolaylıklar'dan 100 m, 200 m ya da 500 m seçilir. Hız sürekli takip edilmez: telefonun bölge (geofence) özelliği her mekanın çevresine iki görünmez çember kurar (seçilen mesafe ve 2 katı); bir çembere girildiği an telefonun o anki hızı yalnızca bir kez okunur. Hız yaklaşık 20 km/sa üstüyse o giriş için 2 katı mesafe sayılır (200 m seçiliyse yaklaşık 400 m'de gelir), altıysa seçilen mesafe sayılır (yaklaşık 200 m'de gelir).</li>
         <li><b>Yalnızca yaklaşırken:</b> bildirim mekanın çevresine girerken gelir; uzaklaşırken ve mekanı geçtikten sonra gelmez.</li>
         <li><b>Görünüm:</b> başlık favoriyse "★ Favori mekanın yakınında", gitmek istediğinse "Gitmek istediğin mekan yakınında". İçinde mekanın fotoğrafı, adı, puanı ve gerçek mesafe, örnek: "180 m ileride X var · ★ 4,6".</li>
         <li><b>3 düğme:</b> <span class="dugme">Göster</span> mekan sayfasını açar, <span class="dugme">Yol tarifi</span> Google Haritalar'ı açar, <span class="dugme">Bugün gösterme</span> o mekanı o gün bir daha bildirmez.</li>
@@ -556,7 +557,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
       <tr><td><b>Google Haritalar</b></td><td>Places anahtarı: kesin adres, konum, puan ve yorum sayısı. 6 adımlık alma rehberi ve <span class="dugme">Dene</span>. Yoksa yapay zeka araştırması ve OpenStreetMap kullanılır.</td></tr>
       <tr><td><b>Pilav Pişiricim</b></td><td>Instant Pot MRRC2001WE ya da Kullanmıyorum. Cihazın modları kılavuzu.</td></tr>
       <tr><td><b>Tarif sitem</b></td><td>Siteyi aç, GitHub anahtarı, toplu gönderim, depo adı, anahtar alma rehberi.</td></tr>
-      <tr><td><b>Videodaki konuşma</b></td><td>Hızlı (bir kez yaklaşık 80 MB indirilir), Daha doğru (yaklaşık 250 MB, Türkçede daha iyi), Kapalı. Ses telefondan çıkmaz. Claude ile ya da Gemini'de 13 MB'tan büyük videolarda kullanılır.</td></tr>
+      <tr><td><b>Videodaki konuşma</b></td><td>Hızlı (bir kez yaklaşık 80 MB indirilir), Daha doğru (80 MB sınırı içinde, daha uzun ses parçası kullanılır, indirme boyutu 80 MB'ı geçmez), Kapalı. Ses telefondan çıkmaz. Claude ile ya da Gemini'de 13 MB'tan büyük videolarda kullanılır.</td></tr>
       <tr><td><b>Beslenme biçimi</b></td><td>Evin genel tercihi: "az yağlı pişiririz, domuz ürünü yok, haftada bir balık". Ne pişirsem, Sihirli menü ve Tarifi değiştir buna uyar.</td></tr>
       <tr><td><b>Kolaylıklar</b></td><td>Pişirirken "Sesle ilerle" düğmesi. Yakında sevdiğin mekan bildirimi: aç/kapat, mesafe 100 m, 200 m (varsayılan), 500 m, bildirim sesi Yumuşak / Güçlü (varsayılan) / Sesli söyle; konum izni yoksa <span class="dugme">Konum izni ver</span>.</td></tr>
       <tr><td><b>Görünüm</b></td><td>Otomatik, Açık, Koyu. Başlangıçta açık tema seçilidir. Telefonun üst çubuğu da temaya uyar.</td></tr>
@@ -577,7 +578,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
       <tr><td class="n">8 sn</td><td>Diyet planı varsa yeni tarifler öğünlerle karşılaştırılır.</td></tr>
       <tr><td class="n">12 sn</td><td>Yeni tariflerin pilav pişirici uyarlaması.</td></tr>
       <tr><td class="n">20 sn</td><td>Takip ettiğin influencer'ların yeni mekanları (en fazla 3 günde bir).</td></tr>
-      <tr><td class="n">30 sn</td><td>Otomatik yedek her gün alınır, en erken 20 saat arayla. Son yedekten 20 saat geçmeden ikinci yedek alınmaz.</td></tr>
+      <tr><td class="n">30. sn</td><td>Son yedekten 20 saat geçmişse otomatik yedek gerekli mi diye bakılır, gerekliyse alınır. Her 30 saniyede yedek alınmaz; uygulama her açılışta yalnızca bir kez bakar.</td></tr>
     </tbody>
   </table></div>
   <h3>Para harcamayanlar</h3>
@@ -609,5 +610,5 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   </main>
 </div>
 
-<footer>Lezzet Rotası · Sürüm 1.0.207 · Kasım 2026</footer>
+<footer>Lezzet Rotası · Sürüm 1.0.208 · Kasım 2026</footer>
 </body></html>
