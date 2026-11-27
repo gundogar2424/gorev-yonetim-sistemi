@@ -14,6 +14,7 @@ import { dosyaPaylas, ppHtml, tarifHtml, tmHtml } from '../lib/paylas'
 import { siraEkle } from '../lib/sira'
 import { siteyeKoy } from '../lib/cookidoo'
 import { TarifSekmeleri } from '../components/TarifSekmeleri'
+import { disariAc, kaynakLinki } from '../lib/disariAc'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -24,6 +25,7 @@ export default function RecipeDetail() {
   const [isaretli, setIsaretli] = useState<Set<number>>(new Set())
   const [planAc, setPlanAc] = useState(false)
   const [paylasAc, setPaylasAc] = useState(false)
+  const [acilamadi, setAcilamadi] = useState(false) // kaynak link acilamadi: link kopyalandi ve gosterilir
   const [toast, goster] = useToast()
   const [besinHesap, setBesinHesap] = useState(false)
   // Begeni puani: okunmamissa sayfadan bir kez okunur (yapay zeka yok, yalnizca internet)
@@ -82,6 +84,19 @@ export default function RecipeDetail() {
     }
   }
 
+  // Kaynak video disarida (YouTube uygulamasi ya da tarayici); acilamazsa link kopyalanir ve gosterilir
+  const kaynak = kaynakLinki(r)
+  const videoMu = ['youtube', 'instagram', 'tiktok', 'facebook'].includes(r.platform)
+  const platformAd = PLATFORM_AD[r.platform] === 'Web' ? '' : PLATFORM_AD[r.platform]
+  const kaynagiAc = async () => {
+    if (!kaynak) return
+    const ok = await disariAc(kaynak, r.platform)
+    if (!ok) {
+      setAcilamadi(true)
+      goster(`${platformAd || 'Kaynak'} açılamadı, link kopyalandı`)
+    }
+  }
+
   const sofraDegis = (tid: number) =>
     updateRecipe(r.id!, { tableIds: r.tableIds.includes(tid) ? r.tableIds.filter((x) => x !== tid) : [...r.tableIds, tid] })
 
@@ -89,7 +104,21 @@ export default function RecipeDetail() {
     <div>
       {/* Kapak */}
       <div className="relative">
-        <Thumb src={r.photo} className="w-full h-72 rounded-b-[32px] text-7xl" />
+        {kaynak && videoMu ? (
+          // Kapaga dokununca kaynak video disarida acilir; ortada 48 px yari saydam oynat isareti
+          <button onClick={() => void kaynagiAc()} className="block w-full relative" aria-label={`${platformAd}’da izle`} data-kapak-oynat>
+            <Thumb src={r.photo} className="w-full h-72 rounded-b-[32px] text-7xl" />
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className="w-12 h-12 rounded-full bg-black/45 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 ml-0.5 text-white" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5.5v13l11-6.5z" />
+                </svg>
+              </span>
+            </span>
+          </button>
+        ) : (
+          <Thumb src={r.photo} className="w-full h-72 rounded-b-[32px] text-7xl" />
+        )}
         <div className="absolute inset-x-0 top-0 flex justify-between p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
           <RoundBtn onClick={() => navigate(-1)} label="Geri">
             <Icon name="back" />
@@ -110,7 +139,7 @@ export default function RecipeDetail() {
         </div>
       </div>
 
-      <div className="px-4 -mt-6 relative space-y-3 pb-8">
+      <div className="px-4 -mt-6 relative space-y-3 pb-[100px]">
         <TarifSekmeleri id={r.id!} aktif="normal" />
         {r.kontrol && (
           <div
@@ -193,15 +222,16 @@ export default function RecipeDetail() {
               ))}
             </div>
           )}
-          {r.sourceUrl && (
-            <a
-              href={r.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-lz-600"
-            >
-              <Icon name="link" className="w-4 h-4" /> {PLATFORM_AD[r.platform] === 'Web' ? 'Kaynağı aç' : `${PLATFORM_AD[r.platform]}’da aç`}
-            </a>
+          {kaynak && (
+            <button onClick={() => void kaynagiAc()} className="mt-3 inline-flex items-center gap-1.5 min-h-[40px] text-[13px] font-semibold text-lz-600" data-kaynak-ac>
+              <Icon name="link" className="w-4 h-4" /> {platformAd ? `${platformAd}’da aç` : 'Kaynağı aç'}
+            </button>
+          )}
+          {kaynak && acilamadi && (
+            <div className="mt-2 rounded-xl bg-amber-50 dark:bg-[#33270f] p-3 text-[12.5px] text-amber-900 dark:text-amber-200" data-kaynak-link>
+              {platformAd || 'Kaynak'} açılamadı, link kopyalandı. Linkin tamamı:
+              <div className="mt-1 font-mono text-[12px] break-all select-all">{kaynak}</div>
+            </div>
           )}
         </div>
 

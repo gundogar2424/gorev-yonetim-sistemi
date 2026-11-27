@@ -390,7 +390,8 @@ function kisaHarita(m: LzMekan): string {
   return `https://maps.google.com/?q=${encodeURIComponent([m.ad, m.sehir].filter(Boolean).join(' '))}`
 }
 export function mekanKartMetni(m: LzMekan): string {
-  const video = m.sourceUrl ? m.sourceUrl.replace(/[?#].*$/, '') : ''
+  // YouTube linki bozulmasin (watch?v= kimligi ? sonrasinda); digerlerinde izleme ekleri atilir
+  const video = m.sourceUrl ? (youtubeId(m.sourceUrl) ? m.sourceUrl : m.sourceUrl.replace(/[?#].*$/, '')) : ''
   return [`${m.ad} — Haritada aç: ${kisaHarita(m)}`, video ? `${m.paylasan ? `${m.paylasan} videosu` : 'Video'}: ${video}` : ''].filter(Boolean).join('\n')
 }
 

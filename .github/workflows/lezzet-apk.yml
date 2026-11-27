@@ -66,6 +66,8 @@ jobs:
           # Sira islenirken uygulama arka planda donmasin: bildirimli on plan servisi
           grep -q 'SiraServisi' "$f" || sed -i 's#</application>#    <service android:name=".SiraServisi" android:exported="false" android:foregroundServiceType="dataSync" />\n    </application>#' "$f"
           grep -q 'FOREGROUND_SERVICE_DATA_SYNC' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n</manifest>#' "$f"
+          # Kaynak videolar disarida: YouTube / Instagram / TikTok uygulamasi gorunsun (Android 11+ paket gorunurlugu)
+          grep -q 'com.google.android.youtube' "$f" || sed -i 's#</manifest>#    <queries>\n        <package android:name="com.google.android.youtube" />\n        <package android:name="com.instagram.android" />\n        <package android:name="com.zhiliaoapp.musically" />\n        <intent><action android:name="android.intent.action.VIEW" /><category android:name="android.intent.category.BROWSABLE" /><data android:scheme="https" /></intent>\n    </queries>\n</manifest>#' "$f"
           grep -q 'RECORD_AUDIO' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <queries><intent><action android:name="android.speech.RecognitionService" /></intent></queries>\n</manifest>#' "$f"
           grep -q 'ACCESS_COARSE_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n</manifest>#' "$f"
           # Yakindaki sevdigin mekan: geofence (uygulama kapaliyken de), telefon yeniden baslayinca yeniden kurulur
@@ -281,6 +283,40 @@ jobs:
                       // izin yoksa sessizce gec
                   }
                   call.resolve();
+              }
+
+              // Kaynak videoyu DISARIDA ac: once ilgili uygulama (YouTube/Instagram/TikTok), yoksa telefonun tarayicisi.
+              // Uygulama ici webview kullanilmaz. Acilamazsa reject: web katmani linki kopyalar ve gosterir.
+              @PluginMethod
+              public void disariAc(PluginCall call) {
+                  String url = call.getString("url", "");
+                  String uygulama = call.getString("uygulama", "");
+                  if (url == null || url.isEmpty()) {
+                      call.reject("link yok");
+                      return;
+                  }
+                  android.net.Uri u = android.net.Uri.parse(url);
+                  if (uygulama != null && !uygulama.isEmpty()) {
+                      try {
+                          Intent a = new Intent(Intent.ACTION_VIEW, u);
+                          a.setPackage(uygulama);
+                          a.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                          getContext().startActivity(a);
+                          call.resolve();
+                          return;
+                      } catch (Exception e) {
+                          // uygulama yok: tarayiciya gec
+                      }
+                  }
+                  try {
+                      Intent b = new Intent(Intent.ACTION_VIEW, u);
+                      b.addCategory(Intent.CATEGORY_BROWSABLE);
+                      b.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                      getContext().startActivity(b);
+                      call.resolve();
+                  } catch (Exception e) {
+                      call.reject("acilamadi");
+                  }
               }
 
               // Android 13+: bildirim izni iste (bir kez sorulur)
