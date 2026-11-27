@@ -136,7 +136,9 @@ export default function Recipes() {
     if (filtre === 'yeni' && !yeniMi(r)) return false
     if (filtre === 'favori' && !r.favorite) return false
     if (filtre === 'begeni' && !r.etkilesim?.puan) return false
-    if (filtre !== 'hepsi' && filtre !== 'yeni' && filtre !== 'favori' && filtre !== 'begeni' && !r.tags.includes(filtre)) return false
+    // Yaptiklarim: en az 1 kez pisirilen (Afiyet olsun ile artan sayi; yeni veri yok)
+    if (filtre === 'yaptik' && !((r.cookCount ?? 0) >= 1)) return false
+    if (filtre !== 'hepsi' && filtre !== 'yeni' && filtre !== 'favori' && filtre !== 'begeni' && filtre !== 'yaptik' && !r.tags.includes(filtre)) return false
     if (!arama) return true
     return esles(arama, `${r.title} ${r.ingredients.join(' ')} ${r.tags.join(' ')} ${r.author}`)
   })
@@ -144,6 +146,7 @@ export default function Recipes() {
   const gorunen = [...gorunenHam].sort(
           (a, b) =>
             filtre === 'yeni' ? b.createdAt - a.createdAt :
+            filtre === 'yaptik' ? (b.lastCookedAt ?? 0) - (a.lastCookedAt ?? 0) :
             (b.etkilesim?.puan ?? 0) - (a.etkilesim?.puan ?? 0) ||
             (b.etkilesim?.begeni ?? 0) - (a.etkilesim?.begeni ?? 0) ||
             b.createdAt - a.createdAt
@@ -270,6 +273,10 @@ export default function Recipes() {
               <Chip on={filtre === 'yeni'} onClick={() => setFiltre('yeni')} label="Yeni" aciklama={YENI_ACIKLAMA} />
               <Chip on={filtre === 'favori'} onClick={() => setFiltre('favori')} label="★ Favoriler" />
               <Chip on={filtre === 'begeni'} onClick={() => setFiltre('begeni')} label="En beğenilen" />
+              {/* 2x2 izgaranin altinda tam genislikte (Mekanlarim'daki Yakininda gibi) */}
+              <span className="col-span-2 grid" data-yaptiklarim>
+                <Chip on={filtre === 'yaptik'} onClick={() => setFiltre('yaptik')} label="✓ Yaptıklarım" />
+              </span>
             </div>
             {etiketler.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -297,12 +304,14 @@ export default function Recipes() {
                   ? 'Paylaşımların beğeni sayıları okunuyor; biraz sonra burada sıralanır.'
                   : filtre === 'yeni' && !arama && !sofra
                     ? 'Son 7 günde yeni tarif yok'
-                    : 'Bu seçime uyan tarif yok.'}
+                    : filtre === 'yaptik' && !arama && !sofra
+                      ? 'Henüz pişirdiğin tarif yok, birini pişirince burada görünür'
+                      : 'Bu seçime uyan tarif yok.'}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 pb-4">
                 {gorunen.map((r) => (
-                  <RecipeCard key={r.id} r={r} />
+                  <RecipeCard key={r.id} r={r} pisirme={filtre === 'yaptik'} />
                 ))}
               </div>
             )}
@@ -409,8 +418,15 @@ function Chip({ label, on, onClick, aciklama }: { label: string; on: boolean; on
 // Tarif karti: fotograf ustte, baslik en fazla 2 satir, sure ve malzeme hep ayni hizada.
 // Fotograf yoksa ayni boyda varsayilan kapak; ayni satirdaki iki kart ayni yukseklikte.
 const VIDEO_PLATFORM = new Set(['instagram', 'tiktok', 'youtube', 'facebook'])
-function RecipeCard({ r }: { r: LzRecipe }) {
-  const meta = [sureYaz(r.minutes), r.ingredients.length ? `${r.ingredients.length} malzeme` : ''].filter(Boolean).join(' · ')
+// "3 kez pişirdin · Son: 12 Kas."
+export function pisirmeYazi(r: Pick<LzRecipe, 'cookCount' | 'lastCookedAt'>): string {
+  const son = r.lastCookedAt ? new Date(r.lastCookedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : ''
+  return `${r.cookCount} kez pişirdin${son ? ` · Son: ${son}${/\.$/.test(son) ? '' : '.'}` : ''}`
+}
+
+// pisirme: Yaptiklarim'da sure/malzeme yerine kac kez ve en son ne zaman pisirildigi yazar
+function RecipeCard({ r, pisirme = false }: { r: LzRecipe; pisirme?: boolean }) {
+  const meta = pisirme ? pisirmeYazi(r) : [sureYaz(r.minutes), r.ingredients.length ? `${r.ingredients.length} malzeme` : ''].filter(Boolean).join(' · ')
   const fotoVar = !!r.photo
   return (
     <div className="lz-card overflow-hidden flex flex-col min-w-0">
@@ -451,7 +467,7 @@ function RecipeCard({ r }: { r: LzRecipe }) {
       <Link to={`/tarif/${r.id}`} className="p-2.5 flex flex-col gap-1 flex-1 min-w-0">
         {/* 2 satirlik sabit yukseklik: kisa basliklarda da alttaki bilgiler ayni hizada */}
         <div className={`font-semibold text-[14.5px] leading-[1.3] line-clamp-2 min-h-[2.6em] ${T_BASLIK}`}>{r.title}</div>
-        <div className={`text-[12px] min-h-[1.4em] truncate ${T_SOLUK}`}>{meta}</div>
+        <div className={`text-[12px] min-h-[1.4em] truncate ${pisirme ? 'text-lz-700 dark:text-[#ff9f88] font-semibold' : T_SOLUK}`} data-meta>{meta}</div>
         <div className="mt-auto pt-0.5 min-w-0">
           <PlatformLabel r={r} />
         </div>
