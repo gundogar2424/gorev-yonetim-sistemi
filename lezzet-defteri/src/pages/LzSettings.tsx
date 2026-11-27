@@ -15,7 +15,7 @@ import {
   type Saglayici
 } from '../lib/ai'
 import { sesleIlerleIzinli, sesleIlerleKaydet } from '../lib/sesKomut'
-import { MESAFE_SECENEK, yakinBildirimAcik, yakinBildirimKaydet, yakinIzinDurumu, yakinIzinIste, yakinMesafe, yakinMesafeKaydet } from '../lib/yakinBildirim'
+import { MESAFE_SECENEK, SES_SECENEK, yakinSes, yakinSesKaydet, type YakinSes, yakinBildirimAcik, yakinBildirimKaydet, yakinIzinDurumu, yakinIzinIste, yakinMesafe, yakinMesafeKaydet } from '../lib/yakinBildirim'
 import { bildirimIzniIste } from '../lib/kampanya'
 import { PP_CIHAZLAR, PP_KILAVUZ, ppCihaz, ppCihazKaydet } from '../lib/pisirici'
 import { downloadBackup, otomatikYedek, restoreBackup, sonOtomatikYedek } from '../lib/backup'
@@ -385,6 +385,7 @@ function KolaylikKarti() {
   const [ses, setSes] = useState(sesleIlerleIzinli())
   const [yakin, setYakin] = useState(yakinBildirimAcik())
   const [mesafe, setMesafe] = useState(yakinMesafe())
+  const [sesSecim, setSesSecim] = useState<YakinSes>(yakinSes())
   const [izin, setIzin] = useState<boolean | null>(null)
   // Konum izni: uygulamaya donulunce (izin ekranindan) yeniden bakilir
   useEffect(() => {
@@ -443,6 +444,28 @@ function KolaylikKarti() {
               </button>
             ))}
           </div>
+          <div className={`text-[13px] font-semibold pt-1 ${T_BASLIK}`}>Bildirim sesi</div>
+          <div className="grid grid-cols-3 gap-2" data-yakin-ses>
+            {SES_SECENEK.map((x) => (
+              <button
+                key={x.id}
+                className={`lz-chip justify-center min-h-[44px] !px-2 text-center !whitespace-normal leading-tight ${sesSecim === x.id ? 'lz-chip-on' : ''}`}
+                onClick={() => {
+                  setSesSecim(x.id)
+                  yakinSesKaydet(x.id)
+                }}
+              >
+                {x.ad}
+              </button>
+            ))}
+          </div>
+          <p className={`text-[12px] ${T_SOLUK}`}>
+            {sesSecim === 'guclu'
+              ? 'Yüksek öncelik, ayırt edici yüksek ton, 2 uzun titreşim; kilit ekranında tam görünür, telefon sessizdeyken de titrer.'
+              : sesSecim === 'sesli'
+                ? 'Telefon Türkçe söyler: “Favori mekanın yakınında, X var”. 2 uzun titreşim; gece söylemez.'
+                : 'Hafif titreşim ve kısa yumuşak ton.'}
+          </p>
           <p className={`text-[12px] ${T_SOLUK}`}>Konum sürekli izlenmez; telefonun bölge (geofence) özelliği kullanılır, pil yemez.</p>
           {izin === false && (
             <div className="rounded-xl bg-amber-50 dark:bg-[#33270f] p-3 space-y-2">

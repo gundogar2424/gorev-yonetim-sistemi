@@ -15,6 +15,7 @@ import { dataFotoSikistir } from './image'
 
 const KEY_AYAR = 'lz-yakin-bildirim' // '0' kapali
 const KEY_MESAFE = 'lz-yakin-mesafe'
+const KEY_SES = 'lz-yakin-ses' // yumusak | guclu (varsayilan) | sesli
 const KEY_KAYIT = 'lz-yakin-bildirim-kayit'
 export const MESAFE_SECENEK = [100, 200, 500] as const
 export const VARSAYILAN_M = 200
@@ -23,7 +24,7 @@ export const ARABA_HIZ_MS = 5.5 // ~20 km/sa ve ustu araba sayilir
 const EN_FAZLA_MEKAN = 50 // geofence siniri 100; her mekana 2 cember
 
 type YakinYerel = {
-  kur(o: { acik: boolean; metre: number; mekanlar: YerelMekan[] }): Promise<void>
+  kur(o: { acik: boolean; metre: number; ses: YakinSes; mekanlar: YerelMekan[] }): Promise<void>
   izinDurumu(): Promise<{ konum: boolean; arkaPlan: boolean }>
   izinIste(): Promise<void>
 }
@@ -60,6 +61,36 @@ export function yakinBildirimKaydet(v: boolean): void {
   yaz(KEY_AYAR, v ? '1' : '0')
   void yakinSenkron()
 }
+// Bildirim sesi: Yumusak / Guclu (varsayilan: yuksek oncelik, ozel yuksek ton, 2 uzun titresim) / Sesli soyle (Turkce)
+export type YakinSes = 'yumusak' | 'guclu' | 'sesli'
+export const SES_SECENEK: { id: YakinSes; ad: string }[] = [
+  { id: 'yumusak', ad: 'Yumuşak' },
+  { id: 'guclu', ad: 'Güçlü' },
+  { id: 'sesli', ad: 'Sesli söyle' }
+]
+export function yakinSes(): YakinSes {
+  const v = oku(KEY_SES)
+  return v === 'yumusak' || v === 'sesli' ? v : 'guclu'
+}
+export function yakinSesKaydet(v: YakinSes): void {
+  yaz(KEY_SES, v)
+  void yakinSenkron()
+}
+// "Sesli soyle" cumlesi (Android tarafinda da ayni)
+export function yakinSoz(m: Pick<LzMekan, 'favori' | 'gitmekIstiyorum' | 'ad'>): string {
+  return `${yakinBaslik(m).replace('★ ', '')}, ${m.ad} var`
+}
+function tarayicidaSoyle(metin: string): void {
+  try {
+    const u = new SpeechSynthesisUtterance(metin)
+    u.lang = 'tr-TR'
+    u.volume = 1
+    window.speechSynthesis.speak(u)
+  } catch {
+    /* yok */
+  }
+}
+
 export function yakinMesafe(): number {
   const n = Number(oku(KEY_MESAFE))
   return (MESAFE_SECENEK as readonly number[]).includes(n) ? n : VARSAYILAN_M
@@ -154,7 +185,11 @@ export async function yakinKontrol(
     })
     onceki.set(m.id!, metre)
     if (!karar.git) continue
-    await bildir(yakinBaslik(m), yakinMetin(m.ad, metre, puanYaz(m)), 7000 + (m.id! % 1000), `/mekan/${m.id}`, true)
+    const ses = yakinSes()
+    await bildir(yakinBaslik(m), yakinMetin(m.ad, metre, puanYaz(m)), 7000 + (m.id! % 1000), `/mekan/${m.id}`, ses === 'yumusak')
+    // Gece kurali bildirimGitsinMi'de: 22.00-09.00 arasi buraya gelinmez, sesli soyleme de calismaz
+    if (ses === 'sesli') tarayicidaSoyle(yakinSoz(m))
+    else if (ses === 'guclu') navigator.vibrate?.([700, 350, 700])
     kayit.mekanlar.push(m.id!)
     gonderilen.push(m.id!)
     kayitYaz(kayit)
@@ -230,11 +265,11 @@ export async function yakinSenkron(): Promise<void> {
   const mekanlar: YerelMekan[] = []
   for (const m of sirali.slice(0, EN_FAZLA_MEKAN))
     mekanlar.push({ id: m.id!, ad: m.ad, puan: puanYaz(m), lat: m.lat!, lon: m.lon!, favori: !!m.favori && !m.gitmekIstiyorum, foto: await fotoKucult(m) })
-  const imza = JSON.stringify([acik, yakinMesafe(), mekanlar.map((x) => [x.id, x.lat, x.lon, x.favori, x.puan, x.foto.length])])
+  const imza = JSON.stringify([acik, yakinMesafe(), yakinSes(), mekanlar.map((x) => [x.id, x.lat, x.lon, x.favori, x.puan, x.foto.length])])
   if (imza === sonGonderilen) return
   sonGonderilen = imza
   try {
-    await yerel.kur({ acik, metre: yakinMesafe(), mekanlar })
+    await yerel.kur({ acik, metre: yakinMesafe(), ses: yakinSes(), mekanlar })
   } catch {
     sonGonderilen = ''
   }

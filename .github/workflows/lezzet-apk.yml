@@ -603,25 +603,26 @@ jobs:
               }
 
               // Cembere girildi: kurallara uyuyorsa ozel bildirim
-              static void girildi(Context c, String istekId, Location konum) {
+              // Donus: "Sesli soyle" seciliyse soylenecek cumle, yoksa null
+              static String girildi(Context c, String istekId, Location konum) {
                   try {
                       String[] parca = istekId.split("_");
                       int id = Integer.parseInt(parca[1]);
                       int halka = Integer.parseInt(parca[2]);
                       SharedPreferences s = gunluk(c);
-                      if (!s.getBoolean("acik", true) || !konumIzni(c)) return;
+                      if (!s.getBoolean("acik", true) || !konumIzni(c)) return null;
                       int saat = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-                      if (saat >= 22 || saat < 9) return;
-                      if (s.getInt("sayi", 0) >= GUNLUK) return;
-                      if (s.getString("bildirilen", ",").contains("," + id + ",") || s.getString("gizli", ",").contains("," + id + ",")) return;
+                      if (saat >= 22 || saat < 9) return null;
+                      if (s.getInt("sayi", 0) >= GUNLUK) return null;
+                      if (s.getString("bildirilen", ",").contains("," + id + ",") || s.getString("gizli", ",").contains("," + id + ",")) return null;
                       JSONObject m = null;
                       JSONArray a = new JSONArray(s.getString("liste", "[]"));
                       for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).getInt("id") == id) m = a.getJSONObject(i);
-                      if (m == null) return;
+                      if (m == null) return null;
                       boolean hizVar = konum != null && konum.hasSpeed();
                       boolean araba = hizVar && konum.getSpeed() >= ARABA_HIZ;
                       // Dis cember (2 kat) yalnizca arabada; yuruyuste ic cemberi bekle
-                      if (halka == 2 && !araba) return;
+                      if (halka == 2 && !araba) return null;
                       float metre = s.getInt("metre", 200) * halka;
                       if (konum != null) {
                           Location hedef = new Location("mekan");
@@ -631,34 +632,123 @@ jobs:
                           // Uzaklasiyorsa (mekani gectiyse) gelmez: gidis yonu mekana 90 dereceden fazla ters
                           if (konum.hasBearing() && hizVar && konum.getSpeed() > 0.8f) {
                               float fark = Math.abs(((konum.bearingTo(hedef) - konum.getBearing()) % 360 + 540) % 360 - 180);
-                              if (fark > 90) return;
+                              if (fark > 90) return null;
                           }
                       }
                       s.edit().putInt("sayi", s.getInt("sayi", 0) + 1).putString("bildirilen", s.getString("bildirilen", ",") + id + ",").apply();
                       goster(c, m, Math.round(metre), araba);
+                      // Gece kurali yukarida: 22.00-09.00 arasi buraya hic gelinmez, sesli soyleme de calismaz
+                      if ("sesli".equals(s.getString("ses", "guclu"))) return baslikYaz(m).replace("★ ", "") + ", " + m.optString("ad") + " var";
                   } catch (Exception e) {
                       // sessizce gec
                   }
+                  return null;
               }
 
-              static void kanal(Context c, NotificationManager nm) {
-                  if (Build.VERSION.SDK_INT < 26 || nm.getNotificationChannel(KANAL) != null) return;
-                  NotificationChannel k = new NotificationChannel(KANAL, "Yakında sevdiğin mekan", NotificationManager.IMPORTANCE_DEFAULT);
+              // Bildirim sesi secimine gore ayri kanal (Android kanal sesi sonradan degismez):
+              // yumusak = eski hafif kanal; guclu = yuksek oncelik, ozel yuksek ton, 2 uzun titresim; sesli = yuksek oncelik, ton yok (Turkce soylenir)
+              static final String KANAL_GUCLU = "lz_yakin_guclu";
+              static final String KANAL_SESLI = "lz_yakin_sesli";
+              static final long[] UZUN_TITRESIM = new long[] { 0, 700, 350, 700 };
+
+              static String kanal(Context c, NotificationManager nm, String mod) {
+                  String id = "sesli".equals(mod) ? KANAL_SESLI : "yumusak".equals(mod) ? KANAL : KANAL_GUCLU;
+                  if (Build.VERSION.SDK_INT < 26 || nm.getNotificationChannel(id) != null) return id;
+                  NotificationChannel k;
+                  if (KANAL.equals(id)) {
+                      k = new NotificationChannel(KANAL, "Yakında sevdiğin mekan (yumuşak)", NotificationManager.IMPORTANCE_DEFAULT);
+                      k.setSound(Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin"),
+                          new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+                      k.enableVibration(true);
+                      k.setVibrationPattern(new long[] { 0, 70, 80, 70 });
+                  } else {
+                      k = new NotificationChannel(id, KANAL_SESLI.equals(id) ? "Yakında sevdiğin mekan (sesli söyle)" : "Yakında sevdiğin mekan (güçlü)", NotificationManager.IMPORTANCE_HIGH);
+                      if (KANAL_GUCLU.equals(id)) {
+                          k.setSound(Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin_guclu"),
+                              new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+                      } else {
+                          k.setSound(null, null); // ses yerine Turkce soylenir
+                      }
+                      k.enableVibration(true);
+                      k.setVibrationPattern(UZUN_TITRESIM);
+                      k.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                      k.enableLights(true);
+                      k.setLightColor(0xFFD93D20);
+                  }
                   k.setDescription("Gitmek istediğin ya da favori mekana yaklaşınca");
-                  Uri ses = Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin");
-                  k.setSound(ses, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
-                  k.enableVibration(true);
-                  k.setVibrationPattern(new long[] { 0, 70, 80, 70 });
                   nm.createNotificationChannel(k);
+                  return id;
+              }
+
+              // Telefon sessizdeyken de (guclu / sesli) iki uzun titresim
+              static void titret(Context c) {
+                  try {
+                      android.media.AudioManager am = (android.media.AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+                      if (am == null || am.getRingerMode() != android.media.AudioManager.RINGER_MODE_SILENT) return; // normal/titresimde kanal titretir
+                      android.os.Vibrator v = (android.os.Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE);
+                      if (v == null || !v.hasVibrator()) return;
+                      if (Build.VERSION.SDK_INT >= 26) {
+                          v.vibrate(android.os.VibrationEffect.createWaveform(UZUN_TITRESIM, -1),
+                              new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build());
+                      } else {
+                          v.vibrate(UZUN_TITRESIM, -1);
+                      }
+                  } catch (Exception e) {
+                      // yok
+                  }
+              }
+
+              // "Sesli soyle": Turkce ses (navigasyon sesi gibi medya kanalindan; yalnizca yazi degil)
+              static void soyle(Context c, String metin, Runnable bitti) {
+                  final android.speech.tts.TextToSpeech[] tts = new android.speech.tts.TextToSpeech[1];
+                  final boolean[] tamam = new boolean[1];
+                  final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+                  final Runnable kapat = () -> {
+                      if (tamam[0]) return;
+                      tamam[0] = true;
+                      try {
+                          if (tts[0] != null) tts[0].shutdown();
+                      } catch (Exception e) {
+                          // yok
+                      }
+                      bitti.run();
+                  };
+                  h.postDelayed(kapat, 9000); // en fazla 9 sn
+                  tts[0] = new android.speech.tts.TextToSpeech(c, durum -> {
+                      if (durum != android.speech.tts.TextToSpeech.SUCCESS) {
+                          h.post(kapat);
+                          return;
+                      }
+                      try {
+                          tts[0].setLanguage(new Locale("tr", "TR"));
+                          tts[0].setAudioAttributes(new AudioAttributes.Builder()
+                              .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                              .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+                          tts[0].setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
+                              @Override public void onStart(String u) {}
+                              @Override public void onDone(String u) { h.post(kapat); }
+                              @Override public void onError(String u) { h.post(kapat); }
+                          });
+                          tts[0].speak(metin, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "lz_yakin");
+                      } catch (Exception e) {
+                          h.post(kapat);
+                      }
+                  });
+              }
+
+              static String baslikYaz(JSONObject m) {
+                  return m.optBoolean("favori") ? "★ Favori mekanın yakınında" : "Gitmek istediğin mekan yakınında";
               }
 
               static void goster(Context c, JSONObject m, int metre, boolean araba) throws Exception {
                   if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(c, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
                   NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-                  kanal(c, nm);
+                  String mod = p(c).getString("ses", "guclu");
+                  String kanalId = kanal(c, nm, mod);
+                  boolean yumusak = "yumusak".equals(mod);
                   int id = m.getInt("id");
                   int no = 7000 + (id % 1000);
-                  String baslik = m.optBoolean("favori") ? "★ Favori mekanın yakınında" : "Gitmek istediğin mekan yakınında";
+                  String baslik = baslikYaz(m);
                   String puan = m.optString("puan", "");
                   String metin = Math.max(10, Math.round(metre / 10f) * 10) + " m ileride " + m.optString("ad") + " var" + (puan.isEmpty() ? "" : " · " + puan);
                   int f = PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT;
@@ -674,14 +764,15 @@ jobs:
                   gizle.putExtra("id", id);
                   gizle.putExtra("no", no);
                   PendingIntent gizlePi = PendingIntent.getBroadcast(c, no + 2000, gizle, f);
-                  NotificationCompat.Builder b = new NotificationCompat.Builder(c, KANAL)
+                  NotificationCompat.Builder b = new NotificationCompat.Builder(c, kanalId)
                       .setSmallIcon(android.R.drawable.ic_dialog_map)
                       .setContentTitle(baslik)
                       .setContentText(metin)
                       .setColor(0xFFD93D20)
-                      .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-                      .setVibrate(new long[] { 0, 70, 80, 70 })
-                      .setSound(Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin"))
+                      .setCategory(yumusak ? NotificationCompat.CATEGORY_RECOMMENDATION : NotificationCompat.CATEGORY_REMINDER)
+                      .setPriority(yumusak ? NotificationCompat.PRIORITY_DEFAULT : NotificationCompat.PRIORITY_HIGH)
+                      .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // kilit ekraninda tam gorunur
+                      .setVibrate(yumusak ? new long[] { 0, 70, 80, 70 } : UZUN_TITRESIM)
                       .setAutoCancel(true)
                       .setContentIntent(goster)
                       .addAction(0, "Göster", goster)
@@ -698,7 +789,10 @@ jobs:
                   } else {
                       b.setStyle(new NotificationCompat.BigTextStyle().bigText(metin));
                   }
+                  if ("guclu".equals(mod) || mod.isEmpty()) b.setSound(Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin_guclu"));
+                  else if (yumusak) b.setSound(Uri.parse("android.resource://" + c.getPackageName() + "/raw/lz_yakin"));
                   nm.notify(no, b.build());
+                  if (!yumusak) titret(c);
               }
           }
           JAVA
@@ -718,7 +812,15 @@ jobs:
               public void onReceive(Context c, Intent intent) {
                   GeofencingEvent e = GeofencingEvent.fromIntent(intent);
                   if (e == null || e.hasError() || e.getGeofenceTransition() != Geofence.GEOFENCE_TRANSITION_ENTER || e.getTriggeringGeofences() == null) return;
-                  for (Geofence g : e.getTriggeringGeofences()) YakinMotor.girildi(c, g.getRequestId(), e.getTriggeringLocation());
+                  String soz = null;
+                  for (Geofence g : e.getTriggeringGeofences()) {
+                      String x = YakinMotor.girildi(c, g.getRequestId(), e.getTriggeringLocation());
+                      if (x != null) soz = x;
+                  }
+                  if (soz == null) return;
+                  // "Sesli soyle": alici kapanmadan Turkce soylenir (en fazla 9 sn)
+                  final PendingResult bekle = goAsync();
+                  YakinMotor.soyle(c.getApplicationContext(), soz, bekle::finish);
               }
           }
           JAVA
@@ -770,6 +872,7 @@ jobs:
                       YakinMotor.p(getContext()).edit()
                           .putBoolean("acik", Boolean.TRUE.equals(call.getBoolean("acik", true)))
                           .putInt("metre", call.getInt("metre", 200))
+                          .putString("ses", call.getString("ses", "guclu"))
                           .putString("liste", call.getArray("mekanlar").toString())
                           .apply();
                       YakinMotor.kur(getContext());
@@ -818,6 +921,24 @@ jobs:
           w = wave.open('android/app/src/main/res/raw/lz_yakin.wav', 'wb')
           w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
           w.writeframes(b''.join(struct.pack('<h', int(x * 32767)) for x in ornek))
+          w.close()
+          # Guclu: yuksek, ayirt edici ozel ton (iki kez yukselen uc nota, kare dalgaya yakin; normal bildirimlere benzemez)
+          ornek = []
+          def nota(f, sure, guc=0.85):
+              n = int(sr * sure)
+              for i in range(n):
+                  zarf = min(1, i / (sr * 0.004)) * min(1, (n - i) / (sr * 0.02))
+                  t = 2 * math.pi * f * i / sr
+                  ornek.append(guc * zarf * (math.sin(t) + 0.33 * math.sin(3 * t) + 0.2 * math.sin(5 * t)) / 1.25)
+          def sus(sure):
+              ornek.extend([0] * int(sr * sure))
+          for _ in range(2):
+              nota(988, 0.11); sus(0.03); nota(1319, 0.11); sus(0.03); nota(1760, 0.22); sus(0.16)
+          tepe = max(abs(x) for x in ornek)
+          ornek = [x * 0.95 / tepe for x in ornek]  # tam ses
+          w = wave.open('android/app/src/main/res/raw/lz_yakin_guclu.wav', 'wb')
+          w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+          w.writeframes(b''.join(struct.pack('<h', int(max(-1, min(1, x)) * 32767)) for x in ornek))
           w.close()
           PY
           ls -la android/app/src/main/res/raw
