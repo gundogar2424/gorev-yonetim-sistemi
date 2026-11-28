@@ -84,6 +84,9 @@ export default function Harita() {
   const [panel, setPanel] = useState<'kucuk' | 'orta' | 'buyuk'>('orta')
   const [ekleniyor, setEkleniyor] = useState('')
   const kutu = useRef<HTMLDivElement>(null)
+  const panelKutu = useRef<HTMLDivElement>(null)
+  const ustKutu = useRef<HTMLDivElement>(null)
+  const sonPinler = useRef('')
   const harita = useRef<L.Map>()
   const kume = useRef<L.MarkerClusterGroup>()
   const ust = useRef<L.LayerGroup>()
@@ -226,14 +229,12 @@ export default function Harita() {
       if (m0 && !sehir && km * 1000 > yaricap) continue
       l.push({ anahtar: `k${m.id}`, ad: m.ad, tur: m.tur, km, lat: m.lat!, lon: m.lon!, kayitli: m })
     }
-    if (suzgec === 'hepsi' && !sehir) {
+    // Yakinimdakiler: listede ve haritada YALNIZCA kayitli mekanlar. Cevredeki yerler eklenmez
+    // (servis takilinca alakasiz yerler karismasin); yalnizca kayitlilarin acik/kapali bilgisi tamamlanir.
+    if (!sehir) {
       for (const y of cevre) {
         const ayni = l.find((x) => sade(x.ad) === sade(y.ad) && mesafeKm(x, y) < 0.3)
-        if (ayni) {
-          if (ayni.acik === undefined) ayni.acik = y.acik
-          continue
-        }
-        l.push({ anahtar: `c${y.lat.toFixed(5)},${y.lon.toFixed(5)}`, ad: y.ad, tur: y.tur, km: m0 ? mesafeKm(m0, y) : y.km, lat: y.lat, lon: y.lon, acik: y.acik, yer: y })
+        if (ayni && ayni.acik === undefined) ayni.acik = y.acik
       }
     }
     return l.sort((a, b) => a.km - b.km)
@@ -248,17 +249,13 @@ export default function Harita() {
     g.clearLayers()
     u.clearLayers()
     const sinir: L.LatLngExpression[] = []
-    for (const m of gorunen) {
-      const sat = satirlar.find((x) => x.kayitli?.id === m.id)
-      const mk = L.marker([m.lat!, m.lon!], { icon: pinIkonu(renk(m), sat?.acik, secili === `k${m.id}`, false), title: m.ad })
-      mk.on('click', () => sec(`k${m.id}`))
-      g.addLayer(mk)
-      sinir.push([m.lat!, m.lon!])
-    }
-    for (const sat of satirlar.filter((x) => x.yer)) {
-      const mk = L.marker([sat.lat, sat.lon], { icon: pinIkonu('#A0603F', sat.acik, secili === sat.anahtar, true), title: sat.ad })
+    // Haritadaki pinler = listedeki satirlar (liste "3 mekan" diyorsa pin/kume toplami da 3)
+    for (const sat of satirlar) {
+      const dolgu = sat.kayitli ? renk(sat.kayitli) : '#A0603F'
+      const mk = L.marker([sat.lat, sat.lon], { icon: pinIkonu(dolgu, sat.acik, secili === sat.anahtar, !sat.kayitli), title: sat.ad })
       mk.on('click', () => sec(sat.anahtar))
       g.addLayer(mk)
+      sinir.push([sat.lat, sat.lon])
     }
     const m0 = merkez ?? konum
     if (konum) {
@@ -268,17 +265,38 @@ export default function Harita() {
       // 1 km cemberi ince cizgiyle
       L.circle([m0.lat, m0.lon], { radius: 1000, color: '#2563eb', weight: 1, opacity: 0.6, fill: false, dashArray: '4 4', interactive: false }).addTo(u)
     }
-    // Sehir secildiyse o sehrin mekanlari gorunsun
-    if (sehir && sinir.length) {
-      elleHareket.current = false
-      h.fitBounds(L.latLngBounds(sinir), { padding: [30, 30], maxZoom: 16 })
-    }
   }, [satirlar, secili, konum?.lat, sehir])
+
+  // Liste degisince (arama, suzgec, sehir, mesafe) listedeki tum pinler ekrana sigar; panelin altinda kalmaz
+  const pinAnahtari = satirlar.map((x) => x.anahtar).join('|')
+  useEffect(() => {
+    const h = harita.current
+    if (!h || !satirlar.length) return
+    // Kullanici haritayi kendisi kaydirdiysa uyari cikinca harita oynamaz
+    const yeniListe = sonPinler.current !== pinAnahtari
+    sonPinler.current = pinAnahtari
+    if (buBolge && !yeniListe) return
+    const altBosluk = Math.min((panelKutu.current?.offsetHeight ?? 0) + 24, h.getSize().y - 120)
+    // Ustteki yazi ve sari uyarinin altinda pin kalmasin
+    const ustBosluk = Math.min((ustKutu.current?.offsetHeight ?? 0) + 24, h.getSize().y - altBosluk - 60)
+    elleHareket.current = false
+    if (satirlar.length === 1) {
+      const t = satirlar[0]
+      h.setView([t.lat, t.lon], Math.max(h.getZoom(), 15))
+      h.panBy([0, (altBosluk - ustBosluk) / 2], { animate: false })
+    } else {
+      h.fitBounds(L.latLngBounds(satirlar.map((x) => [x.lat, x.lon] as L.LatLngTuple)), {
+        paddingTopLeft: [36, Math.max(64, ustBosluk)],
+        paddingBottomRight: [56, Math.max(30, altBosluk)],
+        maxZoom: 16
+      })
+    }
+  }, [pinAnahtari, uyari, yukleniyor && yavas])
 
   // Merkez ilk kez belli olunca harita oraya
   useEffect(() => {
     const h = harita.current
-    if (!h || !merkez || sehir) return
+    if (!h || !merkez || sehir || satirlar.length) return
     elleHareket.current = false
     h.setView([merkez.lat, merkez.lon], Math.max(h.getZoom(), 15))
   }, [merkez?.lat, merkez?.lon])
@@ -307,13 +325,14 @@ export default function Harita() {
 
   // Panel surukleme: tutma cubugunu yukari/asagi cek
   const surukle = useRef<{ y: number; p: typeof panel } | null>(null)
-  const PANEL_H = { kucuk: '26%', orta: '46%', buyuk: '78%' } as const
+  const PANEL_H = { kucuk: '26%', orta: '46%', buyuk: '100%' } as const
   const seciliSatir = satirlar.find((x) => x.anahtar === secili)
   const liste = seciliSatir ? [seciliSatir, ...satirlar.filter((x) => x !== seciliSatir)] : satirlar
   const sonraki = YARICAPLAR[adim + 1]
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100dvh - 64px - env(safe-area-inset-bottom))' }}>
+    // Sayfa ekrana sabit: belge kaymaz. Alt menu (z-20) ve + dugmesi panelin ustunde; liste sonu onlarin ustunde biter.
+    <div className="fixed inset-x-0 top-0 bottom-0 max-w-xl mx-auto z-10 flex flex-col bg-[#FAF6EC] dark:bg-[#16130F]">
       <Header title="Harita" subtitle={`${gorunen.length} kayıtlı mekan${sehir ? ` · ${sehir}` : ''}`} back />
       <div className="relative flex-1 min-h-0">
         {/* Harita ustte tam genislik */}
@@ -333,7 +352,7 @@ export default function Harita() {
           </div>
         )}
         {/* Ust bilgi: yukleniyor / son guncelleme / uyari */}
-        <div className="absolute top-2 left-2 right-14 z-[500] flex flex-col items-start gap-1.5 pointer-events-none">
+        <div ref={ustKutu} className="absolute top-2 left-2 right-14 z-[500] flex flex-col items-start gap-1.5 pointer-events-none">
           {yukleniyor && (
             <span className="pointer-events-auto inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-white/95 dark:bg-[#231E18]/95 px-3 py-1.5 shadow">
               <span className="w-3.5 h-3.5 rounded-full border-2 border-lz-600 border-t-transparent animate-spin" /> Çevre yükleniyor…
@@ -343,6 +362,11 @@ export default function Harita() {
             <div className="pointer-events-auto rounded-xl bg-amber-50 dark:bg-[#33270f] px-3 py-2 shadow max-w-full">
               <p className="text-[13px] font-semibold text-amber-900 dark:text-amber-200">Çevre yavaş geliyor.</p>
               <p className={`text-[11.5px] ${T_SOLUK}`}>Kayıtlı mekanların ekranda; harita kullanılabilir.</p>
+              {merkez && (
+                <button className="text-[12.5px] font-semibold text-lz-600 underline mt-0.5" onClick={() => void cevreYukle(merkez, yaricap, true)}>
+                  ↻ Tekrar dene
+                </button>
+              )}
             </div>
           )}
           {!yukleniyor && guncel > 0 && merkez && (
@@ -366,10 +390,12 @@ export default function Harita() {
           )}
         </div>
         {/* Kaydirinca ortada "Bu bolgede ara" */}
-        {buBolge && (
+        {buBolge && panel !== 'buyuk' && (
           <button
-            className="absolute z-[500] left-1/2 -translate-x-1/2 top-14 lz-btn-primary !min-h-[48px] !py-2 !px-4 text-[14px] shadow-lg"
+            className="absolute z-[500] left-1/2 -translate-x-1/2 lz-btn-primary !min-h-[48px] !py-2 !px-4 text-[14px] shadow-lg whitespace-nowrap"
+            style={{ bottom: `calc(${PANEL_H[panel]} + 4rem + env(safe-area-inset-bottom) + 12px)` }}
             onClick={buBolgedeAra}
+            data-bu-bolge
           >
             <Icon name="search" className="w-4 h-4" /> Bu bölgede ara
           </button>
@@ -377,8 +403,10 @@ export default function Harita() {
 
         {/* Liste: alttan surüklenen panel */}
         <div
+          ref={panelKutu}
           className="absolute inset-x-0 bottom-0 z-[600] bg-[#FAF6EC] dark:bg-[#221C15] rounded-t-[22px] shadow-[0_-6px_24px_rgba(0,0,0,0.18)] flex flex-col transition-[height] duration-200"
-          style={{ height: PANEL_H[panel] }}
+          style={{ height: panel === 'buyuk' ? '100%' : `calc(${PANEL_H[panel]} + 4rem + env(safe-area-inset-bottom))` }}
+          data-panel={panel}
         >
           <div
             className="pt-2 pb-1 flex justify-center cursor-grab touch-none select-none"
@@ -429,7 +457,7 @@ export default function Harita() {
               </p>
             )}
           </div>
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-24 space-y-2">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-2" style={{ paddingBottom: 'calc(4rem + 24px + 24px + env(safe-area-inset-bottom))' }}>
             {liste.map((s) => (
               <div
                 key={s.anahtar}
