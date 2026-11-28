@@ -28,6 +28,8 @@ export interface LzRecipe {
   favorite: 0 | 1 // Dexie boolean indeksleyemez
   cookCount: number
   lastCookedAt: number
+  // Pisirme gecmisi: her pisirmede tarih, kacinci kez ve istege bagli not (yalnizca bu ozellikten sonraki pisirmeler; eskiler icin tarih uydurulmaz)
+  pisirmeler?: { zaman: number; no: number; not?: string }[]
   createdAt: number
   updatedAt: number
 }

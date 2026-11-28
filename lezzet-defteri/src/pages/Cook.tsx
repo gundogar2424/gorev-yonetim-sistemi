@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, markCooked } from '../db'
+import { PisirmeNotu } from '../components/PisirmeNotu'
 import { Icon, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { aiMalzemeBolumle, apiAnahtari } from '../lib/ai'
 import { PisirmeAlti, PisirmeUstCubuk, useMutfakModu } from '../components/Pisirme'
@@ -13,6 +14,7 @@ export default function Cook() {
   const navigate = useNavigate()
   const r = useLiveQuery(() => lzDb.recipes.get(id), [id])
   const [i, setI] = useState(-1) // -1 = malzeme kontrolu
+  const [notAc, setNotAc] = useState(false) // Afiyet olsun! sonrasi "Nasil oldu?"
   const [kalan, setKalan] = useState(0)
   const [sayac, setSayac] = useState(false)
   const [hepsiAcik, setHepsiAcik] = useState(false)
@@ -80,11 +82,9 @@ export default function Cook() {
 
   const ileri = async () => {
     if (son) {
-      if (!bitti.current) {
-        bitti.current = true
-        await markCooked(r.id!)
-      }
-      navigate(-1)
+      // "Nasil oldu?" penceresi; kaydedilince (notlu ya da notsuz) cikilir
+      if (!bitti.current) setNotAc(true)
+      else navigate(-1)
       return
     }
     setI(i + 1)
@@ -190,6 +190,15 @@ export default function Cook() {
         )}
       </div>
 
+      <PisirmeNotu
+        open={notAc}
+        onKaydet={async (not) => {
+          bitti.current = true
+          setNotAc(false)
+          await markCooked(r.id!, not)
+          navigate(-1)
+        }}
+      />
       <PisirmeAlti
         renk="normal"
         ileriEtiket={i < 0 ? 'Başla ›' : son ? 'Afiyet olsun! ✓' : 'Sonraki ›'}

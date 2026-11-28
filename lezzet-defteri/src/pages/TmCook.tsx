@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, markCooked } from '../db'
+import { PisirmeNotu } from '../components/PisirmeNotu'
 import { Icon, T_BASLIK, T_SOLUK } from '../components/ui'
 import { adimKutulari, cihazAdimi, modAdi, tmSurumDenetle } from '../lib/tm7'
 import { PisirmeAlti, PisirmeUstCubuk, useMutfakModu } from '../components/Pisirme'
@@ -14,6 +15,7 @@ export default function TmCook() {
   const navigate = useNavigate()
   const r = useLiveQuery(() => lzDb.recipes.get(id), [id])
   const [i, setI] = useState(0)
+  const [notAc, setNotAc] = useState(false) // Afiyet olsun! sonrasi "Nasil oldu?"
   const [kalan, setKalan] = useState(0)
   const [sayac, setSayac] = useState(false)
   const [mutfak, mutfakDegistir] = useMutfakModu()
@@ -50,8 +52,7 @@ export default function TmCook() {
     setSayac(false)
     setKalan(0)
     if (n >= adimlar.length) {
-      await markCooked(r.id!)
-      navigate(-1)
+      setNotAc(true) // kaydedilince (notlu ya da notsuz) cikilir
       return
     }
     setI(Math.max(0, n))
@@ -120,6 +121,15 @@ export default function TmCook() {
           {sonraki.text}
         </p>
       )}
+      <PisirmeNotu
+        open={notAc}
+        onKaydet={async (not) => {
+          
+          setNotAc(false)
+          await markCooked(r.id!, not)
+          navigate(-1)
+        }}
+      />
       <PisirmeAlti
         renk="tm"
         ileriEtiket={son ? 'Afiyet olsun! ✓' : 'Sonraki ›'}

@@ -15,6 +15,7 @@ import { siraEkle } from '../lib/sira'
 import { siteyeKoy } from '../lib/cookidoo'
 import { TarifSekmeleri } from '../components/TarifSekmeleri'
 import { disariAc, kaynakLinki } from '../lib/disariAc'
+import { PisirmeNotu } from '../components/PisirmeNotu'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -26,6 +27,7 @@ export default function RecipeDetail() {
   const [planAc, setPlanAc] = useState(false)
   const [paylasAc, setPaylasAc] = useState(false)
   const [pisirdimBekle, setPisirdimBekle] = useState(false)
+  const [notAc, setNotAc] = useState(false) // Pisirdim sonrasi "Nasil oldu?"
   const [acilamadi, setAcilamadi] = useState(false) // kaynak link acilamadi: link kopyalandi ve gosterilir
   const [toast, goster] = useToast()
   const [besinHesap, setBesinHesap] = useState(false)
@@ -236,6 +238,32 @@ export default function RecipeDetail() {
           )}
         </div>
 
+        {/* PISIRME GECMISI: yeniden eskiye; her satirda tarih, kacinci kez ve varsa not */}
+        {(r.cookCount > 0 || (r.pisirmeler?.length ?? 0) > 0) && (
+          <div className="lz-card p-4" data-pisirme-gecmisi>
+            <h2 className={`font-bold text-[17px] mb-2 ${T_BASLIK}`}>Pişirme Geçmişi</h2>
+            {r.pisirmeler?.length ? (
+              <ul className="divide-y divide-[#f1f1ef] dark:divide-[#26262a]">
+                {[...r.pisirmeler]
+                  .sort((a, b) => b.zaman - a.zaman)
+                  .map((p) => (
+                    <li key={`${p.zaman}-${p.no}`} className={`py-2 text-[14px] leading-snug ${T_GOVDE}`}>
+                      <span className="font-semibold">
+                        {new Date(p.zaman).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })} · {p.no}. kez
+                      </span>
+                      {p.not ? <span> - {p.not}</span> : null}
+                    </li>
+                  ))}
+              </ul>
+            ) : null}
+            {r.cookCount > (r.pisirmeler?.length ?? 0) && (
+              <p className={`text-[12.5px] ${r.pisirmeler?.length ? 'mt-2' : ''} ${T_SOLUK}`}>
+                {r.cookCount - (r.pisirmeler?.length ?? 0)} pişirme bu özellikten önceydi; tarihleri bilinmediği için listede yok.
+              </p>
+            )}
+          </div>
+        )}
+
         <Link to={`/tarif/${r.id}/degistir`} className="lz-card p-3 flex items-center gap-3 active:scale-[0.99] transition">
           <span className="w-10 h-10 rounded-2xl bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 flex items-center justify-center"><Icon name="sparkle" className="w-5 h-5" /></span>
           <span className="flex-1">
@@ -270,11 +298,9 @@ export default function RecipeDetail() {
             className="lz-btn-soft !px-3 !gap-1 text-[14px] whitespace-nowrap"
             disabled={pisirdimBekle}
             data-pisirdim
-            onClick={async () => {
+            onClick={() => {
               setPisirdimBekle(true)
-              await markCooked(r.id!)
-              goster(`Pişirdim olarak işaretlendi (${(r.cookCount ?? 0) + 1}. kez) · Yaptıklarım’da`)
-              setTimeout(() => setPisirdimBekle(false), 1500) // yanlislikla cift dokunma sayilmasin
+              setNotAc(true) // "Nasil oldu?" — kaydedince isaretlenir
             }}
           >
             ✓ Pişirdim
@@ -416,6 +442,15 @@ export default function RecipeDetail() {
         </button>
       </div>
 
+      <PisirmeNotu
+        open={notAc}
+        onKaydet={async (not) => {
+          setNotAc(false)
+          await markCooked(r.id!, not)
+          goster(`Pişirdim olarak işaretlendi (${(r.cookCount ?? 0) + 1}. kez) · Yaptıklarım’da`)
+          setTimeout(() => setPisirdimBekle(false), 1000) // yanlislikla cift dokunma sayilmasin
+        }}
+      />
       <Sheet open={paylasAc} onClose={() => setPaylasAc(false)} title="Tarifi paylaş">
         <div className="space-y-2">
           <PaylasSecenek

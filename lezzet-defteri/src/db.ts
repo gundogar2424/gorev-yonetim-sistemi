@@ -83,9 +83,14 @@ export async function toggleFavorite(id: number): Promise<void> {
   if (r) await lzDb.recipes.update(id, { favorite: r.favorite ? 0 : 1 })
 }
 
-export async function markCooked(id: number): Promise<void> {
+// Pisirdim / Afiyet olsun!: sayi +1, son pisirme tarihi ve Pisirme Gecmisi'ne bir satir (istege bagli not)
+export async function markCooked(id: number, not?: string): Promise<void> {
   const r = await lzDb.recipes.get(id)
-  if (r) await lzDb.recipes.update(id, { cookCount: (r.cookCount ?? 0) + 1, lastCookedAt: Date.now() })
+  if (!r) return
+  const zaman = Date.now()
+  const no = (r.cookCount ?? 0) + 1
+  const satir = not?.trim() ? { zaman, no, not: not.trim().slice(0, 300) } : { zaman, no }
+  await lzDb.recipes.update(id, { cookCount: no, lastCookedAt: zaman, pisirmeler: [...(r.pisirmeler ?? []), satir] })
 }
 
 function clean(lines: string[] | undefined): string[] {

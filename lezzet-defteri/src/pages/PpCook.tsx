@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb, markCooked } from '../db'
+import { PisirmeNotu } from '../components/PisirmeNotu'
 import { T_BASLIK } from '../components/ui'
 import { ppAdimOzeti, ppDenetle, type PpAdim } from '../lib/pisirici'
 import { PpRozetleri } from '../components/PpParcalar'
@@ -13,6 +14,7 @@ export default function PpCook() {
   const navigate = useNavigate()
   const r = useLiveQuery(() => lzDb.recipes.get(id), [id])
   const [i, setI] = useState(0)
+  const [notAc, setNotAc] = useState(false) // Afiyet olsun! sonrasi "Nasil oldu?"
   const [kalan, setKalan] = useState(0)
   const [sayac, setSayac] = useState(false)
   const [mutfak, mutfakDegistir] = useMutfakModu()
@@ -52,8 +54,7 @@ export default function PpCook() {
     setSayac(false)
     setKalan(0)
     if (n >= adimlar.length) {
-      await markCooked(r.id!)
-      navigate(-1)
+      setNotAc(true) // kaydedilince (notlu ya da notsuz) cikilir
       return
     }
     setI(Math.max(0, n))
@@ -109,6 +110,15 @@ export default function PpCook() {
           </div>
         )}
       </div>
+      <PisirmeNotu
+        open={notAc}
+        onKaydet={async (not) => {
+          
+          setNotAc(false)
+          await markCooked(r.id!, not)
+          navigate(-1)
+        }}
+      />
       <PisirmeAlti
         renk="pp"
         ileriEtiket={son ? 'Afiyet olsun! ✓' : 'Sonraki ›'}

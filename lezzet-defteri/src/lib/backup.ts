@@ -158,6 +158,8 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
         favorite: rest.favorite ? 1 : 0,
         cookCount: rest.cookCount ?? 0,
         lastCookedAt: rest.lastCookedAt ?? 0,
+        // Pisirme Gecmisi yedekten aynen geri gelir (eski yedeklerde yoktur)
+        pisirmeler: Array.isArray(rest.pisirmeler) ? rest.pisirmeler : undefined,
         createdAt: rest.createdAt ?? now,
         updatedAt: rest.updatedAt ?? now
       })
