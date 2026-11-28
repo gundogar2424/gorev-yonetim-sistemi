@@ -1956,21 +1956,55 @@ export interface GeziDurakAi {
   ad: string
   tur: string
   aciklama: string
+  acik?: 'acik' | 'kapali' | 'bilinmiyor' // o gun ve o saatte acik mi
+  acikNot?: string // calisma saati / kapali gun (biliniyorsa)
+  yurumeDk?: number // bir onceki duraktan yuruyerek (0 = yurunmez / ilk durak)
+  aracDk?: number // bir onceki duraktan aracla (0 = arac yok)
 }
 const GEZI_DURAK_SEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['saat', 'ad', 'tur', 'aciklama'],
-  properties: { saat: { type: 'string' }, ad: { type: 'string' }, tur: { type: 'string' }, aciklama: { type: 'string' } }
+  required: ['saat', 'ad', 'tur', 'aciklama', 'acik', 'acikNot', 'yurumeDk', 'aracDk'],
+  properties: {
+    saat: { type: 'string' },
+    ad: { type: 'string' },
+    tur: { type: 'string' },
+    aciklama: { type: 'string' },
+    acik: { type: 'string', enum: ['acik', 'kapali', 'bilinmiyor'] },
+    acikNot: { type: 'string' },
+    yurumeDk: { type: 'integer' },
+    aracDk: { type: 'integer' }
+  }
 }
-export async function aiGeziPlan(b: { anlatim: string; gun: number; kimlerle: string; cikis: string }): Promise<{ baslik: string; gunler: GeziDurakAi[][] }> {
+export async function aiGeziPlan(b: {
+  anlatim: string
+  gun: number
+  kimlerle: string
+  cikis: string
+  cocuk?: boolean
+  cocukYas?: string // yazildigi gibi; bos = yas belirtilmedi
+  baslangic?: string // "2026-12-05 Cumartesi" ya da bos (bilinmiyor)
+}): Promise<{ baslik: string; gunler: GeziDurakAi[][] }> {
+  const cocukKural = b.cocuk
+    ? 'ÇOCUK VAR: yürüme kısa olsun (duraklar arası en fazla 10 dk yürüme), merdivensiz ve bebek arabasına uygun yerler seç, yemekleri erken saate koy (öğle en geç 12:30, akşam en geç 18:30), ' +
+      'geç saate (19:00 sonrası) konser, tiyatro, gösteri KOYMA, her günün ortasına bir oyun molası (park, oyun alanı) koy. ' +
+      (b.cocukYas ? `Çocukların yaşı: ${b.cocukYas}; yaşa uygun seç. ` : 'Çocukların yaşı BELİRTİLMEDİ: yaş UYDURMA, her yaşa uygun genel yerler seç. ')
+    : ''
   const v = await jsonCagri<{ baslik: string; gunler: { duraklar: GeziDurakAi[] }[] }>(
     'Sen bir gezi planlayıcısısın. Kullanıcının anlattığına göre GÜN GÜN, saat sırasıyla gezi planı yaz. ' +
       `Tam olarak ${b.gun} gün planla; her günde 4-7 durak. Duraklar gerçek, bilinen yerler olsun (gezilecek yer, yemek molası, kahve, manzara…); emin olmadığın yeri YAZMA, UYDURMA. ` +
       'İlk günün ilk durağı çıkış saatine göre başlasın; duraklar arası yol süresi gerçekçi olsun. Kimlerle gidildiğine uygun seç (çocuk, yaşlı, arkadaş grubu…). ' +
-      'saat: SS:DD. ad: yerin adı. tur: tek-iki kelime (ör. Kahvaltı, Müze, Manzara, Yürüyüş, Akşam yemeği). aciklama: tek kısa cümle, neden / ne yapılır. ' +
+      'saat: SS:DD. ad: yerin adı. tur: tek-iki kelime (ör. Kahvaltı, Müze, Manzara, Yürüyüş, Mola, Oyun molası, Akşam yemeği). aciklama: tek kısa cümle, neden / ne yapılır. ' +
+      cocukKural +
+      'AÇIK / KAPALI: her durağın o GÜN ve o SAATTE açık olup olmadığını Google’da çalışma saatlerine bakarak kontrol et. Kapalıysa o saate KOYMA: saatini açık olduğu bir saate çek. ' +
+      'acik: "acik" (o saatte açık olduğunu doğruladın), "kapali" (o saatte kapalı ama saatini değiştiremedin), "bilinmiyor" (çalışma saatini bulamadın; UYDURMA). ' +
+      'Park, sahil, meydan gibi her zaman açık yerler "acik". acikNot: bulduğun çalışma saati ya da kapalı günü (ör. "09:00-17:00, Pazartesi kapalı"); bulamadıysan boş. ' +
+      'YÜRÜME: yurumeDk = bir önceki duraktan yürüyerek kaç dakika (yürünmüyorsa ya da günün ilk durağıysa 0); aracDk = araçla gidiliyorsa kaç dakika (yoksa 0). ' +
+      'Üst üste 2 duraktan fazla yürüme olmasın: araya bir kafe / mola durağı (tur: "Mola") koy. ' +
       'baslik: planın kısa adı (ör. "2 gün Sapanca"). Türkçe yaz.',
-    `Anlattıkları: ${b.anlatim}\nKaç gün: ${b.gun}\nKimlerle: ${b.kimlerle || 'belirtilmedi'}\nÇıkış saati: ${b.cikis || 'belirtilmedi'}`,
+    `Anlattıkları: ${b.anlatim}\nKaç gün: ${b.gun}\nKimlerle: ${b.kimlerle || 'belirtilmedi'}\nÇıkış saati: ${b.cikis || 'belirtilmedi'}` +
+      `\nİlk gün: ${b.baslangic || 'belirtilmedi (haftanın günü bilinmiyor: yalnızca saate göre kontrol et, kapalı günü acikNot’a yaz)'}` +
+      (b.cocuk ? `\nÇocuk: var${b.cocukYas ? `, yaş: ${b.cocukYas}` : ', yaş belirtilmedi'}` : ''),
     {
       type: 'object',
       additionalProperties: false,
@@ -1980,7 +2014,7 @@ export async function aiGeziPlan(b: { anlatim: string; gun: number; kimlerle: st
         gunler: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['duraklar'], properties: { duraklar: { type: 'array', items: GEZI_DURAK_SEMA } } } }
       }
     },
-    5000,
+    6500,
     true
   )
   return { baslik: String(v.baslik ?? '').trim(), gunler: (v.gunler ?? []).map((g) => (g?.duraklar ?? []).filter((d) => d?.ad)) }

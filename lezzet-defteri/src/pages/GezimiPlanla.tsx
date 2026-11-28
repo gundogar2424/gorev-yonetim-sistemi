@@ -3,6 +3,11 @@ import { aiGeziDegistir, aiGeziPlan, apiAnahtari } from '../lib/ai'
 import {
   BOS_GEZI,
   GEZI_ACILIS,
+  acikYazi,
+  baslangicYazi,
+  cocukYazi,
+  kapaliDuraklar,
+  yolYazi,
   degisiklikUygula,
   durakCikar,
   durakKalsin,
@@ -13,7 +18,8 @@ import {
   planOzeti,
   type GeziDurum
 } from '../lib/geziPlan'
-import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
+import { dosyaPaylas, geziHtml } from '../lib/paylas'
+import { Header, T_BASLIK, T_GOVDE, T_SOLUK, Toast, useToast } from '../components/ui'
 
 // GEZIMI PLANLA: ustte sohbet kutusu, altinda plan karti (gun sekmeleri; her durakta Kalsin ve Cikar).
 // Eksik bilgi sorulari telefonda sorulur (yapay zeka harcanmaz). Plan 1 kez olusturulur ve saklanir;
@@ -25,6 +31,7 @@ export default function GezimiPlanla() {
   const [hata, setHata] = useState('')
   const [gun, setGun] = useState(0)
   const [yeniSor, setYeniSor] = useState(false)
+  const [toast, goster] = useToast()
   const son = useRef<HTMLDivElement>(null)
   const kaydet = (y: GeziDurum) => {
     setD(y)
@@ -42,10 +49,12 @@ export default function GezimiPlanla() {
     setMesgul('Plan hazırlanıyor…')
     setHata('')
     try {
-      const p = await aiGeziPlan({ anlatim: y.anlatim, gun: y.gun ?? 1, kimlerle: y.kimlerle ?? '', cikis: y.cikis ?? '' })
+      const p = await aiGeziPlan({ anlatim: y.anlatim, gun: y.gun ?? 1, kimlerle: y.kimlerle ?? '', cikis: y.cikis ?? '', cocuk: y.cocuk, cocukYas: y.cocukYas, baslangic: baslangicYazi(y.baslangic) })
       if (!p.gunler.some((g) => g.length)) throw new Error('Plan çıkarılamadı. Nereye gideceğini biraz daha açık yaz.')
       const k = planKur({ ...y, aiCagri: y.aiCagri + 1 }, p)
-      kaydet({ ...k, sohbet: [...k.sohbet, { kim: 'ai', metin: 'Planın hazır, aşağıda. Değiştirmek istediğin yeri yaz; yalnızca orası değişir.' }] })
+      // O saatte kapali kalan durak varsa sohbette yazilir
+      const kapali = kapaliDuraklar(k).map((metin) => ({ kim: 'ai' as const, metin }))
+      kaydet({ ...k, sohbet: [...k.sohbet, { kim: 'ai', metin: 'Planın hazır, aşağıda. Değiştirmek istediğin yeri yaz; yalnızca orası değişir.' }, ...kapali] })
       setGun(0)
     } catch (e) {
       setHata((e as Error).message)
@@ -135,6 +144,13 @@ export default function GezimiPlanla() {
         {d.plan && (
           <div className="lz-card p-3.5 space-y-3" data-gezi-plan>
             <div className={`lz-baslik font-semibold text-[17px] ${T_BASLIK}`}>{d.plan.baslik || 'Gezi planım'}</div>
+            {(d.kimlerle || d.cocuk) && (
+              <div className={`text-[13px] ${T_GOVDE}`} data-gezi-kimlerle>
+                {d.kimlerle ? `Kimlerle: ${d.kimlerle}` : ''}
+                {d.kimlerle && d.cocuk ? ' · ' : ''}
+                {cocukYazi(d)}
+              </div>
+            )}
             <div className="flex flex-wrap gap-1.5" data-gezi-gunler>
               {gunler.map((_, i) => (
                 <button key={i} className={`lz-chip !min-h-[48px] text-[13.5px] ${seciliGun === i ? 'lz-chip-on' : ''}`} onClick={() => setGun(i)}>
@@ -142,14 +158,23 @@ export default function GezimiPlanla() {
                 </button>
               ))}
             </div>
-            {(gunler[seciliGun] ?? []).map((x) => (
-              <div key={x.id} className={`rounded-[10px] border p-3 space-y-2 ${x.kalsin ? 'border-emerald-600 bg-emerald-50 dark:bg-[#12261b]' : 'border-[#DDD2BF] dark:border-[#2C261F]'}`} data-durak={x.id}>
+            {(gunler[seciliGun] ?? []).map((x, sira) => (
+              <div key={x.id} className="space-y-2">
+              {sira > 0 && yolYazi(x) && (
+                <div className={`text-[12.5px] font-semibold pl-3 ${T_SOLUK}`} data-yol>
+                  ↓ {yolYazi(x)}
+                </div>
+              )}
+              <div className={`rounded-[10px] border p-3 space-y-2 ${x.kalsin ? 'border-emerald-600 bg-emerald-50 dark:bg-[#12261b]' : 'border-[#DDD2BF] dark:border-[#2C261F]'}`} data-durak={x.id}>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[14px] font-bold tabular-nums text-lz-600 w-12 flex-shrink-0 pt-0.5">{x.saat || '—'}</span>
                   <div className="flex-1 min-w-0">
                     <div className={`font-semibold text-[15px] leading-snug ${T_BASLIK}`}>{x.ad}</div>
                     <div className={`text-[12.5px] ${T_SOLUK}`}>{x.tur}</div>
                     {x.aciklama && <div className={`text-[13.5px] mt-0.5 ${T_GOVDE}`}>{x.aciklama}</div>}
+                    <div className={`text-[12.5px] mt-0.5 font-semibold ${x.acik === 'acik' ? 'text-emerald-700 dark:text-emerald-400' : x.acik === 'kapali' ? 'text-amber-800 dark:text-amber-300' : T_SOLUK}`} data-acik={x.acik ?? 'bilinmiyor'}>
+                      {acikYazi(x)}
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -161,11 +186,23 @@ export default function GezimiPlanla() {
                   </button>
                 </div>
               </div>
+              </div>
             ))}
             {!(gunler[seciliGun] ?? []).length && <p className={`text-[13.5px] ${T_SOLUK}`}>Bu günde durak kalmadı. Sohbetten “{seciliGun + 1}. güne … ekle” yazabilirsin.</p>}
             <p className={`text-[12px] ${T_SOLUK}`} data-gezi-not>
               Plan 1 kez oluşturuldu ve telefonda saklanıyor. Kalsın dediğin durak sohbetle değişmez. Çıkar yapay zeka harcamaz.
             </p>
+            <button
+              className="lz-btn-primary w-full !min-h-[48px] text-[14px]"
+              onClick={() =>
+                void dosyaPaylas(d.plan?.baslik || 'Gezi planım', geziHtml(d), '', 'Planı paylaş')
+                  .then(() => goster('✓ Plan paylaşıma hazır'))
+                  .catch(() => goster('Paylaşılamadı'))
+              }
+              data-gezi-paylas
+            >
+              Paylaş
+            </button>
             {!yeniSor ? (
               <button className="lz-btn-soft w-full !min-h-[48px] text-[13.5px]" onClick={() => setYeniSor(true)} data-gezi-yeni>
                 Yeni plan
@@ -193,6 +230,7 @@ export default function GezimiPlanla() {
           </div>
         )}
       </div>
+      <Toast text={toast} />
     </div>
   )
 }

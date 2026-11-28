@@ -532,6 +532,10 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
       <ul>
         <li><b>Sohbet kutusu:</b> Ekranın üstünde. İlk yazı: "Nereye gideceksin, kaç gün, kimlerle, ne yapmak istiyorsun, anlat." Cümleyle yazılır.</li>
         <li><b>Sorular:</b> Eksik bilgi varsa en fazla 3 soru sorulur: "Kaç gün?", "Kimlerle gideceksin?", "Kaçta çıkacaksın?". Cümlede yazılmış olan sorulmaz. Sorular telefonda sorulur, yapay zeka harcamaz.</li>
+        <li><b>Çocuk yaşı:</b> "Kimlerle gideceksin?" cevabında çocuk varsa her çocuğun yaşı da sorulur ("Çocukların yaşı kaç? Her çocuk için yaz.") ve planda saklanır; plan kartında "Çocuk var · yaş: 4, 7" yazar. Bu soru 3 soru sınırına dahil değildir, bir kez sorulur. Yaş yazılmazsa yaş uydurulmaz: "yaş belirtilmemiş" yazar. Çocuk varsa plan ona göre yapılır: yürüme kısa, merdivensiz ve bebek arabasına uygun yerler, yemekler erken saatte, geç saate konser ya da tiyatro konmaz, araya oyun molası konur.</li>
+        <li><b>Açık / Kapalı:</b> Plan oluşturulurken her durak o gün ve o saatte açık mı diye kontrol edilir. Kapalıysa o saate konmaz, saati değiştirilir; değiştirilemediyse durakta ve sohbette "O saatte kapalı" yazar. Bilinmiyorsa uydurulmaz: "Açık / Kapalı: Belirtilmemiş" yazar. Gezinin günü cümleden anlaşılırsa (bugün, yarın, cumartesi, hafta sonu) o güne göre bakılır; anlaşılmazsa gün uydurulmaz, yalnızca saate göre bakılır. Sohbetle değiştirilen ya da eklenen durakta da "Belirtilmemiş" yazar.</li>
+        <li><b>Yürüme ve mola:</b> Duraklar arasında yürüme süresi yazar: örnek: "↓ 8 dk yürüme"; araçla gidiliyorsa "↓ Araçla 15 dk". Üst üste 2 duraktan fazla yürüme varsa araya kafe / mola durağı konur. Çocuk varsa yürüme daha kısa tutulur.</li>
+        <li><b>Paylaş:</b> Planın altında <span class="dugme">Paylaş</span> düğmesi var. Plan, tarif paylaşımı gibi tek HTML dosyası olarak gönderilir: günler, saatler, duraklar, notlar, yürüme süreleri ve Açık / Kapalı bilgisi içindedir. Karşı taraf uygulama olmadan tarayıcıda açar.</li>
         <li><b>Plan kartı:</b> Plan sohbetin içinde kaybolmaz; sohbet kutusunun altında ayrı kart olarak durur. Üstünde <span class="dugme">1. Gün</span>, <span class="dugme">2. Gün</span> sekmeleri. Her durakta saat, yer, tür, kısa açıklama ve iki düğme: <span class="dugme">Kalsın</span> ve <span class="dugme">Çıkar</span>.</li>
         <li><b>Kalsın ve Çıkar:</b> Kalsın denen durak yeşil çerçeveli olur ve sohbetle yapılan değişiklikler ona dokunmaz. Çıkar durağı plandan çıkarır; yapay zeka harcamaz.</li>
         <li><b>Şunu değiştir:</b> Plan çıktıktan sonra sohbete yazılan istek (örnek: "öğle yemeğini köfteciyle değiştir") yalnızca o durağı değiştirir; diğer duraklar aynı kalır. Kaç durağın değiştiği sohbette yazar.</li>
@@ -650,6 +654,6 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   </main>
 </div>
 
-<footer>Lezzet Rotası · Sürüm 1.0.234 · Kasım 2026</footer>
+<footer>Lezzet Rotası · Sürüm 1.0.235 · Kasım 2026</footer>
 
 </body></html>

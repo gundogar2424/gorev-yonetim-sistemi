@@ -479,3 +479,50 @@ export async function yaziPaylas(baslik: string, metin: string, pencere: string)
   await navigator.clipboard.writeText(metin)
   return 'kopyalandi'
 }
+
+// GEZI PLANI: tek dosyalik HTML (karsi tarafta uygulama gerekmez, tarayicida internetsiz acilir).
+// Icinde gunler, saatler, duraklar ve notlar var.
+export function geziHtml(d: import('./geziPlan').GeziDurum): string {
+  const plan = d.plan
+  const baslik = plan?.baslik || 'Gezi planım'
+  const yol = (x: { yurumeDk?: number; aracDk?: number }) => ((x.yurumeDk ?? 0) > 0 ? `${x.yurumeDk} dk yürüme` : (x.aracDk ?? 0) > 0 ? `Araçla ${x.aracDk} dk` : '')
+  const acik = (x: { acik?: string; acikNot?: string }) => {
+    const n = x.acikNot ? ` · ${k(x.acikNot)}` : ''
+    return x.acik === 'acik' ? `Açık${n}` : x.acik === 'kapali' ? `O saatte kapalı${n}` : 'Açık / Kapalı: Belirtilmemiş'
+  }
+  const ust = [
+    d.gun ? `${d.gun} gün` : '',
+    d.kimlerle ? `Kimlerle: ${k(d.kimlerle)}` : '',
+    d.cocuk ? `Çocuk var · ${d.cocukYas ? `yaş: ${k(d.cocukYas)}` : 'yaş belirtilmemiş'}` : '',
+    d.cikis ? `Çıkış: ${k(d.cikis)}` : ''
+  ].filter(Boolean)
+  const gunler = (plan?.gunler ?? [])
+    .map(
+      (g, i) =>
+        `<h2>${i + 1}. Gün</h2>` +
+        g
+          .map(
+            (x, j) =>
+              (j > 0 && yol(x) ? `<p class="yol">↓ ${yol(x)}</p>` : '') +
+              `<div class="durak"><div class="saat">${k(x.saat || '—')}</div><div><div class="ad">${k(x.ad)}</div><div class="tur">${k(x.tur)}</div>` +
+              (x.aciklama ? `<div class="not">${k(x.aciklama)}</div>` : '') +
+              `<div class="acik">${acik(x)}</div></div></div>`
+          )
+          .join('')
+    )
+    .join('')
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${k(baslik)}</title><style>
+body{margin:0;background:#FAF6EC;color:#221C15;font:16px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+h1{font:700 26px/1.2 Georgia,serif;margin:0 0 6px}
+h2{font:700 20px/1.2 Georgia,serif;margin:26px 0 10px;border-bottom:2px solid #DDD2BF;padding-bottom:6px}
+.ust{color:#5C5245;font-size:14px;margin:0}
+.durak{display:flex;gap:12px;background:#FFFDF8;border:1px solid #DDD2BF;border-radius:10px;padding:12px;margin:8px 0}
+.saat{font-weight:700;color:#9A2F17;min-width:48px}
+.ad{font-weight:700}
+.tur,.acik{color:#5C5245;font-size:13.5px}
+.not{font-size:14.5px;margin-top:2px}
+.yol{color:#5C5245;font-size:13.5px;font-weight:600;margin:4px 0 4px 14px}
+footer{color:#5C5245;font-size:12.5px;margin-top:28px;text-align:center}
+</style></head><body><main><h1>${k(baslik)}</h1>${ust.length ? `<p class="ust">${ust.join(' · ')}</p>` : ''}${gunler}<footer>Lezzet Rotası ile hazırlandı</footer></main></body></html>`
+}

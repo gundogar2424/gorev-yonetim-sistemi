@@ -10,13 +10,17 @@ export interface GeziMesaj {
   kim: 'ben' | 'ai'
   metin: string
 }
-export type GeziSoru = 'gun' | 'kimlerle' | 'cikis'
+export type GeziSoru = 'gun' | 'kimlerle' | 'cikis' | 'cocukYas'
 export interface GeziDurum {
   sohbet: GeziMesaj[]
   anlatim: string
   gun?: number
   kimlerle?: string
   cikis?: string
+  cocuk?: boolean // kimlerle icinde cocuk var
+  cocukYas?: string // yazildigi gibi (ör. "4, 7"); bos = yas yazilmadi (uydurulmaz)
+  cocukSoruldu?: boolean
+  baslangic?: string // ilk gun: YYYY-AA-GG (anlatimdan anlasildiysa)
   bekleyen?: GeziSoru // cevabi beklenen soru
   soruSayisi: number
   plan?: { baslik: string; gunler: GeziDurak[][]; zaman: number }
@@ -28,7 +32,7 @@ const KEY = 'lz-gezi-plan'
 export const BOS_GEZI: GeziDurum = { sohbet: [], anlatim: '', soruSayisi: 0, sonNo: 0, aiCagri: 0 }
 export const GEZI_EN_FAZLA_SORU = 3
 export const GEZI_ACILIS = 'Nereye gideceksin, kaç gün, kimlerle, ne yapmak istiyorsun, anlat.'
-export const GEZI_SORULAR: Record<GeziSoru, string> = { gun: 'Kaç gün?', kimlerle: 'Kimlerle gideceksin?', cikis: 'Kaçta çıkacaksın?' }
+export const GEZI_SORULAR: Record<GeziSoru, string> = { gun: 'Kaç gün?', kimlerle: 'Kimlerle gideceksin?', cikis: 'Kaçta çıkacaksın?', cocukYas: 'Çocukların yaşı kaç? Her çocuk için yaz.' }
 
 export function geziOku(): GeziDurum {
   try {
@@ -62,6 +66,41 @@ export function kimlerleOku(m: string): string | undefined {
   const r = k.match(/(tek başıma|yalnız|kendim|eşim\S*|karım\S*|kocam\S*|sevgilim\S*|aile\S*|çocuk\S*|kızım\S*|oğlum\S*|annem\S*|babam\S*|arkadaş\S*|kardeş\S*|\d+\s*kişi)/g)
   return r ? [...new Set(r)].join(', ') : undefined
 }
+// Cocuk var mi: "çocuk", "kızım", "oğlum", "bebek", "torun"
+export function cocukVarMi(m: string): boolean {
+  return /çocu[kğ]|kız[ıi]m|oğlum|bebe[kğ]|torun/.test(m.toLocaleLowerCase('tr'))
+}
+// Yaslar: "4 ve 7 yaşında", "3 yaş", "18 aylık". Yalnizca yazilan alinir; yoksa undefined (yas uydurulmaz)
+export function cocukYasOku(m: string, soruCevabi = false): string | undefined {
+  const k = m.toLocaleLowerCase('tr')
+  const l: string[] = []
+  for (const r of k.matchAll(/((?:\d{1,2}\s*(?:,|ve|-)\s*)*\d{1,2})\s*(yaş|ay)/g)) {
+    for (const n of r[1].match(/\d{1,2}/g) ?? []) l.push(r[2] === 'ay' ? `${n} aylık` : n)
+  }
+  if (!l.length && soruCevabi) for (const n of k.match(/\b\d{1,2}\b/g) ?? []) if (Number(n) <= 17) l.push(n)
+  return l.length ? l.join(', ') : undefined
+}
+const HAFTA = ['pazar', 'pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi']
+const HAFTA_AD = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
+const ikiHane = (n: number) => String(n).padStart(2, '0')
+const gunStr = (d: Date) => `${d.getFullYear()}-${ikiHane(d.getMonth() + 1)}-${ikiHane(d.getDate())}`
+// Ilk gun: "bugün", "yarın", "cumartesi", "hafta sonu". Anlasilmazsa undefined (uydurulmaz)
+export function baslangicOku(m: string, simdi = new Date()): string | undefined {
+  const k = m.toLocaleLowerCase('tr')
+  const ileri = (n: number) => gunStr(new Date(simdi.getFullYear(), simdi.getMonth(), simdi.getDate() + n))
+  if (/\bbugün\b/.test(k)) return ileri(0)
+  if (/\byarın\b/.test(k)) return ileri(1)
+  const hedef = /hafta ?sonu/.test(k) ? 6 : HAFTA.findIndex((g) => new RegExp(`(^|[^a-zçğıöşü])${g}(?![a-zçğıöşü]*tesi)`).test(k))
+  // "pazar" kelimesi "pazartesi"nin icinde gecer: once uzun adlar
+  const tam = /pazartesi/.test(k) && hedef === 0 ? 1 : hedef
+  if (tam < 0) return undefined
+  return ileri((tam - simdi.getDay() + 7) % 7)
+}
+export function baslangicYazi(t: string | undefined): string {
+  if (!t) return ''
+  const [y, a, g] = t.split('-').map(Number)
+  return `${t} ${HAFTA_AD[new Date(y, a - 1, g).getDay()]}`
+}
 export function cikisOku(m: string): string | undefined {
   const k = m.toLocaleLowerCase('tr')
   const r = k.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/)
@@ -78,7 +117,10 @@ export function geziMesajIsle(d: GeziDurum, metin: string): { durum: GeziDurum; 
   if (d.bekleyen) {
     // Sorunun cevabi: anlasilmasa da yazildigi gibi alinir (ayni soru ikinci kez sorulmaz)
     if (d.bekleyen === 'gun') y.gun = gunOku(metin) ?? (Number(metin.match(/\d{1,2}/)?.[0]) || SAYI[metin.trim().toLocaleLowerCase('tr')] || 1)
-    else if (d.bekleyen === 'kimlerle') y.kimlerle = metin.trim().slice(0, 120)
+    else if (d.bekleyen === 'kimlerle') {
+      y.kimlerle = metin.trim().slice(0, 120)
+      if (cocukVarMi(metin)) y.cocuk = true
+    } else if (d.bekleyen === 'cocukYas') y.cocukYas = cocukYasOku(metin, true) // yas yazilmadiysa bos kalir
     else y.cikis = cikisOku(metin) ?? (metin.match(/\d{1,2}/) ? `${metin.match(/\d{1,2}/)![0].padStart(2, '0')}:00` : metin.trim().slice(0, 40))
     y.bekleyen = undefined
   } else {
@@ -88,7 +130,17 @@ export function geziMesajIsle(d: GeziDurum, metin: string): { durum: GeziDurum; 
   y.gun ??= gunOku(metin)
   y.kimlerle ??= kimlerleOku(metin)
   y.cikis ??= cikisOku(metin)
-  const eksik: GeziSoru | undefined = !y.gun ? 'gun' : !y.kimlerle ? 'kimlerle' : !y.cikis ? 'cikis' : undefined
+  y.baslangic ??= baslangicOku(metin)
+  if (cocukVarMi(metin)) y.cocuk = true
+  if (y.cocuk) y.cocukYas ??= cocukYasOku(metin)
+  // Cocuk varsa ve yas yazilmadiysa: kimlerle sorusunun hemen ardindan yas sorulur (bir kez; 3 soru sinirina dahil degil)
+  if (y.cocuk && !y.cocukYas && !y.cocukSoruldu && y.kimlerle) {
+    y.cocukSoruldu = true
+    y.bekleyen = 'cocukYas'
+    y.sohbet = [...y.sohbet, { kim: 'ai', metin: GEZI_SORULAR.cocukYas }]
+    return { durum: y, sonraki: 'cocukYas' }
+  }
+  const eksik: Exclude<GeziSoru, 'cocukYas'> | undefined = !y.gun ? 'gun' : !y.kimlerle ? 'kimlerle' : !y.cikis ? 'cikis' : undefined
   if (eksik && y.soruSayisi < GEZI_EN_FAZLA_SORU) {
     y.bekleyen = eksik
     y.soruSayisi++
@@ -99,10 +151,50 @@ export function geziMesajIsle(d: GeziDurum, metin: string): { durum: GeziDurum; 
   return { durum: y, sonraki: 'plan' }
 }
 
+const MOLA_MI = /mola|kafe|kahve|yemek|kahvaltı|oyun|çay|dondurma|pasta/i
+const dkEkle = (saat: string, dk: number): string => {
+  const r = saat.match(/^(\d{1,2}):(\d{2})$/)
+  if (!r) return saat
+  const t = Math.min(23 * 60 + 59, Number(r[1]) * 60 + Number(r[2]) + dk)
+  return `${ikiHane(Math.floor(t / 60))}:${ikiHane(t % 60)}`
+}
+// Ust uste 2 duraktan fazla yurume varsa araya mola durağı konur (yer adi uydurulmaz: "Mola (kafe)")
+export function molaEkle(g: GeziDurakAi[]): GeziDurakAi[] {
+  const l: GeziDurakAi[] = []
+  let ustUste = 0
+  for (const x of g) {
+    const yuruyerek = (x.yurumeDk ?? 0) > 0
+    if (yuruyerek && ustUste >= 2) {
+      const onceki = l[l.length - 1]
+      l.push({ saat: onceki ? dkEkle(onceki.saat, 45) : x.saat, ad: 'Mola (kafe)', tur: 'Mola', aciklama: 'Yürüyüş arası: yakındaki bir kafede dinlen.', acik: 'bilinmiyor', acikNot: '', yurumeDk: 0, aracDk: 0 })
+      ustUste = 0
+    }
+    ustUste = yuruyerek ? ustUste + 1 : 0
+    if (MOLA_MI.test(x.tur)) ustUste = 0
+    l.push(x)
+  }
+  return l
+}
 export function planKur(d: GeziDurum, p: { baslik: string; gunler: GeziDurakAi[][] }): GeziDurum {
   let no = d.sonNo
-  const gunler = p.gunler.filter((g) => g.length).map((g) => g.map((x) => ({ ...x, id: ++no })))
+  const gunler = p.gunler.filter((g) => g.length).map((g) => molaEkle(g).map((x) => ({ ...x, id: ++no })))
   return { ...d, plan: { baslik: p.baslik, gunler, zaman: Date.now() }, sonNo: no }
+}
+// Plandaki "o saatte kapali" duraklar (sohbette yazilir)
+export function kapaliDuraklar(d: GeziDurum): string[] {
+  return (d.plan?.gunler ?? []).flatMap((g, i) => g.filter((x) => x.acik === 'kapali').map((x) => `${i + 1}. gün ${x.saat} ${x.ad}: o saatte kapalı${x.acikNot ? ` (${x.acikNot})` : ''}`))
+}
+export function acikYazi(x: Pick<GeziDurak, 'acik' | 'acikNot'>): string {
+  const n = x.acikNot ? ` · ${x.acikNot}` : ''
+  return x.acik === 'acik' ? `Açık${n}` : x.acik === 'kapali' ? `O saatte kapalı${n}` : 'Açık / Kapalı: Belirtilmemiş'
+}
+export function yolYazi(x: Pick<GeziDurak, 'yurumeDk' | 'aracDk'>): string {
+  if ((x.yurumeDk ?? 0) > 0) return `${x.yurumeDk} dk yürüme`
+  if ((x.aracDk ?? 0) > 0) return `Araçla ${x.aracDk} dk`
+  return ''
+}
+export function cocukYazi(d: Pick<GeziDurum, 'cocuk' | 'cocukYas'>): string {
+  return d.cocuk ? `Çocuk var · ${d.cocukYas ? `yaş: ${d.cocukYas}` : 'yaş belirtilmemiş'}` : ''
 }
 // Yapay zekaya giden kisa ozet (yalnizca no, gun, saat, ad, tur)
 export function planOzeti(d: GeziDurum): string {
@@ -120,11 +212,11 @@ export function degisiklikUygula(d: GeziDurum, l: GeziDegisiklik[]): { durum: Ge
     if (x.islem === 'ekle') {
       if (!x.ad?.trim()) continue
       const gi = Math.max(0, Math.min(gunler.length - 1, (x.gun || 1) - 1))
-      gunler[gi] = saatSirala([...gunler[gi], { id: ++no, saat: x.saat, ad: x.ad.trim(), tur: x.tur, aciklama: x.aciklama }])
+      gunler[gi] = saatSirala([...gunler[gi], { id: ++no, saat: x.saat, ad: x.ad.trim(), tur: x.tur, aciklama: x.aciklama, acik: 'bilinmiyor' as const }])
       sayi++
     } else if (!kilitli.has(x.id) && gunler.some((g) => g.some((y) => y.id === x.id))) {
       if (x.islem === 'cikar') gunler = gunler.map((g) => g.filter((y) => y.id !== x.id))
-      else gunler = gunler.map((g) => (g.some((y) => y.id === x.id) ? saatSirala(g.map((y) => (y.id === x.id ? { ...y, saat: x.saat || y.saat, ad: x.ad?.trim() || y.ad, tur: x.tur || y.tur, aciklama: x.aciklama || y.aciklama } : y))) : g))
+      else gunler = gunler.map((g) => (g.some((y) => y.id === x.id) ? saatSirala(g.map((y) => (y.id === x.id ? { ...y, saat: x.saat || y.saat, ad: x.ad?.trim() || y.ad, tur: x.tur || y.tur, aciklama: x.aciklama || y.aciklama, acik: 'bilinmiyor' as const, acikNot: '', yurumeDk: 0, aracDk: 0 } : y))) : g))
       sayi++
     }
   }
