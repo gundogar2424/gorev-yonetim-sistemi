@@ -61,7 +61,7 @@ export function cookidooSayfasi(r: LzRecipe): string {
     '@type': 'Recipe',
     name: r.title,
     description: ozetMetni,
-    author: { '@type': 'Person', name: r.author || 'Lezzet Rotası' },
+    author: { '@type': 'Person', name: r.author || 'My Life' },
     recipeYield: r.servings ? `${r.servings} porsiyon` : undefined,
     totalTime: r.minutes ? `PT${r.minutes}M` : undefined,
     recipeCategory: tm?.category || r.tags[0],
@@ -73,7 +73,7 @@ export function cookidooSayfasi(r: LzRecipe): string {
   const canon = yayinUrl(r)
   const ana = canon.replace(/t\/[^/]+$/, '')
   const ozet = [r.servings ? `${r.servings} porsiyon` : '', r.minutes ? `${r.minutes} dk` : '', tm ? `Thermomix · ${tm.category}` : ''].filter(Boolean).join(' · ')
-  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${k(r.title)} – Lezzet Rotası</title>
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${k(r.title)} – My Life</title>
 <meta name="description" content="${k(ozetMetni.slice(0, 160))}"><link rel="canonical" href="${canon}"><meta name="lz-tarih" content="${new Date().toISOString().slice(0, 10)}">
 <meta property="og:title" content="${k(r.title)}"><meta property="og:type" content="article"><meta property="og:url" content="${canon}">
 <script type="application/ld+json">${JSON.stringify(veri).replace(/</g, '\\u003c')}</script>
@@ -90,7 +90,7 @@ ul,ol{margin:0;padding-left:22px}li{margin:6px 0}ol li{padding-left:4px}
 <body><main><a class="geri" href="${ana}">← Tüm tarifler</a><h1>${k(r.title)}</h1>${ozet ? `<p class="ozet">${k(ozet)}</p>` : ''}
 ${sekmeliGovde(r, malzemeler, adimlar, !!tm)}
 ${notlar ? `<section><h2>Notlar</h2><p class="not">${k(notlar)}</p></section>` : ''}
-<footer>Lezzet Rotası ile hazırlandı${r.sourceUrl ? ` · Kaynak: <a href="${k(r.sourceUrl)}" rel="nofollow">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a>` : ''}</footer></main></body></html>`
+<footer>My Life ile hazırlandı${r.sourceUrl ? ` · Kaynak: <a href="${k(r.sourceUrl)}" rel="nofollow">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a>` : ''}</footer></main></body></html>`
 }
 
 // Sitedeki tarif sayfasinda sekmeler: Normal / Thermomix / Pilav Pisirici (yalnizca CSS, betik yok)

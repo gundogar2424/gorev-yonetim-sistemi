@@ -114,7 +114,7 @@ ${r.tags.length ? `<div style="margin-top:8px">${r.tags.map((t) => `<span class=
 
 function alt(r: LzRecipe): string {
   return `<div class="alt">${r.sourceUrl ? `Kaynak: <a href="${k(r.sourceUrl)}">${k(r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 50))}</a><br>` : ''}
-🍲 Lezzet Rotası ile paylaşıldı${'' /* uygulama sahibi ise: Tarif ekle → Dosyadan ile deftere alinir */}</div>`
+🍲 My Life ile paylaşıldı${'' /* uygulama sahibi ise: Tarif ekle → Dosyadan ile deftere alinir */}</div>`
 }
 
 function sayfa(baslik: string, govde: string, gomulu: string, betik = ''): string {
@@ -317,9 +317,9 @@ export function paylasilanTarifOku(icerik: string): Partial<LzRecipe> {
   try {
     v = JSON.parse(ham)
   } catch {
-    throw new Error('Bu dosyada Lezzet Rotası tarifi bulunamadı.')
+    throw new Error('Bu dosyada My Life tarifi bulunamadı.')
   }
-  if (v.app !== 'lezzet-defteri-tarif' || !v.tarif?.title) throw new Error('Bu dosyada Lezzet Rotası tarifi bulunamadı.')
+  if (v.app !== 'lezzet-defteri-tarif' || !v.tarif?.title) throw new Error('Bu dosyada My Life tarifi bulunamadı.')
   return v.tarif
 }
 
@@ -355,7 +355,7 @@ ${yedim.length || tekrar || notum ? `<div class="kart"><h2>Ben gittim</h2><ul cl
 ${m.oneriler.length ? `<div class="kart"><h2>Ne yenir</h2><ul class="m">${m.oneriler.slice(0, 8).map((o) => `<li><label>${k(o)}</label></li>`).join('')}</ul></div>` : ''}
 ${m.paylasan && py && (py.begendi || py.karar || py.yedi) ? `<div class="kart"><h2>${k(m.paylasan)} ne dedi</h2><ul class="m">${satir('Yedi', py.yedi)}${satir('Beğendi', py.begendi)}${satir('Beğenmedi', py.begenmedi)}${satir('Kararı', py.karar)}</ul></div>` : ''}
 ${m.adres ? `<div class="kart"><h2>Adres</h2><div class="not">${k(m.adres)}</div></div>` : ''}
-<div class="alt">Lezzet Rotası ile paylaşıldı</div>`
+<div class="alt">My Life ile paylaşıldı</div>`
   return sayfa(m.ad, govde, '{}')
 }
 
@@ -524,5 +524,5 @@ h2{font:700 20px/1.2 Georgia,serif;margin:26px 0 10px;border-bottom:2px solid #D
 .not{font-size:14.5px;margin-top:2px}
 .yol{color:#5C5245;font-size:13.5px;font-weight:600;margin:4px 0 4px 14px}
 footer{color:#5C5245;font-size:12.5px;margin-top:28px;text-align:center}
-</style></head><body><main><h1>${k(baslik)}</h1>${ust.length ? `<p class="ust">${ust.join(' · ')}</p>` : ''}${gunler}<footer>Lezzet Rotası ile hazırlandı</footer></main></body></html>`
+</style></head><body><main><h1>${k(baslik)}</h1>${ust.length ? `<p class="ust">${ust.join(' · ')}</p>` : ''}${gunler}<footer>My Life ile hazırlandı</footer></main></body></html>`
 }

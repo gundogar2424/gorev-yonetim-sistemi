@@ -157,7 +157,7 @@ export default function Recipes() {
       <Header
         title={
           <span className="flex items-center gap-2 min-w-0">
-            <Logo className="w-7 h-7 flex-shrink-0" /> <span className="truncate text-[28px] leading-none">Lezzet Rotası</span>
+            <Logo className="w-7 h-7 flex-shrink-0" /> <span className="truncate text-[28px] leading-none">My Life</span>
           </span>
         }
         subtitle={`${tarifler.length} tarif · ${mekanSayisi} mekan`}

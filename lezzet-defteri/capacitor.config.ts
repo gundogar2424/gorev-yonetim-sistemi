@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.lezzet.defteri',
-  appName: 'Lezzet Rotası',
+  appName: 'My Life',
   webDir: 'dist'
 }
 

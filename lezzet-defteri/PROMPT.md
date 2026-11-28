@@ -1,6 +1,6 @@
-# Lezzet Rotası — Uygulama Promptu
+# My Life — Uygulama Promptu
 
-Aşağıdaki özelliklere sahip, Türkçe arayüzlü bir Android uygulaması yap: **Lezzet Rotası**. Sosyal medyada gördüğüm tarifleri ve mekanları tek dokunuşla kaydeden, düzenleyen, pişirmeme ve gezmeme yardım eden kişisel bir yemek defteri.
+Aşağıdaki özelliklere sahip, Türkçe arayüzlü bir Android uygulaması yap: **My Life**. Sosyal medyada gördüğüm tarifleri ve mekanları tek dokunuşla kaydeden, düzenleyen, pişirmeme ve gezmeme yardım eden kişisel bir yemek defteri.
 
 ## Temel ilkeler
 - **Hesap yok, sunucu yok.** Tüm veriler telefonda (IndexedDB) durur. API anahtarları yalnızca telefonda saklanır, yedeğe girmez.
@@ -11,7 +11,7 @@ Aşağıdaki özelliklere sahip, Türkçe arayüzlü bir Android uygulaması yap
 - **Teknik:** React + TypeScript + Vite + Tailwind, Dexie (IndexedDB), Capacitor ile Android APK; GitHub Actions ile APK derlenir ve sabit bir indirme linkine (zip) konur.
 
 ## 1. Paylaşımdan kaydetme
-- Android **Paylaş** menüsünde iki seçenek: **"Lezzet Rotası: Tarif"** ve **"Lezzet Rotası: Mekan"**.
+- Android **Paylaş** menüsünde iki seçenek: **"My Life: Tarif"** ve **"My Life: Mekan"**.
 - Instagram, TikTok, YouTube, web sayfası ya da düz metin paylaşılabilir. Paylaşımlar **sıraya** girer, art arda gönderilebilir, aynı anda 2 iş işlenir; uygulama kapansa da sıra kaybolmaz (arka planda bildirimli servis).
 - Önce açıklama okunur; yetmezse video indirilir ve yapay zekaya (Gemini videoyu ses+görüntüyle anlar) verilir. Video 75 sn'de inmezse açıklamadan devam edilir; tek iş en fazla 8 dk sürer, takılan iş hataya düşer, sıra kilitlenmez.
 - Kaydırmalı gönderilerde görsellerdeki tarifler okunur; aynı gönderideki birden fazla tarif ayrı ayrı eklenir.

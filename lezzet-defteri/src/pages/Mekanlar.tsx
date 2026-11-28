@@ -391,7 +391,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
         {/* MEKAN KARTLARI: Tarifler kartiyla ayni, 2 sutun */}
         {listeHam === undefined && <IskeletKartlar adet={4} izgara />}
         {listeHam !== undefined && liste.length === 0 && (
-          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Henüz mekan yok. Aşağıdaki “Mekan ekle”den ya da Instagram’da Paylaş → Lezzet Rotası: Mekan ile ekle.</div>
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Henüz mekan yok. Aşağıdaki “Mekan ekle”den ya da Instagram’da Paylaş → My Life: Mekan ile ekle.</div>
         )}
         {hypeBos && (
           <p className="rounded-xl bg-amber-50 dark:bg-[#33270f] text-amber-900 dark:text-amber-200 text-[12.5px] px-3 py-2">
@@ -496,7 +496,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             <summary className="cursor-pointer font-semibold text-lz-600 min-h-[48px] flex items-center">Nasıl çalışır?</summary>
             <p className="pt-1">
               Instagram, TikTok, YouTube ya da Google Haritalar linkini yapıştır; ya da sadece adını ve semtini yaz (“Karaköy Lokantası, İstanbul”). Konum yazmasa
-              da yapay zeka Google’da araştırıp yerini kendisi bulur. En kolayı: Instagram’da Paylaş → Lezzet Rotası: Mekan; hiçbir şey yazmana gerek yok.
+              da yapay zeka Google’da araştırıp yerini kendisi bulur. En kolayı: Instagram’da Paylaş → My Life: Mekan; hiçbir şey yazmana gerek yok.
             </p>
           </details>
           <textarea

@@ -76,7 +76,7 @@ export async function downloadBackup(): Promise<void> {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
     const { Share } = await import('@capacitor/share')
     const yaz = await Filesystem.writeFile({ path: ad, data: metin, directory: Directory.Cache, encoding: Encoding.UTF8 })
-    await Share.share({ title: 'Lezzet Rotası yedeği', dialogTitle: 'Yedeği kaydet (Drive, e-posta…)', files: [yaz.uri] })
+    await Share.share({ title: 'My Life yedeği', dialogTitle: 'Yedeği kaydet (Drive, e-posta…)', files: [yaz.uri] })
     return
   }
   const blob = new Blob([metin], { type: 'application/json' })
@@ -101,7 +101,7 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
     throw new Error('Dosya okunamadı. Geçerli bir yedek dosyası seç.')
   }
   if (data?.app !== 'lezzet-defteri' || !Array.isArray(data.recipes)) {
-    throw new Error('Bu dosya Lezzet Rotası yedeği değil.')
+    throw new Error('Bu dosya My Life yedeği değil.')
   }
 
   let eklendi = 0

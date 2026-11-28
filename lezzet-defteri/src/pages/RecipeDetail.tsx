@@ -550,7 +550,7 @@ export default function RecipeDetail() {
             ikon="link"
           />
           <p className={`text-[11.5px] px-1 pt-1 ${T_SOLUK}`}>
-            Karşı tarafta Lezzet Rotası varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
+            Karşı tarafta My Life varsa dosyayı “Tarif ekle → Dosyadan” ile defterine alabilir.
           </p>
         </div>
       </Sheet>
