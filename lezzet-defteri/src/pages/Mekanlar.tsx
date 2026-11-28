@@ -45,6 +45,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   const [arama, setArama] = useState('')
   const [aramaOdak, setAramaOdak] = useState(false)
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
+  const [sadeceYeni, setSadeceYeni] = useState(false) // son 7 gunde eklenenler, en yeni ustte
   // Mekan sayfasindaki etikete / yemege dokununca buraya ?etiket= / ?yemek= ile gelinir
   const [params] = useSearchParams()
   const [etiket, setEtiket] = useState(params.get('etiket') ?? '')
@@ -104,6 +105,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   const suzulmus = liste.filter(
     (m) =>
       (!sadeceGidilmedi || !m.gidildi) &&
+      (!sadeceYeni || yeniMekan(m)) &&
       (!etiket || m.etiketler.includes(etiket)) &&
       (!yemek || yemekGeciyor(m, yemek)) &&
       (!sadeceFavori || m.favori) &&
@@ -114,8 +116,10 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   )
   const mesafe = (m: LzMekan) => (konum && m.lat !== undefined && m.lon !== undefined ? mesafeKm(konum, { lat: m.lat, lon: m.lon }) : undefined)
   // Etiket ya da yemek secilince bulundugum yerden uzaga dogru; digerlerinde en begenilen once (esitse yakin olan)
-  const sirali =
-    etiket || yemek || yaricap
+ // Yeni: en yeni en ustte (puan siralamasi yok); Yakininda/etiket/yemek: yakindan uzaga; digerleri: puana gore
+  const sirali = sadeceYeni
+    ? [...suzulmus].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+    : etiket || yemek || yaricap
       ? [...suzulmus].sort((a, b) => (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9) || mekanSkoru(b) - mekanSkoru(a))
       : [...suzulmus].sort((a, b) => mekanSkoru(b) - mekanSkoru(a) || (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
   // Etiket / yemekle gelindiyse liste goruntulenir
@@ -151,6 +155,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
         .filter(
           (m) =>
             (!sadeceGidilmedi || !m.gidildi) &&
+            (!sadeceYeni || yeniMekan(m)) &&
             (!etiket || m.etiketler.includes(etiket)) &&
             (!yemek || yemekGeciyor(m, yemek)) &&
             (!sadeceFavori || m.favori) &&
@@ -226,6 +231,14 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}>
               Gitmediklerim
             </button>
+            {/* Yeni: son 7 gunde eklenen mekanlar (7 gun dolunca kendiliginden cikar) */}
+            <button
+              className={`lz-chip col-span-2 justify-center !whitespace-normal text-center leading-tight ${sadeceYeni ? 'lz-chip-on' : ''}`}
+              onClick={() => setSadeceYeni(!sadeceYeni)}
+              data-mekan-yeni
+            >
+              Yeni
+            </button>
             {/* Yakininda: ayri ekran degil; ayni liste 1 km icindekilerle, yakindan uzaga (Daha fazla goster ile 3, 5, 10 km) */}
             <button
               className={`lz-chip col-span-2 justify-center !whitespace-normal text-center leading-tight ${yaricap > 0 ? 'lz-chip-on' : ''}`}
@@ -282,7 +295,9 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
           <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>{yaricap} km içinde kayıtlı mekan yok. Aşağıdaki “Daha fazla göster” ile büyüt.</div>
         )}
         {!sadeceHype && !yaricap && liste.length > 0 && sirali.length === 0 && (
-          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>Bu seçime uyan mekan yok.</div>
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>
+            {sadeceYeni && !q && !etiket && !yemek && !sadeceFavori && !sadeceIstek && !sadeceGidilmedi ? 'Son 7 günde yeni mekan yok' : 'Bu seçime uyan mekan yok.'}
+          </div>
         )}
         {gosterilen.length > 0 && (
           <div className="grid grid-cols-2 gap-3">
@@ -396,6 +411,12 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   )
 }
 
+// Yeni mekan: son 7 gunde eklenen (7 gun dolunca kendiliginden cikar; kontrol dugmesi gerekmez)
+const YENI_MEKAN_GUN = 7
+function yeniMekan(m: Pick<LzMekan, 'createdAt'>, simdi = Date.now()): boolean {
+  return !!m.createdAt && m.createdAt >= simdi - YENI_MEKAN_GUN * 86400000
+}
+
 // En ustteki sabit etiketler (hepsi "Tumu" ekraninda)
 const SABIT_ETIKETLER = ['Popüler', 'Tatlı', 'Sokak lezzeti', 'Pastane', 'Kahve', 'Kahvaltı']
 
@@ -454,6 +475,12 @@ function MekanKarti({ m, km, cerceve = true }: { m: LzMekan; km?: number; cercev
         >
           <Icon name="bookmark" className={`w-[15px] h-[15px] ${m.gitmekIstiyorum ? 'fill-current' : ''}`} />
         </button>
+        {yeniMekan(m) && (
+          // Sol ust: "gitmek istiyorum" isaretinin hemen yaninda; yildiz (sag ust, 32 px) ile binmez
+          <span className="absolute top-[14px] left-12 text-[11px] font-extrabold tracking-[0.04em] px-2 py-1 rounded-md bg-lz-600 text-white shadow-sm" data-mekan-yeni-rozet>
+            YENİ
+          </span>
+        )}
         <div className="absolute bottom-2 left-2 flex gap-1">
           {m.gidildi && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white">✓ Gittin</span>}
           {m.hype?.var && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-lz-600 text-white">Hype</span>}
