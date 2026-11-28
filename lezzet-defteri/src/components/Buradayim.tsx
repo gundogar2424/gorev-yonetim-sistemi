@@ -138,7 +138,7 @@ export default function Buradayim() {
           {guncel > 0 && konum && !durum && (
             <p className={`text-[12px] ${T_SOLUK}`}>
               Son güncelleme {onceYaz(guncel)} ·{' '}
-              <button className="text-lz-600 font-semibold underline min-h-[32px]" onClick={() => void haritadanBul(konum, true)}>
+              <button className="text-lz-600 font-semibold underline min-h-[48px] inline-flex items-center" onClick={() => void haritadanBul(konum, true)}>
                 Yenile
               </button>
             </p>

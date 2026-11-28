@@ -485,7 +485,7 @@ function DurumSeridi({ yakindakiler }: { yakindakiler: () => void }) {
   if (!sira && !mekanVar) return null
   // Ayrac: iki parca ayri dokunulabilir; arada ince dikey cizgi
   const ayrac = <span className="w-px my-2 bg-[#CFC3AE] dark:bg-[#554A3D]" aria-hidden="true" />
-  const parca = 'min-h-[44px] px-1 flex items-center text-left text-[13.5px] leading-snug font-bold active:opacity-70'
+  const parca = 'min-h-[48px] px-1 flex items-center text-left text-[13.5px] leading-snug font-bold active:opacity-70'
   return (
     <div className="lz-card !border-l-4 !border-l-lz-600 pl-2.5 pr-2 py-1 min-h-[52px] flex items-center gap-2.5" data-durum-seridi>
       <span className={`lz-ikon-kutu w-8 h-8 ${s.hata && !s.bekleyen ? '!bg-rose-50 !text-rose-700 dark:!bg-[#2a1a1d]' : ''} ${s.bekleyen ? 'animate-pulse' : ''}`}>

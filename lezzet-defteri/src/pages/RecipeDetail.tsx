@@ -235,7 +235,7 @@ export default function RecipeDetail() {
             </div>
           )}
           {kaynak && (
-            <button onClick={() => void kaynagiAc()} className="mt-3 inline-flex items-center gap-1.5 min-h-[40px] text-[13px] font-semibold text-lz-600" data-kaynak-ac>
+            <button onClick={() => void kaynagiAc()} className="mt-3 inline-flex items-center gap-1.5 min-h-[48px] text-[13px] font-semibold text-lz-600" data-kaynak-ac>
               <Icon name="link" className="w-4 h-4" /> {platformAd ? `${platformAd}’da aç` : 'Kaynağı aç'}
             </button>
           )}
@@ -263,11 +263,11 @@ export default function RecipeDetail() {
                           {p.cihaz ? ` · ${CIHAZ_AD[p.cihaz]}` : ''}
                           {p.sonuc ? ` · Sonuç: ${SONUC_AD[p.sonuc]}` : ''}
                         </div>
-                        <button className="lz-chip !min-h-[36px] !px-2.5 text-[12.5px]" onClick={() => setDuzenKayit(p)} data-gunluk-duzenle>
+                        <button className="lz-chip !min-h-[48px] !px-2.5 text-[12.5px]" onClick={() => setDuzenKayit(p)} data-gunluk-duzenle>
                           Düzenle
                         </button>
                         <button
-                          className="lz-chip !min-h-[36px] !px-2.5 text-[12.5px] !text-rose-700 !border-rose-300 dark:!text-rose-300"
+                          className="lz-chip !min-h-[48px] !px-2.5 text-[12.5px] !text-rose-700 !border-rose-300 dark:!text-rose-300"
                           onClick={() => {
                             if (confirm(`${p.no}. pişirme kaydı silinsin mi? Pişirme sayısı 1 azalır.`)) void kaydiSil(r.id!, p.zaman)
                           }}

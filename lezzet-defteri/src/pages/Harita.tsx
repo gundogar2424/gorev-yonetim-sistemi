@@ -368,7 +368,7 @@ export default function Harita() {
         {/* Kaydirinca ortada "Bu bolgede ara" */}
         {buBolge && (
           <button
-            className="absolute z-[500] left-1/2 -translate-x-1/2 top-14 lz-btn-primary !min-h-[44px] !py-2 !px-4 text-[14px] shadow-lg"
+            className="absolute z-[500] left-1/2 -translate-x-1/2 top-14 lz-btn-primary !min-h-[48px] !py-2 !px-4 text-[14px] shadow-lg"
             onClick={buBolgedeAra}
           >
             <Icon name="search" className="w-4 h-4" /> Bu bölgede ara
@@ -406,7 +406,7 @@ export default function Harita() {
               <span className={`flex-1 text-[13px] font-semibold ${T_BASLIK}`}>
                 {satirlar.length} mekan · {yaricap / 1000} km içinde
               </span>
-              <select className="lz-input !py-1.5 !min-h-[40px] text-[13px] w-auto max-w-[45%]" value={sehir} onChange={(e) => setSehir(e.target.value)}>
+              <select className="lz-input !py-1.5 !min-h-[48px] text-[13px] w-auto max-w-[45%]" value={sehir} onChange={(e) => setSehir(e.target.value)}>
                 <option value="">Yakınımdakiler</option>
                 {sehirler.map((s) => (
                   <option key={s} value={s}>
@@ -417,7 +417,7 @@ export default function Harita() {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {SUZGEC.map(([k, ad]) => (
-                <button key={k} className={`lz-chip !min-h-[36px] text-[12.5px] ${suzgec === k ? 'lz-chip-on' : ''}`} onClick={() => setSuzgec(k)}>
+                <button key={k} className={`lz-chip !min-h-[48px] text-[12.5px] ${suzgec === k ? 'lz-chip-on' : ''}`} onClick={() => setSuzgec(k)}>
                   {ad}
                 </button>
               ))}
@@ -456,14 +456,14 @@ export default function Harita() {
                 {s.kayitli ? (
                   <Link
                     to={`/mekan/${s.kayitli.id}`}
-                    className="lz-btn-soft !min-h-[40px] !px-3 text-[13px] flex-shrink-0"
+                    className="lz-btn-soft !min-h-[48px] !px-3 text-[13px] flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                   >
                     Aç ›
                   </Link>
                 ) : (
                   <button
-                    className="lz-btn-primary !min-h-[40px] !px-3 text-[12.5px] flex-shrink-0"
+                    className="lz-btn-primary !min-h-[48px] !px-3 text-[12.5px] flex-shrink-0"
                     disabled={ekleniyor === s.anahtar}
                     onClick={(e) => {
                       e.stopPropagation()

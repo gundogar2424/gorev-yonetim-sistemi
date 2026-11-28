@@ -241,11 +241,11 @@ export default function MekanDetay() {
                   {satir('Neyi beğendi', p.yorum?.begendi || p.yorum?.karar)}
                   {satir('Neyi beğenmedi', p.yorum?.begenmedi)}
                   <div className="flex gap-2 flex-wrap pt-1">
-                    <button className="lz-btn-soft !min-h-[40px] px-3 text-[13px]" onClick={() => ac(p.url)} data-video-ac>
+                    <button className="lz-btn-soft !min-h-[48px] px-3 text-[13px]" onClick={() => ac(p.url)} data-video-ac>
                       ▶ Videoyu aç{PLATFORM[p.platform] ? ` (${PLATFORM[p.platform]})` : ''}
                     </button>
                     {(p.ekLinkler ?? []).map((l, j) => (
-                      <button key={j} className="lz-chip !min-h-[40px] text-[12.5px]" onClick={() => ac(l.url)}>
+                      <button key={j} className="lz-chip !min-h-[48px] text-[12.5px]" onClick={() => ac(l.url)}>
                         Ayrıca {PLATFORM[l.platform] ?? 'paylaşım'} ›
                       </button>
                     ))}

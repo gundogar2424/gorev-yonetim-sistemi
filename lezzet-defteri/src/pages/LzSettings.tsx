@@ -434,7 +434,7 @@ function KolaylikKarti() {
             {MESAFE_SECENEK.map((m) => (
               <button
                 key={m}
-                className={`lz-chip justify-center min-h-[44px] ${mesafe === m ? 'lz-chip-on' : ''}`}
+                className={`lz-chip justify-center min-h-[48px] ${mesafe === m ? 'lz-chip-on' : ''}`}
                 onClick={() => {
                   setMesafe(m)
                   yakinMesafeKaydet(m)
@@ -449,7 +449,7 @@ function KolaylikKarti() {
             {SES_SECENEK.map((x) => (
               <button
                 key={x.id}
-                className={`lz-chip justify-center min-h-[44px] !px-2 text-center !whitespace-normal leading-tight ${sesSecim === x.id ? 'lz-chip-on' : ''}`}
+                className={`lz-chip justify-center min-h-[48px] !px-2 text-center !whitespace-normal leading-tight ${sesSecim === x.id ? 'lz-chip-on' : ''}`}
                 onClick={() => {
                   setSesSecim(x.id)
                   yakinSesKaydet(x.id)

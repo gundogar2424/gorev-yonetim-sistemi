@@ -70,14 +70,14 @@ export function PisirmeNotu({
           <span className={`block text-[13.5px] font-semibold mb-1 ${T_BASLIK}`}>Sonuç</span>
           <div className="grid grid-cols-3 gap-2">
             {(Object.keys(SONUC_AD) as NonNullable<PisirmeKaydi['sonuc']>[]).map((k) => (
-              <button key={k} className={`lz-chip justify-center !min-h-[44px] !px-2 ${sonuc === k ? 'lz-chip-on' : ''}`} onClick={() => setSonuc(sonuc === k ? undefined : k)} data-sonuc={k}>
+              <button key={k} className={`lz-chip justify-center !min-h-[48px] !px-2 ${sonuc === k ? 'lz-chip-on' : ''}`} onClick={() => setSonuc(sonuc === k ? undefined : k)} data-sonuc={k}>
                 {SONUC_AD[k]}
               </button>
             ))}
           </div>
         </div>
         {!duzenle && (
-          <label className="flex items-start gap-3 min-h-[44px] cursor-pointer">
+          <label className="flex items-start gap-3 min-h-[48px] cursor-pointer">
             <input
               type="checkbox"
               className="mt-1 w-5 h-5 flex-shrink-0"

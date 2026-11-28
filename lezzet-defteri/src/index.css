@@ -141,10 +141,7 @@ textarea {
 .lz-app .text-lz-600 {
   color: #9A2F17;
 }
-.lz-app .lz-chip.\!bg-lz-600 {
-  background-color: #221C15 !important;
-  border-color: #221C15 !important;
-}
+/* Mekanlarim'da secili etiket ve "1 km içinde ✕" gibi secim cipleri domates dolgu, beyaz yazi (kilavuzdaki gibi) */
 .lz-app .\!border-l-lz-600 {
   border-left-color: #9A2F17 !important;
 }
@@ -276,7 +273,7 @@ textarea {
   }
   /* Tarif etiketleri: 15 px, #221C15, orta kalin, 1,5 px #B9AD98 kenar */
   .lz-etiket {
-    @apply inline-flex items-center justify-center rounded-[8px] px-4 min-h-[44px] text-[15px] font-semibold whitespace-nowrap transition;
+    @apply inline-flex items-center justify-center rounded-[8px] px-4 min-h-[48px] text-[15px] font-semibold whitespace-nowrap transition;
     @apply bg-white text-[#221C15] border-[1.5px] border-[#B9AD98];
   }
   .lz-etiket-on {
