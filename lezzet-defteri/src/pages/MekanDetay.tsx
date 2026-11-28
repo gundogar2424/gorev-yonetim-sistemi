@@ -111,7 +111,7 @@ export default function MekanDetay() {
         right={
           <button
             aria-label="Paylaş"
-            className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-[#1c1c1f] border border-[#e4e3e0] dark:border-[#2e2e33] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8] active:scale-95 transition"
+            className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-[#231E18] border border-[#DDD2BF] dark:border-[#342D25] flex items-center justify-center text-[#3A3228] dark:text-[#DDD5C8] active:scale-95 transition"
             onClick={async () => {
               // Dogrudan mekan sayfasi (HTML dosyasi) paylasilir
               try {
@@ -171,7 +171,7 @@ export default function MekanDetay() {
                   {m.ekLinkler!.map((l, j) => (
                     <button
                       key={j}
-                      className="rounded-full bg-[#f3f3f1] dark:bg-[#26262a] px-2.5 py-1 text-[11.5px] font-semibold"
+                      className="rounded-full bg-[#F2EBDD] dark:bg-[#2C261F] px-2.5 py-1 text-[11.5px] font-semibold"
                       onClick={(e) => {
                         e.preventDefault()
                         ac(l.url)
@@ -217,7 +217,7 @@ export default function MekanDetay() {
                 </p>
               )
               return (
-                <div key={i} className="rounded-2xl border border-[#E5DDD6] dark:border-[#3a3a41] bg-white dark:bg-[#1f1f23] p-3 space-y-1.5" data-diger-kart>
+                <div key={i} className="rounded-2xl border border-[#DDD2BF] dark:border-[#453C31] bg-white dark:bg-[#231E18] p-3 space-y-1.5" data-diger-kart>
                   <div className="flex items-center gap-2.5">
                     {p.paylasan ? (
                       <Link to={`/influencer/${encodeURIComponent(anahtar)}`} className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -275,7 +275,7 @@ export default function MekanDetay() {
           <div className="lz-card p-4 space-y-2">
             <div className={`font-semibold ${T_BASLIK}`}>Aynı videodaki diğer mekanlar</div>
             {ayniVideo.map((x) => (
-              <Link key={x.id} to={`/mekan/${x.id}`} className={`flex items-center gap-2 rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-2 text-[14px] ${T_GOVDE}`}>
+              <Link key={x.id} to={`/mekan/${x.id}`} className={`flex items-center gap-2 rounded-2xl bg-[#F2EBDD] dark:bg-[#2C261F] px-3 py-2 text-[14px] ${T_GOVDE}`}>
                 <span className="flex-1 min-w-0">
                   <span className="font-semibold">{x.ad}</span>
                   <span className={`block text-[12px] ${T_SOLUK}`}>{[x.tur, x.ilce].filter(Boolean).join(' · ')}</span>
@@ -685,7 +685,7 @@ function ZiyaretKarti({ m, goster, otoAc }: { m: LzMekan; goster: (s: string) =>
       {sirali.map(({ x, i }) => (
         <button
           key={i}
-          className="w-full text-left rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-0.5"
+          className="w-full text-left rounded-2xl bg-[#F2EBDD] dark:bg-[#2C261F] p-3 space-y-0.5"
           onClick={() => {
             setZ(x)
             setTutarYazi('')
@@ -817,7 +817,7 @@ function UnluKarti({ m, goster }: { m: LzMekan; goster: (s: string) => void }) {
       </div>
       {u.liste.length ? (
         u.liste.map((x, i) => (
-          <div key={i} className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1">
+          <div key={i} className="rounded-2xl bg-[#F2EBDD] dark:bg-[#2C261F] p-3 space-y-1">
             <div className={`font-semibold text-[14px] ${T_GOVDE}`}>
               {x.kisi}
               {x.tarih && <span className={`ml-2 text-[12px] font-normal ${T_SOLUK}`}>{x.tarih}</span>}

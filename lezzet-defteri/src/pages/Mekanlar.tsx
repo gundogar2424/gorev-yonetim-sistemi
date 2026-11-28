@@ -185,14 +185,14 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             return (
               <button
                 key={e}
-                className={`lz-chip text-[13px] ${on ? '!bg-lz-600 !border-lz-600 !text-white' : '!text-[#18181b] dark:!text-white'}`}
+                className={`lz-chip text-[13px] ${on ? '!bg-lz-600 !border-lz-600 !text-white' : '!text-[#221C15] dark:!text-white'}`}
                 onClick={() => {
                   setEtiket(on ? '' : e)
                   listeyeGit()
                 }}
               >
                 {e}
-                <span className={`text-[11px] ${on ? 'text-white/80' : 'text-[#5f5f68] dark:text-[#a1a1aa]'}`}>{sayac.get(e) ?? 0}</span>
+                <span className={`text-[11px] ${on ? 'text-white/80' : 'text-[#5C5245] dark:text-[#B3A998]'}`}>{sayac.get(e) ?? 0}</span>
               </button>
             )
           })}
@@ -426,7 +426,7 @@ function KisaKart({ to, onClick, ikon, baslik, alt, vurgu = false, acik }: { to?
   const ic = (
     <>
       <span className="flex items-center justify-between">
-        <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${vurgu ? 'bg-lz-600 text-white' : 'bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300'}`}>{ikon}</span>
+        <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${vurgu ? 'bg-[#221C15] text-white dark:bg-[#F4EFE6] dark:text-[#221C15]' : 'bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300'}`}>{ikon}</span>
         <Icon name="back" className={`w-4 h-4 flex-shrink-0 ${acik === undefined ? 'rotate-180' : acik ? 'rotate-90' : '-rotate-90'} ${T_SOLUK}`} />
       </span>
       <span className="block min-w-0">
@@ -454,13 +454,13 @@ function MekanKarti({ m, km, cerceve = true }: { m: LzMekan; km?: number; cercev
   const alt = [km !== undefined ? mesafeYaz(km) : '', fiyat ? `${fiyat} fiyat` : ''].filter(Boolean).join(' · ')
   const yakin = cerceve && km !== undefined && km <= YAKIN_KM
   return (
-    <div className={`lz-card overflow-hidden flex flex-col min-w-0 ${yakin ? 'ring-1 ring-red-500 dark:ring-red-400' : ''}`}>
+    <div className={`lz-card lz-gezi overflow-hidden flex flex-col min-w-0 ${yakin ? 'ring-1 ring-red-500 dark:ring-red-400' : ''}`}>
       <div className="relative">
         <Link to={`/mekan/${m.id}`} aria-label={m.ad} className="block">
           <Thumb src={m.foto} className="w-full rounded-none aspect-[4/3]" emoji="" />
         </Link>
         <button
-          className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${m.favori ? 'text-amber-400' : 'text-[#71717a] dark:text-[#d4d4d8]'}`}
+          className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${m.favori ? 'text-amber-400' : 'text-[#6A5F51] dark:text-[#DDD5C8]'}`}
           aria-label={m.favori ? 'Favorilerden çıkar' : 'Favorilere ekle'}
           onClick={() => void lzDb.mekanlar.update(m.id!, { favori: !m.favori })}
         >
@@ -469,7 +469,7 @@ function MekanKarti({ m, km, cerceve = true }: { m: LzMekan; km?: number; cercev
           </svg>
         </button>
         <button
-          className={`absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${m.gitmekIstiyorum ? 'text-lz-600' : 'text-[#71717a] dark:text-[#d4d4d8]'}`}
+          className={`absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${m.gitmekIstiyorum ? 'text-lz-600' : 'text-[#6A5F51] dark:text-[#DDD5C8]'}`}
           aria-label={m.gitmekIstiyorum ? 'Gitmek istediklerimden çıkar' : 'Gitmek istiyorum'}
           onClick={() => void lzDb.mekanlar.update(m.id!, { gitmekIstiyorum: !m.gitmekIstiyorum })}
         >
@@ -482,13 +482,17 @@ function MekanKarti({ m, km, cerceve = true }: { m: LzMekan; km?: number; cercev
           </span>
         )}
         <div className="absolute bottom-2 left-2 flex gap-1">
-          {m.gidildi && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white">✓ Gittin</span>}
+          {m.gidildi && (
+            <span className="lz-muhur" data-muhur>
+              Gittim
+            </span>
+          )}
           {m.hype?.var && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-lz-600 text-white">Hype</span>}
           {m.reklam && <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-black/60 text-white">Reklam</span>}
         </div>
       </div>
       <Link to={`/mekan/${m.id}`} className="p-2.5 flex flex-col gap-1 flex-1 min-w-0">
-        <div className={`font-semibold text-[14.5px] leading-[1.3] line-clamp-2 min-h-[2.6em] ${T_BASLIK}`}>{m.ad}</div>
+        <div className={`lz-baslik font-semibold text-[15px] leading-[1.3] line-clamp-2 min-h-[2.6em] ${T_BASLIK}`}>{m.ad}</div>
         <div className={`text-[12px] truncate ${T_SOLUK}`}>
           {m.puan ? <b className="text-amber-700 dark:text-amber-300 font-semibold">{puanYaz(m)}</b> : null}
           {m.puan && (m.tur || m.ilce) ? ' · ' : ''}

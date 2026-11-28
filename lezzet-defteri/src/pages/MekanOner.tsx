@@ -251,7 +251,7 @@ export default function MekanOner() {
         <button className="lz-btn-primary w-full" disabled={!aiVar || !!durum} onClick={() => void ara(HYPE)}>
           <Icon name="star" className="w-[18px] h-[18px]" /> Çevremde şu an hype olanlar {km ? `(${km} km)` : '(sınırsız)'}
         </button>
-        <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#ececea] dark:bg-[#26262a] p-1">
+        <div className="grid grid-cols-4 gap-1 rounded-2xl bg-[#ececea] dark:bg-[#2C261F] p-1">
           {(
             [
               ['oner', 'sparkle', 'Öner'],
@@ -523,7 +523,7 @@ export default function MekanOner() {
               {fiyatYazi(o.fiyat)}
             </div>
             {aktifYemek && o.yemek_fiyati && (
-              <div className="rounded-xl bg-[#f3f3f1] dark:bg-[#26262a] px-3 py-1.5 text-[14px] font-semibold text-lz-600">
+              <div className="rounded-xl bg-[#F2EBDD] dark:bg-[#2C261F] px-3 py-1.5 text-[14px] font-semibold text-lz-600">
                 {aktifYemek.ad}: {o.yemek_fiyati}
               </div>
             )}

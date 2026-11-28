@@ -163,7 +163,7 @@ export default function Recipes() {
         subtitle={`${tarifler.length} tarif · ${mekanSayisi} mekan`}
       >
           <label className="relative block">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#444] dark:text-[#d4d4d8]">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3A3228] dark:text-[#DDD5C8]">
               <Icon name="search" className="w-[20px] h-[20px]" />
             </span>
             <input
@@ -216,7 +216,7 @@ export default function Recipes() {
               <span className="text-[14px] font-bold leading-tight tracking-[-0.02em] text-black dark:text-white [overflow-wrap:normal] [word-break:normal]">{ad}</span>
               {to === '/sira' && <SiraRozeti />}
               {to === '/takip' && adaylar().length > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-lz-600 text-white text-[12px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#111113] shadow-sm">
+                <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-lz-600 text-white text-[12px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#16130F] shadow-sm">
                   {adaylar().length}
                 </span>
               )}
@@ -231,7 +231,7 @@ export default function Recipes() {
         />
 
         {/* Tariflerim / Mekanlarım / Sofralarım: esit genislik, tek satir, 48 px; sayilar gercek kayitlardan */}
-        <div ref={sekmeRef} role="tablist" className="grid grid-cols-3 gap-1 bg-[#EDEDED] dark:bg-[#26262a] rounded-xl p-1 scroll-mt-[150px]">
+        <div ref={sekmeRef} role="tablist" className="grid grid-cols-3 gap-1 bg-[#EFE6D4] dark:bg-[#2C261F] rounded-xl p-1 scroll-mt-[150px]">
           {SEKMELER.map((x) => {
             const sayi = x === 'tarifler' ? tarifler.length : x === 'mekanlar' ? mekanSayisi : sofralar.length
             return (
@@ -242,10 +242,10 @@ export default function Recipes() {
                 data-sekme={x}
                 onClick={() => setSekme(x)}
                 className={`h-[48px] min-w-0 px-1 overflow-hidden rounded-[10px] flex items-center justify-center gap-[3px] whitespace-nowrap transition ${
-                  // Secili: beyaz, siyah kalin, altta 3 px domates cizgi. Degil: #EDEDED, #222 kalin (sayi da ayni koyulukta)
+                  // Secili: beyaz, siyah kalin, altta 3 px domates cizgi. Degil: #EFE6D4, #221C15 kalin (sayi da ayni koyulukta)
                   sekme === x
-                    ? 'bg-white dark:bg-[#3a3a40] text-black dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.12),inset_0_-3px_0_#d93d20]'
-                    : 'bg-[#EDEDED] dark:bg-[#26262a] text-[#222] dark:text-[#e4e4e7]'
+                    ? 'bg-white dark:bg-[#453C31] text-black dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.12),inset_0_-3px_0_#221C15] dark:shadow-[inset_0_-3px_0_#F4EFE6]'
+                    : 'bg-[#EFE6D4] dark:bg-[#2C261F] text-[#221C15] dark:text-[#E8E1D4]'
                 }`}
               >
                 <span className="text-[13px] max-[350px]:text-[12px] font-bold tracking-[-0.02em]">{SEKME_AD[x]}</span>
@@ -340,7 +340,7 @@ export default function Recipes() {
                 )
               })}
               <button onClick={() => setYeniSofra(true)} className="flex flex-col items-center gap-1 flex-shrink-0 w-16" data-sofra-ekle>
-                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#71717a] dark:border-[#a1a1aa] text-[#52525b] dark:text-[#d4d4d8]">
+                <span className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-dashed border-[#6A5F51] dark:border-[#B3A998] text-[#4A4239] dark:text-[#DDD5C8]">
                   <Icon name="plus" />
                 </span>
                 <span className={`text-[11.5px] font-semibold whitespace-nowrap ${T_BASLIK}`}>Sofra ekle</span>
@@ -407,7 +407,7 @@ function Chip({ label, on, onClick, aciklama }: { label: string; on: boolean; on
         {label}
       </button>
       {balon && aciklama && (
-        <span role="tooltip" className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-1.5 w-max max-w-[240px] rounded-xl bg-[#18181b] text-white text-[12.5px] font-semibold px-3 py-2 shadow-lg dark:bg-white dark:text-[#18181b]" data-balon>
+        <span role="tooltip" className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-1.5 w-max max-w-[240px] rounded-xl bg-[#221C15] text-white text-[12.5px] font-semibold px-3 py-2 shadow-lg dark:bg-white dark:text-[#221C15]" data-balon>
           {aciklama}
         </span>
       )}
@@ -436,7 +436,7 @@ function RecipeCard({ r, pisirme = false }: { r: LzRecipe; pisirme?: boolean }) 
         </Link>
         <button
           onClick={() => r.id && toggleFavorite(r.id)}
-          className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${r.favorite ? 'text-amber-400' : 'text-[#71717a] dark:text-[#d4d4d8]'}`}
+          className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur flex items-center justify-center shadow-sm ${r.favorite ? 'text-amber-400' : 'text-[#6A5F51] dark:text-[#DDD5C8]'}`}
           aria-label={r.favorite ? 'Favoriden çıkar' : 'Favoriye ekle'}
         >
           <svg viewBox="0 0 24 24" className="w-[16px] h-[16px]" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
@@ -466,7 +466,7 @@ function RecipeCard({ r, pisirme = false }: { r: LzRecipe; pisirme?: boolean }) 
       </div>
       <Link to={`/tarif/${r.id}`} className="p-2.5 flex flex-col gap-1 flex-1 min-w-0">
         {/* 2 satirlik sabit yukseklik: kisa basliklarda da alttaki bilgiler ayni hizada */}
-        <div className={`font-semibold text-[14.5px] leading-[1.3] line-clamp-2 min-h-[2.6em] ${T_BASLIK}`}>{r.title}</div>
+        <div className={`lz-baslik font-semibold text-[15px] leading-[1.3] line-clamp-2 min-h-[2.6em] ${T_BASLIK}`}>{r.title}</div>
         <div className={`text-[12px] min-h-[1.4em] truncate ${pisirme ? 'text-lz-700 dark:text-[#ff9f88] font-semibold' : T_SOLUK}`} data-meta>{meta}</div>
         <div className="mt-auto pt-0.5 min-w-0">
           <PlatformLabel r={r} />
@@ -484,7 +484,7 @@ function DurumSeridi({ yakindakiler }: { yakindakiler: () => void }) {
   const sira = s.bekleyen // yalnizca "N tarif sırada işleniyor"
   if (!sira && !mekanVar) return null
   // Ayrac: iki parca ayri dokunulabilir; arada ince dikey cizgi
-  const ayrac = <span className="w-px my-2 bg-[#D8D0C8] dark:bg-[#4a4a52]" aria-hidden="true" />
+  const ayrac = <span className="w-px my-2 bg-[#CFC3AE] dark:bg-[#554A3D]" aria-hidden="true" />
   const parca = 'min-h-[44px] px-1 flex items-center text-left text-[13.5px] leading-snug font-bold active:opacity-70'
   return (
     <div className="lz-card !border-l-4 !border-l-lz-600 pl-2.5 pr-2 py-1 min-h-[52px] flex items-center gap-2.5" data-durum-seridi>
@@ -503,7 +503,7 @@ function DurumSeridi({ yakindakiler }: { yakindakiler: () => void }) {
           // Konum yoksa sayi uydurulmaz
           <button onClick={() => void merkezAl(true)} className={`${parca} text-lz-700 dark:text-[#ff9f88]`} data-yakin="kapali">
             <span>
-              <span className="text-[#333] dark:text-[#d4d4d8] font-semibold">Konum kapalı · </span>Konumumu bul
+              <span className="text-[#3A3228] dark:text-[#DDD5C8] font-semibold">Konum kapalı · </span>Konumumu bul
             </span>
           </button>
         ) : yakin.durum === 'tamam' ? (
@@ -567,7 +567,7 @@ function SofraListesi({
               <button onClick={() => onAc(t.id!)} className="text-left w-full">
                 <div className="flex -space-x-3 mb-2">
                   {icindekiler.slice(0, 3).map((r) => (
-                    <Thumb key={r.id} src={r.photo} className="w-11 h-11 rounded-full ring-2 ring-white dark:ring-[#1c1c1f] text-lg" />
+                    <Thumb key={r.id} src={r.photo} className="w-11 h-11 rounded-full ring-2 ring-white dark:ring-[#231E18] text-lg" />
                   ))}
                   {icindekiler.length === 0 && (
                     <SofraRozet ad={t.name} className="w-11 h-11 text-[15px]" />
@@ -589,7 +589,7 @@ function SofraListesi({
         })}
         <button
           onClick={onYeni}
-          className="rounded-[22px] border-2 border-dashed border-[#dcdbd7] dark:border-[#3a3a40] p-3 flex flex-col items-center justify-center gap-1 min-h-[120px] text-[#5f5f68] dark:text-[#a1a1aa]"
+          className="rounded-[22px] border-2 border-dashed border-[#CFC3AE] dark:border-[#453C31] p-3 flex flex-col items-center justify-center gap-1 min-h-[120px] text-[#5C5245] dark:text-[#B3A998]"
         >
           <Icon name="plus" className="w-6 h-6" />
           <span className="text-sm font-medium">Yeni sofra</span>

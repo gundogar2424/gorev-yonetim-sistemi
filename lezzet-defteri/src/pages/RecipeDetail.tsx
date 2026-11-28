@@ -252,7 +252,7 @@ export default function RecipeDetail() {
           <div className="lz-card p-4" data-pisirme-gecmisi>
             <h2 className={`font-bold text-[17px] mb-2 ${T_BASLIK}`}>Pişirme Günlüğü</h2>
             {r.pisirmeler?.length ? (
-              <ul className="divide-y divide-[#f1f1ef] dark:divide-[#26262a]">
+              <ul className="divide-y divide-[#E9E0CF] dark:divide-[#2C261F]">
                 {[...r.pisirmeler]
                   .sort((a, b) => b.zaman - a.zaman)
                   .map((p) => (
@@ -276,20 +276,25 @@ export default function RecipeDetail() {
                           Sil
                         </button>
                       </div>
-                      {p.degisiklik && (
-                        <div>
-                          <span className="font-semibold">Ne değiştirdim:</span> {p.degisiklik}
-                          {p.uygulandi ? <span className="ml-1 text-[12px] font-bold text-lz-700 dark:text-[#ff9f88]">✎ tarife uygulandı</span> : null}
-                        </div>
-                      )}
-                      {p.deneyim && (
-                        <div>
-                          <span className="font-semibold">Nasıl oldu:</span> {p.deneyim}
-                        </div>
-                      )}
-                      {p.not && (
-                        <div>
-                          <span className="font-semibold">Not:</span> {p.not}
+                      {/* Notlar defterin kenarina el yazisiyla dusulmus gibi (koyu murekkep, silik degil) */}
+                      {(p.degisiklik || p.deneyim || p.not) && (
+                        <div className="lz-kenar mt-1.5 space-y-0.5">
+                          {p.degisiklik && (
+                            <div>
+                              <span className={`text-[12px] font-semibold ${T_SOLUK}`}>Ne değiştirdim:</span> <span className="lz-not">{p.degisiklik}</span>
+                              {p.uygulandi ? <span className="block text-[12px] font-bold text-lz-700 dark:text-[#ff9f88]">✎ tarife uygulandı</span> : null}
+                            </div>
+                          )}
+                          {p.deneyim && (
+                            <div>
+                              <span className={`text-[12px] font-semibold ${T_SOLUK}`}>Nasıl oldu:</span> <span className="lz-not">{p.deneyim}</span>
+                            </div>
+                          )}
+                          {p.not && (
+                            <div>
+                              <span className={`text-[12px] font-semibold ${T_SOLUK}`}>Not:</span> <span className="lz-not">{p.not}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </li>
@@ -355,12 +360,12 @@ export default function RecipeDetail() {
           <div className="flex items-center justify-between mb-2">
             <h2 className={`font-bold text-[17px] ${T_BASLIK}`}>Malzemeler</h2>
             {temel > 0 && (
-              <div className="flex items-center gap-1 bg-[#f1f1ef] dark:bg-[#26262a] rounded-full p-1">
-                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1f] font-bold" onClick={() => setKisi(Math.max(1, hedef - 1))} aria-label="Azalt">
+              <div className="flex items-center gap-1 bg-[#E9E0CF] dark:bg-[#2C261F] rounded-full p-1">
+                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#231E18] font-bold" onClick={() => setKisi(Math.max(1, hedef - 1))} aria-label="Azalt">
                   −
                 </button>
                 <span className={`text-[13px] font-semibold px-1.5 tabular-nums ${T_BASLIK}`}>{hedef} kişilik</span>
-                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#1c1c1f] font-bold" onClick={() => setKisi(hedef + 1)} aria-label="Artır">
+                <button className="w-8 h-8 rounded-full bg-white dark:bg-[#231E18] font-bold" onClick={() => setKisi(hedef + 1)} aria-label="Artır">
                   +
                 </button>
               </div>
@@ -385,7 +390,7 @@ export default function RecipeDetail() {
               )}
             </div>
           ) : (
-            <ul className="divide-y divide-[#f1f1ef] dark:divide-[#26262a]">
+            <ul className="divide-y divide-[#E9E0CF] dark:divide-[#2C261F]">
               {malzemeler.map((m, i) => (
                 <li key={i}>
                   <label className="flex items-start gap-3 py-2.5 cursor-pointer">
@@ -400,7 +405,9 @@ export default function RecipeDetail() {
                         setIsaretli(s)
                       }}
                     />
-                    <span className={`text-[15px] leading-snug ${isaretli.has(i) ? 'line-through opacity-50' : ''} ${T_GOVDE}`}>{m}</span>
+                    <span className={`text-[15px] leading-snug ${isaretli.has(i) ? 'line-through opacity-50' : ''} ${T_GOVDE}`}>
+                      <Kalemli metin={m} />
+                    </span>
                   </label>
                 </li>
               ))}
@@ -427,7 +434,9 @@ export default function RecipeDetail() {
                   <span className="w-7 h-7 rounded-full bg-lz-50 dark:bg-[#3a1d16] text-lz-600 dark:text-lz-300 text-[13px] font-bold flex items-center justify-center flex-shrink-0">
                     {i + 1}
                   </span>
-                  <p className={`text-[15px] leading-relaxed pt-0.5 ${T_GOVDE}`}>{s}</p>
+                  <p className={`text-[15px] leading-relaxed pt-0.5 ${T_GOVDE}`}>
+                    <Kalemli metin={s} />
+                  </p>
                 </li>
               ))}
             </ol>
@@ -579,7 +588,7 @@ function RoundBtn({ onClick, label, children }: { onClick: () => void; label: st
     <button
       onClick={onClick}
       aria-label={label}
-      className="w-10 h-10 rounded-full bg-white/90 dark:bg-[#111113]/80 backdrop-blur text-[#18181b] dark:text-[#f4f4f5] flex items-center justify-center shadow-sm active:scale-95 transition"
+      className="w-10 h-10 rounded-full bg-white/90 dark:bg-[#16130F]/80 backdrop-blur text-[#221C15] dark:text-[#F4EFE6] flex items-center justify-center shadow-sm active:scale-95 transition"
     >
       {children}
     </button>
@@ -613,5 +622,18 @@ export function PlanSec({ open, onClose, onSec }: { open: boolean; onClose: () =
         })}
       </div>
     </Sheet>
+  )
+}
+
+// ✎ ile biten satir (Pisirme Gunlugu'nden tarife uygulanan degisiklik): kalemle alti cizilmis gibi, sonunda kalem izi
+function Kalemli({ metin }: { metin: string }) {
+  if (!/✎\s*$/.test(metin)) return <>{metin}</>
+  return (
+    <>
+      <span className="lz-kalem">{isaretsiz(metin)}</span>
+      <span className="lz-kalem-iz" aria-label="değiştirildi">
+        ✎
+      </span>
+    </>
   )
 }

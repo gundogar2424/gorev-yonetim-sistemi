@@ -147,14 +147,14 @@ export default function Influencer() {
           {/* KAPAK: genis fotograf en ustte; dokun → galeriden sec (ekran goruntusu da olur) ve kirp */}
           <label className="relative block cursor-pointer" aria-label="Profil fotoğrafını değiştir">
             {foto ? (
-              <img src={foto} alt="" className="w-full aspect-[4/3] object-cover bg-[#f3f3f1] dark:bg-[#26262a]" />
+              <img src={foto} alt="" className="w-full aspect-[4/3] object-cover bg-[#F2EBDD] dark:bg-[#2C261F]" />
             ) : (
-              <span className="w-full aspect-[4/3] flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-lz-50 to-[#f3f3f1] dark:from-[#3a1d16] dark:to-[#1c1c1f]">
+              <span className="w-full aspect-[4/3] flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-lz-50 to-[#F2EBDD] dark:from-[#3a1d16] dark:to-[#231E18]">
                 <SofraRozet ad={hesapNormal(h)} className="w-20 h-20 text-[28px]" kare />
                 <span className={`text-[12.5px] ${T_SOLUK}`}>Fotoğraf eklemek için dokun</span>
               </span>
             )}
-            <span className="absolute bottom-2.5 right-2.5 h-8 px-3 rounded-full bg-white/90 dark:bg-[#26262a]/90 backdrop-blur flex items-center gap-1.5 text-[12.5px] font-semibold text-[#27272a] dark:text-[#e4e4e7] shadow-sm">
+            <span className="absolute bottom-2.5 right-2.5 h-8 px-3 rounded-full bg-white/90 dark:bg-[#2C261F]/90 backdrop-blur flex items-center gap-1.5 text-[12.5px] font-semibold text-[#2A231B] dark:text-[#E8E1D4] shadow-sm">
               <Icon name="edit" className="w-3.5 h-3.5" /> Değiştir
             </span>
             <input
@@ -177,7 +177,7 @@ export default function Influencer() {
               <div className={`text-[22px] font-bold tracking-tight ${T_BASLIK}`}>{ad}</div>
               <div className={`text-[13px] ${T_SOLUK}`}>{platform || 'Influencer'}</div>
             </div>
-            <div className="grid grid-cols-3 text-center border-t border-[#efefed] dark:border-[#26262a] pt-3">
+            <div className="grid grid-cols-3 text-center border-t border-[#EFE7D8] dark:border-[#2C261F] pt-3">
               {(
                 [
                   [onun.length, 'mekan'],
@@ -224,7 +224,7 @@ export default function Influencer() {
                 <button
                   key={k || 'hepsi'}
                   onClick={() => setSehirSekme(k)}
-                  className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-semibold ${sehirSekme === k ? 'bg-lz-600 text-white' : 'bg-[#f3f3f1] dark:bg-[#26262a] ' + T_GOVDE}`}
+                  className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-semibold ${sehirSekme === k ? 'bg-lz-600 text-white' : 'bg-[#F2EBDD] dark:bg-[#2C261F] ' + T_GOVDE}`}
                 >
                   {k || 'Hepsi'} · {n}
                 </button>
@@ -232,8 +232,8 @@ export default function Influencer() {
             </div>
           )}
           {gorunen.map((m) => (
-            <Link key={m.id} to={`/mekan/${m.id}`} className="flex items-start gap-2.5 py-2 border-b last:border-0 border-[#efefed] dark:border-[#26262a]">
-              <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${m.gidildi ? 'bg-emerald-500' : 'bg-[#d4d4d8]'}`} />
+            <Link key={m.id} to={`/mekan/${m.id}`} className="flex items-start gap-2.5 py-2 border-b last:border-0 border-[#EFE7D8] dark:border-[#2C261F]">
+              <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${m.gidildi ? 'bg-emerald-500' : 'bg-[#DDD5C8]'}`} />
               <span className="flex-1 min-w-0">
                 <span className={`block font-semibold text-[14.5px] ${T_BASLIK}`}>
                   {m.ad}

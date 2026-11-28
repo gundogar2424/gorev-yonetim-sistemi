@@ -167,7 +167,7 @@ export default function TmDetail() {
           <h2 className={`font-bold text-[17px] mb-3 ${T_BASLIK}`}>TM7 adımları</h2>
           <ol className="space-y-3">
             {tm.steps.map((s, i) => (
-              <li key={i} className={`flex gap-3 rounded-2xl p-3 ${cihazAdimi(s) ? 'bg-[#F7F3EF] dark:bg-[#1c1c1f]' : 'border border-dashed border-[#e4e3e0] dark:border-[#2e2e33]'}`}>
+              <li key={i} className={`flex gap-3 rounded-2xl p-3 ${cihazAdimi(s) ? 'bg-[#FAF6EC] dark:bg-[#231E18]' : 'border border-dashed border-[#DDD2BF] dark:border-[#342D25]'}`}>
                 <span className="w-7 h-7 rounded-full bg-tm text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
                 <div className="min-w-0 flex-1 space-y-1.5">
                   {s.ingredients && (

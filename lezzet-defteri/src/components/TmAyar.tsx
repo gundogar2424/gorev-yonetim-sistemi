@@ -6,7 +6,7 @@ import { adimKutulari, cihazAdimi, modAdi, type TmAdim } from '../lib/tm7'
 export function AyarRozetleri({ a, buyuk = false }: { a: TmAdim; buyuk?: boolean }) {
   const boy = buyuk ? 'text-[13px] px-2.5 py-1' : 'text-[12px] px-2 py-0.5'
   if (!cihazAdimi(a)) {
-    return <span className={`inline-block rounded-md bg-[#f3f3f1] dark:bg-[#26262a] font-semibold ${boy} ${T_SOLUK}`}>Elle · cihaz dışı</span>
+    return <span className={`inline-block rounded-md bg-[#F2EBDD] dark:bg-[#2C261F] font-semibold ${boy} ${T_SOLUK}`}>Elle · cihaz dışı</span>
   }
   const kutular = adimKutulari(a)
   return (

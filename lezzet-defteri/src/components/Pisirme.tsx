@@ -23,7 +23,7 @@ function useSesle(): boolean {
   )
 }
 export const CIHAZ_RENK: Record<CihazRengi, { dolgu: string; yazi: string; ad: string }> = {
-  normal: { dolgu: '#52525b', yazi: '#ffffff', ad: 'Normal' },
+  normal: { dolgu: '#4A4239', yazi: '#ffffff', ad: 'Normal' },
   tm: { dolgu: '#2E7D5B', yazi: '#ffffff', ad: 'Thermomix TM7' },
   pp: { dolgu: '#A0603F', yazi: '#ffffff', ad: 'Pilav Pişirici' }
 }
@@ -228,7 +228,7 @@ export function PisirmeAlti({
           🔊 Oku
         </button>
       </div>
-      <p className="text-[11.5px] text-center text-[#5f5f68] dark:text-[#a1a1aa]">🔊 Oku: dokun bu adım, uzun bas sıradaki adım</p>
+      <p className="text-[11.5px] text-center text-[#5C5245] dark:text-[#B3A998]">🔊 Oku: dokun bu adım, uzun bas sıradaki adım</p>
       {sesDurum && <p className="text-[12.5px] text-center font-semibold text-emerald-700 dark:text-emerald-300">🎙 {sesDurum}</p>}
       {okuyor && okuyor !== 'bu' && okuyor !== 'sonraki' && <p className="text-[12.5px] text-center text-rose-600">{okuyor}</p>}
     </div>

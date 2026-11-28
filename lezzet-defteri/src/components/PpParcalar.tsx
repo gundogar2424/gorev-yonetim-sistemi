@@ -111,11 +111,11 @@ export function PpAdimKarti({ a, no }: { a: PpAdim; no: number }) {
       <div className="flex items-start gap-3">
         <span className="w-8 h-8 rounded-full bg-pp text-white text-[13px] font-bold flex items-center justify-center flex-shrink-0">{no}</span>
         <div className="flex-1 min-w-0 space-y-2">
-          {a.ingredients && <div className="text-[13.5px] font-semibold text-[#18181b] dark:text-white">Hazneye: {a.ingredients}</div>}
-          <div className="text-[15px] leading-relaxed text-[#3f3f46] dark:text-[#d4d4d8]">{a.text}</div>
+          {a.ingredients && <div className="text-[13.5px] font-semibold text-[#221C15] dark:text-white">Hazneye: {a.ingredients}</div>}
+          <div className="text-[15px] leading-relaxed text-[#3A3228] dark:text-[#DDD5C8]">{a.text}</div>
           <PpRozetleri a={a} />
           {a.butonlar && (
-            <div className="text-[13.5px] rounded-xl bg-black/[0.04] dark:bg-white/[0.06] p-2.5 text-[#3f3f46] dark:text-[#d4d4d8]">
+            <div className="text-[13.5px] rounded-xl bg-black/[0.04] dark:bg-white/[0.06] p-2.5 text-[#3A3228] dark:text-[#DDD5C8]">
               <b>Düğmeler:</b> {a.butonlar}
             </div>
           )}

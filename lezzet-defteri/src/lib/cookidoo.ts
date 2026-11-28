@@ -84,7 +84,7 @@ section{background:var(--kart);border:1px solid var(--cizgi);border-radius:16px;
 ul,ol{margin:0;padding-left:22px}li{margin:6px 0}ol li{padding-left:4px}
 .sekme{display:none}.sekmeler{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;background:var(--kart);border:1px solid var(--cizgi);border-radius:14px;padding:4px;margin:8px 0}
 .sekmeler label{text-align:center;font-weight:600;font-size:14px;padding:12px 4px;border-radius:10px;cursor:pointer;min-height:48px;box-sizing:border-box}
-.panel{display:none}#s-n:checked~.sekmeler .l-n{background:#52525b;color:#fff}#s-t:checked~.sekmeler .l-t{background:#2E7D5B;color:#fff}#s-p:checked~.sekmeler .l-p{background:#A0603F;color:#fff}
+.panel{display:none}#s-n:checked~.sekmeler .l-n{background:#4A4239;color:#fff}#s-t:checked~.sekmeler .l-t{background:#2E7D5B;color:#fff}#s-p:checked~.sekmeler .l-p{background:#A0603F;color:#fff}
 #s-n:checked~.p-n,#s-t:checked~.p-t,#s-p:checked~.p-p{display:block}.p-t h2{color:#2E7D5B}.p-p h2{color:#A0603F}
 .roz{display:inline-block;font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:8px;background:#f7ece7;color:#8d523c;margin:2px 4px 2px 0}.not{color:var(--soluk);font-size:14px}footer{text-align:center;color:var(--soluk);font-size:13px;padding-top:16px}footer a{color:inherit}</style></head>
 <body><main><a class="geri" href="${ana}">← Tüm tarifler</a><h1>${k(r.title)}</h1>${ozet ? `<p class="ozet">${k(ozet)}</p>` : ''}

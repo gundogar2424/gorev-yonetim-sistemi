@@ -156,7 +156,7 @@ export default function LzApp() {
 
       {!pisirme && (
       <nav
-        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-6 z-20 backdrop-blur-xl bg-white/90 dark:bg-[#111113]/90 border-t border-[#e9e8e5] dark:border-[#26262a]"
+        className="fixed bottom-0 inset-x-0 max-w-xl mx-auto grid grid-cols-6 z-20 backdrop-blur-xl bg-white/90 dark:bg-[#16130F]/90 border-t border-[#DDD2BF] dark:border-[#2C261F]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {tabs.flatMap((t, i) => [
@@ -167,7 +167,7 @@ export default function LzApp() {
                   <Link
                     to="/ekle"
                     aria-label="Tarif ekle"
-                    className="-mt-6 w-[60px] h-[60px] rounded-full bg-lz-600 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(0,0,0,0.22)] ring-4 ring-white dark:ring-[#111113] active:scale-95 transition"
+                    className="-mt-6 w-[60px] h-[60px] rounded-full bg-lz-600 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(0,0,0,0.22)] ring-4 ring-white dark:ring-[#16130F] active:scale-95 transition"
                   >
                     <Icon name="plus" className="w-7 h-7" />
                   </Link>
@@ -180,13 +180,13 @@ export default function LzApp() {
                 <span className={`px-2.5 py-1 rounded-full transition-colors ${isActive ? 'bg-lz-50 dark:bg-[#3a1d16]' : ''}`}>
                   <Icon
                     name={t.icon}
-                    className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#555] dark:text-[#b4b4bc]'}`}
+                    className={`h-[21px] w-[21px] transition-colors ${isActive ? 'text-lz-600 dark:text-lz-400' : 'text-[#5C5245] dark:text-[#BDB3A2]'}`}
                   />
                 </span>
                 <span
                   data-nav-yazi
                   className={`block text-[11px] leading-[1.15] tracking-[-0.01em] text-center max-w-full [overflow-wrap:anywhere] transition-colors ${
-                    isActive ? 'text-lz-700 dark:text-lz-400 font-bold' : 'text-[#555] dark:text-[#b4b4bc] font-medium'
+                    isActive ? 'text-lz-700 dark:text-lz-400 font-bold' : 'text-[#5C5245] dark:text-[#BDB3A2] font-medium'
                   }`}
                 >
                   {t.label}

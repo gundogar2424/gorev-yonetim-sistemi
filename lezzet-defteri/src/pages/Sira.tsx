@@ -9,11 +9,11 @@ import { Header, Icon, T_BASLIK, T_SOLUK } from '../components/ui'
 import { mekanOlarakTekrar, siraDurdur, siraIsle, siraTekrar } from '../lib/sira'
 
 // Durum isareti: renkli nokta (emojisiz)
-const IKON: Record<LzSira['durum'], string> = { bekliyor: 'bg-[#a1a1aa]', isleniyor: 'bg-amber-400 animate-pulse', bitti: 'bg-emerald-500', hata: 'bg-rose-500' }
+const IKON: Record<LzSira['durum'], string> = { bekliyor: 'bg-[#B3A998]', isleniyor: 'bg-amber-400 animate-pulse', bitti: 'bg-emerald-500', hata: 'bg-rose-500' }
 // Nokta tek basina kalmasin: yaninda durum yazisi
 const DURUM_AD: Record<LzSira['durum'], string> = { bekliyor: 'Sırada', isleniyor: 'İşleniyor', bitti: 'Bitti', hata: 'Hata' }
 const DURUM_YAZI: Record<LzSira['durum'], string> = {
-  bekliyor: 'text-[#52525b] dark:text-[#a1a1aa]',
+  bekliyor: 'text-[#4A4239] dark:text-[#B3A998]',
   isleniyor: 'text-amber-800 dark:text-amber-200',
   bitti: 'text-emerald-700 dark:text-emerald-300',
   hata: 'text-rose-700 dark:text-rose-300'
@@ -82,7 +82,7 @@ export default function Sira() {
                       {il ? ` %${il.yuzde} · ${kalanYaz(il.kalanSn)}` : ''}
                     </div>
                     {il && (
-                      <div className="mt-1.5 h-1.5 rounded-full bg-[#ececea] dark:bg-[#26262a] overflow-hidden">
+                      <div className="mt-1.5 h-1.5 rounded-full bg-[#ececea] dark:bg-[#2C261F] overflow-hidden">
                         <div className="h-full bg-amber-400 transition-all" style={{ width: `${il.yuzde}%` }} />
                       </div>
                     )}
@@ -146,7 +146,7 @@ export function SiraRozeti() {
   const n = useLiveQuery(() => lzDb.sira.where('durum').anyOf('bekliyor', 'isleniyor', 'hata').count(), [], 0) ?? 0
   if (!n) return null
   return (
-    <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-lz-600 text-white text-[12px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#111113] shadow-sm">
+    <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-lz-600 text-white text-[12px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#16130F] shadow-sm">
       {n}
     </span>
   )

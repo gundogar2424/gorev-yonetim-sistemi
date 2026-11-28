@@ -4,9 +4,9 @@ import type { LzPlatform, LzRecipe } from '../types'
 import { PLATFORM_AD } from '../lib/importer'
 
 // Sik kullanilan metin renkleri (acik / koyu tema)
-export const T_BASLIK = 'text-[#18181b] dark:text-[#f4f4f5]'
-export const T_GOVDE = 'text-[#3f3f46] dark:text-[#d4d4d8]'
-export const T_SOLUK = 'text-[#5f5f68] dark:text-[#a1a1aa]' // en az 4,5:1 kontrast (beyaz ve krem zeminde)
+export const T_BASLIK = 'text-[#221C15] dark:text-[#F4EFE6]'
+export const T_GOVDE = 'text-[#3A3228] dark:text-[#DDD5C8]'
+export const T_SOLUK = 'text-[#5C5245] dark:text-[#B3A998]' // en az 4,5:1 kontrast (beyaz ve krem zeminde)
 
 export type IconName =
   | 'book'
@@ -230,12 +230,12 @@ export function Icon({ name, className = 'w-5 h-5' }: { name: IconName; classNam
 export function Header({ title, subtitle, back, right, children }: { title: ReactNode; subtitle?: string; back?: boolean; right?: ReactNode; children?: ReactNode }) {
   const navigate = useNavigate()
   return (
-    <header className="sticky top-0 z-10 backdrop-blur-xl bg-[#F7F3EF]/85 dark:bg-[#111113]/85">
+    <header className="sticky top-0 z-10 backdrop-blur-xl bg-[#FAF6EC]/85 dark:bg-[#16130F]/85">
       <div className={`px-5 flex items-center gap-3 ${children ? 'pt-2 pb-0' : 'pt-4 pb-3'}`}>
         {back && (
           <button
             onClick={() => navigate(-1)}
-            className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-[#1c1c1f] border border-[#e4e3e0] dark:border-[#2e2e33] flex items-center justify-center text-[#3f3f46] dark:text-[#d4d4d8] active:scale-95 transition"
+            className="flex-shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-[#231E18] border border-[#DDD2BF] dark:border-[#342D25] flex items-center justify-center text-[#3A3228] dark:text-[#DDD5C8] active:scale-95 transition"
             aria-label="Geri"
           >
             <Icon name="back" />
@@ -269,7 +269,7 @@ export function SofraRozet({ ad, className = 'w-6 h-6 text-[10px]', secili = fal
   const renk = ROZET_RENK[h % ROZET_RENK.length]
   return (
     <span
-      className={`${className} ${kare ? 'rounded-[22%]' : 'rounded-full'} inline-flex items-center justify-center font-bold tracking-[-0.02em] flex-shrink-0 ${secili ? 'ring-[3px] ring-offset-2 ring-offset-[#F7F3EF] dark:ring-offset-[#111113]' : ''}`}
+      className={`${className} ${kare ? 'rounded-[22%]' : 'rounded-full'} inline-flex items-center justify-center font-bold tracking-[-0.02em] flex-shrink-0 ${secili ? 'ring-[3px] ring-offset-2 ring-offset-[#FAF6EC] dark:ring-offset-[#16130F]' : ''}`}
       style={{ background: `${renk}1f`, color: renk, ...(secili ? { ['--tw-ring-color' as string]: renk } : {}) }}
     >
       {basHarfler(ad)}
@@ -293,9 +293,9 @@ export function Logo({ className = 'w-8 h-8' }: { className?: string }) {
       <rect x="8" y="22" width="48" height="6" rx="3" fill="#b52f17" />
       <path d="M11 28h42v14a14 14 0 0 1-14 14H25a14 14 0 0 1-14-14z" fill="#ee4c2e" />
       <path d="M11 32H5M53 32h6" stroke="#b52f17" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="25" cy="38" r="2.6" fill="#18181b" />
-      <circle cx="39" cy="38" r="2.6" fill="#18181b" />
-      <path d="M26 44c3 3.5 9 3.5 12 0" stroke="#18181b" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+      <circle cx="25" cy="38" r="2.6" fill="#221C15" />
+      <circle cx="39" cy="38" r="2.6" fill="#221C15" />
+      <path d="M26 44c3 3.5 9 3.5 12 0" stroke="#221C15" strokeWidth="2.6" fill="none" strokeLinecap="round" />
       <circle cx="20" cy="43" r="2.4" fill="#ff9f88" opacity=".8" />
       <circle cx="44" cy="43" r="2.4" fill="#ff9f88" opacity=".8" />
     </svg>
@@ -310,7 +310,7 @@ export function Thumb({ src, className = 'w-20 h-20 rounded-2xl', emoji = '' }: 
     // Varsayilan kapak: beyaz bosluk yerine sicak renkli zemin ve tencere
     return (
       <div
-        className={`${className} bg-gradient-to-br from-[#fbe4dc] to-[#f6d2c4] dark:from-[#2a1d19] dark:to-[#3a241d] flex items-center justify-center flex-shrink-0 text-lz-600/70 dark:text-lz-300/70`}
+        className={`${className} bg-gradient-to-br from-[#F3EADB] to-[#E4D6BD] dark:from-[#2C261F] dark:to-[#3A3228] flex items-center justify-center flex-shrink-0 text-[#8A7654] dark:text-[#B3A998]`}
         data-emoji={emoji}
       >
         <Icon name="pot" className="w-1/3 h-1/3 max-w-[44px] max-h-[44px]" />
@@ -373,7 +373,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     <div className="fixed inset-0 z-40 flex items-end justify-center" role="dialog" aria-modal>
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative w-full max-w-xl bg-[#F7F3EF] dark:bg-[#18181b] rounded-t-[28px] max-h-[85vh] flex flex-col"
+        className="relative w-full max-w-xl bg-[#FAF6EC] dark:bg-[#221C15] rounded-t-[28px] max-h-[85vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
@@ -392,7 +392,7 @@ export function Toast({ text }: { text: string }) {
   if (!text) return null
   return (
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-50 bg-[#18181b] text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg max-w-[90vw] text-center"
+      className="fixed left-1/2 -translate-x-1/2 z-50 bg-[#221C15] text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg max-w-[90vw] text-center"
       style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
     >
       {text}
@@ -462,11 +462,11 @@ export function AltSayfa({ open, onClose, title, children }: { open: boolean; on
         ref={kutu}
         role="dialog"
         aria-label={title}
-        className="fixed z-40 bottom-0 inset-x-0 mx-auto w-full max-w-xl bg-[#F7F3EF] dark:bg-[#18181b] rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] max-h-[60vh] flex flex-col"
+        className="fixed z-40 bottom-0 inset-x-0 mx-auto w-full max-w-xl bg-[#FAF6EC] dark:bg-[#221C15] rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] max-h-[60vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="pt-2.5 flex justify-center" aria-hidden="true">
-          <span className="w-10 h-1.5 rounded-full bg-[#d4d4d8] dark:bg-[#3f3f46]" />
+          <span className="w-10 h-1.5 rounded-full bg-[#DDD5C8] dark:bg-[#3A3228]" />
         </div>
         <div className="flex items-center justify-between pl-5 pr-3 pt-1 pb-2">
           <h2 className={`text-[17px] font-bold ${T_BASLIK}`}>{title}</h2>

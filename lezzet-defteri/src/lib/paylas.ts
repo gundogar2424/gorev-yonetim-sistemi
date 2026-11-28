@@ -70,23 +70,23 @@ function gomuluVeri(r: LzRecipe, foto: string): string {
 }
 
 const STIL = `
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f7f7f5;color:#18181b;line-height:1.5}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#FAF6EC;color:#221C15;line-height:1.5}
 .w{max-width:640px;margin:0 auto;padding:16px}h1{font-size:26px;line-height:1.2;margin:12px 0 6px}h2{font-size:18px;margin:0 0 10px}
 .kart{background:#fff;border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.05),0 10px 24px -18px rgba(0,0,0,.3)}
 .foto{width:100%;max-height:340px;object-fit:cover;border-radius:22px;display:block}
 .vid{position:relative;display:block;text-decoration:none}.foto.bos{height:200px;background:linear-gradient(135deg,#d93d20,#7a1e0e)}
 .oynat{position:absolute;left:50%;top:50%;transform:translate(-50%,-60%);width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;padding-left:5px}
-.vyazi{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600}.meta{color:#86868f;font-size:14px}
+.vyazi{position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600}.meta{color:#6A5F51;font-size:14px}
 .pill{display:inline-block;background:#fff2ee;color:#b52f17;border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;margin:2px 4px 2px 0}
-ul.m{list-style:none;padding:0;margin:0}ul.m li{padding:8px 0;border-bottom:1px solid #f1f1ef;display:flex;gap:10px;align-items:flex-start}
+ul.m{list-style:none;padding:0;margin:0}ul.m li{padding:8px 0;border-bottom:1px solid #E9E0CF;display:flex;gap:10px;align-items:flex-start}
 ul.m li:last-child{border:0}ul.m input{width:20px;height:20px;accent-color:#d93d20;margin-top:2px;flex-shrink:0}ul.m label{flex:1}
 input:checked+label{text-decoration:line-through;opacity:.5}ol.a{padding:0;margin:0;list-style:none;counter-reset:a}
 ol.a li{counter-increment:a;display:flex;gap:12px;margin:0 0 14px}ol.a li:before{content:counter(a);flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#fff2ee;color:#d93d20;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
-.not{white-space:pre-line}.alt{text-align:center;color:#86868f;font-size:12.5px;margin:24px 0 8px}a{color:#d93d20}
+.not{white-space:pre-line}.alt{text-align:center;color:#6A5F51;font-size:12.5px;margin:24px 0 8px}a{color:#d93d20}
 .btn{display:block;width:100%;border:0;border-radius:999px;padding:15px;font-size:17px;font-weight:700;background:#d93d20;color:#fff;cursor:pointer}
-.btn.y{background:#f1f1ef;color:#3f3f46}.uyari{background:#fff8e6;color:#8a5a00;border-radius:16px;padding:12px 14px;font-size:14px;margin:12px 0}
-@media (prefers-color-scheme:dark){body{background:#111113;color:#f4f4f5}.kart{background:#1c1c1f;box-shadow:none}ul.m li{border-color:#2e2e33}
-.pill{background:#3a1d16;color:#ff9f88}.btn.y{background:#26262a;color:#d4d4d8}.uyari{background:#2a2113;color:#f1c56b}ol.a li:before{background:#3a1d16}}
+.btn.y{background:#E9E0CF;color:#3A3228}.uyari{background:#fff8e6;color:#8a5a00;border-radius:16px;padding:12px 14px;font-size:14px;margin:12px 0}
+@media (prefers-color-scheme:dark){body{background:#16130F;color:#F4EFE6}.kart{background:#231E18;box-shadow:none}ul.m li{border-color:#342D25}
+.pill{background:#3a1d16;color:#ff9f88}.btn.y{background:#2C261F;color:#DDD5C8}.uyari{background:#2a2113;color:#f1c56b}ol.a li:before{background:#3a1d16}}
 `
 
 const PLATFORM_ADI: Record<string, string> = { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok', pinterest: 'Pinterest', facebook: 'Facebook' }
@@ -140,10 +140,10 @@ ${r.notes ? `<div class="kart"><h2>Notlar</h2><div class="not">${k(r.notes)}</di
   })
   const pisir = `<div id="genel">${govde.replace(/(<h1>)/, '$1').replace(/(<div class="kart"><h2>Malzemeler)/, '<button class="btn" style="margin:14px 0 2px" onclick="basla()">Adım adım pişir</button>$1')}</div>
 <div id="pisir" style="display:none"><div style="display:flex;align-items:center;gap:10px;margin:4px 0 10px"><button class="btn y" style="width:auto;padding:10px 16px" onclick="kapat()">✕</button><div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k(r.title)}</b><span class="meta" id="sayi"></span></div></div>
-<div style="height:6px;background:#f1f1ef;border-radius:9px;overflow:hidden"><div id="bar" style="height:100%;background:#d93d20;width:0"></div></div>
+<div style="height:6px;background:#E9E0CF;border-radius:9px;overflow:hidden"><div id="bar" style="height:100%;background:#d93d20;width:0"></div></div>
 <p id="adim" style="font-size:24px;line-height:1.45;font-weight:500;margin:22px 0"></p>
 <div id="sure" class="kart" style="display:none;align-items:center;gap:14px"><b id="kalan" style="font-size:34px;flex:1"></b><button class="btn" style="width:auto;padding:12px 18px" id="sbtn" onclick="sayacBas()">Sayacı başlat</button></div>
-<div class="kart"><h2 style="font-size:14px;color:#86868f">Malzemeler</h2><ul class="m">${r.ingredients.map((m) => `<li><label>${k(m)}</label></li>`).join('')}</ul></div>
+<div class="kart"><h2 style="font-size:14px;color:#6A5F51">Malzemeler</h2><ul class="m">${r.ingredients.map((m) => `<li><label>${k(m)}</label></li>`).join('')}</ul></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 30px"><button class="btn y" onclick="git(-1)">‹ Geri</button><button class="btn" id="ileri" onclick="git(1)">Sonraki ›</button></div></div>`
   const betik = `var A=${JSON.stringify(adimlar).replace(/</g, '\\u003c')},i=0,t=null,kalan=0,kilit=null;
 function $(x){return document.getElementById(x)}
@@ -183,7 +183,7 @@ ${tm.warnings.map((w) => `<div class="uyari">⚠️ ${k(w)}</div>`).join('')}
 <div id="pisir" style="display:none">
 <div style="display:flex;align-items:center;gap:10px"><button class="btn y" style="width:auto;padding:10px 16px" onclick="kapat()">✕</button>
 <div><b>${k(r.title)}</b><div class="meta" id="sayi"></div></div></div>
-<div style="height:6px;background:#f1f1ef;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:#2E7D5B;width:0"></div></div>
+<div style="height:6px;background:#E9E0CF;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:#2E7D5B;width:0"></div></div>
 <div id="kaba" class="kart" style="display:none"><div class="meta">KABA EKLE</div><div id="kabaY" style="font-size:20px;font-weight:700"></div></div>
 <p id="metin" style="font-size:24px;font-weight:600;line-height:1.4;margin:16px 0"></p><div id="mod"></div>
 <div id="kutular" style="display:grid;gap:8px;margin:12px 0"></div><p id="ipucu" class="meta" style="font-size:15px"></p>
@@ -243,7 +243,7 @@ ${pp.alternatif ? `<div class="kart"><h2>${k(pp.alternatif.baslik)}</h2><ol clas
 <div id="pisir" style="display:none">
 <div style="display:flex;align-items:center;gap:10px;background:${P};color:#fff;margin:-16px -16px 0;padding:14px 16px"><button class="btn y" style="width:auto;padding:10px 16px" onclick="kapat()">✕</button>
 <div><b>${k(r.title)}</b><div id="sayi" style="font-size:13px;opacity:.85"></div></div></div>
-<div style="height:6px;background:#f1f1ef;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:${P};width:0"></div></div>
+<div style="height:6px;background:#E9E0CF;border-radius:9px;margin:12px 0;overflow:hidden"><div id="bar" style="height:100%;background:${P};width:0"></div></div>
 <div id="kaba" class="kart" style="display:none"><div class="meta">HAZNEYE</div><div id="kabaY" style="font-size:20px;font-weight:700"></div></div>
 <p id="metin" style="font-size:24px;font-weight:600;line-height:1.5;margin:16px 0"></p><div id="rozet" style="display:flex;flex-wrap:wrap;gap:6px"></div>
 <div id="dugme" class="kart" style="display:none;font-size:17px"></div><div id="bitince" class="kart" style="display:none;border:2px solid ${P};color:${P};font-weight:700"></div>

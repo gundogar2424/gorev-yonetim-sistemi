@@ -4,17 +4,23 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        defter: ['Fraunces', 'Georgia', 'Times New Roman', 'serif'],
+        elyazisi: ['Caveat', 'Segoe Print', 'cursive']
+      },
       colors: {
+        // Kagit beyazi: saf beyaz yerine cok hafif krem (kartlar "fis" gibi dursun)
+        white: '#FFFDF8',
         // Domates kirmizisi. Beyaz yaziyla okunakli koyulukta (600) eylem rengi.
         lz: {
-          50: '#fff2ee',
-          100: '#ffe0d8',
+          50: '#F3EADB', // kagit tonu (eski acik pembe yerine)
+          100: '#EADFCB',
           200: '#ffc0b0',
           300: '#ff957d',
           400: '#f86a4d',
           500: '#ee4c2e',
-          600: '#d93d20',
-          700: '#b52f17',
+          600: '#D0381B', // kagit beyazi yaziyla 4,8:1
+          700: '#8E2A14', // kiremit murekkebi
           800: '#8f2716',
           900: '#6f2214'
         },

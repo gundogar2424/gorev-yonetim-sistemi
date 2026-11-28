@@ -32,7 +32,7 @@ function renk(m: LzMekan): string {
   if (m.gidildi) return '#16a34a'
   if (m.kampanya && Date.now() - m.kampanya.zaman < 7 * 864e5) return '#7c3aed'
   if (m.gitmekIstiyorum || m.favori) return '#d93d20'
-  return '#71717a'
+  return '#6A5F51'
 }
 const sade = (x: string) => x.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, '')
 
@@ -42,7 +42,7 @@ function pinIkonu(dolgu: string, acik: boolean | undefined, secili: boolean, yen
   const rozet =
     acik === undefined
       ? ''
-      : `<span style="position:absolute;left:${boy - 4}px;top:-8px;font:700 9px/1 Inter,sans-serif;padding:2px 4px;border-radius:5px;color:#fff;background:${acik ? '#16a34a' : '#52525b'};white-space:nowrap">${acik ? 'Açık' : 'Kapalı'}</span>`
+      : `<span style="position:absolute;left:${boy - 4}px;top:-8px;font:700 9px/1 Inter,sans-serif;padding:2px 4px;border-radius:5px;color:#fff;background:${acik ? '#16a34a' : '#4A4239'};white-space:nowrap">${acik ? 'Açık' : 'Kapalı'}</span>`
   return L.divIcon({
     className: '',
     iconSize: [boy, boy],
@@ -335,7 +335,7 @@ export default function Harita() {
         {/* Ust bilgi: yukleniyor / son guncelleme / uyari */}
         <div className="absolute top-2 left-2 right-14 z-[500] flex flex-col items-start gap-1.5 pointer-events-none">
           {yukleniyor && (
-            <span className="pointer-events-auto inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-white/95 dark:bg-[#1c1c1f]/95 px-3 py-1.5 shadow">
+            <span className="pointer-events-auto inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-white/95 dark:bg-[#231E18]/95 px-3 py-1.5 shadow">
               <span className="w-3.5 h-3.5 rounded-full border-2 border-lz-600 border-t-transparent animate-spin" /> Çevre yükleniyor…
             </span>
           )}
@@ -346,7 +346,7 @@ export default function Harita() {
             </div>
           )}
           {!yukleniyor && guncel > 0 && merkez && (
-            <span className={`pointer-events-auto text-[12px] rounded-full bg-white/95 dark:bg-[#1c1c1f]/95 px-3 py-1 shadow ${T_SOLUK}`}>
+            <span className={`pointer-events-auto text-[12px] rounded-full bg-white/95 dark:bg-[#231E18]/95 px-3 py-1 shadow ${T_SOLUK}`}>
               Son güncelleme {onceYaz(guncel)} ·{' '}
               <button className="text-lz-600 font-semibold underline" onClick={() => void cevreYukle(merkez, yaricap, true)}>
                 Yenile
@@ -377,7 +377,7 @@ export default function Harita() {
 
         {/* Liste: alttan surüklenen panel */}
         <div
-          className="absolute inset-x-0 bottom-0 z-[600] bg-[#F7F3EF] dark:bg-[#18181b] rounded-t-[22px] shadow-[0_-6px_24px_rgba(0,0,0,0.18)] flex flex-col transition-[height] duration-200"
+          className="absolute inset-x-0 bottom-0 z-[600] bg-[#FAF6EC] dark:bg-[#221C15] rounded-t-[22px] shadow-[0_-6px_24px_rgba(0,0,0,0.18)] flex flex-col transition-[height] duration-200"
           style={{ height: PANEL_H[panel] }}
         >
           <div
@@ -399,7 +399,7 @@ export default function Harita() {
             role="button"
             aria-label="Listeyi büyüt / küçült"
           >
-            <span className="w-11 h-1.5 rounded-full bg-[#c4c4c8] dark:bg-[#3f3f46]" />
+            <span className="w-11 h-1.5 rounded-full bg-[#c4c4c8] dark:bg-[#3A3228]" />
           </div>
           <div className="px-4 pb-2 space-y-2">
             <div className="flex items-center gap-2">
@@ -449,7 +449,7 @@ export default function Harita() {
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[12px] font-semibold text-lz-600">{yurumeYaz(s.km)}</span>
                     {s.acik !== undefined && (
-                      <span className={`text-[10.5px] font-bold px-1.5 rounded text-white ${s.acik ? 'bg-emerald-600' : 'bg-[#52525b]'}`}>{s.acik ? 'Açık' : 'Kapalı'}</span>
+                      <span className={`text-[10.5px] font-bold px-1.5 rounded text-white ${s.acik ? 'bg-emerald-600' : 'bg-[#4A4239]'}`}>{s.acik ? 'Açık' : 'Kapalı'}</span>
                     )}
                   </div>
                 </div>

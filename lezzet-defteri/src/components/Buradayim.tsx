@@ -157,7 +157,7 @@ export default function Buradayim() {
               <span className="flex flex-col items-end gap-0.5 flex-shrink-0">
                 <span className="text-[12px] font-semibold text-lz-600 whitespace-nowrap">{yurumeYaz(y.km)}</span>
                 {y.acik !== undefined && (
-                  <span className={`text-[10.5px] font-bold px-1.5 rounded ${y.acik ? 'bg-emerald-600 text-white' : 'bg-[#71717a] text-white'}`}>{y.acik ? 'Açık' : 'Kapalı'}</span>
+                  <span className={`text-[10.5px] font-bold px-1.5 rounded ${y.acik ? 'bg-emerald-600 text-white' : 'bg-[#6A5F51] text-white'}`}>{y.acik ? 'Açık' : 'Kapalı'}</span>
                 )}
               </span>
             </button>

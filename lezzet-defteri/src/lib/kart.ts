@@ -105,19 +105,19 @@ export async function kartResmi(b: KartBilgi): Promise<string> {
   // Metinler
   c.textBaseline = 'alphabetic'
   let y = FH + 60 + 60
-  c.fillStyle = '#18181b'
+  c.fillStyle = '#221C15'
   c.font = `700 68px ${yazi}`
   for (const s of bas) {
     c.fillText(s, P, y)
     y += 80
   }
-  c.fillStyle = '#71717a'
+  c.fillStyle = '#6A5F51'
   c.font = `500 40px ${yazi}`
   if (b.alt) {
     c.fillText(satirBol(c, b.alt, W - P * 2, 1)[0], P, y - 14)
     y += 46
   }
-  c.fillStyle = '#3f3f46'
+  c.fillStyle = '#3A3228'
   for (const s of sat) {
     c.fillText(s, P, y + 10)
     y += 56

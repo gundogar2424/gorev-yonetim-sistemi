@@ -77,7 +77,7 @@ export default function Harcamalarim() {
                 {aylik.map((a) => (
                   <div key={a.ad} className="flex items-center gap-2 text-[13px]">
                     <span className={`w-14 flex-shrink-0 ${T_GOVDE}`}>{a.ad}</span>
-                    <span className="flex-1 h-2.5 rounded-full bg-[#efefed] dark:bg-[#26262a] overflow-hidden">
+                    <span className="flex-1 h-2.5 rounded-full bg-[#EFE7D8] dark:bg-[#2C261F] overflow-hidden">
                       <span className="block h-full rounded-full bg-lz-500" style={{ width: `${(a.toplam / enCok) * 100}%` }} />
                     </span>
                     <span className={`w-24 text-right tabular-nums ${a.toplam ? `font-semibold ${T_BASLIK}` : T_SOLUK}`}>{a.toplam ? tlYaz(a.toplam) : '—'}</span>

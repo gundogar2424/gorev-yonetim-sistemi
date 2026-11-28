@@ -205,7 +205,7 @@ export default function AddRecipe() {
     <div>
       <Header title="Tarif ekle" back />
       <div className="px-4 space-y-4 pb-6">
-        <div className="grid grid-cols-4 bg-[#f1f1ef] dark:bg-[#1c1c1f] rounded-full p-1">
+        <div className="grid grid-cols-4 bg-[#E9E0CF] dark:bg-[#231E18] rounded-full p-1">
           {(['link', 'video', 'metin', 'foto'] as const).map((m) => (
             <button
               key={m}
@@ -213,7 +213,7 @@ export default function AddRecipe() {
                 setMod(m)
                 setHata('')
               }}
-              className={`py-2 rounded-full text-sm font-semibold transition ${mod === m ? 'bg-lz-600 text-white' : 'text-[#71717a] dark:text-[#8a8a93]'}`}
+              className={`py-2 rounded-full text-sm font-semibold transition ${mod === m ? 'bg-lz-600 text-white' : 'text-[#6A5F51] dark:text-[#B3A998]'}`}
             >
               {m === 'link' ? 'Link' : m === 'video' ? 'Video' : m === 'metin' ? 'Metin' : 'Fotoğraf'}
             </button>
