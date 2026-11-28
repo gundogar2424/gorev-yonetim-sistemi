@@ -213,3 +213,23 @@ export interface PisirmeKaydi {
   uygulandi?: boolean // degisiklik tarife uygulandi
   cihaz?: 'normal' | 'tm' | 'pp' // hangi sekmeden / pisirme modundan kaydedildi
 }
+
+// Biletim var dedigim etkinlik (Sakarya'da Bu Hafta > Biletlerim)
+export interface LzBilet {
+  id?: number
+  ad: string
+  tur: string // Sinema, Tiyatro, Konser, Festival
+  tarih: string // YYYY-AA-GG
+  saat: string // SS:DD ya da ''
+  yer: string
+  link: string
+  fiyat: string // bilet fiyati (yazildigi gibi)
+  koltuk: string
+  not: string
+  foto: string // bilet fotografi (data URL) ya da ''
+  createdAt: number
+  // Etkinlik gecince
+  nasilGecti?: string
+  kimlerle?: string
+  harcama?: { bilet?: number; yol?: number; yemek?: number } // toplami Harcamalarim'a girer
+}

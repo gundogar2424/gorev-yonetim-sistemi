@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
-import type { LzMekan } from '../types'
+import type { LzBilet, LzMekan } from '../types'
+import { etkinlikOdemeleri } from '../lib/etkinlik'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
 import { bugunAyYil, odemeler, tlYaz } from '../lib/harcama'
 
@@ -12,16 +13,20 @@ const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz',
 export default function Harcamalarim() {
   const mekanlar = useLiveQuery(() => lzDb.mekanlar.toArray(), [], [] as LzMekan[]) ?? []
   const liste = odemeler(mekanlar)
+  // Etkinlik harcamalari (Biletlerim: bilet + yol + yemek) toplamlara eklenir
+  const biletler = useLiveQuery(() => lzDb.biletler.toArray(), [], [] as LzBilet[]) ?? []
+  const etk = etkinlikOdemeleri(biletler)
   const { ay, yil } = bugunAyYil()
-  const yillar = Array.from(new Set([yil, ...liste.map((o) => o.tarih.slice(0, 4))])).sort().reverse()
+  const yillar = Array.from(new Set([yil, ...liste.map((o) => o.tarih.slice(0, 4)), ...etk.map((o) => o.tarih.slice(0, 4))])).sort().reverse()
   const [secYil, setSecYil] = useState(yil)
-  const top = (f: (t: string) => boolean) => liste.filter((o) => f(o.tarih)).reduce((t, o) => t + o.tutar, 0)
+  const top = (f: (t: string) => boolean) => [...liste, ...etk].filter((o) => f(o.tarih)).reduce((t, o) => t + o.tutar, 0)
   const buAy = top((t) => t.startsWith(ay))
   const buYil = top((t) => t.startsWith(yil))
   const yilListe = liste.filter((o) => o.tarih.startsWith(secYil))
+  const yilEtk = etk.filter((o) => o.tarih.startsWith(secYil))
   const aylik = AYLAR.map((ad, i) => {
     const k = `${secYil}-${String(i + 1).padStart(2, '0')}`
-    const l = yilListe.filter((o) => o.tarih.startsWith(k))
+    const l = [...yilListe, ...yilEtk].filter((o) => o.tarih.startsWith(k))
     return { ad, toplam: l.reduce((t, o) => t + o.tutar, 0), adet: l.length }
   })
   const enCok = Math.max(1, ...aylik.map((a) => a.toplam))
@@ -51,13 +56,13 @@ export default function Harcamalarim() {
             </div>
           ))}
         </div>
-        {!liste.length && (
+        {!liste.length && !etk.length && (
           <div className={`lz-card p-5 text-[13.5px] ${T_GOVDE}`}>
             Henüz tutar yok. Bir mekana gidince mekan sayfasında <b>Buraya gittim</b> formuna “Hesabı ben ödediysem” tutarını yaz; burada aylık ve
             yıllık toplanır.
           </div>
         )}
-        {liste.length > 0 && (
+        {(liste.length > 0 || etk.length > 0) && (
           <>
             <div className="lz-card p-4 space-y-2.5">
               <div className="flex items-center gap-2">
@@ -71,7 +76,8 @@ export default function Harcamalarim() {
                 </div>
               </div>
               <div className={`text-[13px] ${T_SOLUK}`}>
-                {secYil} toplamı: <b className={T_BASLIK}>{tlYaz(yilListe.reduce((t, o) => t + o.tutar, 0))}</b> · {yilListe.length} ziyaret
+                {secYil} toplamı: <b className={T_BASLIK}>{tlYaz([...yilListe, ...yilEtk].reduce((t, o) => t + o.tutar, 0))}</b> · {yilListe.length} ziyaret
+                {yilEtk.length > 0 ? ` · ${yilEtk.length} etkinlik` : ''}
               </div>
               <div className="space-y-1.5">
                 {aylik.map((a) => (
@@ -96,6 +102,18 @@ export default function Harcamalarim() {
                 </Link>
               ))}
             </div>
+            {yilEtk.length > 0 && (
+              <div className="lz-card p-4 space-y-1" data-etkinlik-harcama>
+                <div className={`font-semibold mb-1 ${T_BASLIK}`}>{secYil} · etkinlikler (bilet + yol + yemek)</div>
+                {yilEtk.map((o, i) => (
+                  <Link key={i} to="/sakarya-bu-hafta?sekme=bilet" className="flex items-center gap-2 py-1.5 text-[14px]">
+                    <span className={`w-20 flex-shrink-0 text-[12.5px] ${T_SOLUK}`}>{o.tarih.split('-').reverse().join('.')}</span>
+                    <span className={`flex-1 min-w-0 truncate ${T_GOVDE}`}>{o.ad}</span>
+                    <span className={`font-semibold tabular-nums ${T_BASLIK}`}>{tlYaz(o.tutar)}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
             <div className="lz-card p-4 space-y-1">
               <div className={`font-semibold mb-1 ${T_BASLIK}`}>Son ödemeler</div>
               {liste.slice(0, 30).map((o, i) => (

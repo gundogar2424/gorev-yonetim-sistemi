@@ -1,7 +1,7 @@
 // Lezzet Defteri yedegi: tarifler, sofralar, haftalik plan ve alisveris listesi
 // tek JSON dosyasina indirilir; istenince geri yuklenir. API anahtari YAZILMAZ.
 import { lzDb } from '../db'
-import type { LzDiyet, LzMekan, LzPlan, LzRecipe, LzShopItem, LzTable } from '../types'
+import type { LzBilet, LzDiyet, LzMekan, LzPlan, LzRecipe, LzShopItem, LzTable } from '../types'
 
 interface LzBackup {
   app: 'lezzet-defteri'
@@ -13,6 +13,7 @@ interface LzBackup {
   shopping: LzShopItem[]
   diyet?: LzDiyet[]
   mekanlar?: LzMekan[]
+  biletler?: LzBilet[]
   ayarlar?: Record<string, string> // takip edilen influencer'lar, fotograflari, kendi etiketlerim, profil… (API anahtari YOK)
 }
 
@@ -63,6 +64,7 @@ export async function downloadBackup(): Promise<void> {
     shopping: await lzDb.shopping.toArray(),
     diyet: await lzDb.diyet.toArray(),
     mekanlar: await lzDb.mekanlar.toArray(),
+    biletler: await lzDb.biletler.toArray(),
     ayarlar: ayarlariOku()
   }
   const metin = JSON.stringify(data)
@@ -105,7 +107,14 @@ export async function restoreBackup(file: File): Promise<{ eklendi: number; atla
   let eklendi = 0
   let atlandi = 0
   let mekan = 0
-  await lzDb.transaction('rw', [lzDb.recipes, lzDb.sofralar, lzDb.plans, lzDb.shopping, lzDb.diyet, lzDb.mekanlar], async () => {
+  await lzDb.transaction('rw', [lzDb.recipes, lzDb.sofralar, lzDb.plans, lzDb.shopping, lzDb.diyet, lzDb.mekanlar, lzDb.biletler], async () => {
+    // Biletler: ayni adli ve ayni tarihli bilet atlanir
+    const mevcutBilet = await lzDb.biletler.toArray()
+    for (const b of data.biletler ?? []) {
+      if (!b?.ad || !b.tarih || mevcutBilet.some((x) => x.ad === b.ad && x.tarih === b.tarih)) continue
+      const { id: _bid, ...kalan } = b
+      await lzDb.biletler.add(kalan)
+    }
     // Mekanlar: ayni adli ve ayni sehirdeki mekan atlanir
     const mevcutMekan = await lzDb.mekanlar.toArray()
     const mk = (m: LzMekan) => `${m.ad}|${m.sehir}`.toLocaleLowerCase('tr')
@@ -218,6 +227,7 @@ export async function otomatikYedek(zorla = false): Promise<string> {
     shopping: await lzDb.shopping.toArray(),
     diyet: await lzDb.diyet.toArray(),
     mekanlar,
+    biletler: await lzDb.biletler.toArray(),
     ayarlar: ayarlariOku()
   }
   const d = new Date()

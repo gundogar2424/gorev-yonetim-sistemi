@@ -76,6 +76,7 @@ jobs:
           # Yakindaki sevdigin mekan: geofence (uygulama kapaliyken de), telefon yeniden baslayinca yeniden kurulur
           grep -q 'ACCESS_BACKGROUND_LOCATION' "$f" || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n</manifest>#' "$f"
           grep -q 'YakinAlici' "$f" || sed -i 's#</application>#    <receiver android:name=".YakinAlici" android:exported="false" />\n        <receiver android:name=".YakinEylem" android:exported="true">\n            <intent-filter>\n                <action android:name="android.intent.action.BOOT_COMPLETED" />\n                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />\n            </intent-filter>\n        </receiver>\n    </application>#' "$f"
+          grep -q 'HatirlatAlici' "$f" || sed -i 's#</application>#    <receiver android:name=".HatirlatAlici" android:exported="false" />\n    </application>#' "$f"
           grep -q 'android.intent.action.SEND' "$f" || sed -i '0,/<\/activity>/s##    <intent-filter android:label="Lezzet Rotası: Tarif">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity>#' "$f"
           # Paylas menusunde ikinci secenek: "Lezzet: Mekan" (ayni uygulama, mekan olarak kaydeder)
           grep -q 'MekanPaylas' "$f" || sed -i 's#</application>#    <activity-alias android:name=".MekanPaylas" android:targetActivity=".MainActivity" android:exported="true" android:label="Lezzet Rotası: Mekan" android:icon="@mipmap/ic_launcher">\n            <intent-filter android:label="Lezzet Rotası: Mekan">\n                <action android:name="android.intent.action.SEND" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="text/plain" />\n            </intent-filter>\n        </activity-alias>\n    </application>#' "$f"
@@ -99,6 +100,7 @@ jobs:
                   registerPlugin(SiraEklentisi.class); // web katmani sira servisini buradan acar/kapatir
                   registerPlugin(SesEklentisi.class); // pisirme ekraninda "Sonraki / Geri / Tekrar" sesli komutlari
                   registerPlugin(YakinEklentisi.class); // yakindaki sevdigin mekan: telefonun geofence ozelligi
+                  registerPlugin(HatirlatEklentisi.class); // biletli etkinlik hatirlatmalari (alarm)
                   super.onCreate(savedInstanceState);
                   // Uygulama gorunmezken de web katmani onemli sayilsin (sira islenirken yavaslamasin)
                   if (Build.VERSION.SDK_INT >= 26) getBridge().getWebView().setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
@@ -842,6 +844,7 @@ jobs:
               public void onReceive(Context c, Intent intent) {
                   if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()) || "android.intent.action.MY_PACKAGE_REPLACED".equals(intent.getAction())) {
                       YakinMotor.kur(c);
+                      HatirlatMotor.kur(c); // biletli etkinlik hatirlatmalari yeniden kurulur
                       return;
                   }
                   int id = intent.getIntExtra("id", -1);
@@ -910,6 +913,105 @@ jobs:
           }
           JAVA
           sed -i 's/^          //' "$d/YakinEklentisi.java"
+          cat > "$d/HatirlatMotor.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.app.AlarmManager;
+          import android.app.PendingIntent;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+
+          // Biletli etkinlik hatirlatmalari: telefonun alarm sistemine yazilir (uygulama kapaliyken de gelir)
+          public class HatirlatMotor {
+              static SharedPreferences p(Context c) {
+                  return c.getSharedPreferences("lz_hatirlat", Context.MODE_PRIVATE);
+              }
+
+              static PendingIntent niyet(Context c, int no, JSONObject o) {
+                  Intent i = new Intent(c, HatirlatAlici.class);
+                  i.setAction("lz.hatirlat." + no);
+                  if (o != null) {
+                      i.putExtra("no", no);
+                      i.putExtra("baslik", o.optString("baslik", "Lezzet Rotası"));
+                      i.putExtra("metin", o.optString("metin", ""));
+                      i.putExtra("yol", o.optString("yol", ""));
+                  }
+                  return PendingIntent.getBroadcast(c, no, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+              }
+
+              // Kayitli listeye gore alarmlari yeniden kurar; eskiler once iptal edilir
+              static void kur(Context c) {
+                  try {
+                      AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+                      if (am == null) return;
+                      JSONArray eski = new JSONArray(p(c).getString("kurulu", "[]"));
+                      for (int k = 0; k < eski.length(); k++) am.cancel(niyet(c, eski.getInt(k), null));
+                      JSONArray liste = new JSONArray(p(c).getString("liste", "[]"));
+                      JSONArray kurulu = new JSONArray();
+                      long simdi = System.currentTimeMillis();
+                      for (int k = 0; k < liste.length(); k++) {
+                          JSONObject o = liste.getJSONObject(k);
+                          long zaman = o.optLong("zaman", 0);
+                          int no = o.optInt("no", 0);
+                          if (no == 0 || zaman <= simdi) continue;
+                          am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, zaman, niyet(c, no, o));
+                          kurulu.put(no);
+                      }
+                      p(c).edit().putString("kurulu", kurulu.toString()).apply();
+                  } catch (Exception e) {
+                      // sessizce gec
+                  }
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/HatirlatMotor.java"
+          cat > "$d/HatirlatAlici.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+
+          // Hatirlatma zamani gelince bildirim gosterir; dokununca Biletlerim acilir
+          public class HatirlatAlici extends BroadcastReceiver {
+              @Override
+              public void onReceive(Context c, Intent intent) {
+                  try {
+                      Bildirim.goster(c, intent.getStringExtra("baslik"), intent.getStringExtra("metin"), intent.getIntExtra("no", 700000), intent.getStringExtra("yol"), false);
+                  } catch (Exception e) {
+                      // bildirim izni yok
+                  }
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/HatirlatAlici.java"
+          cat > "$d/HatirlatEklentisi.java" <<'JAVA'
+          package com.lezzet.defteri;
+
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          // Web katmanindan: biletli etkinliklerin hatirlatma listesini kur
+          @CapacitorPlugin(name = "LzHatirlat")
+          public class HatirlatEklentisi extends Plugin {
+              @PluginMethod
+              public void kur(PluginCall call) {
+                  try {
+                      HatirlatMotor.p(getContext()).edit().putString("liste", call.getArray("liste").toString()).apply();
+                      HatirlatMotor.kur(getContext());
+                  } catch (Exception e) {
+                      // sessizce gec
+                  }
+                  call.resolve();
+              }
+          }
+          JAVA
+          sed -i 's/^          //' "$d/HatirlatEklentisi.java"
           # Yakindaki mekan bildirimi icin ozel, yumusak kisa ton (iki nota)
           mkdir -p android/app/src/main/res/raw
           python3 - <<'PY'

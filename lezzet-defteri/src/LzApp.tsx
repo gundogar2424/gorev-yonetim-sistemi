@@ -29,6 +29,8 @@ import Harita from './pages/Harita'
 import Etiketler from './pages/Etiketler'
 import MekanOner from './pages/MekanOner'
 import CevreHype from './pages/CevreHype'
+import SakaryaBuHafta from './pages/SakaryaBuHafta'
+import { hatirlatSenkron } from './lib/etkinlik'
 import HypeTarifler from './pages/HypeTarifler'
 import Takip from './pages/Takip'
 import Harcamalarim from './pages/Harcamalarim'
@@ -94,6 +96,8 @@ export default function LzApp() {
 
   useEffect(() => {
     void siraBaslat()
+    // Biletli etkinliklerin hatirlatmalari (7, 3, 1 gun kala; etkinlik sabahi; 2 saat once)
+    void hatirlatSenkron()
     bekciBaslat()
     // Takip edilen hesaplarin yeni mekanlari (3 gunde bir, tek istek)
     const yeniT = setTimeout(() => void yeniMekanOtoKontrol(), 20000)
@@ -141,6 +145,7 @@ export default function LzApp() {
           <Route path="/etiketler" element={<Etiketler />} />
           <Route path="/oner" element={<MekanOner />} />
           <Route path="/cevre-hype" element={<CevreHype />} />
+          <Route path="/sakarya-bu-hafta" element={<SakaryaBuHafta />} />
           <Route path="/hype" element={<HypeTarifler />} />
           <Route path="/takip" element={<Takip />} />
           <Route path="/harcamalarim" element={<Harcamalarim />} />

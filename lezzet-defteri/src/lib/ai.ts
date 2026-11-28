@@ -1898,3 +1898,53 @@ export async function aiPilavPisirici(r: {
   }
   return ppDenetle(pp, { title: r.title, tags: r.tags, steps: r.steps }, temiz.map((a) => a.hamMod))
 }
+
+// SAKARYA'DA BU HAFTA: onumuzdeki 7 gun Sakarya ve cevresindeki sinema, tiyatro, konser, festival.
+// Google aramasi gerektirir (yalnizca Gemini). Bulamazsa bos liste (uydurmaz).
+export async function aiSakaryaBuHafta(bas: string, son: string): Promise<{ ad: string; tur: string; tarih: string; saat: string; yer: string; fiyat: string; link: string }[]> {
+  if (saglayici() !== 'gemini') throw new Error('Sakarya’da Bu Hafta Google araması gerektirir; yalnızca Gemini anahtarıyla çalışır (Ayarlar › Yapay zeka).')
+  const v = await jsonCagri<{ etkinlikler: { ad: string; tur: string; tarih: string; saat: string; yer: string; fiyat: string; link: string }[] }>(
+    'Sen bir etkinlik takipçisisin. Google’da güncel bilgilerle araştır: Sakarya ilinde (Adapazarı, Serdivan, Erenler, Sapanca, Hendek, Akyazı, Karasu ve diğer ilçeler) ve yakın çevresinde, ' +
+      'verilen tarih aralığında yapılacak etkinlikleri bul. Yalnızca şu 4 tür: Sinema (vizyondaki ve bu hafta gösterimi olan filmler), Tiyatro, Konser, Festival. ' +
+      'Kaynaklar: belediye ve kültür merkezi etkinlik takvimleri, bilet siteleri, sinema salonlarının seans sayfaları. En fazla 40 etkinlik. ' +
+      'tur: tam olarak "Sinema", "Tiyatro", "Konser" ya da "Festival". tarih: YYYY-AA-GG; aralığın DIŞINDAKİ etkinliği yazma (film için aralıktaki ilk gösterim günü). ' +
+      'saat: SS:DD; bilinmiyorsa boş bırak, UYDURMA. yer: salon / mekan adı ve ilçe. fiyat: bilet fiyatı (ör. "250 TL"); ücretsizse tam olarak "Ücretsiz"; bulamazsan boş bırak, UYDURMA. ' +
+      'link: etkinliğin ya da biletin gerçek sayfası; bulamazsan boş bırak, UYDURMA. Etkinlik bulamazsan BOŞ liste döndür. Türkçe yaz.',
+    `Tarih aralığı: ${bas} ile ${son} arası (ikisi de dahil)\nYer: Sakarya ve çevresi`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['etkinlikler'],
+      properties: {
+        etkinlikler: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['ad', 'tur', 'tarih', 'saat', 'yer', 'fiyat', 'link'],
+            properties: {
+              ad: { type: 'string' },
+              tur: { type: 'string' },
+              tarih: { type: 'string' },
+              saat: { type: 'string' },
+              yer: { type: 'string' },
+              fiyat: { type: 'string' },
+              link: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    7000,
+    true
+  )
+  return (v.etkinlikler ?? []).filter((e) => e?.ad).map((e) => ({
+    ad: String(e.ad).trim(),
+    tur: String(e.tur ?? '').trim(),
+    tarih: String(e.tarih ?? '').trim(),
+    saat: String(e.saat ?? '').trim(),
+    yer: String(e.yer ?? '').trim(),
+    fiyat: String(e.fiyat ?? '').trim(),
+    link: /^https?:\/\//.test(String(e.link ?? '')) ? String(e.link).trim() : ''
+  }))
+}
