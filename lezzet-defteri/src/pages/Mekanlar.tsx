@@ -45,7 +45,8 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   const [arama, setArama] = useState('')
   const [aramaOdak, setAramaOdak] = useState(false)
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
-  const [sadeceYeni, setSadeceYeni] = useState(false) // son 7 gunde eklenenler, en yeni ustte
+  const [sadeceYeni, setSadeceYeni] = useState(false)
+  const [yakinMod, setYakinMod] = useState(false) // "Yakınımda ne var?" ile acildi: 1/3/10/30 km cipleri // son 7 gunde eklenenler, en yeni ustte
   // Mekan sayfasindaki etikete / yemege dokununca buraya ?etiket= / ?yemek= ile gelinir
   const [params] = useSearchParams()
   const [etiket, setEtiket] = useState(params.get('etiket') ?? '')
@@ -178,6 +179,27 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
     <div>
       {!gomulu && <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />}
       <div className={gomulu ? 'space-y-3' : 'px-4 pt-3 space-y-3'}>
+        {/* YAKINIMDA NE VAR?: Yakininda suzgecine kisayol. Hicbir etiket/filtre uygulanmaz; yakindan uzaga, 1 km ile baslar */}
+        <button
+          className="lz-btn-primary w-full !min-h-[56px] text-[16.5px] font-bold"
+          onClick={() => {
+            setEtiket('')
+            setYemek('')
+            setSadeceFavori(false)
+            setSadeceIstek(false)
+            setSadeceHype(false)
+            setSadeceGidilmedi(false)
+            setSadeceYeni(false)
+            setYakinMod(true)
+            setYaricap(YAKIN_CIPLER[0])
+            if (!konum) void merkezAl(true)
+            listeyeGit()
+          }}
+          data-yakinimda-ne-var
+        >
+          <Icon name="pin" className="w-5 h-5" /> Yakınımda ne var?
+        </button>
+
         {/* ETIKETLER: yalnizca 6 sabit etiket + Tumu (hepsi ayri ekranda) */}
         <div className="flex flex-wrap gap-1.5">
           {SABIT_ETIKETLER.map((e) => {
@@ -243,6 +265,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             <button
               className={`lz-chip col-span-2 justify-center !whitespace-normal text-center leading-tight ${yaricap > 0 ? 'lz-chip-on' : ''}`}
               onClick={() => {
+                setYakinMod(false)
                 if (yaricap) return setYaricap(0)
                 setYaricap(MESAFE_KM[0])
                 if (!konum) void merkezAl(true)
@@ -266,17 +289,46 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
               )}
               {yaricap > 0 && (
                 // Mesafe tek yontemle buyur (listenin altindaki "Daha fazla goster"); X ile hepsi
-                <button className="lz-chip !bg-lz-600 !border-lz-600 !text-white" onClick={() => setYaricap(0)}>
+                <button
+                  className="lz-chip !bg-lz-600 !border-lz-600 !text-white"
+                  onClick={() => {
+                    setYaricap(0)
+                    setYakinMod(false)
+                  }}
+                >
                   {yaricap} km içinde ✕
                 </button>
               )}
             </div>
           )}
-          {yaricap > 0 && (
-            <p className={`text-[12px] ${T_SOLUK}`} data-konum-satiri>
-              {konum ? `Konum: ${konum.ad} · ${yaricap} km içinde · yakından uzağa` : mz.durum === 'aliniyor' ? 'Konum alınıyor…' : 'Konum kapalı; aşağıdan konumunu bul ya da semt yaz.'}
-            </p>
+          {/* "Yakınımda ne var?" ile acildiysa mesafe cipleri: yalnizca secilen mesafe kadar bakilir */}
+          {yakinMod && yaricap > 0 && (
+            <div className="grid grid-cols-4 gap-2" data-yakin-cipler>
+              {YAKIN_CIPLER.map((k) => (
+                <button key={k} className={`lz-chip justify-center !px-1 ${yaricap === k ? 'lz-chip-on' : ''}`} onClick={() => setYaricap(k)}>
+                  {k} km
+                </button>
+              ))}
+            </div>
           )}
+          {yaricap > 0 &&
+            (konum ? (
+              <p className={`text-[12px] ${T_SOLUK}`} data-konum-satiri>
+                Konum: {konum.ad} · {yaricap} km içinde · yakından uzağa
+              </p>
+            ) : mz.durum === 'aliniyor' || mz.durum === 'bekliyor' ? (
+              <p className={`text-[12px] ${T_SOLUK}`} data-konum-satiri>
+                Konum alınıyor…
+              </p>
+            ) : (
+              // Konum yoksa sayi/mesafe uydurulmaz
+              <p className={`text-[13.5px] ${T_GOVDE}`} data-konum-satiri>
+                Konum kapalı ·{' '}
+                <button className="text-lz-600 font-bold min-h-[48px]" onClick={() => void merkezAl(true)}>
+                  Konumumu bul
+                </button>
+              </p>
+            ))}
           {!yaricap && (etiket || yemek) && <p className={`text-[12px] ${T_SOLUK}`}>{konum ? 'Yakından uzağa sıralı' : 'Konum alınınca yakından uzağa sıralanır'}</p>}
           {hypeDurum && <p className={`text-[12.5px] px-1 ${T_SOLUK}`}>{hypeDurum}</p>}
         </div>
@@ -291,8 +343,10 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             Şu an sosyal medyada çok konuşulan mekan yok; tüm mekanlar aşağıda.
           </p>
         )}
-        {yaricap > 0 && liste.length > 0 && sirali.length === 0 && (
-          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>{yaricap} km içinde kayıtlı mekan yok. Aşağıdaki “Daha fazla göster” ile büyüt.</div>
+        {yaricap > 0 && konum && liste.length > 0 && sirali.length === 0 && (
+          <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>
+            {yaricap} km içinde kayıtlı mekan yok. {yakinMod ? 'Üstteki mesafe çiplerinden daha genişini seç.' : 'Aşağıdaki “Daha fazla göster” ile büyüt.'}
+          </div>
         )}
         {!sadeceHype && !yaricap && liste.length > 0 && sirali.length === 0 && (
           <div className={`lz-card p-5 text-center text-sm ${T_GOVDE}`}>
@@ -306,7 +360,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             ))}
           </div>
         )}
-        {yaricap > 0 && <DahaFazlaGoster simdiKm={yaricap} buyut={(km) => setYaricap(km)} />}
+        {yaricap > 0 && !yakinMod && <DahaFazlaGoster simdiKm={yaricap} buyut={(km) => setYaricap(km)} />}
 
         {/* KISAYOLLAR: 2 sutun kucuk kartlar */}
         <div className="grid grid-cols-2 gap-3 pt-2">
@@ -411,6 +465,9 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
     </div>
   )
 }
+
+// "Yakınımda ne var?" mesafe cipleri (km)
+const YAKIN_CIPLER = [1, 3, 10, 30]
 
 // Yeni mekan: son 7 gunde eklenen (7 gun dolunca kendiliginden cikar; kontrol dugmesi gerekmez)
 const YENI_MEKAN_GUN = 7
