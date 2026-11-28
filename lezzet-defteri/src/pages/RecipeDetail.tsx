@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { aiTarifBesin, apiAnahtari } from '../lib/ai'
-import { addPlan, addToShopping, deleteRecipe, lzDb, markCooked, toggleFavorite, updateRecipe } from '../db'
+import { addPlan, addToShopping, deleteRecipe, lzDb, toggleFavorite, updateRecipe } from '../db'
 import type { LzMeal, LzTable } from '../types'
 import { Icon, type IconName, PlatformLabel, Sheet, SofraRozet, T_BASLIK, T_GOVDE, T_SOLUK, Thumb, Toast, sureYaz, useToast } from '../components/ui'
 import { olcekle } from '../lib/qty'
@@ -15,7 +15,9 @@ import { siraEkle } from '../lib/sira'
 import { siteyeKoy } from '../lib/cookidoo'
 import { TarifSekmeleri } from '../components/TarifSekmeleri'
 import { disariAc, kaynakLinki } from '../lib/disariAc'
-import { PisirmeNotu } from '../components/PisirmeNotu'
+import { PisirmeNotu, SONUC_AD } from '../components/PisirmeNotu'
+import { isaretsiz, pisirmeKaydet } from '../lib/gunluk'
+import { pisirmeYazi } from './Recipes'
 
 export default function RecipeDetail() {
   const id = Number(useParams().id)
@@ -55,7 +57,7 @@ export default function RecipeDetail() {
 
   const alisveriseEkle = async () => {
     const secim = isaretli.size ? malzemeler.filter((_, i) => !isaretli.has(i)) : malzemeler
-    const n = await addToShopping(secim, r.id!, r.title)
+    const n = await addToShopping(secim.map(isaretsiz), r.id!, r.title) // ✎ isareti alisverise gitmez
     goster(n ? `${n} malzeme alışveriş listesine eklendi` : 'Hepsi zaten listede')
   }
 
@@ -166,6 +168,12 @@ export default function RecipeDetail() {
         )}
         <div className="lz-card p-4">
           <h1 className={`text-[23px] font-bold leading-tight ${T_BASLIK}`}>{r.title}</h1>
+          {r.cookCount > 0 && (
+            // Basligin hemen altinda buyuk ve gorunur (Yaptiklarim kartindaki yaziyla ayni)
+            <p className="mt-1.5 text-[16px] font-bold text-lz-700 dark:text-[#ff9f88]" data-pisirme-sayisi>
+              {pisirmeYazi(r)}
+            </p>
+          )}
           <div className="mt-2 flex items-center gap-3 flex-wrap">
             <PlatformLabel r={r} tam />
             {r.minutes > 0 && (
@@ -173,7 +181,6 @@ export default function RecipeDetail() {
                 <Icon name="clock" className="w-3.5 h-3.5" /> {sureYaz(r.minutes)}
               </span>
             )}
-            {r.cookCount > 0 && <span className="text-[12px] text-lz-600">{r.cookCount} kez pişirildi</span>}
           </div>
           {r.etkilesim && r.etkilesim.puan > 0 && (
             <div className="mt-2.5 flex items-center gap-2 flex-wrap">
@@ -238,20 +245,36 @@ export default function RecipeDetail() {
           )}
         </div>
 
-        {/* PISIRME GECMISI: yeniden eskiye; her satirda tarih, kacinci kez ve varsa not */}
+        {/* PISIRME GUNLUGU: yeniden eskiye; "3. pişirme · 27 Kas 2026 · Sonuç: Daha iyi" + Ne degistirdim + Nasil oldu */}
         {(r.cookCount > 0 || (r.pisirmeler?.length ?? 0) > 0) && (
           <div className="lz-card p-4" data-pisirme-gecmisi>
-            <h2 className={`font-bold text-[17px] mb-2 ${T_BASLIK}`}>Pişirme Geçmişi</h2>
+            <h2 className={`font-bold text-[17px] mb-2 ${T_BASLIK}`}>Pişirme Günlüğü</h2>
             {r.pisirmeler?.length ? (
               <ul className="divide-y divide-[#f1f1ef] dark:divide-[#26262a]">
                 {[...r.pisirmeler]
                   .sort((a, b) => b.zaman - a.zaman)
                   .map((p) => (
-                    <li key={`${p.zaman}-${p.no}`} className={`py-2 text-[14px] leading-snug ${T_GOVDE}`}>
-                      <span className="font-semibold">
-                        {new Date(p.zaman).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })} · {p.no}. kez
-                      </span>
-                      {p.not ? <span> - {p.not}</span> : null}
+                    <li key={`${p.zaman}-${p.no}`} className={`py-2.5 text-[14px] leading-snug ${T_GOVDE}`} data-gunluk-satir>
+                      <div className={`font-semibold ${T_BASLIK}`}>
+                        {p.no}. pişirme · {new Date(p.zaman).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {p.sonuc ? ` · Sonuç: ${SONUC_AD[p.sonuc]}` : ''}
+                      </div>
+                      {p.degisiklik && (
+                        <div>
+                          <span className="font-semibold">Ne değiştirdim:</span> {p.degisiklik}
+                          {p.uygulandi ? <span className="ml-1 text-[12px] font-bold text-lz-700 dark:text-[#ff9f88]">✎ tarife uygulandı</span> : null}
+                        </div>
+                      )}
+                      {p.deneyim && (
+                        <div>
+                          <span className="font-semibold">Nasıl oldu:</span> {p.deneyim}
+                        </div>
+                      )}
+                      {p.not && (
+                        <div>
+                          <span className="font-semibold">Not:</span> {p.not}
+                        </div>
+                      )}
                     </li>
                   ))}
               </ul>
@@ -444,11 +467,12 @@ export default function RecipeDetail() {
 
       <PisirmeNotu
         open={notAc}
-        onKaydet={async (not) => {
+        onKaydet={async (g) => {
           setNotAc(false)
-          await markCooked(r.id!, not)
-          goster(`Pişirdim olarak işaretlendi (${(r.cookCount ?? 0) + 1}. kez) · Yaptıklarım’da`)
+          const { uygulama } = await pisirmeKaydet(r.id!, g)
+          goster(uygulama ? 'Günlüğe yazıldı; değişiklik tarife uygulanıyor…' : `Pişirdim olarak işaretlendi (${(r.cookCount ?? 0) + 1}. kez) · Yaptıklarım’da`)
           setTimeout(() => setPisirdimBekle(false), 1000) // yanlislikla cift dokunma sayilmasin
+          if (uygulama) goster(await uygulama)
         }}
       />
       <Sheet open={paylasAc} onClose={() => setPaylasAc(false)} title="Tarifi paylaş">

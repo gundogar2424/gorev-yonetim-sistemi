@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { lzDb, markCooked } from '../db'
+import { lzDb } from '../db'
 import { PisirmeNotu } from '../components/PisirmeNotu'
+import { pisirmeKaydet } from '../lib/gunluk'
 import { Icon, T_BASLIK, T_SOLUK } from '../components/ui'
 import { adimKutulari, cihazAdimi, modAdi, tmSurumDenetle } from '../lib/tm7'
 import { PisirmeAlti, PisirmeUstCubuk, useMutfakModu } from '../components/Pisirme'
@@ -123,10 +124,10 @@ export default function TmCook() {
       )}
       <PisirmeNotu
         open={notAc}
-        onKaydet={async (not) => {
+        onKaydet={async (g) => {
           
           setNotAc(false)
-          await markCooked(r.id!, not)
+          await pisirmeKaydet(r.id!, g) // degisiklik uygulanacaksa arka planda; tarif sayfasi kendiliginden guncellenir
           navigate(-1)
         }}
       />

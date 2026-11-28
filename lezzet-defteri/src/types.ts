@@ -28,8 +28,8 @@ export interface LzRecipe {
   favorite: 0 | 1 // Dexie boolean indeksleyemez
   cookCount: number
   lastCookedAt: number
-  // Pisirme gecmisi: her pisirmede tarih, kacinci kez ve istege bagli not (yalnizca bu ozellikten sonraki pisirmeler; eskiler icin tarih uydurulmaz)
-  pisirmeler?: { zaman: number; no: number; not?: string }[]
+  // Pisirme gunlugu: her pisirmede tarih, kacinci kez ve istege bagli kayit (yalnizca bu ozellikten sonraki pisirmeler; eskiler icin uydurulmaz)
+  pisirmeler?: PisirmeKaydi[]
   createdAt: number
   updatedAt: number
 }
@@ -199,4 +199,15 @@ export interface LzPaylasim {
   reklam?: boolean
   zaman: number
   ekLinkler?: { url: string; platform: LzPlatform }[] // ayni kisinin ayni paylasimi baska platformlarda
+}
+
+// Pisirme Gunlugu satiri (1.0.219'daki kayitlarda yalnizca zaman, no ve not vardir)
+export interface PisirmeKaydi {
+  zaman: number
+  no: number // kacinci pisirme
+  not?: string // 1.0.219 "Nasil oldu?" notu
+  degisiklik?: string // Ne degistirdim?
+  deneyim?: string // Nasil oldu? / Deneyimim
+  sonuc?: 'iyi' | 'ayni' | 'kotu'
+  uygulandi?: boolean // degisiklik tarife uygulandi
 }
