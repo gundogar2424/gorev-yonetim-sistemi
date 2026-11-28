@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { lzDb } from '../db'
@@ -10,6 +10,10 @@ import { tlYaz, tutarOku } from '../lib/harcama'
 import { bildirimIzniIste } from '../lib/kampanya'
 import {
   ETKINLIK_TURLERI,
+  ILLER,
+  buHaftaBaslik,
+  etkinlikSehri,
+  etkinlikSehriYaz,
   etkinlikAnahtar,
   etkinlikOnbellegeYaz,
   etkinlikOnbellek,
@@ -74,6 +78,8 @@ export default function SakaryaBuHafta() {
   const sekme: 'hafta' | 'bilet' = sp.get('sekme') === 'bilet' ? 'bilet' : 'hafta'
   const sekmeSec = (s: 'hafta' | 'bilet') => setSp(s === 'bilet' ? { sekme: 'bilet' } : {}, { replace: true })
   const biletler = useLiveQuery(() => lzDb.biletler.toArray(), [], [] as LzBilet[]) ?? []
+  const [sehir, setSehir] = useState(etkinlikSehri)
+  const sira = useRef(0)
   const [liste, setListe] = useState<Etkinlik[] | null>(null)
   const [zaman, setZaman] = useState(0)
   const [durum, setDurum] = useState('')
@@ -84,37 +90,43 @@ export default function SakaryaBuHafta() {
   const [tamEkran, setTamEkran] = useState('')
   const [toast, goster] = useToast()
 
-  // Gunde 1 kez aranir; 24 saat icinde onbellekten gosterilir
-  const yukle = async () => {
+  // Her sehir icin gunde 1 kez aranir; 24 saat icinde o sehrin onbelleginden gosterilir
+  const yukle = async (il: string) => {
+    const no = ++sira.current
     setHata('')
-    const eski = etkinlikOnbellek()
+    setDurum('')
+    const eski = etkinlikOnbellek(il)
     if (eski) {
       setListe(haftaSuz(eski.liste))
       setZaman(eski.zaman)
       return
     }
+    setZaman(0)
     if (!apiAnahtari() || saglayici() !== 'gemini') {
       setListe([])
-      setHata('Sakarya’da Bu Hafta Google araması gerektirir; yalnızca Gemini anahtarıyla çalışır (Ayarlar › Yapay zeka).')
+      setHata('Etkinlik araması Google araması gerektirir; yalnızca Gemini anahtarıyla çalışır (Ayarlar › Yapay zeka).')
       return
     }
-    setDurum('Önümüzdeki 7 günün etkinlikleri aranıyor…')
+    setListe(null)
+    setDurum(`${il}: önümüzdeki 7 günün etkinlikleri aranıyor…`)
     try {
       const simdi = new Date()
-      const ham = (await aiSakaryaBuHafta(gunYaz(simdi), gunYaz(new Date(simdi.getFullYear(), simdi.getMonth(), simdi.getDate() + 7)))) as Etkinlik[]
+      const ham = (await aiSakaryaBuHafta(gunYaz(simdi), gunYaz(new Date(simdi.getFullYear(), simdi.getMonth(), simdi.getDate() + 7)), il)) as Etkinlik[]
       const temiz = haftaSuz(ham)
-      etkinlikOnbellegeYaz(temiz)
+      etkinlikOnbellegeYaz(il, temiz)
+      if (no !== sira.current) return
       setListe(temiz)
       setZaman(Date.now())
     } catch (e) {
+      if (no !== sira.current) return
       setHata((e as Error).message)
       setListe((l) => l ?? [])
     }
     setDurum('')
   }
   useEffect(() => {
-    void yukle()
-  }, [])
+    void yukle(sehir)
+  }, [sehir])
 
   const biletBul = (e: Etkinlik) => biletler.find((b) => etkinlikAnahtar(b) === etkinlikAnahtar(e))
   const gorunen = (liste ?? []).filter((e) => cip === 'Hepsi' || e.tur === cip)
@@ -161,8 +173,26 @@ export default function SakaryaBuHafta() {
 
   return (
     <div>
-      <Header title="Sakarya’da Bu Hafta" subtitle="Önümüzdeki 7 gün · Sakarya ve çevresi" back />
+      <Header title={buHaftaBaslik(sehir)} subtitle={`Önümüzdeki 7 gün · ${sehir} ve çevresi`} back />
       <div className="px-4 pt-3 space-y-3">
+        {/* Sehir sec: varsayilan Sakarya; her sehrin listesi ayri saklanir */}
+        <label className={`flex items-center gap-2 text-[13.5px] font-semibold ${T_BASLIK}`} data-etk-sehir>
+          <span className="flex-shrink-0">Şehir seç</span>
+          <select
+            className="lz-input !min-h-[48px] flex-1 min-w-0"
+            value={sehir}
+            onChange={(e) => {
+              etkinlikSehriYaz(e.target.value)
+              setSehir(e.target.value)
+            }}
+          >
+            {ILLER.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="grid grid-cols-2 gap-2" data-etk-sekmeler>
           <button className={`lz-chip !min-h-[48px] justify-center text-[14px] ${sekme === 'hafta' ? 'lz-chip-on' : ''}`} onClick={() => sekmeSec('hafta')}>
             Etkinlikler
@@ -186,7 +216,7 @@ export default function SakaryaBuHafta() {
               <div className="rounded-xl bg-amber-50 dark:bg-[#33270f] px-3 py-2">
                 <p className="text-[13.5px] text-amber-900 dark:text-amber-200">{hata}</p>
                 {apiAnahtari() && saglayici() === 'gemini' && (
-                  <button className="text-[13px] font-semibold text-lz-600 underline min-h-[48px]" onClick={() => void yukle()}>
+                  <button className="text-[13px] font-semibold text-lz-600 underline min-h-[48px]" onClick={() => void yukle(sehir)}>
                     ↻ Tekrar dene
                   </button>
                 )}

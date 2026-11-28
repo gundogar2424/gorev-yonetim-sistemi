@@ -13,6 +13,7 @@ import { DahaFazlaGoster, MESAFE_KM } from '../components/DahaFazla'
 import { aiMekanHype, apiAnahtari } from '../lib/ai'
 import { bildirimIzniIste, kampanyaKontrolEt, sonKontrol, useKampanyaDurumu } from '../lib/kampanya'
 import { etiketAdi, fiyatSeviyesi } from '../lib/mekanGoster'
+import { buHaftaBaslik, etkinlikSehri } from '../lib/etkinlik'
 import { merkezAl, semtMerkezi, useMerkez, yaricapIcinde, type Merkez } from '../lib/merkez'
 import { esles, sonAramaEkle } from '../lib/arama'
 import {
@@ -46,6 +47,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   const [aramaOdak, setAramaOdak] = useState(false)
   const [sadeceGidilmedi, setSadeceGidilmedi] = useState(false)
   const [sadeceYeni, setSadeceYeni] = useState(false)
+  const [sehirSec, setSehirSec] = useState('') // Sehir sec: '' = Tümü
   const [yakinMod, setYakinMod] = useState(false) // "Yakınımda ne var?" ile acildi: 1/3/10/30 km cipleri // son 7 gunde eklenenler, en yeni ustte
   // Mekan sayfasindaki etikete / yemege dokununca buraya ?etiket= / ?yemek= ile gelinir
   const [params] = useSearchParams()
@@ -79,7 +81,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
     if (haric !== 'yakin') {
       setYaricap(0)
       setYakinMod(false)
-    }
+    } else setSehirSec('') // Yakininda GPS'e gore calisir: sehir secimi onu daraltmaz
   }
 
   const konumuAl = async () => {
@@ -120,8 +122,13 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   const sayac = new Map<string, number>()
   liste.forEach((m) => m.etiketler.forEach((e) => sayac.set(e, (sayac.get(e) ?? 0) + 1)))
   const q = (gomulu ? disArama ?? '' : arama).trim().toLocaleLowerCase('tr')
+  // Sehir sec: kayitli mekanlarin sehirleri; Tümü = butun sehirler
+  const sehirAd = (x: string) => x.trim().toLocaleLowerCase('tr')
+  const sehirler = [...new Map(liste.filter((m) => m.sehir?.trim()).map((m) => [sehirAd(m.sehir), m.sehir.trim()])).values()].sort((a, b) => a.localeCompare(b, 'tr'))
+  const sehirUyar = (m: LzMekan) => !sehirSec || sehirAd(m.sehir ?? '') === sehirAd(sehirSec)
   const suzulmus = liste.filter(
     (m) =>
+      sehirUyar(m) &&
       (!sadeceGidilmedi || !m.gidildi) &&
       (!sadeceYeni || yeniMekan(m)) &&
       (!etiket || m.etiketler.includes(etiket)) &&
@@ -173,6 +180,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
     ? liste
         .filter(
           (m) =>
+            sehirUyar(m) &&
             (!sadeceGidilmedi || !m.gidildi) &&
             (!sadeceYeni || yeniMekan(m)) &&
             (!etiket || m.etiketler.includes(etiket)) &&
@@ -198,6 +206,29 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
     <div>
       {!gomulu && <Header title="Mekanlarım" subtitle={liste.length ? `${liste.length} yeme-içme mekanı` : 'Gördüğün mekanları kaydet'} back />}
       <div className={gomulu ? 'space-y-3' : 'px-4 pt-3 space-y-3'}>
+        {/* SEHIR SEC: secilen sehrin kayitli mekanlari; Tümü = butun sehirler. Yakininda ve GPS mantigi aynen kalir */}
+        <label className={`flex items-center gap-2 text-[13.5px] font-semibold ${T_BASLIK}`} data-mekan-sehir>
+          <span className="flex-shrink-0">Şehir seç</span>
+          <select
+            className="lz-input !min-h-[48px] flex-1 min-w-0"
+            value={sehirSec}
+            onChange={(e) => {
+              setSehirSec(e.target.value)
+              // Sehir secilince Yakininda kapanir (ikisi birlikte listeyi bosaltmasin)
+              if (e.target.value) {
+                setYaricap(0)
+                setYakinMod(false)
+              }
+            }}
+          >
+            <option value="">Tümü</option>
+            {sehirler.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </select>
+        </label>
         {/* YAKINIMDA NE VAR?: Yakininda suzgecine kisayol. Hicbir etiket/filtre uygulanmaz; yakindan uzaga, 1 km ile baslar */}
         <button
           className="lz-btn-primary w-full !min-h-[56px] text-[16.5px] font-bold"
@@ -209,6 +240,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             setSadeceHype(false)
             setSadeceGidilmedi(false)
             setSadeceYeni(false)
+            setSehirSec('')
             setYakinMod(true)
             setYaricap(YAKIN_CIPLER[0])
             if (!konum) void merkezAl(true)
@@ -389,7 +421,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
         <div className="grid grid-cols-2 gap-3 pt-2">
           <KisaKart to="/oner" ikon={<Icon name="sparkle" className="w-[17px] h-[17px]" />} baslik="Bana mekan öner" alt="Yakında, isteğine göre" vurgu />
           <KisaKart to="/cevre-hype" ikon={<Icon name="star" className="w-[17px] h-[17px]" />} baslik="Çevremdeki Hype" alt="Yakında çok konuşulanlar" />
-          <KisaKart to="/sakarya-bu-hafta" ikon={<Icon name="calendar" className="w-[17px] h-[17px]" />} baslik="Sakarya’da Bu Hafta" alt="Sinema, tiyatro, konser, festival" />
+          <KisaKart to="/sakarya-bu-hafta" ikon={<Icon name="calendar" className="w-[17px] h-[17px]" />} baslik={buHaftaBaslik(etkinlikSehri())} alt="Sinema, tiyatro, konser, festival" />
           <KisaKart to="/gezi" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Yemek gezisi" alt="Rota kur, yola çık" />
           <KisaKart to="/harita" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Harita" alt="Mekanlarım haritada" />
           <KisaKart to="/takip" ikon={<Icon name="users" className="w-[17px] h-[17px]" />} baslik="Influencer’lar" alt="Gittikleri yerler" />

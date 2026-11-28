@@ -1901,16 +1901,17 @@ export async function aiPilavPisirici(r: {
 
 // SAKARYA'DA BU HAFTA: onumuzdeki 7 gun Sakarya ve cevresindeki sinema, tiyatro, konser, festival.
 // Google aramasi gerektirir (yalnizca Gemini). Bulamazsa bos liste (uydurmaz).
-export async function aiSakaryaBuHafta(bas: string, son: string): Promise<{ ad: string; tur: string; tarih: string; saat: string; yer: string; fiyat: string; link: string }[]> {
-  if (saglayici() !== 'gemini') throw new Error('Sakarya’da Bu Hafta Google araması gerektirir; yalnızca Gemini anahtarıyla çalışır (Ayarlar › Yapay zeka).')
+export async function aiSakaryaBuHafta(bas: string, son: string, sehir = 'Sakarya'): Promise<{ ad: string; tur: string; tarih: string; saat: string; yer: string; fiyat: string; link: string }[]> {
+  if (saglayici() !== 'gemini') throw new Error('Etkinlik araması Google araması gerektirir; yalnızca Gemini anahtarıyla çalışır (Ayarlar › Yapay zeka).')
   const v = await jsonCagri<{ etkinlikler: { ad: string; tur: string; tarih: string; saat: string; yer: string; fiyat: string; link: string }[] }>(
-    'Sen bir etkinlik takipçisisin. Google’da güncel bilgilerle araştır: Sakarya ilinde (Adapazarı, Serdivan, Erenler, Sapanca, Hendek, Akyazı, Karasu ve diğer ilçeler) ve yakın çevresinde, ' +
+    'Sen bir etkinlik takipçisisin. Google’da güncel bilgilerle araştır: ' +
+      `${sehir} ilinde (merkez ve ilçeleri) ve yakın çevresinde, ` +
       'verilen tarih aralığında yapılacak etkinlikleri bul. Yalnızca şu 4 tür: Sinema (vizyondaki ve bu hafta gösterimi olan filmler), Tiyatro, Konser, Festival. ' +
       'Kaynaklar: belediye ve kültür merkezi etkinlik takvimleri, bilet siteleri, sinema salonlarının seans sayfaları. En fazla 40 etkinlik. ' +
       'tur: tam olarak "Sinema", "Tiyatro", "Konser" ya da "Festival". tarih: YYYY-AA-GG; aralığın DIŞINDAKİ etkinliği yazma (film için aralıktaki ilk gösterim günü). ' +
       'saat: SS:DD; bilinmiyorsa boş bırak, UYDURMA. yer: salon / mekan adı ve ilçe. fiyat: bilet fiyatı (ör. "250 TL"); ücretsizse tam olarak "Ücretsiz"; bulamazsan boş bırak, UYDURMA. ' +
       'link: etkinliğin ya da biletin gerçek sayfası; bulamazsan boş bırak, UYDURMA. Etkinlik bulamazsan BOŞ liste döndür. Türkçe yaz.',
-    `Tarih aralığı: ${bas} ile ${son} arası (ikisi de dahil)\nYer: Sakarya ve çevresi`,
+    `Tarih aralığı: ${bas} ile ${son} arası (ikisi de dahil)\nYer: ${sehir} ve çevresi`,
     {
       type: 'object',
       additionalProperties: false,

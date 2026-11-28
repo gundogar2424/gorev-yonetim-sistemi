@@ -17,22 +17,67 @@ export interface Etkinlik {
   link: string
 }
 
-const KEY = 'lz-sakarya-hafta' // { zaman, liste }
+const KEY = 'lz-etkinlik-hafta' // { [sehir]: { zaman, liste } } : her sehir ayri, 24 saat
+const KEY_ESKI = 'lz-sakarya-hafta' // onceki surum (yalnizca Sakarya)
+const KEY_SEHIR = 'lz-etkinlik-sehir'
 const SAAT24 = 24 * 3600 * 1000
 const iki = (n: number) => String(n).padStart(2, '0')
 export const gunYaz = (d: Date) => `${d.getFullYear()}-${iki(d.getMonth() + 1)}-${iki(d.getDate())}`
 
-export function etkinlikOnbellek(): { zaman: number; liste: Etkinlik[] } | undefined {
+export const VARSAYILAN_SEHIR = 'Sakarya'
+export const ILLER = [
+  'Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Aksaray', 'Amasya', 'Ankara', 'Antalya', 'Ardahan', 'Artvin', 'Aydın', 'Balıkesir', 'Bartın', 'Batman', 'Bayburt', 'Bilecik',
+  'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Düzce', 'Edirne', 'Elazığ', 'Erzincan', 'Erzurum', 'Eskişehir',
+  'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkari', 'Hatay', 'Iğdır', 'Isparta', 'İstanbul', 'İzmir', 'Kahramanmaraş', 'Karabük', 'Karaman', 'Kars', 'Kastamonu', 'Kayseri',
+  'Kilis', 'Kırıkkale', 'Kırklareli', 'Kırşehir', 'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Mardin', 'Mersin', 'Muğla', 'Muş', 'Nevşehir', 'Niğde', 'Ordu', 'Osmaniye',
+  'Rize', 'Sakarya', 'Samsun', 'Şanlıurfa', 'Siirt', 'Sinop', 'Şırnak', 'Sivas', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Uşak', 'Van', 'Yalova', 'Yozgat', 'Zonguldak'
+]
+export function etkinlikSehri(): string {
   try {
-    const v = JSON.parse(localStorage.getItem(KEY) || 'null') as { zaman: number; liste: Etkinlik[] } | null
-    return v && Array.isArray(v.liste) && Date.now() - v.zaman < SAAT24 ? v : undefined
+    const v = localStorage.getItem(KEY_SEHIR) ?? ''
+    return ILLER.includes(v) ? v : VARSAYILAN_SEHIR
   } catch {
-    return undefined
+    return VARSAYILAN_SEHIR
   }
 }
-export function etkinlikOnbellegeYaz(liste: Etkinlik[]): void {
+export function etkinlikSehriYaz(sehir: string): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ zaman: Date.now(), liste }))
+    localStorage.setItem(KEY_SEHIR, sehir)
+  } catch {
+    /* yok */
+  }
+}
+// "Sakarya’da", "İstanbul’da", "İzmir’de", "Sinop’ta", "Gaziantep’te"
+export function bulunmaEki(sehir: string): string {
+  const k = sehir.toLocaleLowerCase('tr')
+  const unlu = [...k].reverse().find((h) => 'aıoueiöü'.includes(h)) ?? 'a'
+  const sert = 'fstkçşhp'.includes(k.slice(-1))
+  return `${sehir}’${sert ? 't' : 'd'}${'aıou'.includes(unlu) ? 'a' : 'e'}`
+}
+export const buHaftaBaslik = (sehir: string) => `${bulunmaEki(sehir)} Bu Hafta`
+
+type Kayit = { zaman: number; liste: Etkinlik[] }
+function tumOnbellek(): Record<string, Kayit> {
+  try {
+    const v = JSON.parse(localStorage.getItem(KEY) || '{}') as Record<string, Kayit>
+    const temiz: Record<string, Kayit> = {}
+    for (const [k, x] of Object.entries(v ?? {})) if (x && Array.isArray(x.liste) && Date.now() - x.zaman < SAAT24) temiz[k] = x
+    // Onceki surumun Sakarya aramasi (24 saat dolmadiysa) yeniden aranmasin
+    if (!temiz[VARSAYILAN_SEHIR]) {
+      const e = JSON.parse(localStorage.getItem(KEY_ESKI) || 'null') as Kayit | null
+      if (e && Array.isArray(e.liste) && Date.now() - e.zaman < SAAT24) temiz[VARSAYILAN_SEHIR] = e
+    }
+    return temiz
+  } catch {
+    return {}
+  }
+}
+export function etkinlikOnbellek(sehir: string): Kayit | undefined {
+  return tumOnbellek()[sehir]
+}
+export function etkinlikOnbellegeYaz(sehir: string, liste: Etkinlik[]): void {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ ...tumOnbellek(), [sehir]: { zaman: Date.now(), liste } }))
   } catch {
     /* yok */
   }
