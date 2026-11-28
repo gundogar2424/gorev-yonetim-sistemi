@@ -422,7 +422,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
     <li><b>Etiketler:</b> üstte yalnızca 6 etiket görünür: Popüler, Tatlı, Sokak lezzeti, Pastane, Kahve, Kahvaltı. Adı siyah, sayısı küçük; seçili etiket domates kırmızısı dolgu, beyaz yazı. <span class="dugme">Tümü ›</span> dokununca bütün etiketler ve mekanlardan toplanan en fazla 150 yemek ayrı ekranda açılır; oradan seçilen etiket ya da yemek Mekanlarım'ı yakından uzağa süzer.</li>
     <li><b>Süzgeçler (6 tane):</b> Gitmek istediklerim, Favoriler, Hype (son 7 günde bakılmamış en fazla 25 mekan sosyal medyada araştırılır), Gitmediklerim. İlk 4 süzgeç 2x2 ızgarada; altında tam genişlikte <b>Yeni</b>, onun altında tam genişlikte <b>Yakınında</b>. <b>Süzgeçler teklidir:</b> altısından yalnızca biri seçili olur; birine basınca öteki söner (Hype seçiliyken Yakınında'ya basınca Hype kapanır, tersi de böyle). Seçili süzgece yeniden basınca kapanır. <b>Yakınında gerçekten süzer:</b> 1, 3, 10 ya da 30 km seçiliyken o mesafenin dışındaki mekan listede hiç görünmez. Seçilen mesafede kayıtlı mekan yoksa kart çıkmaz, yalnızca şu yazı görünür: "10 km içinde kayıtlı mekan yok. Üstteki mesafe çiplerinden daha genişini seç." Tarif süzgeçleri bu sekmede, Mekanlarım süzgeçleri Tariflerim'de görünmez. <b>Yeni:</b> yalnızca son 7 günde eklenen mekanlar, en yeni en üstte (puan sıralaması uygulanmaz); yoksa "Son 7 günde yeni mekan yok" yazar. 7 günü dolan mekan kendiliğinden Yeni'den çıkar, Kontrol ettim düğmesi gerekmez. Yakınında seçilince listenin üstünde "1 km içinde ✕" çipi, altında gri yazıyla kullanılan konum çıkar, örnek: "Konum: Serdivan, Sakarya · 1 km içinde". Yakınında ayrı bir ekran değildir, aynı Mekanlarım sekmesidir; liste yakından uzağa sıralanır, Daha fazla göster ile 3, 5, 10 km olur. Yazı sığmazsa çipin içinde 2 satıra iner, yarım çip kalmaz. Hype seçiliyken konuşulan mekan yoksa küçük sarı bir not çıkar, altında mekanlar görünmeye devam eder.</li>
     <li><b>Mekan kartları:</b> Tarifler kartıyla aynı, 2 sütun.</li>
-    <li><b>Kısayollar:</b> 2 sütunlu küçük kartlar. Üstte simge, sağ üstte ok (her kartta aynı yerde); altında tam genişlikte başlık (en fazla 2 satır, sözcük ortasından bölünmez) ve tek satır açıklama: Bana mekan öner, Çevremdeki Hype, Sakarya'da Bu Hafta, Yemek gezisi, Harita, Influencer'lar, Gitmek istediğim, Sınırsız, Gittiğim yerler, Harcamalarım, Kampanyalar (dokununca açılır).</li>
+    <li><b>Kısayollar:</b> 2 sütunlu küçük kartlar. Üstte simge, sağ üstte ok (her kartta aynı yerde); altında tam genişlikte başlık (en fazla 2 satır, sözcük ortasından bölünmez) ve tek satır açıklama: Bana mekan öner, Çevremdeki Hype, Sakarya'da Bu Hafta, Gezimi Planla, Yemek gezisi, Harita, Influencer'lar, Gitmek istediğim, Sınırsız, Gittiğim yerler, Harcamalarım, Kampanyalar (dokununca açılır).</li>
     <li><b>Şu an buradayım</b></li>
     <li><b>Konum kartı</b></li>
     <li><b>Mekan ekle</b>. En altta 100 px boşluk; + düğmesi hiçbir kartın ve kutunun üstüne binmez.</li>
@@ -528,6 +528,16 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
     <div class="kart"><h3>Sınırsız</h3><p>Yakınında sınırsız pizza, köfte, kanat, açık büfe veren yerleri arar, serpme kahvaltı hariç. Tek arama 1 TL'nin altında. Ayrıca kayıtlı mekanlarında "sınırsız, limitsiz, açık büfe, doyasıya" geçenleri listeler.</p></div>
     <div class="kart"><h3>Influencer'lar</h3><p>@kullanıcı, profil linki ya da ad ile eklenir. "En beğenilen yerleri (Google onaylı, puan ≥ 4,3)", "Hepsinin son gittiği yeni yerler (son 30 gün)". Kişi sayfasında kapak fotoğrafı, istatistik, şehir sekmeleri ve zamana, yere, yemek türüne göre arama. Linkler açılmadan önce doğrulanır: profil değil, mekanı anlattığı video açılır. 3 günde bir yeni mekan kontrolü, bildirimle.</p></div>
     <div class="kart"><h3>Gittiklerim ve Harcamalarım</h3><p>Gittiğin yerler şehir ve ilçeye göre, kendi puanına göre sıralı. Harcamalar bu ay ve bu yıl toplamı, aylara göre çubuk grafik, mekanlara göre, ayrı etkinlikler listesi (Biletlerim'deki bilet + yol + yemek toplamları) ve son 30 ödeme. Etkinlik harcamaları bu ay, bu yıl ve aylık toplamlara dahildir.</p></div>
+    <div class="kart"><h3>Gezimi Planla</h3><p>Mekanlarım'daki kısayollarda <span class="dugme">Gezimi Planla</span> kartı var. Sohbetle gün gün gezi planı çıkarır. Yemek gezisi ekranı ayrıdır, aynen durur.</p>
+      <ul>
+        <li><b>Sohbet kutusu:</b> Ekranın üstünde. İlk yazı: "Nereye gideceksin, kaç gün, kimlerle, ne yapmak istiyorsun, anlat." Cümleyle yazılır.</li>
+        <li><b>Sorular:</b> Eksik bilgi varsa en fazla 3 soru sorulur: "Kaç gün?", "Kimlerle gideceksin?", "Kaçta çıkacaksın?". Cümlede yazılmış olan sorulmaz. Sorular telefonda sorulur, yapay zeka harcamaz.</li>
+        <li><b>Plan kartı:</b> Plan sohbetin içinde kaybolmaz; sohbet kutusunun altında ayrı kart olarak durur. Üstünde <span class="dugme">1. Gün</span>, <span class="dugme">2. Gün</span> sekmeleri. Her durakta saat, yer, tür, kısa açıklama ve iki düğme: <span class="dugme">Kalsın</span> ve <span class="dugme">Çıkar</span>.</li>
+        <li><b>Kalsın ve Çıkar:</b> Kalsın denen durak yeşil çerçeveli olur ve sohbetle yapılan değişiklikler ona dokunmaz. Çıkar durağı plandan çıkarır; yapay zeka harcamaz.</li>
+        <li><b>Şunu değiştir:</b> Plan çıktıktan sonra sohbete yazılan istek (örnek: "öğle yemeğini köfteciyle değiştir") yalnızca o durağı değiştirir; diğer duraklar aynı kalır. Kaç durağın değiştiği sohbette yazar.</li>
+        <li><b>Ekonomik kullanım:</b> Plan 1 kez oluşturulur ve telefonda saklanır; ekran yeniden açılınca yeniden oluşturulmaz. Her mesajda plan yeniden yazılmaz: değişiklikte yapay zekaya yalnızca durakların kısa listesi gider, yalnızca değişen duraklar döner, Google araması yapılmaz. Google araması yalnızca plan oluşturulurken 1 kez kullanılır.</li>
+        <li><b>Yeni plan:</b> Kartın altındaki <span class="dugme">Yeni plan</span> onay sorar, sonra planı ve sohbeti siler.</li>
+      </ul></div>
     <div class="kart"><h3>Yemek gezisi</h3><p>Gitmek istediğin ya da favori mekanlardan seç, <span class="dugme">Yakından uzağa sırala</span> ile rotayı kur, durakları yukarı aşağı taşı. Google Haritalar'da 4'er duraklık bölümler halinde yol tarifi açılır, ilki bulunduğun yerden başlar.</p></div>
   </div>
 </section>
@@ -569,7 +579,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
       <h2>Yedekleme</h2>
       <div class="izgara">
         <div class="kart"><h3>Otomatik yedek</h3><p>Otomatik yedek her gün alınır, en erken 20 saat arayla; son yedekten 20 saat geçmeden ikinci yedek alınmaz. Yedek kendiliğinden <b>Belgeler → LezzetRotasi</b> klasörüne yazılır, son 10 gün saklanır. Bu klasör uygulamaya ait değildir, uygulama silinse de kalır. Boş veri yedeklenmez, böylece iyi bir yedeğin üzerine boşu yazılmaz. Ayarlar'da son yedeğin zamanı ve kaç tarif, kaç mekan içerdiği görünür. <span class="dugme">Şimdi yedekle</span> hemen bir yedek alır.</p></div>
-        <div class="kart"><h3>Elle yedek</h3><p><span class="dugme">Yedeği al</span> paylaşım menüsünü açar: Drive'a, e-postaya ya da WhatsApp'a kaydedilir. İçinde tarifler, Pişirme Günlüğü, mekanlar, ziyaretler, harcamalar, biletler, etkinlik notları ve bilet fotoğrafları, diyet planı, sofralar, haftalık plan, alışveriş listesi, takip ettiğin influencer'lar ve ayarlar var. API anahtarları yok.</p></div>
+        <div class="kart"><h3>Elle yedek</h3><p><span class="dugme">Yedeği al</span> paylaşım menüsünü açar: Drive'a, e-postaya ya da WhatsApp'a kaydedilir. İçinde tarifler, Pişirme Günlüğü, mekanlar, ziyaretler, harcamalar, biletler, etkinlik notları ve bilet fotoğrafları, Gezimi Planla'daki plan ve sohbet, diyet planı, sofralar, haftalık plan, alışveriş listesi, takip ettiğin influencer'lar ve ayarlar var. API anahtarları yok.</p></div>
         <div class="kart"><h3>Geri yükleme</h3><p><span class="dugme">Geri yükle</span> ile yedek dosyası seçilir. Telefondaki veri silinmez, yedektekiler eklenir. Aynı adlı tarifler ve aynı şehirdeki aynı adlı mekanlar atlanır.</p></div>
         <div class="kart"><h3>Siteden kurtarma</h3><p>Telefonda hiç tarif yoksa, örneğin uygulama silinip yeniden kurulduysa, açılışta sitedeki tarifler bir kereye mahsus kendiliğinden geri yüklenir.</p></div>
       </div>
@@ -614,7 +624,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   <h3>Para harcamayanlar</h3>
   <p>Beğeni puanı, arama, Google Haritalar linkinden mekan bulma, Şu an buradayım, tarif sitelerindeki hazır tarifler, kopya kontrolü, porsiyon ölçekleme, Thermomix ve pişirici kural denetimleri, alışveriş listesi, yedekleme, siteye gönderme.</p>
   <h3>Google araması kullananlar</h3>
-  <p>Thermomix uyarlaması (Cookidoo örneği), mekan çıkarma ve puan yenileme, kampanyalar, menü fiyatları, ünlüler, Hype tarifler ve hype mekanlar, Çevremdeki Hype, Sakarya'da Bu Hafta etkinlik araması, Bana mekan öner, influencer aramaları, Sınırsız. Arama yalnızca Gemini'de çalışır. Arama başına yaklaşık 0,035 dolar, yani 1,5 TL civarı.</p>
+  <p>Thermomix uyarlaması (Cookidoo örneği), mekan çıkarma ve puan yenileme, kampanyalar, menü fiyatları, ünlüler, Hype tarifler ve hype mekanlar, Çevremdeki Hype, Sakarya'da Bu Hafta etkinlik araması, Gezimi Planla (yalnızca plan oluşturulurken, 1 kez), Bana mekan öner, influencer aramaları, Sınırsız. Arama yalnızca Gemini'de çalışır. Arama başına yaklaşık 0,035 dolar, yani 1,5 TL civarı.</p>
   <h3>Hatalarda</h3>
   <ul>
     <li>Bağlantı koparsa 1,5 saniye sonra bir kez daha dener.</li>
@@ -640,6 +650,6 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   </main>
 </div>
 
-<footer>Lezzet Rotası · Sürüm 1.0.233 · Kasım 2026</footer>
+<footer>Lezzet Rotası · Sürüm 1.0.234 · Kasım 2026</footer>
 
 </body></html>

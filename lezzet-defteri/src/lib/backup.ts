@@ -18,7 +18,7 @@ interface LzBackup {
 }
 
 // Yedege giren telefon ayarlari; anahtarlar ve gecici onbellekler girmez
-const AYAR_ANAHTARLARI = ['lz-yemek-hesaplari', 'lz-hesap-cikan', 'lz-hesap-aday', 'lz-hesap-foto', 'lz-hesap-oto', 'lz-kendi-etiketler', 'lz-profil', 'lz-gezi', 'lz-theme', 'lz-shop-grup', 'lz-tasarruf', 'lz-gunluk-sinir']
+const AYAR_ANAHTARLARI = ['lz-yemek-hesaplari', 'lz-hesap-cikan', 'lz-hesap-aday', 'lz-hesap-foto', 'lz-hesap-oto', 'lz-kendi-etiketler', 'lz-profil', 'lz-gezi', 'lz-gezi-plan', 'lz-theme', 'lz-shop-grup', 'lz-tasarruf', 'lz-gunluk-sinir']
 function ayarlariOku(): Record<string, string> {
   const a: Record<string, string> = {}
   for (const k of AYAR_ANAHTARLARI) {

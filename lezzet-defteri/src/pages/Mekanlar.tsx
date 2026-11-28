@@ -422,6 +422,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
           <KisaKart to="/oner" ikon={<Icon name="sparkle" className="w-[17px] h-[17px]" />} baslik="Bana mekan öner" alt="Yakında, isteğine göre" vurgu />
           <KisaKart to="/cevre-hype" ikon={<Icon name="star" className="w-[17px] h-[17px]" />} baslik="Çevremdeki Hype" alt="Yakında çok konuşulanlar" />
           <KisaKart to="/sakarya-bu-hafta" ikon={<Icon name="calendar" className="w-[17px] h-[17px]" />} baslik={buHaftaBaslik(etkinlikSehri())} alt="Sinema, tiyatro, konser, festival" />
+          <KisaKart to="/gezimi-planla" ikon={<Icon name="sparkle" className="w-[17px] h-[17px]" />} baslik="Gezimi Planla" alt="Anlat, gün gün plan çıksın" />
           <KisaKart to="/gezi" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Yemek gezisi" alt="Rota kur, yola çık" />
           <KisaKart to="/harita" ikon={<Icon name="pin" className="w-[17px] h-[17px]" />} baslik="Harita" alt="Mekanlarım haritada" />
           <KisaKart to="/takip" ikon={<Icon name="users" className="w-[17px] h-[17px]" />} baslik="Influencer’lar" alt="Gittikleri yerler" />

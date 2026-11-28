@@ -1949,3 +1949,90 @@ export async function aiSakaryaBuHafta(bas: string, son: string, sehir = 'Sakary
     link: /^https?:\/\//.test(String(e.link ?? '')) ? String(e.link).trim() : ''
   }))
 }
+
+// GEZIMI PLANLA: sohbetten toplanan bilgiyle gun gun plan. TEK cagri; plan telefonda saklanir, her mesajda yeniden yazilmaz.
+export interface GeziDurakAi {
+  saat: string
+  ad: string
+  tur: string
+  aciklama: string
+}
+const GEZI_DURAK_SEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['saat', 'ad', 'tur', 'aciklama'],
+  properties: { saat: { type: 'string' }, ad: { type: 'string' }, tur: { type: 'string' }, aciklama: { type: 'string' } }
+}
+export async function aiGeziPlan(b: { anlatim: string; gun: number; kimlerle: string; cikis: string }): Promise<{ baslik: string; gunler: GeziDurakAi[][] }> {
+  const v = await jsonCagri<{ baslik: string; gunler: { duraklar: GeziDurakAi[] }[] }>(
+    'Sen bir gezi planlayıcısısın. Kullanıcının anlattığına göre GÜN GÜN, saat sırasıyla gezi planı yaz. ' +
+      `Tam olarak ${b.gun} gün planla; her günde 4-7 durak. Duraklar gerçek, bilinen yerler olsun (gezilecek yer, yemek molası, kahve, manzara…); emin olmadığın yeri YAZMA, UYDURMA. ` +
+      'İlk günün ilk durağı çıkış saatine göre başlasın; duraklar arası yol süresi gerçekçi olsun. Kimlerle gidildiğine uygun seç (çocuk, yaşlı, arkadaş grubu…). ' +
+      'saat: SS:DD. ad: yerin adı. tur: tek-iki kelime (ör. Kahvaltı, Müze, Manzara, Yürüyüş, Akşam yemeği). aciklama: tek kısa cümle, neden / ne yapılır. ' +
+      'baslik: planın kısa adı (ör. "2 gün Sapanca"). Türkçe yaz.',
+    `Anlattıkları: ${b.anlatim}\nKaç gün: ${b.gun}\nKimlerle: ${b.kimlerle || 'belirtilmedi'}\nÇıkış saati: ${b.cikis || 'belirtilmedi'}`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['baslik', 'gunler'],
+      properties: {
+        baslik: { type: 'string' },
+        gunler: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['duraklar'], properties: { duraklar: { type: 'array', items: GEZI_DURAK_SEMA } } } }
+      }
+    },
+    5000,
+    true
+  )
+  return { baslik: String(v.baslik ?? '').trim(), gunler: (v.gunler ?? []).map((g) => (g?.duraklar ?? []).filter((d) => d?.ad)) }
+}
+
+// "Sunu degistir": plan YENIDEN YAZILMAZ. Yalnizca degisen duraklar doner (kucuk, aramasiz, ucuz cagri).
+export interface GeziDegisiklik {
+  islem: 'degistir' | 'ekle' | 'cikar'
+  id: number // degistir / cikar: durak no; ekle: 0
+  gun: number // 1'den baslar (ekle icin)
+  saat: string
+  ad: string
+  tur: string
+  aciklama: string
+}
+export async function aiGeziDegistir(
+  ozet: string,
+  istek: string,
+  baglam: string
+): Promise<{ cevap: string; degisiklikler: GeziDegisiklik[] }> {
+  const v = await jsonCagri<{ cevap: string; degisiklikler: GeziDegisiklik[] }>(
+    'Bir gezi planında kullanıcının istediği KÜÇÜK değişikliği yap. Planı yeniden yazma: YALNIZCA değişen durakları döndür. ' +
+      'Her satır: #no | gün | saat | ad | tür. Başında [KALSIN] olan duraklara DOKUNMA. ' +
+      'islem: "degistir" (id = o durağın no’su; yeni saat/ad/tur/aciklama), "ekle" (id = 0; gun, saat, ad, tur, aciklama), "cikar" (id = no). ' +
+      'İstenmeyen hiçbir durağı değiştirme. Yerler gerçek olsun, UYDURMA. cevap: ne değiştirdiğini anlatan tek kısa cümle. İstek anlaşılmıyorsa boş liste döndür ve cevap’ta kısaca sor. Türkçe yaz.',
+    `Gezi: ${baglam}\nPlan:\n${ozet}\n\nİstek: ${istek}`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['cevap', 'degisiklikler'],
+      properties: {
+        cevap: { type: 'string' },
+        degisiklikler: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['islem', 'id', 'gun', 'saat', 'ad', 'tur', 'aciklama'],
+            properties: {
+              islem: { type: 'string', enum: ['degistir', 'ekle', 'cikar'] },
+              id: { type: 'integer' },
+              gun: { type: 'integer' },
+              saat: { type: 'string' },
+              ad: { type: 'string' },
+              tur: { type: 'string' },
+              aciklama: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    1200
+  )
+  return { cevap: String(v.cevap ?? '').trim(), degisiklikler: Array.isArray(v.degisiklikler) ? v.degisiklikler : [] }
+}

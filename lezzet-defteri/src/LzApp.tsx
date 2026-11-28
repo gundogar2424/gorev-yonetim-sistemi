@@ -30,6 +30,7 @@ import Etiketler from './pages/Etiketler'
 import MekanOner from './pages/MekanOner'
 import CevreHype from './pages/CevreHype'
 import SakaryaBuHafta from './pages/SakaryaBuHafta'
+import GezimiPlanla from './pages/GezimiPlanla'
 import { hatirlatSenkron } from './lib/etkinlik'
 import HypeTarifler from './pages/HypeTarifler'
 import Takip from './pages/Takip'
@@ -146,6 +147,7 @@ export default function LzApp() {
           <Route path="/oner" element={<MekanOner />} />
           <Route path="/cevre-hype" element={<CevreHype />} />
           <Route path="/sakarya-bu-hafta" element={<SakaryaBuHafta />} />
+          <Route path="/gezimi-planla" element={<GezimiPlanla />} />
           <Route path="/hype" element={<HypeTarifler />} />
           <Route path="/takip" element={<Takip />} />
           <Route path="/harcamalarim" element={<Harcamalarim />} />
