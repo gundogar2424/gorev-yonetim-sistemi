@@ -165,7 +165,7 @@ export default function SakaryaBuHafta() {
       <div className="px-4 pt-3 space-y-3">
         <div className="grid grid-cols-2 gap-2" data-etk-sekmeler>
           <button className={`lz-chip !min-h-[48px] justify-center text-[14px] ${sekme === 'hafta' ? 'lz-chip-on' : ''}`} onClick={() => sekmeSec('hafta')}>
-            Bu Hafta
+            Etkinlikler
           </button>
           <button className={`lz-chip !min-h-[48px] justify-center text-[14px] ${sekme === 'bilet' ? 'lz-chip-on' : ''}`} onClick={() => sekmeSec('bilet')} data-biletlerim>
             Biletlerim{biletler.length ? ` · ${biletler.length}` : ''}
@@ -258,7 +258,7 @@ export default function SakaryaBuHafta() {
           <>
             {!sirali.length && (
               <div className={`lz-card p-6 text-center text-sm ${T_GOVDE}`} data-bilet-bos>
-                Henüz biletin yok. Bu Hafta’da bir etkinlikte <b>Biletim var</b>’a dokun; burada toplanır.
+                Henüz biletin yok. Etkinlikler’de bir etkinlikte <b>Biletim var</b>’a dokun; burada toplanır.
               </div>
             )}
             {sirali.map((b) => (
