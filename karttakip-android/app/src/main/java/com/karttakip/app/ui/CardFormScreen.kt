@@ -338,9 +338,17 @@ fun CardFormScreen(
                                 statementDebt = ekstre.toDoubleOrNull() ?: 0.0,
                                 colorArgb = color,
                                 remindDaysBefore = remind.toIntOrNull()?.coerceIn(0, 30) ?: 3,
-                                // Yeni kartta takibi bu dongaden baslat; duzenlemede koru.
-                                lastPaidDueEpochDay = existing?.lastPaidDueEpochDay?.takeIf { it > 0L }
-                                    ?: CardCalc.initialLastPaid(dDate.toEpochDay()),
+                                // Son odeme tarihi DEGISTIYSE (ya da kart yeniyse) guncel dongu =
+                                // kullanicinin sectigi tarih olsun; eski "ödendi" kaydina gore bir
+                                // onceki aya geri sarmasin (27 Kas / 7 Ara -> 27 Eki / 7 Kas hatasi).
+                                // Degismediyse "ödedim" gecmisini aynen koru.
+                                lastPaidDueEpochDay = run {
+                                    val prevDue = existing?.let { CardCalc.currentDue(it, LocalDate.now()) }
+                                    if (existing != null && prevDue == dDate)
+                                        existing.lastPaidDueEpochDay.takeIf { it > 0L }
+                                            ?: CardCalc.initialLastPaid(dDate.toEpochDay())
+                                    else dDate.minusMonths(1).toEpochDay()
+                                },
                                 // Ekstre borcu girildiyse "onaylandi" -> yanip sonme durur.
                                 // Girilmediyse (0) onaylama; kart "borcunu gir" diye yanip
                                 // sonmeye devam etsin (ya da kullanici "Borç yok" desin).
