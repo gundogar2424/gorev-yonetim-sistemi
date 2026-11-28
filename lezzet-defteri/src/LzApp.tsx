@@ -28,6 +28,7 @@ import GeziPlani from './pages/GeziPlani'
 import Harita from './pages/Harita'
 import Etiketler from './pages/Etiketler'
 import MekanOner from './pages/MekanOner'
+import CevreHype from './pages/CevreHype'
 import HypeTarifler from './pages/HypeTarifler'
 import Takip from './pages/Takip'
 import Harcamalarim from './pages/Harcamalarim'
@@ -139,6 +140,7 @@ export default function LzApp() {
           <Route path="/harita" element={<Harita />} />
           <Route path="/etiketler" element={<Etiketler />} />
           <Route path="/oner" element={<MekanOner />} />
+          <Route path="/cevre-hype" element={<CevreHype />} />
           <Route path="/hype" element={<HypeTarifler />} />
           <Route path="/takip" element={<Takip />} />
           <Route path="/harcamalarim" element={<Harcamalarim />} />

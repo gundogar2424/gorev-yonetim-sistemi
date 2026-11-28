@@ -479,6 +479,10 @@ export default function Harita() {
               <p className={`text-[13px] text-center py-4 ${T_SOLUK}`}>Bu alanda mekan yok. {sonraki ? 'Daha geniş bakmayı dene.' : ''}</p>
             )}
             {!sehir && merkez && <DahaFazlaGoster simdiKm={yaricap / 1000} kapali={yukleniyor} buyut={() => setAdim(adim + 1)} />}
+            {/* Cevremdeki Hype: yakinda cok konusulan, henuz kayitli olmayan yerler (ayri ekran) */}
+            <button className="lz-btn-soft w-full text-[14px]" onClick={() => navigate('/cevre-hype')} data-cevre-hype>
+              ★ Çevremdeki Hype
+            </button>
             {!merkez && (
               <button className="lz-btn-soft w-full text-[14px]" onClick={() => navigate('/mekanlar')}>
                 Mekanlarım’a dön

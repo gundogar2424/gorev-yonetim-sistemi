@@ -420,7 +420,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
     <li><b>Etiketler:</b> üstte yalnızca 6 etiket görünür: Popüler, Tatlı, Sokak lezzeti, Pastane, Kahve, Kahvaltı. Adı siyah, sayısı küçük; seçili etiket domates kırmızısı dolgu, beyaz yazı. <span class="dugme">Tümü ›</span> dokununca bütün etiketler ve mekanlardan toplanan en fazla 150 yemek ayrı ekranda açılır; oradan seçilen etiket ya da yemek Mekanlarım'ı yakından uzağa süzer.</li>
     <li><b>Süzgeçler (6 tane):</b> Gitmek istediklerim, Favoriler, Hype (son 7 günde bakılmamış en fazla 25 mekan sosyal medyada araştırılır), Gitmediklerim. İlk 4 süzgeç 2x2 ızgarada; altında tam genişlikte <b>Yeni</b>, onun altında tam genişlikte <b>Yakınında</b>. Tarif süzgeçleri bu sekmede, Mekanlarım süzgeçleri Tariflerim'de görünmez. <b>Yeni:</b> yalnızca son 7 günde eklenen mekanlar, en yeni en üstte (puan sıralaması uygulanmaz); yoksa "Son 7 günde yeni mekan yok" yazar. 7 günü dolan mekan kendiliğinden Yeni'den çıkar, Kontrol ettim düğmesi gerekmez. Yakınında seçilince listenin üstünde "1 km içinde ✕" çipi, altında gri yazıyla kullanılan konum çıkar, örnek: "Konum: Serdivan, Sakarya · 1 km içinde". Yakınında ayrı bir ekran değildir, aynı Mekanlarım sekmesidir; liste yakından uzağa sıralanır, Daha fazla göster ile 3, 5, 10 km olur. Yazı sığmazsa çipin içinde 2 satıra iner, yarım çip kalmaz. Hype seçiliyken konuşulan mekan yoksa küçük sarı bir not çıkar, altında mekanlar görünmeye devam eder.</li>
     <li><b>Mekan kartları:</b> Tarifler kartıyla aynı, 2 sütun.</li>
-    <li><b>Kısayollar:</b> 2 sütunlu küçük kartlar. Üstte simge, sağ üstte ok (her kartta aynı yerde); altında tam genişlikte başlık (en fazla 2 satır, sözcük ortasından bölünmez) ve tek satır açıklama: Bana mekan öner, Yemek gezisi, Harita, Influencer'lar, Gitmek istediğim, Sınırsız, Gittiğim yerler, Harcamalarım, Kampanyalar (dokununca açılır).</li>
+    <li><b>Kısayollar:</b> 2 sütunlu küçük kartlar. Üstte simge, sağ üstte ok (her kartta aynı yerde); altında tam genişlikte başlık (en fazla 2 satır, sözcük ortasından bölünmez) ve tek satır açıklama: Bana mekan öner, Çevremdeki Hype, Yemek gezisi, Harita, Influencer'lar, Gitmek istediğim, Sınırsız, Gittiğim yerler, Harcamalarım, Kampanyalar (dokununca açılır).</li>
     <li><b>Şu an buradayım</b></li>
     <li><b>Konum kartı</b></li>
     <li><b>Mekan ekle</b>. En altta 100 px boşluk; + düğmesi hiçbir kartın ve kutunun üstüne binmez.</li>
@@ -499,6 +499,16 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
         <li><b>Karo önbelleği:</b> Açtığın bölgelerin ve son konumunun ~1,2 km çevresinin harita karoları telefonda saklanır, haftada bir tazelenir. İnternet yokken ya da çok zayıfken harita gri boşluk kalmaz; sokak çizgileri ve kayıtlı pinler çevre listesiyle aynı mantıkla önce telefondan gelir.</li>
       </ul></div>
     <div class="kart"><h3>Etiketler</h3><p>Mekan etiketleri sayılarıyla ve mekanlardan toplanan en fazla 150 yemek. Dokununca Mekanlarım sekmesi o etiketle, yakından uzağa açılır.</p></div>
+    <div class="kart"><h3>Çevremdeki Hype</h3><p>Mekanlarım'daki kısayollarda ve Harita ekranında <span class="dugme">Çevremdeki Hype</span> düğmesi var; tek dokunuşla açılır. Bulunduğun yerin çevresinde son zamanlarda çok konuşulan, yüksek puanlı ve <b>henüz kayıtlı olmayan</b> yerleri gösterir.</p>
+      <ul>
+        <li><b>Konum:</b> Yakınında ile aynı öncelik: 1. o anki GPS, 2. yazılan semt, 3. son GPS (en fazla 6 saatlik). Şehir adı, profil şehri ya da semt merkezi asla merkez olmaz. Konum izni yoksa ya da konum alınamadıysa hiçbir şey uydurulmaz: "Konum kapalı · <span class="dugme">Konumumu bul</span>".</li>
+        <li><b>Mesafe:</b> 1 km ile başlar. Alttaki <span class="dugme">Daha fazla göster</span> ile 3 km, 5 km, 10 km olur; 10 km birden taranmaz.</li>
+        <li><b>Neye bakılır:</b> Google puanı, yorum sayısı ve sosyal medyada bahsedilme. Kayıtlı mekanlar gösterilmez (aynı ad ve aynı şehir ya da 300 metre yakınlık kuralıyla elenir). Konumu doğrulanamayan ya da mesafenin dışında kalan yer gösterilmez.</li>
+        <li><b>Sıralama:</b> mekan sıralamasıyla aynı: Google puanı × yorum sayısının logaritması, reklamsa %15 düşük, hype %15 yüksek.</li>
+        <li><b>Kart:</b> mekan kartıyla aynı fiş: kapak, ad 2 satır, puan · tür · ilçe, en altta mesafe ve fiyat. Kapakta <b>Hype</b> rozeti (reklamsa yanında <b>Reklam</b> rozeti) ve 1 satır "neden hype" yazısı. Kartta tek dokunuşla <span class="dugme">+ Gitmek istiyorum</span>. Karta dokununca mekanın sayfası açılır: bilgiler, neden hype, ne yenir; <span class="dugme">Mekanlarım’a kaydet ve sayfasını aç</span>, <span class="dugme">+ Gitmek istiyorum</span>, <span class="dugme">Yol tarifi</span>. Kaydedilen mekan Hype olarak işaretlenir.</li>
+        <li><b>Bulunamazsa:</b> uydurulmaz, "Yakınında hype mekan bulunamadı" yazar.</li>
+        <li><b>Maliyet sınırı:</b> bir aramada en fazla 25 mekan araştırılır. Aynı yer ve aynı mesafe için arama 24 saat içinde yeniden para harcamaz, önbellekten gösterilir ("N dk önceki arama (kredi harcanmadı)"). Google araması yalnızca Gemini'de çalışır; Claude seçiliyse arama yapılmaz, bunu söyleyen bir uyarı çıkar. Arama sayısı Ayarlar'daki harcama sayacına eklenir.</li>
+      </ul></div>
     <div class="kart"><h3>Bana mekan öner</h3><p>Mesafe 1–10 km ya da sınırsız. Sekmeler: <b>Öner</b> ("Bu akşam iyi bir lahmacun", "Manzaralı kahvaltı"…), <b>Yemek</b> (canının çektiği yemeğin en iyisini bulur, fiyatıyla), <b>Hesaplar</b> (takip ettiklerinin önerdikleri, hype mekanları, son gittikleri), <b>Diyet</b> (öğününe uygun restoran ve sipariş, tahmini kalori). Google'da gerçek puan ve yorum sayısıyla 5 öneri, aynı arama 24 saat ücretsiz tekrar gösterilir. <span class="dugme">Git</span>, <span class="dugme">Yorumlar</span>, <span class="dugme">＋ Gitmek istiyorum</span>, <span class="dugme">Gittim</span>.</p></div>
     <div class="kart"><h3>Kampanyalar</h3><p>Önce kayıtlı yazılarda "sınırsız, açık büfe, happy hour, 1 alana 1, indirim" gibi sözcükler ücretsiz taranır. Sonra en fazla 15 mekan, 1 km'lik halkalarla yakından uzağa, Google'da önümüzdeki 7 gün için aranır. Bulunan kampanyalar listede gösterilir ve 7 gün listede kalır. Bildirim olarak günde en fazla 2 kampanya bildirimi gelir (yakında sevdiğin mekan bildirimlerinden ayrı sayılır); fazlası yalnızca listede görünür. Kampanyalar kısayoluna dokununca liste açılır; kontrol, içindeki <span class="dugme">Kampanyaları kontrol et</span> düğmesiyle yapılır, kendiliğinden yapılmaz.</p></div>
     <div class="kart"><h3>Sınırsız</h3><p>Yakınında sınırsız pizza, köfte, kanat, açık büfe veren yerleri arar, serpme kahvaltı hariç. Tek arama 1 TL'nin altında. Ayrıca kayıtlı mekanlarında "sınırsız, limitsiz, açık büfe, doyasıya" geçenleri listeler.</p></div>
@@ -590,7 +600,7 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   <h3>Para harcamayanlar</h3>
   <p>Beğeni puanı, arama, Google Haritalar linkinden mekan bulma, Şu an buradayım, tarif sitelerindeki hazır tarifler, kopya kontrolü, porsiyon ölçekleme, Thermomix ve pişirici kural denetimleri, alışveriş listesi, yedekleme, siteye gönderme.</p>
   <h3>Google araması kullananlar</h3>
-  <p>Thermomix uyarlaması (Cookidoo örneği), mekan çıkarma ve puan yenileme, kampanyalar, menü fiyatları, ünlüler, Hype tarifler ve hype mekanlar, Bana mekan öner, influencer aramaları, Sınırsız. Arama yalnızca Gemini'de çalışır. Arama başına yaklaşık 0,035 dolar, yani 1,5 TL civarı.</p>
+  <p>Thermomix uyarlaması (Cookidoo örneği), mekan çıkarma ve puan yenileme, kampanyalar, menü fiyatları, ünlüler, Hype tarifler ve hype mekanlar, Çevremdeki Hype, Bana mekan öner, influencer aramaları, Sınırsız. Arama yalnızca Gemini'de çalışır. Arama başına yaklaşık 0,035 dolar, yani 1,5 TL civarı.</p>
   <h3>Hatalarda</h3>
   <ul>
     <li>Bağlantı koparsa 1,5 saniye sonra bir kez daha dener.</li>
@@ -616,5 +626,5 @@ footer{max-width:1080px;margin:56px auto 0;color:var(--soluk);font-size:13px;bor
   </main>
 </div>
 
-<footer>Lezzet Rotası · Sürüm 1.0.225 · Kasım 2026</footer>
+<footer>Lezzet Rotası · Sürüm 1.0.226 · Kasım 2026</footer>
 </body></html>

@@ -1502,6 +1502,76 @@ export async function aiMekanFiyatlari(m: { ad: string; ilce: string; sehir: str
   }
 }
 
+// CEVREMDEKI HYPE: bulunulan yerin cevresinde (km) son zamanlarda cok konusulan, yuksek puanli yerler.
+// Tek cagri, en fazla 25 mekan; Google aramasi gerektirir (yalnizca Gemini). Bulamazsa bos liste (uydurmaz).
+export const CEVRE_HYPE_EN_FAZLA = 25
+export async function aiCevreHype(yer: string, konum: { lat: number; lon: number }, km: number, kayitliAdlar: string[]): Promise<MekanOnerisi[]> {
+  if (saglayici() !== 'gemini') throw new Error('Çevremdeki Hype Google araması gerektirir; yalnızca Gemini anahtarıyla çalışır.')
+  const v = await jsonCagri<{ mekanlar: MekanOnerisi[] }>(
+    'Sen bir yeme-içme trend takipçisisin. Google’da güncel bilgilerle araştır: verilen KOORDİNATIN çevresinde, belirtilen mesafe İÇİNDE, ' +
+      'SON ZAMANLARDA (son birkaç ay) çok konuşulan ve yüksek puanlı yeme-içme mekanlarını (restoran, kafe, tatlıcı, fırın, sokak lezzeti…) bul. ' +
+      'Ölçütler: Google puanı, yorum sayısı ve sosyal medyada (Instagram, TikTok, YouTube) bahsedilme. Yalnızca gerçekten çok konuşulanları yaz; ' +
+      `en fazla ${CEVRE_HYPE_EN_FAZLA} mekan. Mesafe dışındakileri, kapanmış yerleri ve zincirlerin sıradan şubelerini yazma. Böyle bir yer bulamazsan BOŞ liste döndür, UYDURMA. ` +
+      'Puanı/yorum sayısını bulamazsan 0 yaz, UYDURMA. enlem/boylamı doğru yaz (bulamazsan 0). ' +
+      'neden: mekanın NEDEN hype olduğu, tek kısa cümle (ör. "TikTok’ta künefesi viral oldu"). populerlik: sosyal medyadaki durum, kısa. ' +
+      'fiyat: ₺ (uygun), ₺₺ (orta), ₺₺₺ (pahalı). ne_yenir: en çok konuşulan 1-3 şey. instagram: RESMİ kullanıcı adı (@ olmadan); emin değilsen boş. ' +
+      'reklam: konuşulmasının kaynağı #işbirliği, #reklam, #sponsorlu, “ücretli ortaklık/paid partnership”, “davetliydim” gibi işaretli tanıtımlarsa true; emin değilsen false. ' +
+      'yemek_fiyati, yemek_yorumu, paylasan, paylasim alanlarını boş bırak. Türkçe yaz.',
+    `Bulunduğum yer: ${yer || 'bilinmiyor'}\nKoordinat: ${konum.lat.toFixed(5)}, ${konum.lon.toFixed(5)}\nMesafe: en fazla ${km} km` +
+      `${kayitliAdlar.length ? `\nBunlar zaten kayıtlı, LİSTEYE KOYMA: ${kayitliAdlar.slice(0, 60).join(', ')}` : ''}`,
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['mekanlar'],
+      properties: {
+        mekanlar: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['ad', 'tur', 'ilce', 'sehir', 'adres', 'enlem', 'boylam', 'neden', 'puan', 'yorumSayisi', 'fiyat', 'populerlik', 'ne_yenir', 'instagram', 'reklam'],
+            properties: {
+              ad: { type: 'string' },
+              tur: { type: 'string' },
+              ilce: { type: 'string' },
+              sehir: { type: 'string' },
+              adres: { type: 'string' },
+              enlem: { type: 'number' },
+              boylam: { type: 'number' },
+              neden: { type: 'string' },
+              puan: { type: 'number' },
+              yorumSayisi: { type: 'integer' },
+              fiyat: { type: 'string' },
+              populerlik: { type: 'string' },
+              ne_yenir: { type: 'array', items: { type: 'string' } },
+              instagram: { type: 'string' },
+              reklam: { type: 'boolean' }
+            }
+          }
+        }
+      }
+    },
+    7000,
+    true
+  )
+  return (v.mekanlar ?? [])
+    .filter((o) => o?.ad)
+    .slice(0, CEVRE_HYPE_EN_FAZLA)
+    .map((o) => ({
+      ...o,
+      neden: String(o.neden ?? '').trim(),
+      populerlik: String(o.populerlik ?? '').trim(),
+      ne_yenir: Array.isArray(o.ne_yenir) ? o.ne_yenir : [],
+      puan: Number(o.puan) || 0,
+      yorumSayisi: Number(o.yorumSayisi) || 0,
+      yemek_fiyati: '',
+      yemek_yorumu: '',
+      link: '',
+      instagram: instagramAdi(o.instagram),
+      reklam: o.reklam === true
+    }))
+}
+
 export interface MekanOnerisi {
   ad: string
   tur: string
