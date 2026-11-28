@@ -200,43 +200,60 @@ export default function MekanDetay() {
             )}
           </div>
         )}
-        {(m.paylasimlar ?? []).length > 0 && (
-          <div className="lz-card p-4 space-y-2.5">
-            <div className={`font-semibold ${T_BASLIK}`}>Başka paylaşanlar da var · {m.paylasimlar!.length}</div>
-            {m.paylasimlar!.map((p, i) => {
+        {/* BU MEKANA GIDEN DIGERLERI: her zaman gorunur. Her farkli paylasan ayri kart, en yeni ustte.
+            Ayni kisinin baska platformdaki paylasimi ayni kartta "Ayrica …" linki. Bilinmeyen alan uydurulmaz ("—"). */}
+        <div className="lz-card p-4 space-y-2.5" data-digerleri>
+          <div className={`font-semibold ${T_BASLIK}`}>
+            Bu mekana giden diğerleri{(m.paylasimlar ?? []).length ? ` · ${m.paylasimlar!.length}` : ''}
+          </div>
+          {(m.paylasimlar ?? []).length === 0 && <p className={`text-[13.5px] ${T_SOLUK}`}>Henüz başka paylaşan yok</p>}
+          {[...(m.paylasimlar ?? [])]
+            .sort((x, y) => (y.zaman ?? 0) - (x.zaman ?? 0))
+            .map((p, i) => {
               const anahtar = hesaplariOku().find((x) => hesapNormal(x) === hesapNormal(p.paylasan)) ?? (p.paylasan.startsWith('@') || !PLATFORM_AD[p.platform] ? p.paylasan : `${p.paylasan} (${PLATFORM_AD[p.platform]})`)
+              const satir = (ad: string, deger?: string) => (
+                <p className={`text-[13.5px] leading-snug ${T_GOVDE}`}>
+                  <b>{ad}:</b> {deger?.trim() ? deger : <span className={T_SOLUK}>—</span>}
+                </p>
+              )
               return (
-                <div key={i} className="rounded-2xl bg-[#f3f3f1] dark:bg-[#26262a] p-3 space-y-1.5">
+                <div key={i} className="rounded-2xl border border-[#E5DDD6] dark:border-[#3a3a41] bg-white dark:bg-[#1f1f23] p-3 space-y-1.5" data-diger-kart>
                   <div className="flex items-center gap-2.5">
                     {p.paylasan ? (
                       <Link to={`/influencer/${encodeURIComponent(anahtar)}`} className="flex items-center gap-2.5 flex-1 min-w-0">
-                        <KisiAvatar ad={hesapNormal(p.paylasan)} foto={hesapFoto(anahtar)} className="w-8 h-8 text-[12px]" />
-                        <span className={`font-semibold text-[14px] truncate ${T_BASLIK}`}>
-                          {p.paylasan}
-                          {p.reklam && <ReklamRozeti />}
+                        <KisiAvatar ad={hesapNormal(p.paylasan)} foto={hesapFoto(anahtar)} className="w-9 h-9 text-[13px]" />
+                        <span className="min-w-0">
+                          <span className={`block font-semibold text-[14.5px] truncate ${T_BASLIK}`}>
+                            {p.paylasan}
+                            {p.reklam && <ReklamRozeti />}
+                          </span>
+                          <span className={`block text-[12px] ${T_SOLUK}`}>{p.zaman ? new Date(p.zaman).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
                         </span>
                       </Link>
                     ) : (
-                      <span className={`flex-1 text-[14px] ${T_SOLUK}`}>Bir paylaşım</span>
+                      <span className="flex-1 min-w-0">
+                        <span className={`block text-[14px] ${T_SOLUK}`}>Bir paylaşım</span>
+                        <span className={`block text-[12px] ${T_SOLUK}`}>{p.zaman ? new Date(p.zaman).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
+                      </span>
                     )}
-                    {[{ url: p.url, platform: p.platform }, ...(p.ekLinkler ?? [])].map((l, j) => (
-                      <button key={j} className="lz-btn-soft px-3 py-1.5 text-[12.5px] whitespace-nowrap" onClick={() => ac(l.url)}>
-                        {PLATFORM[l.platform] ?? 'Paylaşım'} ›
+                  </div>
+                  {satir('Ne yedi / ne denedi', p.yorum?.yedi)}
+                  {satir('Neyi beğendi', p.yorum?.begendi || p.yorum?.karar)}
+                  {satir('Neyi beğenmedi', p.yorum?.begenmedi)}
+                  <div className="flex gap-2 flex-wrap pt-1">
+                    <button className="lz-btn-soft !min-h-[40px] px-3 text-[13px]" onClick={() => ac(p.url)} data-video-ac>
+                      ▶ Videoyu aç{PLATFORM[p.platform] ? ` (${PLATFORM[p.platform]})` : ''}
+                    </button>
+                    {(p.ekLinkler ?? []).map((l, j) => (
+                      <button key={j} className="lz-chip !min-h-[40px] text-[12.5px]" onClick={() => ac(l.url)}>
+                        Ayrıca {PLATFORM[l.platform] ?? 'paylaşım'} ›
                       </button>
                     ))}
                   </div>
-                  {p.yorum?.yedi && (
-                    <p className={`text-[13px] ${T_GOVDE}`}>
-                      <b>Denediği:</b> {p.yorum.yedi}
-                    </p>
-                  )}
-                  {(p.yorum?.karar || p.yorum?.begendi) && <p className={`text-[13px] ${T_GOVDE}`}>“{p.yorum.karar || p.yorum.begendi}”</p>}
-                  {p.yorum?.begenmedi && <p className={`text-[12.5px] ${T_SOLUK}`}>Beğenmediği: {p.yorum.begenmedi}</p>}
                 </div>
               )
             })}
-          </div>
-        )}
+        </div>
         {m.sourceUrl && ['instagram', 'tiktok', 'youtube'].includes(m.platform) && apiAnahtari() && (
           <button
             className="lz-btn-soft w-full text-[13.5px]"
