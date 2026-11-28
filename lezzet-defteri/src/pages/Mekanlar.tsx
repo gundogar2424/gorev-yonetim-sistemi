@@ -59,11 +59,28 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   // "Yakininda"ya her dokunusta 1 km suzgeci ve listeye kaydirma
   useEffect(() => {
     if (!yakinIstek) return
+    digerleriniKapat('yakin')
     setYaricap(MESAFE_KM[0])
     setTimeout(() => document.getElementById('mekan-listesi')?.scrollIntoView({ behavior: 'smooth' }), 150)
   }, [yakinIstek])
   const [kampanyaAcik, setKampanyaAcik] = useState(false)
   const aiVar = !!apiAnahtari()
+
+  // SUZGECLER TEKLI: Gitmek istediklerim, Favoriler, Hype, Gitmediklerim, Yeni, Yakininda'dan yalnizca biri secili olabilir
+  const digerleriniKapat = (haric: 'istek' | 'favori' | 'hype' | 'gidilmedi' | 'yeni' | 'yakin') => {
+    if (haric !== 'istek') setSadeceIstek(false)
+    if (haric !== 'favori') setSadeceFavori(false)
+    if (haric !== 'hype') {
+      setSadeceHype(false)
+      setHypeDurum('')
+    }
+    if (haric !== 'gidilmedi') setSadeceGidilmedi(false)
+    if (haric !== 'yeni') setSadeceYeni(false)
+    if (haric !== 'yakin') {
+      setYaricap(0)
+      setYakinMod(false)
+    }
+  }
 
   const konumuAl = async () => {
     setKonumMesaj('Konum alınıyor…')
@@ -131,6 +148,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
   // son 7 gunde bakilanlara tekrar bakilmaz (kredi harcamamak icin)
   const hypeKontrol = async () => {
     if (sadeceHype) return setSadeceHype(false)
+    digerleriniKapat('hype')
     setSadeceHype(true)
     const hafta = Date.now() - 7 * 24 * 3600 * 1000
     const bakilacak = sirali.filter((m) => !m.hype || m.hype.zaman < hafta).slice(0, 25)
@@ -160,7 +178,8 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
             (!etiket || m.etiketler.includes(etiket)) &&
             (!yemek || yemekGeciyor(m, yemek)) &&
             (!sadeceFavori || m.favori) &&
-            (!sadeceIstek || m.gitmekIstiyorum)
+            (!sadeceIstek || m.gitmekIstiyorum) &&
+            (!yaricap || (konum && m.lat !== undefined && m.lon !== undefined && mesafeKm(konum, { lat: m.lat, lon: m.lon }) <= yaricap))
         )
         .sort((a, b) => mekanSkoru(b) - mekanSkoru(a) || (mesafe(a) ?? 1e9) - (mesafe(b) ?? 1e9))
     : sirali
@@ -241,22 +260,25 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
           )}
           {!gomulu && aramaOdak && !arama && <SonAramalar tur="mekan" sec={(x) => setArama(x)} />}
           <div className="grid grid-cols-2 gap-2">
-            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => setSadeceIstek(!sadeceIstek)}>
+            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceIstek ? 'lz-chip-on' : ''}`} onClick={() => { digerleriniKapat('istek'); setSadeceIstek(!sadeceIstek) }} data-suzgec="istek">
               Gitmek istediklerim
             </button>
-            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => setSadeceFavori(!sadeceFavori)}>
+            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceFavori ? 'lz-chip-on' : ''}`} onClick={() => { digerleriniKapat('favori'); setSadeceFavori(!sadeceFavori) }} data-suzgec="favori">
               Favoriler
             </button>
             <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceHype ? 'lz-chip-on' : ''}`} disabled={hypeDurum.endsWith('…')} onClick={() => void hypeKontrol()}>
               Hype
             </button>
-            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => setSadeceGidilmedi(!sadeceGidilmedi)}>
+            <button className={`lz-chip justify-center !whitespace-normal text-center leading-tight ${sadeceGidilmedi ? 'lz-chip-on' : ''}`} onClick={() => { digerleriniKapat('gidilmedi'); setSadeceGidilmedi(!sadeceGidilmedi) }} data-suzgec="gidilmedi">
               Gitmediklerim
             </button>
             {/* Yeni: son 7 gunde eklenen mekanlar (7 gun dolunca kendiliginden cikar) */}
             <button
               className={`lz-chip col-span-2 justify-center !whitespace-normal text-center leading-tight ${sadeceYeni ? 'lz-chip-on' : ''}`}
-              onClick={() => setSadeceYeni(!sadeceYeni)}
+              onClick={() => {
+                digerleriniKapat('yeni')
+                setSadeceYeni(!sadeceYeni)
+              }}
               data-mekan-yeni
             >
               Yeni
@@ -267,6 +289,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
               onClick={() => {
                 setYakinMod(false)
                 if (yaricap) return setYaricap(0)
+                digerleriniKapat('yakin')
                 setYaricap(MESAFE_KM[0])
                 if (!konum) void merkezAl(true)
               }}
@@ -371,6 +394,7 @@ export default function Mekanlar({ gomulu = false, disArama, yakinIstek = 0 }: {
           <KisaKart to="/takip" ikon={<Icon name="users" className="w-[17px] h-[17px]" />} baslik="Influencer’lar" alt="Gittikleri yerler" />
           <KisaKart
             onClick={() => {
+              digerleriniKapat('istek')
               setSadeceIstek(true)
               listeyeGit()
             }}
