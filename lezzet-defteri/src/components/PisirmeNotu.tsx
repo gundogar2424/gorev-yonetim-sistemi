@@ -2,37 +2,65 @@ import { useEffect, useRef, useState } from 'react'
 import { Sheet, T_BASLIK, T_SOLUK } from './ui'
 import type { PisirmeKaydi } from '../types'
 
-// PISIRME GUNLUGU penceresi: Pisirdim ya da Afiyet olsun! sonrasi. Hicbir alan zorunlu degil;
-// pencere kapatilirsa notsuz kaydedilir (sayi yine artar). onKaydet yalnizca bir kez cagrilir.
+// PISIRME GUNLUGU penceresi: Pisirdim ya da Afiyet olsun! sonrasi (ve gunluk satirini duzenlerken).
+// Iki dugme: Kaydet (alanlar bos olsa da kaydeder, sayi +1) ve Vazgec. Vazgec ya da X ile kapatmak HICBIR SEY kaydetmez.
 export type GunlukGirdi = Pick<PisirmeKaydi, 'degisiklik' | 'deneyim' | 'sonuc'> & { uygula: boolean }
 export const SONUC_AD: Record<NonNullable<PisirmeKaydi['sonuc']>, string> = { iyi: 'Daha iyi', ayni: 'Aynı', kotu: 'Daha kötü' }
+export const CIHAZ_AD: Record<NonNullable<PisirmeKaydi['cihaz']>, string> = { normal: 'Normal', tm: 'TM7', pp: 'Pilav Pişirici' }
 
-export function PisirmeNotu({ open, onKaydet }: { open: boolean; onKaydet: (g?: GunlukGirdi) => void }) {
+export function PisirmeNotu({
+  open,
+  onKaydet,
+  onVazgec,
+  duzenle
+}: {
+  open: boolean
+  onKaydet: (g: GunlukGirdi) => void
+  onVazgec: () => void
+  duzenle?: PisirmeKaydi // varsa: mevcut satiri duzenleme (tarife uygula secenegi yok)
+}) {
   const [degisiklik, setDegisiklik] = useState('')
   const [deneyim, setDeneyim] = useState('')
   const [sonuc, setSonuc] = useState<PisirmeKaydi['sonuc']>()
   const [uygula, setUygula] = useState(false)
+  const [uyari, setUyari] = useState('')
   const bitti = useRef(false)
   useEffect(() => {
     if (!open) return
     bitti.current = false
-    setDegisiklik('')
-    setDeneyim('')
-    setSonuc(undefined)
+    setDegisiklik(duzenle?.degisiklik ?? '')
+    setDeneyim(duzenle?.deneyim ?? duzenle?.not ?? '')
+    setSonuc(duzenle?.sonuc)
     setUygula(false)
-  }, [open])
-  const kaydet = (g?: GunlukGirdi) => {
+    setUyari('')
+  }, [open, duzenle])
+  const vazgec = () => {
     if (bitti.current) return
     bitti.current = true
-    onKaydet(g)
+    onVazgec()
   }
-  const dolu = !!(degisiklik.trim() || deneyim.trim() || sonuc)
+  const kaydet = () => {
+    if (bitti.current) return
+    if (uygula && !degisiklik.trim()) return setUyari('Tarife uygulamak için ne değiştirdiğini yaz')
+    bitti.current = true
+    onKaydet({ degisiklik: degisiklik.trim() || undefined, deneyim: deneyim.trim() || undefined, sonuc, uygula: uygula && !!degisiklik.trim() })
+  }
   return (
-    <Sheet open={open} onClose={() => kaydet()} title="Pişirme Günlüğü">
+    <Sheet open={open} onClose={vazgec} title={duzenle ? 'Günlük kaydını düzenle' : 'Pişirme Günlüğü'}>
       <div className="space-y-3" data-pisirme-notu>
         <label className="block">
           <span className={`block text-[13.5px] font-semibold mb-1 ${T_BASLIK}`}>Ne değiştirdim?</span>
-          <input className="lz-input text-[15px]" placeholder="Örn. Sütü artırdım" value={degisiklik} maxLength={300} onChange={(e) => setDegisiklik(e.target.value)} data-alan="degisiklik" />
+          <input
+            className="lz-input text-[15px]"
+            placeholder="Örn. Sütü artırdım"
+            value={degisiklik}
+            maxLength={300}
+            onChange={(e) => {
+              setDegisiklik(e.target.value)
+              setUyari('')
+            }}
+            data-alan="degisiklik"
+          />
         </label>
         <label className="block">
           <span className={`block text-[13.5px] font-semibold mb-1 ${T_BASLIK}`}>Nasıl oldu? / Deneyimim</span>
@@ -48,19 +76,37 @@ export function PisirmeNotu({ open, onKaydet }: { open: boolean; onKaydet: (g?: 
             ))}
           </div>
         </div>
-        <label className="flex items-start gap-3 min-h-[44px] cursor-pointer">
-          <input type="checkbox" className="mt-1 w-5 h-5 flex-shrink-0" checked={uygula} onChange={(e) => setUygula(e.target.checked)} data-alan="uygula" />
-          <span>
-            <span className={`block text-[14px] font-semibold ${T_BASLIK}`}>Bu değişikliği tarife uygula</span>
-            <span className={`block text-[12px] ${T_SOLUK}`}>İşaretliyse tarif güncellenir, değişen malzeme ve adımların sonunda ✎ olur. İşaretsizse yalnızca günlük notu kalır.</span>
-          </span>
-        </label>
-        <button className="lz-btn-primary w-full" disabled={!dolu} onClick={() => kaydet({ degisiklik: degisiklik.trim() || undefined, deneyim: deneyim.trim() || undefined, sonuc, uygula: uygula && !!degisiklik.trim() })}>
-          Günlüğe kaydet
-        </button>
-        <button className="lz-btn-soft w-full" onClick={() => kaydet()}>
-          Not olmadan kaydet
-        </button>
+        {!duzenle && (
+          <label className="flex items-start gap-3 min-h-[44px] cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 w-5 h-5 flex-shrink-0"
+              checked={uygula}
+              onChange={(e) => {
+                setUygula(e.target.checked)
+                setUyari('')
+              }}
+              data-alan="uygula"
+            />
+            <span>
+              <span className={`block text-[14px] font-semibold ${T_BASLIK}`}>Bu değişikliği tarife uygula</span>
+              <span className={`block text-[12px] ${T_SOLUK}`}>İşaretliyse yalnızca Normal tarif güncellenir, değişen malzeme ve adımların sonunda ✎ olur. İşaretsizse yalnızca günlük notu kalır.</span>
+            </span>
+          </label>
+        )}
+        {uyari && (
+          <p className="rounded-xl bg-amber-50 dark:bg-[#33270f] text-amber-900 dark:text-amber-200 text-[13px] font-semibold px-3 py-2" role="alert" data-uyari>
+            {uyari}
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <button className="lz-btn-soft" onClick={vazgec} data-vazgec>
+            Vazgeç
+          </button>
+          <button className="lz-btn-primary" onClick={kaydet} data-kaydet>
+            Kaydet
+          </button>
+        </div>
       </div>
     </Sheet>
   )

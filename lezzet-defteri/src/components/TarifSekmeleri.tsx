@@ -29,3 +29,18 @@ export function TarifSekmeleri({ id, aktif }: { id: number; aktif: 'normal' | 't
     </div>
   )
 }
+
+// Normal tarif Pisirme Gunlugu'nden degistiyse (uyarlamadan sonra) TM7 / Pilav sekmesinin ustunde uyari; eski uyarlama silinmez
+export function UyarlamaUyarisi({ normalDegisti, uyarlama, yeniden }: { normalDegisti?: number; uyarlama?: number; yeniden?: () => void }) {
+  if (!normalDegisti || (uyarlama ?? 0) >= normalDegisti) return null
+  return (
+    <div className="rounded-2xl bg-amber-50 dark:bg-[#33270f] text-amber-900 dark:text-amber-200 text-[13.5px] p-3 flex items-center gap-2" role="status" data-uyarlama-uyari>
+      <span className="flex-1 font-semibold">Normal tarif değişti, yeniden uyarla</span>
+      {yeniden && (
+        <button className="lz-btn-soft !min-h-[40px] !px-3 text-[13px]" onClick={yeniden}>
+          Yeniden uyarla
+        </button>
+      )}
+    </div>
+  )
+}

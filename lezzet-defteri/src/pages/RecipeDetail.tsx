@@ -15,8 +15,9 @@ import { siraEkle } from '../lib/sira'
 import { siteyeKoy } from '../lib/cookidoo'
 import { TarifSekmeleri } from '../components/TarifSekmeleri'
 import { disariAc, kaynakLinki } from '../lib/disariAc'
-import { PisirmeNotu, SONUC_AD } from '../components/PisirmeNotu'
-import { isaretsiz, pisirmeKaydet } from '../lib/gunluk'
+import { CIHAZ_AD, PisirmeNotu, SONUC_AD } from '../components/PisirmeNotu'
+import type { PisirmeKaydi } from '../types'
+import { isaretsiz, kaydiDuzenle, kaydiSil, pisirmeKaydet } from '../lib/gunluk'
 import { pisirmeYazi } from './Recipes'
 
 export default function RecipeDetail() {
@@ -29,7 +30,8 @@ export default function RecipeDetail() {
   const [planAc, setPlanAc] = useState(false)
   const [paylasAc, setPaylasAc] = useState(false)
   const [pisirdimBekle, setPisirdimBekle] = useState(false)
-  const [notAc, setNotAc] = useState(false) // Pisirdim sonrasi "Nasil oldu?"
+  const [notAc, setNotAc] = useState(false)
+  const [duzenKayit, setDuzenKayit] = useState<PisirmeKaydi | null>(null) // gunluk satiri duzenleme // Pisirdim sonrasi "Nasil oldu?"
   const [acilamadi, setAcilamadi] = useState(false) // kaynak link acilamadi: link kopyalandi ve gosterilir
   const [toast, goster] = useToast()
   const [besinHesap, setBesinHesap] = useState(false)
@@ -255,9 +257,24 @@ export default function RecipeDetail() {
                   .sort((a, b) => b.zaman - a.zaman)
                   .map((p) => (
                     <li key={`${p.zaman}-${p.no}`} className={`py-2.5 text-[14px] leading-snug ${T_GOVDE}`} data-gunluk-satir>
-                      <div className={`font-semibold ${T_BASLIK}`}>
-                        {p.no}. pişirme · {new Date(p.zaman).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {p.sonuc ? ` · Sonuç: ${SONUC_AD[p.sonuc]}` : ''}
+                      <div className="flex items-start gap-2">
+                        <div className={`flex-1 min-w-0 font-semibold ${T_BASLIK}`}>
+                          {p.no}. pişirme · {new Date(p.zaman).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {p.cihaz ? ` · ${CIHAZ_AD[p.cihaz]}` : ''}
+                          {p.sonuc ? ` · Sonuç: ${SONUC_AD[p.sonuc]}` : ''}
+                        </div>
+                        <button className="lz-chip !min-h-[36px] !px-2.5 text-[12.5px]" onClick={() => setDuzenKayit(p)} data-gunluk-duzenle>
+                          Düzenle
+                        </button>
+                        <button
+                          className="lz-chip !min-h-[36px] !px-2.5 text-[12.5px] !text-rose-700 !border-rose-300 dark:!text-rose-300"
+                          onClick={() => {
+                            if (confirm(`${p.no}. pişirme kaydı silinsin mi? Pişirme sayısı 1 azalır.`)) void kaydiSil(r.id!, p.zaman)
+                          }}
+                          data-gunluk-sil
+                        >
+                          Sil
+                        </button>
                       </div>
                       {p.degisiklik && (
                         <div>
@@ -466,10 +483,25 @@ export default function RecipeDetail() {
       </div>
 
       <PisirmeNotu
+        open={!!duzenKayit}
+        duzenle={duzenKayit ?? undefined}
+        onVazgec={() => setDuzenKayit(null)}
+        onKaydet={async (g) => {
+          const k = duzenKayit
+          setDuzenKayit(null)
+          if (k) await kaydiDuzenle(r.id!, k.zaman, g)
+          goster('Günlük kaydı güncellendi')
+        }}
+      />
+      <PisirmeNotu
         open={notAc}
+        onVazgec={() => {
+          setNotAc(false) // hicbir sey kaydedilmez
+          setPisirdimBekle(false)
+        }}
         onKaydet={async (g) => {
           setNotAc(false)
-          const { uygulama } = await pisirmeKaydet(r.id!, g)
+          const { uygulama } = await pisirmeKaydet(r.id!, g, 'normal')
           goster(uygulama ? 'Günlüğe yazıldı; değişiklik tarife uygulanıyor…' : `Pişirdim olarak işaretlendi (${(r.cookCount ?? 0) + 1}. kez) · Yaptıklarım’da`)
           setTimeout(() => setPisirdimBekle(false), 1000) // yanlislikla cift dokunma sayilmasin
           if (uygulama) goster(await uygulama)

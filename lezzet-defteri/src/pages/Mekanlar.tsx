@@ -476,8 +476,8 @@ function MekanKarti({ m, km, cerceve = true }: { m: LzMekan; km?: number; cercev
           <Icon name="bookmark" className={`w-[15px] h-[15px] ${m.gitmekIstiyorum ? 'fill-current' : ''}`} />
         </button>
         {yeniMekan(m) && (
-          // Sol ust: "gitmek istiyorum" isaretinin hemen yaninda; yildiz (sag ust, 32 px) ile binmez
-          <span className="absolute top-[14px] left-12 text-[11px] font-extrabold tracking-[0.04em] px-2 py-1 rounded-md bg-lz-600 text-white shadow-sm" data-mekan-yeni-rozet>
+          // Sol ust: "gitmek istiyorum" isareti kosede (8 px + 32 px), rozet onun 4 px sagindan baslar; yildiz sag ustte
+          <span className="absolute top-[14px] left-[44px] text-[11px] font-extrabold tracking-[0.04em] px-2 py-1 rounded-md bg-lz-600 text-white shadow-sm" data-mekan-yeni-rozet>
             YENİ
           </span>
         )}

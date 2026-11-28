@@ -6,7 +6,7 @@ import { aiPilavPisirici } from '../lib/ai'
 import { PP_CIHAZLAR, maxGerekli, ppAcik, ppCihaz, ppDenetle, sureYazi } from '../lib/pisirici'
 import { MaxTencere, PpAdimKarti } from '../components/PpParcalar'
 import { Header, T_BASLIK, T_GOVDE, T_SOLUK } from '../components/ui'
-import { TarifSekmeleri } from '../components/TarifSekmeleri'
+import { TarifSekmeleri, UyarlamaUyarisi } from '../components/TarifSekmeleri'
 
 // PILAV PISIRICIDE: tarifin Instant Pot MRRC2001WE uyarlamasi
 export default function PpDetail() {
@@ -69,6 +69,7 @@ export default function PpDetail() {
       <Header title={r.title} subtitle={['Pilav pişirici', `${pp.steps.length} adım`, cihazDk ? `~${sureYazi(cihazDk)} cihaz` : ''].filter(Boolean).join(' · ')} back />
       <div className="px-4 space-y-3 pb-8">
         <TarifSekmeleri id={r.id!} aktif="pp" />
+        <UyarlamaUyarisi normalDegisti={r.normalDegisti} uyarlama={r.pp.createdAt} />
         <p className={`text-[12px] ${T_SOLUK}`}>{cihazAd}</p>
 
         {!pp.uygun && (

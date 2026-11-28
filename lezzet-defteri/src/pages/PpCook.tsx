@@ -113,10 +113,11 @@ export default function PpCook() {
       </div>
       <PisirmeNotu
         open={notAc}
+        onVazgec={() => setNotAc(false)} // hicbir sey kaydedilmez, pisirme ekraninda kalinir
         onKaydet={async (g) => {
           
           setNotAc(false)
-          await pisirmeKaydet(r.id!, g) // degisiklik uygulanacaksa arka planda; tarif sayfasi kendiliginden guncellenir
+          await pisirmeKaydet(r.id!, g, 'pp') // degisiklik uygulanacaksa arka planda; tarif sayfasi kendiliginden guncellenir
           navigate(-1)
         }}
       />

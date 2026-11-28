@@ -193,10 +193,11 @@ export default function Cook() {
 
       <PisirmeNotu
         open={notAc}
+        onVazgec={() => setNotAc(false)} // hicbir sey kaydedilmez, pisirme ekraninda kalinir
         onKaydet={async (g) => {
           bitti.current = true
           setNotAc(false)
-          await pisirmeKaydet(r.id!, g) // degisiklik uygulanacaksa arka planda; tarif sayfasi kendiliginden guncellenir
+          await pisirmeKaydet(r.id!, g, 'normal') // degisiklik uygulanacaksa arka planda; tarif sayfasi kendiliginden guncellenir
           navigate(-1)
         }}
       />

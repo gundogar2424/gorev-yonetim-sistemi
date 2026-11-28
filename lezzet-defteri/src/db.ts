@@ -86,13 +86,14 @@ export async function toggleFavorite(id: number): Promise<void> {
 // Pisirdim / Afiyet olsun!: sayi +1, son pisirme tarihi ve Pisirme Gunlugu'ne bir satir (alanlar istege bagli)
 export async function markCooked(
   id: number,
-  g?: { degisiklik?: string; deneyim?: string; sonuc?: 'iyi' | 'ayni' | 'kotu' }
+  g?: { degisiklik?: string; deneyim?: string; sonuc?: 'iyi' | 'ayni' | 'kotu' },
+  cihaz: 'normal' | 'tm' | 'pp' = 'normal'
 ): Promise<number> {
   const r = await lzDb.recipes.get(id)
   if (!r) return 0
   const zaman = Date.now()
   const no = (r.cookCount ?? 0) + 1
-  const satir: import('./types').PisirmeKaydi = { zaman, no }
+  const satir: import('./types').PisirmeKaydi = { zaman, no, cihaz }
   if (g?.degisiklik?.trim()) satir.degisiklik = g.degisiklik.trim().slice(0, 300)
   if (g?.deneyim?.trim()) satir.deneyim = g.deneyim.trim().slice(0, 400)
   if (g?.sonuc) satir.sonuc = g.sonuc

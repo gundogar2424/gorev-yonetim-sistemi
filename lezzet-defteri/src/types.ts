@@ -30,6 +30,7 @@ export interface LzRecipe {
   lastCookedAt: number
   // Pisirme gunlugu: her pisirmede tarih, kacinci kez ve istege bagli kayit (yalnizca bu ozellikten sonraki pisirmeler; eskiler icin uydurulmaz)
   pisirmeler?: PisirmeKaydi[]
+  normalDegisti?: number // Pisirme Gunlugu'nden tarife uygulanan son degisiklik (TM7/Pilav uyarlamasi bundan eskiyse uyari)
   createdAt: number
   updatedAt: number
 }
@@ -210,4 +211,5 @@ export interface PisirmeKaydi {
   deneyim?: string // Nasil oldu? / Deneyimim
   sonuc?: 'iyi' | 'ayni' | 'kotu'
   uygulandi?: boolean // degisiklik tarife uygulandi
+  cihaz?: 'normal' | 'tm' | 'pp' // hangi sekmeden / pisirme modundan kaydedildi
 }
