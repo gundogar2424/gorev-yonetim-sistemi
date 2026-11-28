@@ -343,9 +343,10 @@ fun CardFormScreen(
                                 // onceki aya geri sarmasin (27 Kas / 7 Ara -> 27 Eki / 7 Kas hatasi).
                                 // Degismediyse "ödedim" gecmisini aynen koru.
                                 lastPaidDueEpochDay = run {
-                                    val prevDue = existing?.let { CardCalc.currentDue(it, LocalDate.now()) }
-                                    if (existing != null && prevDue == dDate)
-                                        existing.lastPaidDueEpochDay.takeIf { it > 0L }
+                                    val ex = existing // delegated property: smart cast icin yerel kopya
+                                    val prevDue = ex?.let { CardCalc.currentDue(it, LocalDate.now()) }
+                                    if (ex != null && prevDue == dDate)
+                                        ex.lastPaidDueEpochDay.takeIf { it > 0L }
                                             ?: CardCalc.initialLastPaid(dDate.toEpochDay())
                                     else dDate.minusMonths(1).toEpochDay()
                                 },
